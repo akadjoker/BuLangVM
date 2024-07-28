@@ -1,0 +1,84 @@
+program teste;
+
+var maxX=screenWidth-40;
+var maxY=screenHeight-40;
+var minX=40;
+var minY=40;
+var gravity = 0.5;
+
+process bunny()
+{
+   
+    x = mouse_x();
+    y = mouse_y();
+    var speedX=rand()*8;
+    var speedY=rand()*5 -2.5;
+    var life=0;
+    loop 
+    {
+        
+        x = x + speedX;
+        y = y + speedY;
+
+        speedY = speedY + gravity;
+
+        if (x > maxX)
+        {
+            speedX = speedX + -1;
+            x = maxX;
+        } elif(x<minX)
+        {
+            speedX = speedX * -1;
+            x = minX;
+        }
+
+        if (y> maxY)
+        {
+            speedY = speedY * -0.8;
+            y = maxY;
+            if (rand()>0.5)
+            {
+                speedY = speedY -3  * rand()*4;
+            }
+        }elif(y<minY)
+        {
+            speedY=0;
+            y=minY;
+        }
+
+       
+      
+         
+    }
+
+}
+
+
+process game()
+{
+    var i=0;
+    loop 
+    {
+        
+      if (mouse_down(0))
+      {
+        for (i=0;i<1000;i=i+1)
+        {
+            bunny();
+        }
+      }
+
+         
+    }
+}
+
+
+//loadGraph("wabbit_alpha.png");
+
+bunny();
+
+game();
+
+
+
+print("byby");

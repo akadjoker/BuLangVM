@@ -1,0 +1,51 @@
+var b=true;
+va number=1.9;
+var integer=10;
+var text="string"
+
+for(var i=0; i<10;i++)
+{
+body
+}
+
+while(exp)
+{
+body
+}
+
+do
+{
+body
+}while(exp)
+
+loop
+{
+body
+}
+
+switch(exp)
+{
+    case 0:
+    {
+
+    }
+    default
+    {
+
+    }
+}
+
+def (a,b)
+{
+    return a+b;
+}
+
+process nave(x,y)
+{
+
+    
+    loop 
+    {
+
+    }
+}
