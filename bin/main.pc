@@ -73,7 +73,7 @@ process game()
 }
 
 
-//loadGraph("wabbit_alpha.png");
+
 
 bunny();
 

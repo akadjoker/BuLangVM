@@ -304,7 +304,7 @@ int main_game()
     //   SetTraceLogCallback(Native_TraceLog);
 
     InitWindow(screenWidth, screenHeight, "BuLang with Raylib");
-    SetTargetFPS(60);
+    SetTargetFPS(1000000);
 
     bunnyTex = LoadTexture("wabbit_alpha.png");
 
