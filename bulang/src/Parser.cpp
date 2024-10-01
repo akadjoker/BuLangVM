@@ -436,13 +436,61 @@ NodePtr Parser::unary(bool canAssign)
         return left;
     }
 
-    return primary(canAssign);
+    return call(canAssign);
 
 }
-   
 
+NodePtr Parser::call(bool canAssign)
+{
+
+    NodePtr expr = primary(canAssign);
+    // if (panicMode) return NONE;
+    // while (true)
+    // {
+    //     if (match(TokenType::LEFT_PAREN))
+    //     {
+    //         expr = finish_call(expr);
+    //     }
+    //     // else if (match(TokenType::DOT))
+    //     // {
+    //     //     Token name = consume(TokenType::IDENTIFIER, "Expect property name after '.'");
+    //     //     SharedPtr<Get> get = Make_Shared<Get>();
+    //     //     get->name = name;
+    //     //     get->object = std::move(expr);
+    //     //     expr = std::move(get);
+    //     // }
+    //     else
+    //     {
+    //         break;
+    //     }
+    // }
+    return expr;
+
+}
+
+NodePtr Parser::callStatement(bool native)
+{
+        Token name=previous();
+        consume(TokenType::LEFT_PAREN, "Expect '(' after 'function'");
+        SharedPtr<Call> call = Make_Shared<Call>();
+
+        Vector<NodePtr> args = argumentList(false);
+        if (panicMode) return NONE;
+
+        call->arguments = std::move(args);
+        call->op = name;
+
+        return call;
+
+}
 NodePtr Parser::primary(bool canAssign)
 {
+
+     if (match(TokenType::IDFUNCTION))
+    {
+        return callStatement(canAssign);
+    }
+
     if (match(TokenType::FALSE))
     {
         SharedPtr<BooleanLiteral> node = Make_Shared<BooleanLiteral>();
@@ -1005,6 +1053,7 @@ NodePtr Parser::function_declaration()
     if (panicMode) return NONE;
 
     SharedPtr<FunctionStatement> node = Make_Shared<FunctionStatement>();
+    node->name = name;
 
 
     if (!check(TokenType::RIGHT_PAREN))

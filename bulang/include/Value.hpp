@@ -42,6 +42,8 @@ class Factory;
 struct Scope;
 struct Traceable;
 struct StringObject;
+class Compiler;
+class Interpreter;
 
 struct Value
 {
@@ -73,12 +75,7 @@ struct StringObject : public Traceable
     StringObject(const Chars &str);
 };
 
-struct Function : public Traceable
-{
-    Chars name;
-    SharedPtr<Scope> scope;
-    Function();
-};
+
 
 struct Scope : public Traceable
 {
@@ -93,10 +90,6 @@ struct Scope : public Traceable
     bool lookup(const Chars &name, Value &value);
 
 
-    Scope(const Scope& other);                   // Copy constructor
-    Scope& operator=(const Scope& other);        // Copy assignment operator
-    Scope(Scope&& other) noexcept;               // Move constructor
-    Scope& operator=(Scope&& other) noexcept;    // Move assignment operator
 
 
     void print(bool parent = false);
@@ -109,7 +102,7 @@ struct Scope : public Traceable
 class Factory
 {
 public:
-    void Clear() const;
+    void Clear() ;
 
     static Factory &as();
 
@@ -118,6 +111,10 @@ public:
     Scope *CreateScope(Scope *parent = nullptr);
 
     void DestroyScope(Scope *scope);
+
+    Compiler *CreateCompiler(const Chars &name, Interpreter *i, Compiler *parent = nullptr);
+
+    void DestroyCompiler(Compiler *compiler);
 
     BlockArena arena;
 
@@ -129,6 +126,7 @@ private:
 
     Vector<StringObject *> strings;
     Vector<Scope *> scopes;
+    Vector<Compiler *> compilers;
     Vector<Scope> pool;
 };
 

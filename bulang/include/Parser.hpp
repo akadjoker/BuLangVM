@@ -68,7 +68,9 @@ private:
     NodePtr nil();
 
 
+    NodePtr call(bool canAssign);
 
+    NodePtr callStatement(bool native);
 
     NodePtr assignment(bool canAssign);
     NodePtr primary(bool canAssign);

@@ -352,6 +352,16 @@ struct MapStatement :Node
 	void accept(Visitor *v) override;
 };
 
+struct Call : Node 
+{
+	Token op;
+
+	Vector<NodePtr> arguments;
+	
+	Call() { type = NodeType::CALL_STATEMNT; }
+	void accept(Visitor *v) override;
+};
+
 
 
 class Visitor
@@ -401,6 +411,8 @@ class Visitor
 
 		virtual void visit_array(ArrayStatement *node)=0;
 		virtual void visit_map(MapStatement *node) = 0;
+
+		virtual void visit_call(Call *node) = 0;
 };
 
 
@@ -440,6 +452,8 @@ class ByteGenerator: Visitor
 
 		Interpreter* interpreter{ nullptr };
 		Compiler* current{ nullptr };
+
+		Value NONE;
 
 		void patchBreakJumps();
 
@@ -485,4 +499,6 @@ class ByteGenerator: Visitor
 		
 		void visit_array(ArrayStatement *node);
 		void visit_map(MapStatement *node);
+
+		void visit_call(Call *node);
 };

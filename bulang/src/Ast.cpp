@@ -255,3 +255,8 @@ void MapStatement::accept(Visitor *v)
 {
 	v->visit_map(this);
 }
+
+void Call::accept(Visitor *v)
+{
+	v->visit_call(this);
+}

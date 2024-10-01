@@ -659,6 +659,19 @@ void ByteGenerator::visit_return(ReturnStatement *node)
 
 void ByteGenerator::visit_function(FunctionStatement *node)
 {
+    INFO("Declare '%s' function",node->name.lexeme.c_str());
+    Compiler *prev = current;
+    Compiler *compiler = interpreter->newCompiler(node->name.lexeme.c_str(), current);
+    compiler->createScope(prev->local);
+    current = compiler;
+    current->args = std::move(node->names);
+
+    
+
+    node->body->accept(this);
+
+
+    current = prev;
 }
 
 void ByteGenerator::visit_struct(StructStatement *node)
@@ -671,6 +684,23 @@ void ByteGenerator::visit_array(ArrayStatement *node)
 
 void ByteGenerator::visit_map(MapStatement *node)
 {
+}
+
+void ByteGenerator::visit_call(Call *node)
+{
+    INFO("call %s",node->op.lexeme.c_str());
+
+    emitConstant(to_string(node->op.lexeme.c_str()),node->op.line);
+
+
+    for (u32 i = 0; i < node->arguments.size(); i++)
+    {
+        node->arguments[i]->accept(this);
+    }
+
+    u8 arguments = (u8)node->arguments.size();
+    emitBytes(OpCode::CALL_SCRIPT, arguments, node->op.line);
+    
 }
 
 //
@@ -687,6 +717,7 @@ ByteGenerator::ByteGenerator(Interpreter *i)
 {
     interpreter = i;
     current = i->getCurrent();
+    NONE = to_none();
 }
 
 ByteGenerator::~ByteGenerator()

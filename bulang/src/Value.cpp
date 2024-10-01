@@ -2,6 +2,7 @@
 #include "Value.hpp"
 #include "Utils.hpp"
 #include "Arena.hpp"
+#include "Interpreter.hpp"
 
 void *Malloc(u32 size, const char *file, u32 line);
 void Free(void *p, u32 size);
@@ -100,26 +101,39 @@ StringObject::StringObject(const Chars &str)
     type = ObjectType::OSTRING;
 }
 
-void Factory::Clear() const
+void Factory::Clear() 
 {
     INFO("Arena used %s of memory", memoryIn(arena.size()));
-    // for (auto str : strings)
-    // {
-    //     str->~StringObject();
-    //     ARENA_FREE(str, sizeof(StringObject));
-    // }
-    // strings.clear();
-    // INFO("Scopes %d", scopes.size());
-    // for (auto scope : scopes)
-    // {
-    //     scope->~Scope();
-    //     ARENA_FREE(scope, sizeof(Scope));
-    // }
-    // scopes.clear();
+
+    INFO("Strings %d", strings.size());
+    for (u32 i = 0; i < strings.size(); i++)
+    {
+        StringObject *str = strings[i];
+        str->~StringObject();
+        ARENA_FREE(str, sizeof(StringObject));
+    }
+
+    INFO("Scopes %d", scopes.size());
+    for (u32 i = 0; i < scopes.size(); i++)
+    {
+        Scope *scope = scopes[i];
+        scope->~Scope();
+        ARENA_FREE(scope, sizeof(Scope));
+    }
+
+    INFO("Compilers %d", compilers.size());
+    for (u32 i = 0; i < compilers.size(); i++)
+    {
+        Compiler *compiler = compilers[i];
+        compiler->~Compiler();
+        ARENA_FREE(compiler, sizeof(Compiler));
+    }
+
+    arena.Clear();
 
     ReportMemoryLeaks();
 
-    // arena.Clear();
+     
 }
 
 Factory &Factory::as()
@@ -130,13 +144,8 @@ Factory &Factory::as()
 
 Factory::Factory()
 {
-    // scopes.reserve(1024);
-    // strings.reserve(1024);
-
-    // for (int i = 0; i < 1024; i++)
-    // {
-    //     pool.emplace_back(nullptr);
-    // }
+     scopes.reserve(1024);
+     strings.reserve(1024);
 }
 
 Factory::~Factory()
@@ -178,15 +187,24 @@ Scope *Factory::CreateScope(Scope *parent)
 
 void Factory::DestroyScope(Scope *scope)
 {
-    //  scope->setParent(nullptr);
-    //    scope->values.clear();
-    //  pool.push_back(scope);
+  //  scope->~Scope();
+  //  ARENA_FREE(scope, sizeof(Scope));
+}
 
-    // scopes.push_back(scope);
+Compiler *Factory::CreateCompiler(const Chars &name, Interpreter *i, Compiler *parent)
+{
+    void *p = ARENA_ALLOC(sizeof(Compiler));
+    Compiler *obj = new (p) Compiler(name, i, parent);
+    compilers.push_back(obj);
+    return obj;
+   
+}
 
-    // delete scope;
-    //   scope->~Scope();
-    //    ARENA_FREE(scope, sizeof(Scope));
+void Factory::DestroyCompiler(Compiler *compiler)
+{
+
+    compiler->~Compiler();
+    ARENA_FREE(compiler, sizeof(Compiler));
 }
 
 //********************************************************** */
@@ -243,40 +261,7 @@ bool Scope::lookup(const Chars &name, Value &value)
     return false;
 }
 
-// Copy constructor
-Scope::Scope(const Scope &other) : values(other.values), parent(other.parent)
-{
-}
 
-// Copy assignment operator
-Scope &Scope::operator=(const Scope &other)
-{
-    if (this != &other)
-    {
-        values = other.values;
-        parent = other.parent;
-    }
-    return *this;
-}
-
-// Move constructor
-Scope::Scope(Scope &&other) noexcept
-    : values(std::move(other.values)), parent(other.parent)
-{
-    other.parent = nullptr; 
-}
-
-// Move assignment operator
-Scope &Scope::operator=(Scope &&other) noexcept
-{
-    if (this != &other)
-    {
-        values = std::move(other.values);
-        parent = other.parent;
-        other.parent = nullptr; 
-    }
-    return *this;
-}
 
 void Scope::print(bool withParent)
 {
@@ -471,8 +456,3 @@ bool is_match(Value a, Value b)
    
 }
 
-Function::Function()
-{
-
-    type = ObjectType::OFUNCTION;
-}

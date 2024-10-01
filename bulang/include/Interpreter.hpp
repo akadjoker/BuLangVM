@@ -124,7 +124,7 @@ struct Frame
     Compiler    *compiler;
     u8          *ip;
     Value       *slots;
-    Scope       *scope;
+    Scope       *scope{nullptr};
 
 };
 
@@ -168,7 +168,7 @@ class Compiler
 
     void abort();
 
-      u8 addConst(Value v);
+    u8 addConst(Value v);
     u8 addConstString(const char *str);
     u8 addConstNumber(double number);
     u8 addConstBoolean(bool b);
@@ -177,7 +177,7 @@ class Compiler
     bool addArg(const Chars &name);
   
 
-private:
+protected:
     friend class Interpreter;
     friend class Parser;
     friend class ByteGenerator;
@@ -203,8 +203,9 @@ private:
 
     Map<String, int> labels;
     Vector<JumpLabel> jumpLabels;
-
     Vector<PatchEntry> patchList;
+
+    
 
     bool  addLabel(const String &name,int position);
     bool  getLabel(const String &name, JumpLabel **label);
@@ -272,7 +273,10 @@ protected:
     friend class ByteGenerator;
     Compiler                *current;
     Vector<Compiler*>       compilers;
+
     Map<Chars, Compiler*>  compilerMap;
+
+    Compiler *addCompiler(const Chars &name, Compiler *parent);
 
     Compiler *newCompiler(const Chars &name, Compiler *parent=nullptr);
     Compiler *getCompiler(const Chars &name);

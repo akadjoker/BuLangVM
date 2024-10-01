@@ -26,8 +26,12 @@ target_include_directories(main PUBLIC  include src)
 
 if(CMAKE_BUILD_TYPE MATCHES Debug)
 
-target_compile_options(main PRIVATE  -g -Winvalid-pch -D_DEBUG)
-target_link_options(main PRIVATE   -g -Winvalid-pch -D_DEBUG) 
+if (UNIX)
+target_compile_options(main PRIVATE -fsanitize=address -fsanitize=undefined -fsanitize=leak -g  -D_DEBUG)
+target_link_options(main PRIVATE -fsanitize=address -fsanitize=undefined -fsanitize=leak -g  -D_DEBUG) 
+endif()
+
+
 elseif(CMAKE_BUILD_TYPE MATCHES Release)
     target_compile_options(main PRIVATE -O3   -DNDEBUG)
     target_link_options(main PRIVATE -O3   -DNDEBUG)

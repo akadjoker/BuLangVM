@@ -4,21 +4,21 @@
 
 
 
-const s32 stackSize = 16 * 1024;	
-const s32 maxStackEntries = 256;
-const s32 blockSizeCount = 14;
+const s64 stackSize = 16 * 1024;	
+const s64 maxStackEntries = 256;
+const s64 blockSizeCount = 14;
 
 struct ArenaBlock;
 struct ArenaChunk;
 
-void *cMalloc(s32 size);
+void *cMalloc(s64 size);
 
 void cFree(void *p);
 
 struct  StackEntry
 {
 	char* data;
-	s32 size;
+	s64 size;
 	bool usedMalloc;
 };
 
@@ -31,25 +31,25 @@ public:
 	~BlockArena();
 
 
-	void* Allocate(s32 size);
+	void* Allocate(s64 size);
 
 
-	void Free(void* p, s32 size);
+	void Free(void* p, s64 size);
 
 	void Reset();
 
 	void Clear();
 
-	s32  size() const { return m_total; }
+	s64  size() const { return m_total; }
 
 private:
 
 	ArenaChunk* m_chunks;
-	s32 m_chunkCount;
-	s32 m_chunkSpace;
-	s32 m_total;
-	s32 m_allocation;
-	s32 m_deallocation;
+	s64 m_chunkCount;
+	s64 m_chunkSpace;
+	s64 m_total;
+	s64 m_allocation;
+	s64 m_deallocation;
 
 	ArenaBlock* m_freeLists[blockSizeCount];
 };
@@ -63,21 +63,21 @@ public:
 	StackArena();
 	~StackArena();
 
-	void* Allocate(s32 size);
+	void* Allocate(s64 size);
 	void Free(void* p);
 
-	s32 GetMaxAllocation() const;
+	s64 GetMaxAllocation() const;
 
 private:
 
 	char m_data[stackSize];
-	s32 m_index;
+	s64 m_index;
 
-	s32 m_allocation;
-	s32 m_maxAllocation;
+	s64 m_allocation;
+	s64 m_maxAllocation;
 
 	StackEntry m_entries[maxStackEntries];
-	s32 m_entryCount;
+	s64 m_entryCount;
 };
 
 class Chunk

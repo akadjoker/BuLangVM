@@ -17,6 +17,19 @@ void Log(int severity, const char *fmt, va_list args);
 #define ERROR(fmt, ...) Log(2, fmt, ##__VA_ARGS__)
 #define PRINT(fmt, ...) Log(3, fmt, ##__VA_ARGS__)
 
+
+template <typename T>
+T Min(const T& a, const T& b) 
+{
+    return (a < b) ? a : b;
+}
+
+template <typename T>
+T Max(const T& a, const T& b) 
+{
+    return (a > b) ? a : b;
+}
+
 char *LoadTextFile(const char *fileName);
 void FreeTextFile(char *text);
 bool matchString(const char *str1, const char *str2, size_t bLen);

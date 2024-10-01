@@ -109,10 +109,8 @@ Compiler::Compiler(const Chars &name,Interpreter *i, Compiler *parent)
 
 Compiler::~Compiler()
 {
-    INFO("Destroying compiler %s", name.c_str());
+  //  INFO("Destroying compiler %s", name.c_str());
     delete chunk;
- //   Factory::as().DestroyScope(local);
-
 }
 
 void Compiler::set_frame()
@@ -120,6 +118,7 @@ void Compiler::set_frame()
     frameCount = 0;
     Frame *frame = &frames[frameCount++];
     frame->compiler = this;
+    frame->scope = local;
     frame->slots = stack;
     frame->ip = chunk->code;
 }
@@ -505,26 +504,7 @@ while (true)
             push(value);
             break;
         }
-    case OpCode::RETURN:
-    {
-        
-        Value result = pop();
-        frameCount--;
-        if (frameCount == 0)
-        {
-            INFO("return from '%s' ", frame->compiler->name.c_str());
-            PrintStack();
-            pop();
-            return INTERPRET_OK;
-        }
-        Scope* back = scopeStack.back();
-        scopeStack.pop_back();
-        Factory::as().DestroyScope(back);
-        stackTop = frame->slots;
-        push(result);
-        frame = &frames[frameCount - 1];
-        break;
-    }
+
 
 //*************************************************************** */
 //MATH EXPRESSIONS OPERATIONS
@@ -1222,15 +1202,42 @@ while (true)
             Value vName      = READ_CONSTANT();
             Chars name = as_string(vName);
             Value value;
-            Scope *scope = scopeStack.back();
-            if (scope->lookup(name, value))
+
+
+            if (frame->scope!=nullptr)
             {
-                push(value);
+         
+                if (frame->scope->lookup(name, value)) //is local
+                {   
+                    push(value);
+                } else 
+                {
+            
+                    Scope *scope = scopeStack.back();//is global 
+                    if (scope->lookup(name, value))
+                    {
+                        push(value);
+                    } else 
+                    {
+                        vm->Error("Undefined variable '%s' [line %d]", name.c_str(), line);
+                        return INTERPRET_RUNTIME_ERROR;
+                    }
+                }
             } else 
             {
-                vm->Error("Undefined variable '%s' [line %d]", name.c_str(), line);
-                return INTERPRET_RUNTIME_ERROR;
+
+                    Scope *scope = scopeStack.back();//is global 
+                    if (scope->lookup(name, value))
+                    {
+                        push(value);
+                    } else 
+                    {
+                        vm->Error("Undefined variable '%s' [line %d]", name.c_str(), line);
+                        return INTERPRET_RUNTIME_ERROR;
+                    }
             }
+            
+            
             break;
         }
         case OpCode::GLOBAL_ASSIGN:
@@ -1263,8 +1270,7 @@ while (true)
             
             Scope* back = scopeStack.back();
             scopeStack.pop_back();
-            Factory::as().DestroyScope(back);
-          //  INFO("Exit scope %p", back);
+   
        
   
             break;
@@ -1273,70 +1279,88 @@ while (true)
 //CALLS OPERATIONS
 //*************************************************************** */
 
-//         case OpCode::CALL_SCRIPT:
-//         {
-//             u8 argCount = READ_BYTE();
-//             Value nameValue = peek(argCount);
-//             String name = as_string(nameValue)->string;
-//             Compiler *task = vm->getCompiler(name);
+        case OpCode::CALL_SCRIPT:
+        {
+            u8 argCount = READ_BYTE();
+            Value nameValue = peek(argCount);
+            Chars name = as_string(nameValue);
 
-//             if (!task)
-//             {
-//                 vm->Error("Undefined function '%s' [line %d]", name.c_str(), line);
-//                 return INTERPRET_RUNTIME_ERROR;
-//             }
+ 
+        
+            Compiler *task = vm->getCompiler(name);
+
+            if (!task)
+            {
+                vm->Error("Undefined function '%s' [line %d]", name.c_str(), line);
+                return INTERPRET_RUNTIME_ERROR;
+            }
            
 
-//             if (task->argsCount() != argCount)
-//             {
-//                 vm->Error("Expected %d arguments in call to '%s', but got %d [line %d]", task->argsCount(), name.c_str(), argCount, line);
-//                 return INTERPRET_RUNTIME_ERROR;
-//             }
-//            // Factory::as().DestroyScope(task->local);
-
-      
-//             task->createScope(scopeStack.back());
-     
-//             scopeStack.push_back(task->local);
-
-          
-           
-//             int index = argCount-1;
-//             for (u8 i = 0; i < argCount; i++)
-//             {
-//                 task->local->define(task->args[i],peek(index--));
-//             }
-//           //  task->local->setParent(scope);
-
-           
-
-          
-
-//              frame = &frames[frameCount++];
-//              frame->compiler = task;
-//              frame->ip = task->chunk->code;
-//              frame->slots = stackTop       -argCount - 1;
-//              pop(argCount +1);
+            if (task->argsCount() != argCount)
+            {
+                vm->Error("Expected %d arguments in call to '%s', but got %d [line %d]", task->argsCount(), name.c_str(), argCount, line);
+                return INTERPRET_RUNTIME_ERROR;
+            }
 
 
+            Compiler* callTask = vm->addCompiler(name, this);
+            callTask->createScope(this->local);
 
 
-//             if (frameCount == MAX_FRAMES)
-//             {
-//                 vm->Error("Frames overflow [line %d]", line);
-//                 return INTERPRET_RUNTIME_ERROR;
-//             }
+            //INFO("Calling task '%s' with %d args", name.c_str(), task->args.size());
 
 
-//           //  PrintStack();
+            for (int i = argCount - 1; i >= 0; i--)
+            {
+                Value arg = peek(i);
+                const char *name = task->args[i].c_str();
+                callTask->local->define(name, arg);
+            }
+          //  scopeStack.push_back(callTask->local);
 
-//            // task->Disassemble();
+                // Scope *scopePref = frame->scope;   
 
-//            // INFO("Calling script %s", name.c_str());
-//             break;
-//         }
+                 frame = &frames[frameCount++];
+                 frame->compiler = task;
+                 frame->ip = task->chunk->code;
+                 frame->scope = callTask->local;
+                 frame->slots = stackTop       -argCount - 1;
+                 pop(argCount +1);
 
+                if (frameCount == MAX_FRAMES)
+                {
+                    vm->Error("Frames overflow [line %d]", line);
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                
 
+            //  PrintStack();
+
+            // task->Disassemble();
+
+            // INFO("Calling script %s", name.c_str());
+            break;
+        }
+
+    case OpCode::RETURN:
+    {
+        
+        Value result = pop();
+        frameCount--;
+        if (frameCount == 0)
+        {
+            INFO("return from '%s' ", frame->compiler->name.c_str());
+            PrintStack();
+            pop();
+            return INTERPRET_OK;
+        }
+        //INFO("return from '%s' ", frame->compiler->name.c_str());
+        frame->scope = frame->scope->parent; 
+        stackTop = frame->slots;
+        push(result);
+        frame = &frames[frameCount - 1];
+        break;
+    }
 
         default:
         {

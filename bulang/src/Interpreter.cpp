@@ -17,10 +17,9 @@ Interpreter::Interpreter()
 Interpreter::~Interpreter()
 {
     delete generator;
-    for (u32 i = 0; i < compilers.size(); ++i)
-    {
-        delete compilers[i];
-    }
+
+   
+    Factory::as().Clear();
 }
 
 bool Interpreter::Load(const String &source)
@@ -38,10 +37,13 @@ bool Interpreter::Load(const String &source)
 void Interpreter::Disassemble()
 {
 
-    for (u32 i = 0; i < compilers.size(); ++i)
-    {
-        compilers[i]->Disassemble();
-    }
+    current->Disassemble();
+   // compilers[0]->Disassemble();
+
+    // for (u32 i = 0; i < compilers.size(); ++i)
+    // {
+    //     compilers[i]->Disassemble();
+    // }
 }
 
 u8 Interpreter::Run()
@@ -56,9 +58,16 @@ void Interpreter::Clear()
 
 Compiler *Interpreter::newCompiler(const Chars &name, Compiler *parent)
 {
-    Compiler *compiler = new Compiler(name,this, parent);
+    Compiler *compiler = Factory::as().CreateCompiler(name, this, parent);
     compilers.push_back(compiler);
     compilerMap.insert( name, compiler );
+    return compiler;
+}
+
+Compiler *Interpreter::addCompiler(const Chars &name, Compiler *parent)
+{
+    Compiler *compiler =  Factory::as().CreateCompiler(name, this, parent);
+    //compilersGarbages.push_back(compiler);
     return compiler;
 }
 

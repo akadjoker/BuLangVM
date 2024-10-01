@@ -1,0 +1,25 @@
+def add(a,b)
+{
+
+    return a + b;
+}
+
+
+def fib(n) 
+{
+  if (n <= 1) return n;
+  return fib(n - 2) + fib(n - 1);
+}
+
+
+
+var c = add(1,2);
+
+
+var result = fib(8);
+
+print(result);
+
+
+print("byby!");
+
