@@ -42,7 +42,16 @@ int main()
 
 
   //  String code = readFile("C:\\Users\\lsant\\source\\repos\\vm\\main.bu");
-    String code = readFile("main.bu");
+  String code;
+
+#if defined(_WIN32)
+       code= readFile("../main.bu");
+
+   #else
+       code= readFile("main.bu");
+   #endif
+   
+
     if (code.length() == 0)
     {
         return 0;

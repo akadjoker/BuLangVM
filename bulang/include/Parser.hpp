@@ -39,6 +39,7 @@ private:
     int countEnds;
     Token tokenError;
     bool callReturn{ false };
+    
  
 
 
@@ -102,6 +103,7 @@ private:
     NodePtr declaration();
     NodePtr block();
     NodePtr print_statement();
+    NodePtr now_statement();
     
     NodePtr if_statement();
     NodePtr switch_statement();
@@ -125,6 +127,7 @@ private:
     NodePtr function_declaration();
     NodePtr class_declaration();
     NodePtr struct_declaration();
-    
+
+
 
 };

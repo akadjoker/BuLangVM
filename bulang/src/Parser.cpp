@@ -67,6 +67,7 @@ bool Parser::Parse(ByteGenerator* visitor)
  
 
     program->accept(visitor);
+
     return !panicMode;
 }
 
@@ -244,6 +245,9 @@ NodePtr Parser::expression(bool canAssign)
     return expr;
 }
 
+
+
+
 NodePtr Parser::assignment(bool canAssign)
 {
     NodePtr expr = expr_or(canAssign);
@@ -254,7 +258,6 @@ NodePtr Parser::assignment(bool canAssign)
     {
         if (!canAssign)
         {
-
               Error(token,"Invalid 'assignment' target");
               return expr;
         }
@@ -275,7 +278,57 @@ NodePtr Parser::assignment(bool canAssign)
             Error(token,"Invalid assignment target: "+ expr->ToString());
             return expr;
         }
+    } else  if (match(TokenType::PLUS_EQUAL))
+    {
+
+        Token op = previous();
+        NodePtr value = assignment(false);
+        if (expr->type == NodeType::VARIABLE)
+        {
+            Variable* v = (Variable*)expr.get();
+            SharedPtr<Assignment> assign = Make_Shared<Assignment>();
+            assign->name = v->name;
+            SharedPtr<Binary> addition = Make_Shared<Binary>();
+            addition->operation = op;  
+            addition->left  = std::move(expr);
+            addition->right = std::move(value);
+            assign->value = addition;
+            return assign;
+        }
+        else
+        {
+            Error(token,"Invalid assignment target for '+=' operator .");
+            return expr;
+        }
+
+    }else  if (match(TokenType::PLUS_EQUAL) || match(TokenType::MINUS_EQUAL) ||
+               match(TokenType::SLASH_EQUAL) || match(TokenType::STAR_EQUAL))
+    {
+
+        Token op = previous();
+        NodePtr value = assignment(false);
+        if (expr->type == NodeType::VARIABLE)
+        {
+            Variable* v = (Variable*)expr.get();
+            SharedPtr<Assignment> assign = Make_Shared<Assignment>();
+            assign->name = v->name;
+            SharedPtr<Binary> addition = Make_Shared<Binary>();
+            addition->operation = op;  
+            addition->left  = std::move(expr);
+            addition->right = std::move(value);
+            assign->value = addition;
+            return assign;
+        }
+        else
+        {
+            Error(token,"Invalid assignment target for '-=' operator .");
+            return expr;
+        }
     }
+
+        
+
+
     return expr;
 }
 
@@ -285,7 +338,7 @@ NodePtr Parser::expr_or(bool canAssign)
 {
     NodePtr expr = expr_and(canAssign);
     if (panicMode) return NONE;
-    while (match(TokenType::OR))
+    while (match(TokenType::OR) )
     {
         Token op = previous();
         NodePtr right = expr_and(false);
@@ -388,7 +441,7 @@ NodePtr Parser::term(bool canAssign)
 {
     NodePtr expr = factor(canAssign);
     if (panicMode) return NONE;
-    while (match(TokenType::MINUS) || match(TokenType::PLUS))
+    while (match(TokenType::MINUS) || match(TokenType::PLUS) )
     {
         Token op = previous();
         
@@ -402,6 +455,7 @@ NodePtr Parser::term(bool canAssign)
         expr = std::move(binary);
  
     }
+
     return expr;
 }
 
@@ -434,6 +488,39 @@ NodePtr Parser::unary(bool canAssign)
         left->operation = op;
         left->right =  std::move(right);
         return left;
+    }
+
+     if (match(TokenType::INC) || match(TokenType::DEC))
+    {
+        Token op = previous();
+        NodePtr right = unary(canAssign);
+
+        if (panicMode) return NONE;
+
+        if (right->type == NodeType::VARIABLE)
+        {
+            Variable* v = (Variable*)right.get();
+            SharedPtr<Assignment> assign = Make_Shared<Assignment>();
+            assign->name = v->name;
+           
+
+            SharedPtr<Unary> left = Make_Shared<Unary>();
+            left->operation = op;
+            left->right =  std::move(right);
+
+            assign->value = std::move(left);
+            return assign;
+
+        } else 
+        {
+            Error(op,"Invalid assignment target: "+ right->ToString());
+            return right;
+        }
+        
+     
+
+
+        return right;
     }
 
     return call(canAssign);
@@ -506,6 +593,12 @@ NodePtr Parser::primary(bool canAssign)
         node->value = true;
         return node;
     }
+
+    if (match(TokenType::NOW))
+    {
+        return now_statement();
+    }
+
     if (match(TokenType::GOTO))
     {
         return goto_statement();
@@ -537,7 +630,9 @@ NodePtr Parser::primary(bool canAssign)
 
     if (match(TokenType::IDENTIFIER))
     {
-       return variable(canAssign);    
+       NodePtr expr = variable(canAssign);    
+     
+       return expr;
     }
 
 
@@ -695,6 +790,13 @@ NodePtr Parser::print_statement()
     return print;
 }
 
+NodePtr Parser::now_statement()
+{
+    SharedPtr<Now> now = Make_Shared<Now>();
+    now->op = previous();
+    return now;
+}
+
 Vector<NodePtr> Parser::argumentList(bool canAssign)
 {
     Vector<NodePtr> args;
@@ -760,11 +862,42 @@ NodePtr Parser::variable(bool canAssign)
         node->name = name;
         node->value = std::move(value);
         return node;
-    }  else 
+    }
+    else 
     {
-        SharedPtr<Variable> node = Make_Shared<Variable>();
-        node->name = name;
-        return node;
+        SharedPtr<Variable> v = Make_Shared<Variable>();
+        v->name = name;
+        
+        if (match(TokenType::INC) || match(TokenType::DEC))
+        { 
+             
+            Token op = previous();
+
+  
+        
+            SharedPtr<Unary> unaryOp = Make_Shared<Unary>();
+            unaryOp->operation = op;
+            unaryOp->right = v;
+
+            SharedPtr<Assignment> assign = Make_Shared<Assignment>();
+            assign->name = name;
+            assign->value = std::move(unaryOp);
+            
+
+        // Retorna o nó que primeiro lê a variável, faz a operação, e depois faz o assign
+            SharedPtr<Operator> action = Make_Shared<Operator>();
+            action->operation = OperationType::POSINCREMENT;
+            action->op = op;
+            action->variable  = v;
+            action->value     = assign;
+            return action;
+            // action->value     = v;
+        }
+
+         
+
+
+        return v;
     }
     return NONE;
 }
@@ -1020,6 +1153,7 @@ NodePtr Parser::return_statement()
     }
 
     consume(TokenType::SEMICOLON, "Expect ';' after return value.");
+    callReturn = true;
 
     return node;
 
@@ -1048,6 +1182,13 @@ NodePtr Parser::continue_statement()
 NodePtr Parser::function_declaration()
 {
     Token name = consume(TokenType::IDFUNCTION, "Expect function name.");
+
+    if (name.lexeme == "__main__")
+    {
+        interpreter->Error("Cannot use '__main__' as a function name");
+        return NONE;
+    }
+
     if (panicMode) return NONE;
     consume(TokenType::LEFT_PAREN, "Expect '(' after function name.");
     if (panicMode) return NONE;
@@ -1061,10 +1202,11 @@ NodePtr Parser::function_declaration()
         do
         {
            Token name =  consume(TokenType::IDENTIFIER, "Expect parameter name.");
-           node->names.push_back(name.lexeme.c_str());
+           node->names.push_back(name.lexeme);
         } while (match(TokenType::COMMA));
     }
     
+    callReturn = false;
 
     consume(TokenType::RIGHT_PAREN, "Expect ')' after parameters.");
     if (panicMode) return NONE;
@@ -1072,5 +1214,13 @@ NodePtr Parser::function_declaration()
     if (panicMode) return NONE;
     node->body = block();
     if (panicMode) return NONE;
+
+
+
+ //   Token prev = previous();
+   // if (!callReturn)
+  //      interpreter->Warning("Function '%s' without return value!", name.lexeme.c_str());
+    node->asreturn = callReturn;
+    callReturn = false;
     return node;
 }

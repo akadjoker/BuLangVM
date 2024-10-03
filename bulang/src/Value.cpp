@@ -117,16 +117,14 @@ void Factory::Clear()
     for (u32 i = 0; i < scopes.size(); i++)
     {
         Scope *scope = scopes[i];
-        scope->~Scope();
-        ARENA_FREE(scope, sizeof(Scope));
+        DestroyScope(scope);
     }
 
     INFO("Compilers %d", compilers.size());
     for (u32 i = 0; i < compilers.size(); i++)
     {
         Compiler *compiler = compilers[i];
-        compiler->~Compiler();
-        ARENA_FREE(compiler, sizeof(Compiler));
+        DestroyCompiler(compiler);
     }
 
     arena.Clear();
@@ -178,25 +176,27 @@ StringObject *Factory::CreateStringObject(const Chars &value)
 
 Scope *Factory::CreateScope(Scope *parent)
 {
-
+   
     void *p = ARENA_ALLOC(sizeof(Scope));
-    Scope *obj = new (p) Scope(parent);
-    scopes.push_back(obj);
-    return obj;
+    Scope *scope = new (p) Scope(parent);
+    scopes.push_back(scope);
+    return scope;
 }
 
 void Factory::DestroyScope(Scope *scope)
 {
-  //  scope->~Scope();
-  //  ARENA_FREE(scope, sizeof(Scope));
+    
+    scope->~Scope();
+    ARENA_FREE(scope, sizeof(Scope));
 }
 
 Compiler *Factory::CreateCompiler(const Chars &name, Interpreter *i, Compiler *parent)
 {
+  
     void *p = ARENA_ALLOC(sizeof(Compiler));
-    Compiler *obj = new (p) Compiler(name, i, parent);
-    compilers.push_back(obj);
-    return obj;
+    Compiler *compiler = new (p) Compiler(name, i, parent);
+    compilers.push_back(compiler);
+    return compiler;
    
 }
 

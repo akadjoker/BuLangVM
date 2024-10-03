@@ -121,10 +121,12 @@ u32 Compiler::disassembleInstruction(u32 offset)
     case OpCode::GLOBAL_GET:
         return constantInstruction("GLOBAL_GET", offset);
 
-    case OpCode::ENTER_SCOPE:
-        return simpleInstruction("ENTER_SCOPE", offset);
-    case OpCode::EXIT_SCOPE:
-        return simpleInstruction("EXIT_SCOPE", offset);
+    case OpCode::LOCAL_SET:
+        return byteInstruction("LOCAL_SET", offset);
+
+    case OpCode::LOCAL_GET:
+        return byteInstruction("LOCAL_GET", offset);
+
 
     case OpCode::SWITCH:
         return simpleInstruction("SWITCH", offset);

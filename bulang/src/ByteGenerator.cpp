@@ -90,7 +90,23 @@ void ByteGenerator::visit_nil(NilLiteral* node)
     emitConstant(to_none(),node->op.line);
 }
 
+void ByteGenerator::visit_operator(Operator *node)
+{
+    INFO("visit_operator %s", node->op.lexeme.c_str());
+    switch (node->operation)
+    {
+        case OperationType::POSINCREMENT:
+        {
 
+                node->variable->accept(this);
+                emitByte(OpCode::RINC, node->op.line);
+                node->value->accept(this);
+
+            break;
+        }
+    }
+
+}
 
 void ByteGenerator::visit_binary(Binary *node)
 {
@@ -149,6 +165,21 @@ void ByteGenerator::visit_binary(Binary *node)
     case TokenType::XOR:
         emitByte(OpCode::XOR,line);
         break;
+    case TokenType::PLUS_EQUAL:
+        emitByte(OpCode::OPADD,line);
+        break;
+    case TokenType::MINUS_EQUAL:
+        emitByte(OpCode::OPSUB,line);
+        break;
+    case TokenType::STAR_EQUAL:
+        emitByte(OpCode::OPMUL,line);
+        break;
+    case TokenType::SLASH_EQUAL:
+        emitByte(OpCode::OPDIV,line);
+        break;
+    case TokenType::INC:
+        emitByte(OpCode::RINC,line);
+        break;
 
     default:
         INFO("UNKNOW NODE (%s) ON BINARY",node->operation.toString().c_str());
@@ -175,6 +206,21 @@ void ByteGenerator::visit_unary(Unary *node)
         break;
     case TokenType::BANG:
         emitByte(OpCode::NOT, line);
+        break;
+    // case TokenType::INC://++i
+    //         if (node->isPrefix)
+    //             emitByte(OpCode::INC, line);
+    //         else
+    //             emitByte(OpCode::RINC, line);
+    //         break;
+    // case TokenType::DEC:
+    //         if (node->isPrefix)
+    //             emitByte(OpCode::DEC, line);
+    //         else
+    //             emitByte(OpCode::RDEC, line);
+    //         break;
+    default:
+        INFO("UNKNOW NODE (%s) ON UNARY",node->operation.toString().c_str());
         break;
     }
 
@@ -215,7 +261,7 @@ void ByteGenerator::visit_program(Program *node)
             INFO("label not found %s", name.c_str());
         }
     } 
-
+    current->set_frame();
 
 }
 
@@ -229,7 +275,8 @@ void ByteGenerator::visit_block(Block *node)
 {
   //  INFO("visit_block");
 
-    emitByte(OpCode::ENTER_SCOPE, node->op.line);
+    //emitByte(OpCode::ENTER_SCOPE, node->op.line);
+    current->beginScope();
 
     size_t count = node->statements.size();
     for (size_t i = 0; i < count; i++)
@@ -237,7 +284,9 @@ void ByteGenerator::visit_block(Block *node)
         node->statements[i]->accept(this);
     }
 
-    emitByte(OpCode::EXIT_SCOPE, node->op.line);
+    current->exitScope(node->op.line);
+
+//    emitByte(OpCode::EXIT_SCOPE, node->op.line);
 }
 
 void ByteGenerator::visit_print(Print *node)
@@ -247,31 +296,78 @@ void ByteGenerator::visit_print(Print *node)
     emitByte(OpCode::PRINT, node->op.line);
 }
 
+void ByteGenerator::visit_now(Now * node)
+{
+    emitByte(OpCode::NOW, node->op.line);
+}
+
+
+
 
 void ByteGenerator::visit_declaration(Declaration *node)
 {
-    u8 index = addConstString(node->name.literal.c_str());
+   
     node->initializer->accept(this);
-    emitBytes(OpCode::GLOBAL_DEFINE, index, node->name.line);
+
+    INFO("declare var '%s' on  scope [ %d ] depth", node->name.lexeme.c_str(), current->scopeDepth);
+
+    if (current->scopeDepth == 0)
+    {
+         u8 index = addConstString(node->name.literal.c_str());
+        emitBytes(OpCode::GLOBAL_DEFINE, index, node->name.line);
+    } else
+    {
+
+        
+
+         if (current->declareVariable(node->name.lexeme, false)==-1)
+         {
+             interpreter->Error("Variable '%s' already declared in this scope", node->name.lexeme.c_str());
+         } 
+
+    }
+
+    
 }
 
 void ByteGenerator::visit_variable(Variable *node)
 {
-   // INFO("visit_variable  %d", node->op.line);
+   
 
-    u8 index = addConstString(node->name.literal.c_str());
-    emitBytes(OpCode::GLOBAL_GET, index, node->name.line);
+    int resolve = current->resolveLocal(node->name.lexeme);
+    INFO("read variable '%s' on  %d %d", node->name.lexeme.c_str(), current->scopeDepth, resolve);
+    if (resolve == -1)
+    {
+        u8 index = addConstString(node->name.literal.c_str());
+        emitBytes(OpCode::GLOBAL_GET, index, node->name.line);
+    } else 
+    {
+        emitBytes(OpCode::LOCAL_GET, resolve, node->name.line);
+    }
     
 }
 
 void ByteGenerator::visit_assignment(Assignment *node)
 {
-    u8 index = addConstString(node->name.literal.c_str());
+
+  
 
     node->value->accept(this);
 
 
-    emitBytes(OpCode::GLOBAL_ASSIGN, index, node->name.line);
+    int resolve = current->resolveLocal(node->name.lexeme);
+
+    INFO("assign variable '%s' on  %d %d", node->name.lexeme.c_str(), current->scopeDepth, resolve);
+
+    if (resolve == -1)
+    {
+        u8 index = addConstString(node->name.literal.c_str());
+        emitBytes(OpCode::GLOBAL_ASSIGN, index, node->name.line);
+    } else 
+    {
+        emitBytes(OpCode::LOCAL_SET, resolve, node->name.line);
+    }
+
 }
 
 void ByteGenerator::visit_if(IFStatement *node)
@@ -485,13 +581,12 @@ void ByteGenerator::visit_for(ForStatement *node)
     current->breakCount = 0;
     current->doContinue.clear();
 
-    emitByte(OpCode::ENTER_SCOPE, node->op.line);
+    current->beginScope();
 
     // 1. Inicializador  (for '*';; )
     if (node->initializer != nullptr)
     {
         node->initializer->accept(this); // initializer expression
-        emitByte(OpCode::POP, node->op.line); 
     }
 
     // 2. // exit condition expression  for (;'*';)
@@ -538,8 +633,8 @@ void ByteGenerator::visit_for(ForStatement *node)
     current->loopStart = previousLoopStart;
     current->breakCount = previousBreakJumpCount;
 
-
-    emitByte(OpCode::EXIT_SCOPE, node->op.line);
+   
+    current->exitScope(node->op.line);
 }
 
 
@@ -659,16 +754,32 @@ void ByteGenerator::visit_return(ReturnStatement *node)
 
 void ByteGenerator::visit_function(FunctionStatement *node)
 {
-    INFO("Declare '%s' function",node->name.lexeme.c_str());
+  //  INFO("Declare '%s' function",node->name.lexeme.c_str());
+
+
+
+
     Compiler *prev = current;
     Compiler *compiler = interpreter->newCompiler(node->name.lexeme.c_str(), current);
-    compiler->createScope(prev->local);
-    current = compiler;
-    current->args = std::move(node->names);
+    compiler->arity=static_cast<u32>(node->names.size());
 
     
+    compiler->declareVariable(node->name.lexeme, true);
 
+    for (u32 i = 0; i < node->names.size(); i++)
+    {
+       compiler->declareVariable(node->names[i].c_str(), true);
+    }
+
+    
+    current = compiler;
     node->body->accept(this);
+
+    if (!node->asreturn)
+    {
+       emitByte(OpCode::NIL, node->name.line);
+        emitByte(OpCode::RETURN, node->name.line);
+    }
 
 
     current = prev;
@@ -688,7 +799,7 @@ void ByteGenerator::visit_map(MapStatement *node)
 
 void ByteGenerator::visit_call(Call *node)
 {
-    INFO("call %s",node->op.lexeme.c_str());
+   // INFO("call %s",node->op.lexeme.c_str());
 
     emitConstant(to_string(node->op.lexeme.c_str()),node->op.line);
 

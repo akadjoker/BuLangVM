@@ -7,10 +7,14 @@
 #include "Ast.hpp"
 
 
+
+Value Interpreter::DEFAULT = to_none();
+
 Interpreter::Interpreter()
 {
     current = newCompiler("__main__", nullptr);
     generator = new ByteGenerator(this);
+    global = Factory::as().CreateScope(nullptr);
     
 }
 
@@ -48,7 +52,10 @@ void Interpreter::Disassemble()
 
 u8 Interpreter::Run()
 {
-    current->set_frame();
+    if (current == nullptr)
+    {
+        return 0;
+    } 
     return current->Run();
 }
 

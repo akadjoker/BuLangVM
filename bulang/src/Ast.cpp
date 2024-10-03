@@ -46,10 +46,14 @@ String Node::ToString()
 		return "PROGRAM";
 	case NodeType::EXSTATEMNT:
 		return "EXPRESSION STATEMENT";
+	case NodeType::EXOPERATOR:
+		return "EX OPRATOR";
 	case NodeType::BLOCK:
 		return "BLOCK";
 	case NodeType::PRINT:
 		return "PRINT";
+	case NodeType::NOW:
+		return "NOW";
 	case NodeType::GOTO:
 		return "GOTO";
 	case NodeType::GOSUB:
@@ -259,4 +263,14 @@ void MapStatement::accept(Visitor *v)
 void Call::accept(Visitor *v)
 {
 	v->visit_call(this);
+}
+
+void Now::accept(Visitor *v)
+{
+	v->visit_now(this);
+}
+
+void Operator::accept(Visitor *v)
+{
+	v->visit_operator(this);
 }

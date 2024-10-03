@@ -97,12 +97,16 @@ Compiler::Compiler(const Chars &name,Interpreter *i, Compiler *parent)
     parent = parent;
     vm = i;
     doContinue.reserve(256);
+    constants.reserve(256);
+    scopeDepth = 0;
+    localCount = 0;
+
     chunk = new Chunk();
-    scopeStack.reserve(1024);
+    
+
     if (name=="__main__")
     {
-        createScope();
-        scopeStack.push_back(local);
+
     }
   
 }
@@ -118,7 +122,6 @@ void Compiler::set_frame()
     frameCount = 0;
     Frame *frame = &frames[frameCount++];
     frame->compiler = this;
-    frame->scope = local;
     frame->slots = stack;
     frame->ip = chunk->code;
 }
@@ -131,7 +134,10 @@ Value Compiler::peek(int offset)
 bool Compiler::push( Value v)
 {
     if (stackTop - stack >= STACK_MAX)
+    {
+        ERROR("Stack overflow");
         return false;
+    }
     *stackTop =std::move(v);
     stackTop++;
     return true;
@@ -139,6 +145,12 @@ bool Compiler::push( Value v)
 
 Value Compiler::pop()
 {
+     if (stackTop == stack)
+    {
+       // INFO("[POP] is zero");
+        return Interpreter::DEFAULT;
+    }
+
     stackTop--;
     return *stackTop;
 }
@@ -153,7 +165,7 @@ void Compiler::pop(u32 count)
 
 void Compiler::PrintStack()
 {
-   // printf("          ");
+   printf(" Stack: ");
     for (Value *slot = stack; slot < stackTop; slot++)
     {
         printf("[ ");
@@ -161,13 +173,10 @@ void Compiler::PrintStack()
         printf("] ");
     }
 
- ///   printf("\n");
+   printf("\n");
 }
 
-void Compiler::createScope(Scope *parent )
-{
-    local = Factory::as().CreateScope(parent);
-}
+
 
 void Compiler::abort()
 {
@@ -211,24 +220,96 @@ u8 Compiler::addConstBoolean(bool b)
     return addConst(to_boolean(b));
 }
 
-bool Compiler::addArg(const Chars &name)
+
+
+void Compiler::beginScope()
 {
-    if (argsCount() >= 255)
-    {
-        vm->Error("Too many arguments in  compiler");
-        return false;
-    }
-    for (size_t i = 0; i < args.size(); i++)
-    {
-        if (args[i] == name)
-        {
-            return false;
-        }
-    }
-    args.push_back(name);
-    return true;
+    scopeDepth++;
+ //   INFO("begin scope %d", scopeDepth);
+ 
 }
 
+void Compiler::exitScope(int line)
+{
+   // INFO("exit scope %d count %d", scopeDepth,localCount);
+    scopeDepth--;
+    while (localCount > 0 && (locals[localCount - 1].depth > scopeDepth  && !locals[localCount - 1].isArg) )
+    {
+       // INFO("Pop local %s in scope %d Compiler %s", locals[localCount - 1].name, locals[localCount - 1].depth, this->name.c_str());
+        write_byte(OpCode::POP,line);
+        localCount--;
+    }
+}
+
+int Compiler::addLocal(const char *name, u32 len,bool isArg)
+{
+    if (localCount == UINT8_MAX)
+    {
+        vm->Error("Too many local variables in Compiler");
+        return -1;
+    }
+    Local *local = &locals[localCount++];
+    strcpy(local->name, name);
+    local->len = len;
+    local->name[len] = '\0';
+    local->depth = scopeDepth;
+    local->isArg = isArg;
+
+  //  INFO("Add local %s in scope %d Compiler %s", local->name, local->depth, this->name.c_str());
+    
+
+    return localCount - 1;
+}
+int Compiler::declareVariable(const String &string,bool isArg) 
+{
+    for (int i = localCount - 1; i >= 0; i--) 
+    {
+        Local* local = &locals[i];
+        if (local->depth != -1 && local->depth < scopeDepth) 
+        {
+            break;
+        }
+        if (matchString(local->name, string.c_str(), string.length()))
+        {
+            vm->Error("Variable with this %s name already declared in this scope.", local->name);
+            return -1;
+        }
+    }
+    return  addLocal(string.c_str(),string.length(),isArg);
+}
+
+int Compiler::resolveLocal(const String &string) 
+{
+    for (int i = localCount - 1; i >= 0; i--) 
+    {
+        Local *local = &locals[i];
+       // INFO("Resolve local %s in scope %d Compiler %s", local->name, local->depth, this->name.c_str());
+        if (matchString(local->name, string.c_str(), string.length()))
+        {
+            if (local->depth == -1) 
+            {
+                vm->Error("Can't read local variable in its own initializer.");
+            }
+            return i;
+        }
+    }
+      return -1;
+}
+bool Compiler::setLocalVariable(const String &string, int index)
+{
+    if (index < 0 && index > UINT8_MAX  )
+    {
+        return false;
+    }
+    Local *local = &locals[index];
+    strcpy(local->name, string.c_str());
+    local->len = string.length();
+    local->name[local->len] = '\0';
+    local->depth = 0;
+    localCount++;
+    return true;
+
+}
 bool Compiler::addLabel(const String &name,int position)
 {
     int index = (int)jumpLabels.size();
@@ -297,7 +378,7 @@ u8 Compiler::makeConstant(Value value)
     int constant = (int)addConst(std::move(value));
     if (constant > 255)
     {
-        vm->Error("Too many constants in  task");
+        vm->Error("Too many constants in  Compiler");
         return 0;
     }
     return (u8)constant;
@@ -567,8 +648,8 @@ while (true)
             else
             {
                 vm->Error("invalid 'adding' operands");
-                printValue(a);
-                printValue(b);
+                //printValue(a);
+                //printValue(b);
                 return INTERPRET_RUNTIME_ERROR;
             }
         break;
@@ -847,8 +928,8 @@ while (true)
         }
         case OpCode::NOW:
         {
-            Value time = to_number(time_now());
-            push(std::move(time));
+
+            push(std::move(to_number(time_now())));
             break;
         }
 
@@ -913,244 +994,147 @@ while (true)
 //OPERATORS OPERATIONS
 //*************************************************************** */
 
-        case ::INC:
+        case OpCode::INC:
         {
-            Value name = pop();
-            Chars  nameStr = as_string(name);
-            Scope *scope = scopeStack.back();
-            Value value;
-            if (scope->lookup(nameStr, value))
+            Value value = peek();
+             if (is_number(value))
             {
-                if (is_number(value))
-                {
                     double _value = as_number(value);
-                    ++_value;
-                    value = to_number(_value);
-                    scope->assign(nameStr, std::move(value));
-                    push(value);
-                }
-                else
-                {
-                    vm->Error("Variable '%s' is not a number [line %d]", nameStr.c_str(), line);
-                    return INTERPRET_RUNTIME_ERROR;
-                }
-
-            }
-            else
+                    ++_value ;
+                    Value newValue  = to_number(_value);
+                    pop();
+                    push(newValue);
+            } else 
             {
-                vm->Error("Undefined variable '%s' [line %d]", nameStr.c_str(), line);
-                return INTERPRET_RUNTIME_ERROR;
+                    vm->Error("Operand '++' must be a number [line %d]", line);
+                    return INTERPRET_RUNTIME_ERROR;
             }
+
             break;
         }
         case OpCode::DEC:
         {
-            Value name = pop();
-            Chars  nameStr = as_string(name);
-            Value value;
-            Scope *scope = scopeStack.back();
-            if (scope->lookup(nameStr, value))
+           Value value = peek();
+             if (is_number(value))
             {
-                if (is_number(value))
-                {
                     double _value = as_number(value);
-                    --_value;
-                    value = to_number(_value);
-                    scope->assign(nameStr, std::move(value));
-                    push(value);
-                } else 
-                {
-                    vm->Error("Variable '%s' is not a number [line %d]", nameStr.c_str(), line);
-                    return INTERPRET_RUNTIME_ERROR;
-                }
-            }
-            else
+                    --_value ;
+                    Value newValue  = to_number(_value);
+                    pop();
+                    push(newValue);
+            } else 
             {
-                vm->Error("Undefined variable '%s' [line %d]", nameStr.c_str(), line);
-                return INTERPRET_RUNTIME_ERROR;
+                    vm->Error("Operand '--' must be a number [line %d]", line);
+                    return INTERPRET_RUNTIME_ERROR;
             }
             break;
         }
         case OpCode::RINC:
         {
-            Value name = READ_CONSTANT();
-            Chars  nameStr = as_string(name);
-            Value value;
-            Scope *scope = scopeStack.back();
-            if (scope->lookup(nameStr, value))
+            Value value = peek();
+            if (is_number(value))
             {
-                if (is_number(value))
-                {
-                    push(value);
+               
                     double _value = as_number(value);
-                    _value++;
-                    value = to_number(_value);
-                    scope->assign(nameStr, std::move(value));
-                    
-                }
-                else
-                {
-                    vm->Error("Variable '%s' is not a number [line %d]", nameStr.c_str(), line);
-                    return INTERPRET_RUNTIME_ERROR;
-                }
 
-            }
-            else
+                    _value++ ;
+                    Value newValue  = to_number(_value);
+                    pop();
+                    push(newValue);
+                            
+            } else 
             {
-                vm->Error("Undefined variable '%s' [line %d]", nameStr.c_str(), line);
-                return INTERPRET_RUNTIME_ERROR;
+                    vm->Error("Operand 'post ++' must be a number [line %d]", line);
+                    return INTERPRET_RUNTIME_ERROR;
             }
+            
             break;
         }
         case OpCode::RDEC:
         {
-            Value name = READ_CONSTANT();
-            Chars  nameStr = as_string(name);
-            Value value;
-            Scope *scope = scopeStack.back();
-            if (scope->lookup(nameStr, value))
+             Value value = peek();
+             if (is_number(value))
             {
-                if (is_number(value))
-                {
-                    push(value);
-                    double _value = as_number(value);
+                    double _value  = as_number(value); 
                     _value--;
-                    value = to_number(_value);
-                    scope->assign(nameStr, std::move(value));
-                    
-                } else 
-                {
-                    vm->Error("Variable '%s' is not a number [line %d]", nameStr.c_str(), line);
-                    return INTERPRET_RUNTIME_ERROR;
-                }
-            }
-            else
+                    Value newValue  = to_number(_value);
+                    push(newValue);
+            } else 
             {
-                vm->Error("Undefined variable '%s' [line %d]", nameStr.c_str(), line);
-                return INTERPRET_RUNTIME_ERROR;
+                    vm->Error("Operand '--' must be a number [line %d]", line);
+                    return INTERPRET_RUNTIME_ERROR;
             }
+           
             break;
         }
         case OpCode::OPADD:
         {
-            Value name = READ_CONSTANT();
-            Value action = pop();
-            pop();
-            Chars  nameStr = as_string(name);
-            Value value;
-            Scope *scope = scopeStack.back();
-            if (scope->lookup(nameStr, value))
+            Value b = pop();
+            Value a = pop();
+            if (is_number(a) && is_number(b))
             {
-                if (is_number(value) && is_number(action))
-                {
-                    double _value = as_number(value);
-                    double _action = as_number(action);
-                    value = to_number(_value + _action);
-                    scope->assign(nameStr, std::move(value));
-             
-                }
-                else
-                {
-                    vm->Error("Variable '%s' is not a number [line %d]", nameStr.c_str(), line);
+                    Value result(to_number(as_number(a) + as_number(b)));
+
+                    push(std::move(result));
+            } else 
+            {
+                    vm->Error("Variable plus equal operator can only be used with numbers [line %d]", line);
                     return INTERPRET_RUNTIME_ERROR;
-                }
-            }
-            else
-            {
-                vm->Error("Undefined variable '%s' [line %d]", nameStr.c_str(), line);
-                return INTERPRET_RUNTIME_ERROR;
             }
             break;
         }
         case OpCode::OPSUB:
         {
-            Value name = READ_CONSTANT();
-            Value action = pop();
-            pop();
-            Chars  nameStr = as_string(name);
-            Value value;
-            Scope *scope = scopeStack.back();
-            if (scope->lookup(nameStr, value))
+            Value b = pop();
+            Value a = pop();
+            if (is_number(a) && is_number(b))
             {
-                if (is_number(value) && is_number(action))
-                {
-                    double _value = as_number(value);
-                    double _action = as_number(action);
-                    value = to_number(_value - _action);
-                    scope->assign(nameStr, std::move(value));
-                } else 
-                {
-                    vm->Error("Variable '%s' is not a number [line %d]", nameStr.c_str(), line);
+                    Value result(to_number(as_number(a) - as_number(b)));
+
+                    push(std::move(result));
+            } else 
+            {
+                    vm->Error("Variable plus equal operator can only be used with numbers [line %d]", line);
                     return INTERPRET_RUNTIME_ERROR;
-                }
             }
-            else
-            {
-                vm->Error("Undefined variable '%s' [line %d]", nameStr.c_str(), line);
-                return INTERPRET_RUNTIME_ERROR;
-            }
+           
             break;
         }
         case OpCode::OPMUL:
         {
-            Value name = READ_CONSTANT();
-            Value action = pop();
-            pop();
-            Chars  nameStr = as_string(name);
-            Value value;
-            Scope *scope = scopeStack.back();
-            if (scope->lookup(nameStr, value))
+           Value b = pop();
+            Value a = pop();
+            if (is_number(a) && is_number(b))
             {
-                if (is_number(value) && is_number(action))
-                {
-                    double _value = as_number(value);
-                    double _action = as_number(action);
-                    value = to_number(_value * _action);
-                    scope->assign(nameStr, std::move(value));
-                } else 
-                {
-                    vm->Error("Variable '%s' is not a number [line %d]", nameStr.c_str(), line);
+                    Value result(to_number(as_number(a) * as_number(b)));
+
+                    push(std::move(result));
+            } else 
+            {
+                    vm->Error("Variable plus equal operator can only be used with numbers [line %d]", line);
                     return INTERPRET_RUNTIME_ERROR;
-                }
-            }
-            else
-            {
-                vm->Error("Undefined variable '%s' [line %d]", nameStr.c_str(), line);
-                return INTERPRET_RUNTIME_ERROR;
             }
             break;
         }
         case OpCode::OPDIV:
         {
-            Value name = READ_CONSTANT();
-            Value action = pop();
-            pop();
-            Chars  nameStr = as_string(name);
-            Value value;
-            Scope *scope = scopeStack.back();
-            if (scope->lookup(nameStr, value))
+            Value b = pop();
+            Value a = pop();
+            if (is_number(a) && is_number(b))
             {
-                if (is_number(value) && is_number(action))
-                {
-                    double _value = as_number(value);
-                    double _action = as_number(action);
-                    if (_action == 0)
+                    if (as_number(b) == 0)
                     {
-                        vm->Error("Divide by zero [line %d]", line);
+                        vm->Error("Division by zero [line %d]", line);
                         return INTERPRET_RUNTIME_ERROR;
                     }
-                    value = to_number(_value / _action);
-                    scope->assign(nameStr, std::move(value));
-                } else 
-                {
-                    vm->Error("Variable '%s' is not a number [line %d]", nameStr.c_str(), line);
-                    return INTERPRET_RUNTIME_ERROR;
-                }
-            }
-            else
+
+                    Value result(to_number(as_number(a) / as_number(b)));
+
+                    push(std::move(result));
+            } else 
             {
-                vm->Error("Undefined variable '%s' [line %d]", nameStr.c_str(), line);
-                return INTERPRET_RUNTIME_ERROR;
+                    vm->Error("Variable plus equal operator can only be used with numbers [line %d]", line);
+                    return INTERPRET_RUNTIME_ERROR;
             }
             break;
         }
@@ -1158,7 +1142,29 @@ while (true)
 //*************************************************************** */
 //VARIABLE OPERATIONS
 //*************************************************************** */
+        case OpCode::LOCAL_SET:
+        {
+            u8 slot = READ_BYTE();
 
+            frame->slots[slot]= peek(0);
+            
+
+         //  printf("local get variable %d", slot);
+        //   printValue(frame->slots[slot]);
+
+        
+            break;
+        }
+        case OpCode::LOCAL_GET:
+        {
+            u8 slot = READ_BYTE();
+            
+//          printValue(frame->slots[slot]);
+          // INFO("local get variable %d %s", slot,frame->task->name.c_str());
+            push(frame->slots[slot]);
+
+            break;
+        }
 
          case OpCode::GLOBAL_DEFINE:
         {
@@ -1167,34 +1173,20 @@ while (true)
 
             Value constant = READ_CONSTANT();
             Chars name = as_string(constant);
-            Value value = pop();
-            Scope *scope = scopeStack.back();
+            Value value = peek();
+            Scope *scope = vm->globalScope();
             if (!scope->define(name, value))
             {
                 vm->Error("Variable '%s' already defined [line %d]", name.c_str(), line);
                 return INTERPRET_RUNTIME_ERROR;
             }
-
-            //printValue(value);
-          //  scope->print();
+            pop();
 
            break;
         }
         case OpCode::GLOBAL_SET:
         {
 
-         
-
-            // Scope *scope = scopeStack.back();
-            // Value value = pop();
-            // while (defines.size() > 0)
-            // {
-            //     Value name = defines.back();
-            //     String nameStr = as_string(name)->string;
-            //     defines.pop_back();
-            //     scope->define(nameStr, std::move(value));
-            // }
-            // defines.clear();
             break;
         }
         case OpCode::GLOBAL_GET:
@@ -1204,38 +1196,17 @@ while (true)
             Value value;
 
 
-            if (frame->scope!=nullptr)
+
+            Scope *scope = vm->globalScope();
+            if (scope->lookup(name, value))
             {
-         
-                if (frame->scope->lookup(name, value)) //is local
-                {   
-                    push(value);
-                } else 
-                {
-            
-                    Scope *scope = scopeStack.back();//is global 
-                    if (scope->lookup(name, value))
-                    {
-                        push(value);
-                    } else 
-                    {
-                        vm->Error("Undefined variable '%s' [line %d]", name.c_str(), line);
-                        return INTERPRET_RUNTIME_ERROR;
-                    }
-                }
+                push(value);
             } else 
             {
-
-                    Scope *scope = scopeStack.back();//is global 
-                    if (scope->lookup(name, value))
-                    {
-                        push(value);
-                    } else 
-                    {
-                        vm->Error("Undefined variable '%s' [line %d]", name.c_str(), line);
-                        return INTERPRET_RUNTIME_ERROR;
-                    }
+                vm->Error("Undefined variable '%s' [line %d]", name.c_str(), line);
+                return INTERPRET_RUNTIME_ERROR;
             }
+    
             
             
             break;
@@ -1244,37 +1215,17 @@ while (true)
         {
             
             Value vName = READ_CONSTANT();
-            Value value =pop();
-          //  printValue(vName);
-           // printValue(value);
+            Value value = peek();
             Chars name = as_string(vName);
-            Scope *scope = scopeStack.back();
-            if (!scope->assign(name, value))
+            Scope *scope = vm->globalScope();
+            if (!scope->assign(name, std::move(value)))
             {
                 vm->Error("Undefined variable '%s' [line %d]", name.c_str(), line);
                 return INTERPRET_RUNTIME_ERROR;
             }
             break;
         }
-        case OpCode::ENTER_SCOPE:
-        {
-            Scope *scope = scopeStack.back();
-            Scope* block = Factory::as().CreateScope(scope);
-            scopeStack.push_back(block);
-      
-           // INFO("Enter scope %p", block);
-            break;
-        }
-        case OpCode::EXIT_SCOPE:
-        {
-            
-            Scope* back = scopeStack.back();
-            scopeStack.pop_back();
-   
-       
-  
-            break;
-        }
+
 //*************************************************************** */
 //CALLS OPERATIONS
 //*************************************************************** */
@@ -1296,36 +1247,31 @@ while (true)
             }
            
 
-            if (task->argsCount() != argCount)
+            if (task->arity != argCount)
             {
-                vm->Error("Expected %d arguments in call to '%s', but got %d [line %d]", task->argsCount(), name.c_str(), argCount, line);
+                vm->Error("Expected %d arguments in call to '%s', but got %d [line %d]", task->arity, name.c_str(), argCount, line);
                 return INTERPRET_RUNTIME_ERROR;
             }
 
 
-            Compiler* callTask = vm->addCompiler(name, this);
-            callTask->createScope(this->local);
+         //   Compiler* callTask = vm->addCompiler(name, this);
+        //    callTask->beginScope();
+
+            //   for (int i = argCount - 1; i >= 0; i--)
+            // {
+            //     Value arg = peek(i);
+            //     const char *name = task->args[i].c_str();
+            //     callTask->declareVariable(name, true);
+            // }
 
 
-            //INFO("Calling task '%s' with %d args", name.c_str(), task->args.size());
 
-
-            for (int i = argCount - 1; i >= 0; i--)
-            {
-                Value arg = peek(i);
-                const char *name = task->args[i].c_str();
-                callTask->local->define(name, arg);
-            }
-          //  scopeStack.push_back(callTask->local);
-
-                // Scope *scopePref = frame->scope;   
-
+               //  task->beginScope();   
                  frame = &frames[frameCount++];
                  frame->compiler = task;
                  frame->ip = task->chunk->code;
-                 frame->scope = callTask->local;
                  frame->slots = stackTop       -argCount - 1;
-                 pop(argCount +1);
+                 //pop(argCount +1);
 
                 if (frameCount == MAX_FRAMES)
                 {
@@ -1334,9 +1280,8 @@ while (true)
                 }
                 
 
-            //  PrintStack();
 
-            // task->Disassemble();
+         //    task->Disassemble();
 
             // INFO("Calling script %s", name.c_str());
             break;
@@ -1349,13 +1294,13 @@ while (true)
         frameCount--;
         if (frameCount == 0)
         {
-            INFO("return from '%s' ", frame->compiler->name.c_str());
-            PrintStack();
+           // INFO("return from '%s' ", frame->compiler->name.c_str());
             pop();
+            PrintStack();
             return INTERPRET_OK;
         }
         //INFO("return from '%s' ", frame->compiler->name.c_str());
-        frame->scope = frame->scope->parent; 
+        frame->compiler->exitScope(line);
         stackTop = frame->slots;
         push(result);
         frame = &frames[frameCount - 1];

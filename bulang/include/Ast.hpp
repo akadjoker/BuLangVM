@@ -25,10 +25,12 @@ enum class NodeType
 	EXBINARY,
 	EXUNARY,
 	EXGROUPING,
+	EXOPERATOR,
 	PROGRAM,
 	EXSTATEMNT,
 	BLOCK,
 	PRINT,
+	NOW,
 	GOTO,
 	GOSUB,
 	LABEL,
@@ -130,9 +132,30 @@ struct Unary : Node
 {
 
 	Token operation;
+	bool isPrefix{ true };
 	NodePtr right{ nullptr };;
 	Unary():Node() { type = NodeType::EXUNARY; }
 	 void accept(Visitor* v) override;
+};
+
+
+enum class OperationType 
+{
+  
+	POSINCREMENT,// i++
+    POSDECREMENT,//i++
+};
+
+
+struct Operator : public Node 
+{
+
+	Token op;
+	NodePtr variable;    
+    NodePtr value;       
+    OperationType operation;
+	Operator() { type = NodeType::EXOPERATOR; }
+	void accept(Visitor* v) override;
 };
 
 struct Grouping : Node
@@ -142,6 +165,8 @@ struct Grouping : Node
 	Grouping():Node() { type = NodeType::EXGROUPING; }
 	 void accept(Visitor* v) override;
 };
+
+
 
 //statemns
 
@@ -180,6 +205,13 @@ struct Print: Node
 
 	Print() { type = NodeType::PRINT; }
 
+	 void accept(Visitor* v) override;
+};
+
+struct Now : Node
+{
+	Token op;
+	Now(){type = NodeType::NOW; }
 	 void accept(Visitor* v) override;
 };
 
@@ -322,8 +354,9 @@ struct ReturnStatement :Node
 struct FunctionStatement :Node 
 {
 	Token name;
-	Vector<Chars> names;
+	Vector<String> names;
 	NodePtr body;
+	bool asreturn{false};
 	FunctionStatement() {type = NodeType::FUNCTION_STATEMNT; }
 	void accept(Visitor *v) override;
 };
@@ -376,6 +409,8 @@ class Visitor
 		virtual void visit_boolean(BooleanLiteral* node) = 0;
 		virtual void visit_nil(NilLiteral* node) = 0;
 
+
+		virtual void visit_operator(Operator* node) = 0;
 		virtual void visit_binary(Binary* node) = 0;
 		virtual void visit_unary(Unary* node) = 0;
 		virtual void visit_grouping(Grouping* node) = 0;
@@ -383,7 +418,10 @@ class Visitor
 		virtual void visit_program(Program* node) = 0;
 		virtual void visit_expresion_statemnt(ExpresionStatement* node) = 0;
 		virtual void visit_block(Block* node) = 0;
+
+
 		virtual void visit_print(Print* node) = 0;
+		virtual void visit_now(Now* node) = 0;
 
 		virtual void visit_declaration(Declaration* node) = 0;
 		virtual void visit_variable(Variable* node) = 0;
@@ -464,6 +502,8 @@ class ByteGenerator: Visitor
 		void visit_boolean(BooleanLiteral* node) override;
 		void visit_nil(NilLiteral* node) override;
 
+
+		void visit_operator(Operator* node) override;
 		void visit_binary(Binary* node) override;
 		void visit_unary(Unary* node) override;
 		void visit_grouping(Grouping* node) override;
@@ -473,32 +513,35 @@ class ByteGenerator: Visitor
 		void visit_program(Program* node) override;
 		void visit_expresion_statemnt(ExpresionStatement* node) override; 
 		void visit_block(Block* node) override;
+
+
 		void visit_print(Print* node) override;
+		void visit_now(Now* node) override;
 
-		void visit_declaration(Declaration *node);
-		void visit_variable(Variable* node) ;
-		void visit_assignment(Assignment* node) ;
+		void visit_declaration(Declaration *node)override;
+		void visit_variable(Variable* node)override ;
+		void visit_assignment(Assignment* node) override;
 
-		void visit_if(IFStatement *node) ;
-		void visit_while(WhileStatement *node) ;
-		void visit_do(DoStatement *node) ;
-		void visit_switch(SwitchStatement *node);
-		void visit_for(ForStatement *node) ;
+		void visit_if(IFStatement *node) override;
+		void visit_while(WhileStatement *node) override;
+		void visit_do(DoStatement *node) override;
+		void visit_switch(SwitchStatement *node)override;
+		void visit_for(ForStatement *node) override;
 
-		void visit_label(LabelStatement *node) ;
-		void visit_go_to(GoToStatement *node) ;
-		void visit_go_sub(GoSubStatement *node) ;
+		void visit_label(LabelStatement *node) override;
+		void visit_go_to(GoToStatement *node) override;
+		void visit_go_sub(GoSubStatement *node)override ;
 		
-		void visit_break(BreakStatement *node);
-		void visit_continue(ContinueStatement *node);
-		void visit_return(ReturnStatement *node);
+		void visit_break(BreakStatement *node)override;
+		void visit_continue(ContinueStatement *node)override;
+		void visit_return(ReturnStatement *node)override;
 
-		void visit_function(FunctionStatement *node);
-		void visit_struct(StructStatement *node);
+		void visit_function(FunctionStatement *node)override;
+		void visit_struct(StructStatement *node)override;
 
 		
-		void visit_array(ArrayStatement *node);
-		void visit_map(MapStatement *node);
+		void visit_array(ArrayStatement *node)override;
+		void visit_map(MapStatement *node)override;
 
-		void visit_call(Call *node);
+		void visit_call(Call *node)override;
 };

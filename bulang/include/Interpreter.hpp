@@ -63,15 +63,13 @@ enum OpCode
     OPSUB,
     OPDIV,
     
+    LOCAL_SET,
+    LOCAL_GET,
 
     GLOBAL_DEFINE,
     GLOBAL_SET,
     GLOBAL_GET,
     GLOBAL_ASSIGN,
-
-    
-    ENTER_SCOPE,
-    EXIT_SCOPE,
 
 
 
@@ -119,12 +117,22 @@ enum OpCode
 #define INTERPRET_HALT (2)
 #define INTERPRET_OK (0)
 
+
+
+struct  Local
+{
+    char name[128]{'\0'};
+    u32 len;
+    int depth;
+    bool isArg;
+} ;
+
 struct Frame
 {
     Compiler    *compiler;
     u8          *ip;
     Value       *slots;
-    Scope       *scope{nullptr};
+
 
 };
 
@@ -162,9 +170,8 @@ class Compiler
     void pop(u32 count);
     void PrintStack();
 
-    Scope *local;
 
-    void createScope(Scope *parent = nullptr);
+
 
     void abort();
 
@@ -173,8 +180,16 @@ class Compiler
     u8 addConstNumber(double number);
     u8 addConstBoolean(bool b);
 
-    size_t argsCount() const { return args.size(); }
-    bool addArg(const Chars &name);
+
+
+    void beginScope();
+    void exitScope(int line);
+
+
+    int declareVariable(const String &string, bool isArg = false);
+    int addLocal(const char *name, u32 len, bool isArg = false);
+    int resolveLocal(const String &string);
+    bool setLocalVariable(const String &string, int index);
   
 
 protected:
@@ -186,7 +201,7 @@ protected:
     Chars name;
     Chunk *chunk;
 
-    Vector<Scope*> scopeStack;
+
     Trivial<int> doContinue;
     int loopStart = -1;
 
@@ -197,9 +212,15 @@ protected:
     
     Value stack[STACK_MAX];
     Value* stackTop;
+    
+    Local locals[UINT8_MAX];
+    int localCount{0};
+    int scopeDepth{0};
+    u32 arity{0};
+
     Frame frames[MAX_FRAMES];
-    Vector<Chars> args;
-    int frameCount;
+
+    int frameCount{0};
 
     Map<String, int> labels;
     Vector<JumpLabel> jumpLabels;
@@ -246,17 +267,14 @@ protected:
 
 class Interpreter
 {
-private:
-    bool panicMode{ false };
-    ByteGenerator* generator{ nullptr };
-    Compiler* compiler{ nullptr };
 
-     
 
 
 public:
     Interpreter();
     ~Interpreter();
+
+    Scope *globalScope() { return global; }
 
     bool Load(const String& source);
     
@@ -266,14 +284,18 @@ public:
     
     void Clear();
     
-protected:
+private:
     friend class Lexer;
     friend class Parser;
     friend class Compiler;
     friend class ByteGenerator;
+    bool panicMode{ false };
+    ByteGenerator* generator{ nullptr };
+    Compiler* compiler{ nullptr };
+    Scope *global;
     Compiler                *current;
     Vector<Compiler*>       compilers;
-
+    static Value DEFAULT;
     Map<Chars, Compiler*>  compilerMap;
 
     Compiler *addCompiler(const Chars &name, Compiler *parent);
