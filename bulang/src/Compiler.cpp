@@ -155,6 +155,18 @@ Value Compiler::pop()
     return *stackTop;
 }
 
+Value Compiler::top()
+{
+    if (stackTop == stack)
+    {
+       // INFO("[POP] is zero");
+      //  return VirtualMachine::DEFAULT;
+    }
+
+    stackTop--;
+    return std::move(*stackTop);
+}
+
 void Compiler::pop(u32 count)
 {
     for (u32 i = 0; i < count; i++)

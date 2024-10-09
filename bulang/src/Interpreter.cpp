@@ -63,6 +63,7 @@ void Interpreter::Clear()
 {
 }
 
+
 Compiler *Interpreter::newCompiler(const Chars &name, Compiler *parent)
 {
     Compiler *compiler = Factory::as().CreateCompiler(name, this, parent);
@@ -135,3 +136,59 @@ void Interpreter::Info(const char* format, ...)
     Log(0, format, args);
     va_end(args);
 }
+
+bool Interpreter::push(Value v)
+{
+   return current->push(v);
+}
+
+Value Interpreter::pop()
+{
+    return current->pop();
+}
+
+Value Interpreter::peek(int offset)
+{
+    return current->peek(offset);
+}
+
+Value Interpreter::top()
+{
+    return current->top();
+}
+
+void Interpreter::pop(u32 count)
+{
+    current->pop(count);
+}
+
+bool Interpreter::push_int(int v)
+{
+    return push(to_integer(v));
+}
+
+bool Interpreter::push_bool(bool v)
+{
+    return push(to_boolean(v));
+}
+
+bool Interpreter::push_float(float v)
+{
+    return push(to_number(v));
+}
+
+bool Interpreter::push_double(double v)
+{
+    return push(to_number(v));
+}
+
+bool Interpreter::push_string(const char *v)
+{
+    return push(to_string_c(v));
+}
+
+bool Interpreter::push_string(const String &v)
+{
+    return push(to_string_c(v.c_str()));
+}
+

@@ -283,6 +283,26 @@ public:
     u8 Run();
     
     void Clear();
+
+    
+    bool push_int(int v);
+    bool push_bool(bool v);
+    bool push_float(float v);
+    bool push_double(double v);
+    bool push_string(const char* v);
+    bool push_string(const String &v);
+
+    // bool is_bool(int index);
+    // bool is_number(int index);
+    // bool is_string(int index);
+
+    // int    as_int(int index);
+    // float  as_float(int index);
+    // double as_double(int index);
+    // char*  as_string(int index);
+
+
+
     
 private:
     friend class Lexer;
@@ -305,6 +325,11 @@ private:
 
     Compiler *getCurrent() { return current; }
 
+    bool  push( Value v); 
+    Value pop();
+    Value peek(int offset = 0);
+    Value top();
+    void pop(u32 count);
 
 
     void Error(const String& message);
