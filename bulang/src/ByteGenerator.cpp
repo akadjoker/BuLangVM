@@ -28,17 +28,6 @@ void ByteGenerator::visit(Node *node)
     //     visit_string(static_cast<StringLiteral*>(node));
     //     break;
     // case NodeType::EXPNIL:
-    //     visit_nil(static_cast<NilLiteral*>(node));
-    //     break;
-    // case NodeType::EXBINARY:
-    //     visit_binary(static_cast<Binary*>(node));
-    //     break;
-    // case NodeType::EXUNARY:
-    //     visit_unary(static_cast<Unary*>(node));
-    //     break;
-    // case NodeType::EXGROUPING:
-    //     visit_grouping(static_cast<Grouping*>(node));
-    //     break;
     // case NodeType::PROGRAM:
     //     visit_program(static_cast<Program*>(node));
     //     break;
@@ -309,7 +298,7 @@ void ByteGenerator::visit_declaration(Declaration *node)
    
     node->initializer->accept(this);
 
-    INFO("declare var '%s' on  scope [ %d ] depth", node->name.lexeme.c_str(), current->scopeDepth);
+  //  INFO("declare var '%s' on  scope [ %d ] depth", node->name.lexeme.c_str(), current->scopeDepth);
 
     if (current->scopeDepth == 0)
     {
@@ -335,7 +324,7 @@ void ByteGenerator::visit_variable(Variable *node)
    
 
     int resolve = current->resolveLocal(node->name.lexeme);
-    INFO("read variable '%s' on  %d %d", node->name.lexeme.c_str(), current->scopeDepth, resolve);
+ //   INFO("read variable '%s' on  %d %d", node->name.lexeme.c_str(), current->scopeDepth, resolve);
     if (resolve == -1)
     {
         u8 index = addConstString(node->name.literal.c_str());
@@ -357,7 +346,7 @@ void ByteGenerator::visit_assignment(Assignment *node)
 
     int resolve = current->resolveLocal(node->name.lexeme);
 
-    INFO("assign variable '%s' on  %d %d", node->name.lexeme.c_str(), current->scopeDepth, resolve);
+  //  INFO("assign variable '%s' on  %d %d", node->name.lexeme.c_str(), current->scopeDepth, resolve);
 
     if (resolve == -1)
     {

@@ -31,10 +31,10 @@ bool Parser::Load(const String& source)
     {
 
         tokens = lexer.GetTokens();
-        for (u32 i = 0; i < tokens.size(); i++)
-        {
-            INFO("%s", tokens[i].toString().c_str());
-        }
+        // for (u32 i = 0; i < tokens.size(); i++)
+        // {
+        //     INFO("%s", tokens[i].toString().c_str());
+        // }
         if (lexer.Ready())
         {
             return true;

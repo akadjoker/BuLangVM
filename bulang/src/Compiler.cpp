@@ -1296,7 +1296,7 @@ while (true)
         {
            // INFO("return from '%s' ", frame->compiler->name.c_str());
             pop();
-            PrintStack();
+           // PrintStack();
             return INTERPRET_OK;
         }
         //INFO("return from '%s' ", frame->compiler->name.c_str());
