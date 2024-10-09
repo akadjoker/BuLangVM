@@ -278,29 +278,6 @@ NodePtr Parser::assignment(bool canAssign)
             Error(token,"Invalid assignment target: "+ expr->ToString());
             return expr;
         }
-    } else  if (match(TokenType::PLUS_EQUAL))
-    {
-
-        Token op = previous();
-        NodePtr value = assignment(false);
-        if (expr->type == NodeType::VARIABLE)
-        {
-            Variable* v = (Variable*)expr.get();
-            SharedPtr<Assignment> assign = Make_Shared<Assignment>();
-            assign->name = v->name;
-            SharedPtr<Binary> addition = Make_Shared<Binary>();
-            addition->operation = op;  
-            addition->left  = std::move(expr);
-            addition->right = std::move(value);
-            assign->value = addition;
-            return assign;
-        }
-        else
-        {
-            Error(token,"Invalid assignment target for '+=' operator .");
-            return expr;
-        }
-
     }else  if (match(TokenType::PLUS_EQUAL) || match(TokenType::MINUS_EQUAL) ||
                match(TokenType::SLASH_EQUAL) || match(TokenType::STAR_EQUAL))
     {
@@ -321,7 +298,7 @@ NodePtr Parser::assignment(bool canAssign)
         }
         else
         {
-            Error(token,"Invalid assignment target for '-=' operator .");
+            Error(token,"Invalid assignment target for '"+op.lexeme+"' operator .");
             return expr;
         }
     }
@@ -490,38 +467,38 @@ NodePtr Parser::unary(bool canAssign)
         return left;
     }
 
-     if (match(TokenType::INC) || match(TokenType::DEC))
-    {
-        Token op = previous();
-        NodePtr right = unary(canAssign);
+    //  if (match(TokenType::INC) || match(TokenType::DEC))
+    // {
+    //     Token op = previous();
+    //     NodePtr right = unary(canAssign);
 
-        if (panicMode) return NONE;
+    //     if (panicMode) return NONE;
 
-        if (right->type == NodeType::VARIABLE)
-        {
-            Variable* v = (Variable*)right.get();
-            SharedPtr<Assignment> assign = Make_Shared<Assignment>();
-            assign->name = v->name;
+    //     if (right->type == NodeType::VARIABLE)
+    //     {
+    //         Variable* v = (Variable*)right.get();
+    //         SharedPtr<Assignment> assign = Make_Shared<Assignment>();
+    //         assign->name = v->name;
            
 
-            SharedPtr<Unary> left = Make_Shared<Unary>();
-            left->operation = op;
-            left->right =  std::move(right);
+    //         SharedPtr<Unary> left = Make_Shared<Unary>();
+    //         left->operation = op;
+    //         left->right =  std::move(right);
 
-            assign->value = std::move(left);
-            return assign;
+    //         assign->value = std::move(left);
+    //         return assign;
 
-        } else 
-        {
-            Error(op,"Invalid assignment target: "+ right->ToString());
-            return right;
-        }
+    //     } else 
+    //     {
+    //         Error(op,"Invalid assignment target: "+ right->ToString());
+    //         return right;
+    //     }
         
      
 
 
-        return right;
-    }
+    //     return right;
+    // }
 
     return call(canAssign);
 
@@ -863,42 +840,75 @@ NodePtr Parser::variable(bool canAssign)
         node->value = std::move(value);
         return node;
     }
-    else 
+     else  if (match(TokenType::INC))
     {
-        SharedPtr<Variable> v = Make_Shared<Variable>();
-        v->name = name;
+
+        Token op = previous();
+         SharedPtr<Variable> var = Make_Shared<Variable>();
+         var->name = name;
+
+        SharedPtr<NumberLiteral> value = Make_Shared<NumberLiteral>();
+        value->op = name;
+        value->value = 1;
+
         
-        if (match(TokenType::INC) || match(TokenType::DEC))
-        { 
+        INFO("INC (%s) %s",name.lexeme.c_str(),op.lexeme.c_str());
+     //   return expr;
+        // if (expr->type == NodeType::VARIABLE)
+        // {
+        //     Variable* v = (Variable*)expr.get();
+            SharedPtr<Assignment> assign = Make_Shared<Assignment>();
+            assign->name = name;
+            SharedPtr<Binary> addition = Make_Shared<Binary>();
+            addition->operation = op;  
+            addition->left  = std::move(var);
+            addition->right = std::move(value);
+            assign->value = addition;
+            return assign;
+        // }
+        // else
+        // {
+        //     Error(token,"Invalid assignment target for '++' operator .");
+        //     return expr;
+        // }
+
+    }
+    // else 
+    // {
+    //     SharedPtr<Variable> v = Make_Shared<Variable>();
+    //     v->name = name;
+        
+    //     if (match(TokenType::INC) || match(TokenType::DEC))
+    //     { 
              
-            Token op = previous();
+    //         Token op = previous();
 
   
         
-            SharedPtr<Unary> unaryOp = Make_Shared<Unary>();
-            unaryOp->operation = op;
-            unaryOp->right = v;
+    //         SharedPtr<Unary> unaryOp = Make_Shared<Unary>();
+    //         unaryOp->operation = op;
+    //         unaryOp->right = v;
 
-            SharedPtr<Assignment> assign = Make_Shared<Assignment>();
-            assign->name = name;
-            assign->value = std::move(unaryOp);
+    //         SharedPtr<Assignment> assign = Make_Shared<Assignment>();
+    //         assign->name = name;
+    //         assign->value = std::move(unaryOp);
             
 
-        // Retorna o nó que primeiro lê a variável, faz a operação, e depois faz o assign
-            SharedPtr<Operator> action = Make_Shared<Operator>();
-            action->operation = OperationType::POSINCREMENT;
-            action->op = op;
-            action->variable  = v;
-            action->value     = assign;
-            return action;
-            // action->value     = v;
-        }
+    //     // Retorna o nó que primeiro lê a variável, faz a operação, e depois faz o assign
+    //         SharedPtr<Operator> action = Make_Shared<Operator>();
+    //         action->operation = OperationType::POSINCREMENT;
+    //         action->op = op;
+    //         action->variable  = v;
+    //         action->value     = assign;
+    //         return action;
+    //         // action->value     = v;
+    //     }
 
          
 
 
-        return v;
-    }
+    //     return v;
+    // }
     return NONE;
 }
 

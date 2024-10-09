@@ -292,14 +292,14 @@ public:
     bool push_string(const char* v);
     bool push_string(const String &v);
 
-    // bool is_bool(int index);
-    // bool is_number(int index);
-    // bool is_string(int index);
+    bool is_bool(int index);
+    bool is_number(int index);
+    bool is_string(int index);
 
-    // int    as_int(int index);
-    // float  as_float(int index);
-    // double as_double(int index);
-    // char*  as_string(int index);
+    int    as_int(int index);
+    float  as_float(int index);
+    double as_double(int index);
+    char*  as_string(int index);
 
 
 

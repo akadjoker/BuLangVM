@@ -1,36 +1,17 @@
-def fib(n) 
+/*
+for (var i=0 ; i<3; i+=1)
 {
-  if (n < 2) return n;
-  return fib(n - 2) + fib(n - 1);
+    print(i);
 }
+*/
 
-
-var totalTests = 2;
-var totalTime = 0;
-
-
-var i=0;
 var j=0;
-while(i<totalTests)
+while(j<5)
 {
-  var start = now;
 
-   while(j<25)
-   {
-      fib(j);
-
-      j=j+1;
-   }
-    var time = now -start;
-    print("Test " + (i + 1) + ": " + time + " ms");
-    totalTime = totalTime + time;
-    i=i+1;
+    j++;
+    
+   // break;
 }
-
-
-var averageTime = totalTime / totalTests;
-print("Average time: " + averageTime + " ms");
-
-
 
 print("BY! BY!");

@@ -1008,14 +1008,13 @@ while (true)
 
         case OpCode::INC:
         {
-            Value value = peek();
+            Value value = pop();
              if (is_number(value))
             {
                     double _value = as_number(value);
                     ++_value ;
                     Value newValue  = to_number(_value);
-                    pop();
-                    push(newValue);
+                    push(std::move(newValue));
             } else 
             {
                     vm->Error("Operand '++' must be a number [line %d]", line);
@@ -1026,7 +1025,7 @@ while (true)
         }
         case OpCode::DEC:
         {
-           Value value = peek();
+           Value value = pop();
              if (is_number(value))
             {
                     double _value = as_number(value);

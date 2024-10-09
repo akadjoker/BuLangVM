@@ -192,3 +192,38 @@ bool Interpreter::push_string(const String &v)
     return push(to_string_c(v.c_str()));
 }
 
+bool Interpreter::is_bool(int index)
+{
+    return (current->stack[index].type == ValueType::VBOOLEAN);
+}
+
+bool Interpreter::is_number(int index)
+{
+    return (current->stack[index].type == ValueType::VNUMBER);
+}
+
+bool Interpreter::is_string(int index)
+{
+     return (current->stack[index].type == ValueType::VSTRING);
+}
+
+int Interpreter::as_int(int index)
+{
+     return as_integer(current->stack[index]);
+}
+
+float Interpreter::as_float(int index)
+{
+    return  static_cast<float>(as_number(current->stack[index]));
+}
+
+double Interpreter::as_double(int index)
+{
+    return as_number(current->stack[index]);
+}
+
+char *Interpreter::as_string(int index)
+{
+    const char* text = as_raw_string(current->stack[index]);
+    return (char*) text; 
+}

@@ -167,8 +167,11 @@ void ByteGenerator::visit_binary(Binary *node)
         emitByte(OpCode::OPDIV,line);
         break;
     case TokenType::INC:
-        emitByte(OpCode::RINC,line);
+        emitByte(OpCode::OPADD,line);
         break;
+    // case TokenType::DEC:
+    //     emitByte(OpCode::RDEC,line);
+    //     break;
 
     default:
         INFO("UNKNOW NODE (%s) ON BINARY",node->operation.toString().c_str());
