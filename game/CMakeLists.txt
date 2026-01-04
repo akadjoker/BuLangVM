@@ -51,7 +51,7 @@ elseif(CMAKE_BUILD_TYPE MATCHES Release)
     target_link_options(game PRIVATE -O3   -DNDEBUG )
 endif()
 
-target_link_libraries(game libwdiv raylib)
+target_link_libraries(game libbu raylib)
 
 if (WIN32)
     target_link_libraries(game Winmm.lib)
