@@ -22,6 +22,7 @@ add_subdirectory(libbu)
 add_subdirectory(external/raylib)
 add_subdirectory(main)
 add_subdirectory(game)
+add_subdirectory(divgraphics)
 
 
  
