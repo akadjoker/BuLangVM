@@ -166,10 +166,10 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
         case OP_GET_LOCAL:
         {
             uint8 slot = READ_BYTE();
-            const Value& value = stackStart[slot];
+            const Value &value = stackStart[slot];
 
-            //printf("[OP_GET_LOCAL] slot=%d, value=", slot);
-            //printValueNl(value); // ← ADICIONA ISTO
+            // printf("[OP_GET_LOCAL] slot=%d, value=", slot);
+            // printValueNl(value); // ← ADICIONA ISTO
 
             PUSH(value);
             break;
@@ -242,21 +242,21 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
             // String concatenation
             if (a.isString() && b.isString())
             {
-                String *result =stringPool.concat(a.asString(), b.asString());
+                String *result = stringPool.concat(a.asString(), b.asString());
                 PUSH(makeString(result));
                 break;
             }
             if (a.isString() && b.isDouble())
             {
-                String *right =stringPool.toString(b.asDouble());
-                String *result =stringPool.concat(a.asString(), right);
+                String *right = stringPool.toString(b.asDouble());
+                String *result = stringPool.concat(a.asString(), right);
                 PUSH(makeString(result));
                 break;
             }
             if (a.isString() && b.isInt())
             {
-                String *right =stringPool.toString(b.asInt());
-                String *result =stringPool.concat(a.asString(), right);
+                String *right = stringPool.toString(b.asInt());
+                String *result = stringPool.concat(a.asString(), right);
                 PUSH(makeString(result));
                 break;
             }
@@ -315,7 +315,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
                 break;
             }
 
-            runtimeError("Operands must be numbers");
+            runtimeError("Operands '-' must be numbers");
             return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
         }
 
@@ -347,7 +347,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
                 break;
             }
 
-            runtimeError("Operands must be numbers");
+            runtimeError("Operands '*' must be numbers");
             return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
         }
 
@@ -876,7 +876,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
                 Value literal = makeNativeClassInstance();
                 // Cria instance wrapper
                 NativeClassInstance *instance = literal.as.sClassInstance;
-         
+
                 instance->klass = klass;
                 instance->userData = userData;
 
@@ -1680,7 +1680,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
                         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
                     }
 
-                    String *result =stringPool.concat(str, arg.asString());
+                    String *result = stringPool.concat(str, arg.asString());
                     ARGS_CLEANUP();
                     PUSH(makeString(result));
                 }
@@ -1701,7 +1701,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
                         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
                     }
 
-                    String *result =stringPool.substring(
+                    String *result = stringPool.substring(
                         str,
                         (uint32_t)start.asNumber(),
                         (uint32_t)end.asNumber());
@@ -1725,7 +1725,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
                         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
                     }
 
-                    String *result =stringPool.replace(
+                    String *result = stringPool.replace(
                         str,
                         oldStr.asStringChars(),
                         newStr.asStringChars());
@@ -1747,7 +1747,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
                         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
                     }
 
-                    String *result =stringPool.at(str, (int)index.asNumber());
+                    String *result = stringPool.at(str, (int)index.asNumber());
                     ARGS_CLEANUP();
                     PUSH(makeString(result));
                 }
@@ -1767,14 +1767,14 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
                         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
                     }
 
-                    bool result =stringPool.contains(str, substr.asString());
+                    bool result = stringPool.contains(str, substr.asString());
                     ARGS_CLEANUP();
                     PUSH(makeBool(result));
                 }
 
                 else if (compare_strings(nameValue.asString(), staticNames[STATIC_TRIM]))
                 {
-                    String *result =stringPool.trim(str);
+                    String *result = stringPool.trim(str);
                     ARGS_CLEANUP();
                     PUSH(makeString(result));
                 }
@@ -1794,7 +1794,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
                         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
                     }
 
-                    bool result =stringPool.startsWith(str, prefix.asString());
+                    bool result = stringPool.startsWith(str, prefix.asString());
                     ARGS_CLEANUP();
                     PUSH(makeBool(result));
                 }
@@ -1814,7 +1814,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
                         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
                     }
 
-                    bool result =stringPool.endsWith(str, suffix.asString());
+                    bool result = stringPool.endsWith(str, suffix.asString());
                     ARGS_CLEANUP();
                     PUSH(makeBool(result));
                 }
@@ -1856,7 +1856,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
                         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
                     }
 
-                    int result =stringPool.indexOf(
+                    int result = stringPool.indexOf(
                         str,
                         substr.asString(),
                         startIndex);
@@ -1878,7 +1878,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
                         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
                     }
 
-                    String *result =stringPool.repeat(str, (int)count.asNumber());
+                    String *result = stringPool.repeat(str, (int)count.asNumber());
                     ARGS_CLEANUP();
                     PUSH(makeString(result));
                 }
@@ -2278,7 +2278,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
             uint8_t count = READ_BYTE();
             Value array = makeArray();
             ArrayInstance *instance = array.asArray();
-   
+
             instance->values.resize(count);
             for (int i = count - 1; i >= 0; i--)
             {
@@ -2436,7 +2436,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
                 }
 
                 String *str = container.asString();
-                String *result =stringPool.at(str, index.asInt());
+                String *result = stringPool.at(str, index.asInt());
                 PUSH(makeString(result));
                 break;
             }
@@ -2470,75 +2470,92 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
             PUSH(makeNil());
             return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
         }
-        case OP_FOREACH_START:
+        case OP_ITER_NEXT:
         {
 
-            Value arr = PEEK(); // [array]
+            Value iter = POP();
+            Value seq = POP();
 
-            // printValueNl(arr);
-
-            if (!arr.isArray())
+            if (!seq.isArray())
             {
-                runtimeError("foreach requires an array");
+                runtimeError(" Iterator next Type is not iterable");
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
 
-            PUSH(makeInt(0)); // [array, 0]
+            ArrayInstance *array = seq.as.array;
+            int index = iter.isNil() ? 0 : iter.as.integer + 1;
+
+            if (index < (int)array->values.size())
+            {
+                PUSH(makeInt(index));
+                PUSH(makeBool(true));
+            }
+            else
+            {
+                PUSH(makeNil());
+                PUSH(makeBool(false));
+            }
+
+            //  printStack();
             break;
         }
-        case OP_FOREACH_CHECK:
+
+        case OP_ITER_VALUE:
         {
 
-            Value index = PEEK();
-            Value array = PEEK2();
+            Value iter = POP();
+            Value seq = POP();
 
-            //  printf("index: ");
-            //  printValue(index);
-
-            // printf("\narray: ");
-            // printValueNl(array);
-
-            if (!array.isArray())
+            if (!seq.isArray())
             {
-                runtimeError("foreach requires an array");
+                runtimeError("Iterator Type is not iterable");
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
 
-            bool done = index.asInt() < array.asArray()->values.size();
+            ArrayInstance *array = seq.as.array;
+            int index = iter.as.integer;
 
-            push(makeBool(done));
+            if (index < 0 || index >= (int)array->values.size())
+            {
+                runtimeError("Iterator out of bounds");
+                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            }
+
+            PUSH(array->values[index]);
+
             break;
         }
-        case OP_FOREACH_NEXT:
+  
+            // 1. OP_COPY2: Duplica os 2 topos
+        case OP_COPY2:
         {
-
-            Value vindex = POP();  
-            Value varray = PEEK();  
-
-            if (!varray.isArray())
-            {
-                runtimeError("foreach requires an array");
-                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
-            }
-
-            ArrayInstance *array = varray.asArray();
-            int index = vindex.asInt();
-
-            if (index >= array->values.size())
-            {
-                runtimeError("Index out of bounds");
-                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
-            }
-
-            Value item = array->values[index];
-
             
-
-            PUSH(makeInt(index + 1)); //  [array, index+1]
-            PUSH(item);                      //  [array, index+1, item]
+            Value b = NPEEK(0);
+            Value a = NPEEK(1);
+            PUSH(a);
+            PUSH(b);
 
             break;
         }
+
+        // 2. OP_SWAP: Troca os 2 topos
+        case OP_SWAP:
+        {
+            Value a = POP();
+            Value b = POP();
+            PUSH(a);
+            PUSH(b);
+            break;
+        }
+
+        // 3. OP_DISCARD2: Remove 2 do topo
+        case OP_DISCARD2:
+        {
+            POP();
+            POP();
+            break;
+        }
+     
 
         default:
         {

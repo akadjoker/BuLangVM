@@ -83,7 +83,12 @@ enum Opcode : uint8
     OP_FUNC_LEN=53,
 
     // Foreach
-    OP_FOREACH_START = 54,
-    OP_FOREACH_NEXT = 55,
-    OP_FOREACH_CHECK = 56
+    OP_ITER_NEXT = 54,
+    OP_ITER_VALUE = 55,
+    OP_COPY2 = 56,
+    OP_SWAP = 57,
+    OP_DISCARD2 = 58,
+ 
+
+  
 };

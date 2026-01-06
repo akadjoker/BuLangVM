@@ -646,7 +646,7 @@ void Compiler::ifStatement()
     }
 }
 
-void Compiler::beginLoop(int loopStart)
+void Compiler::beginLoop(int loopStart, bool isForeach)
 {
     if (loopDepth_ >= MAX_LOOP_DEPTH)
     {
@@ -657,6 +657,7 @@ void Compiler::beginLoop(int loopStart)
     loopContexts_[loopDepth_].loopStart = loopStart;
     loopContexts_[loopDepth_].scopeDepth = scopeDepth;
     loopContexts_[loopDepth_].breakCount = 0;
+    loopContexts_[loopDepth_].isForeach = isForeach;
     loopDepth_++;
 }
 
@@ -697,6 +698,12 @@ void Compiler::emitBreak()
     LoopContext &ctx = loopContexts_[loopDepth_ - 1];
 
     discardLocals(ctx.scopeDepth + 1);
+
+    if (ctx.isForeach)
+    {
+         emitByte(OP_DISCARD2);
+    }
+
 
     if (!ctx.addBreak(emitJump(OP_JUMP)))
     {
@@ -955,7 +962,7 @@ void Compiler::forStatement()
     endScope(); // Limpa variáveis do initializer
  }
 
- 
+
 void Compiler::foreachStatement()
 {
     consume(TOKEN_LPAREN, "Expect '(' after 'foreach'");
@@ -963,61 +970,141 @@ void Compiler::foreachStatement()
     Token itemName = previous;
     consume(TOKEN_IN, "Expect 'in'");
     
-    expression(); // [array]
-    
+    expression();
     consume(TOKEN_RPAREN, "Expect ')'");
     
-    emitByte(OP_FOREACH_START);  // [array, 0]
-    
-    beginScope();
-    
-    // HACK: Cria locals "dummy" para ocupar os slots 0 e 1
-    // (que já estão ocupados pelo array e index no stack)
-    
-    Token dummy;
-    dummy.lexeme = "";
- 
-    dummy.line = itemName.line;
-    
-    // Dummy para o array (slot 0)
-    addLocal(dummy);
+    Token tmp;
+    tmp.lexeme = "__seq___";
+    tmp.type = TOKEN_IDENTIFIER;
+    tmp.column = previous.column;
+    addLocal(tmp);
+    markInitialized(); 
+    emitByte(OP_NIL);
+    tmp.lexeme = "__iter__";
+    addLocal(tmp);
     markInitialized();
-    
-    // Dummy para o index (slot 1)  
-    addLocal(dummy);
-    markInitialized();
-    
-    // AGORA o item vai para slot 2!
-    addLocal(itemName);
-    markInitialized();
-    uint8_t itemSlot = (uint8_t)(localCount_ - 1);
-    
-    printf("[COMPILER] itemSlot = %d\n", itemSlot);  // ← DEBUG
-    
     int loopStart = currentChunk->count;
+    beginLoop(loopStart, true);
     
-    emitByte(OP_FOREACH_CHECK);
+    emitByte(OP_COPY2);
+    emitByte(OP_ITER_NEXT);
+    
     int exitJump = emitJump(OP_JUMP_IF_FALSE);
     emitByte(OP_POP);
     
-    emitByte(OP_FOREACH_NEXT);
-    emitByte(OP_SET_LOCAL);
-    emitByte(itemSlot);  // Agora vai ser slot 2!
+    emitByte(OP_SWAP);
     emitByte(OP_POP);
     
-    beginLoop(loopStart);
+    emitByte(OP_COPY2);
+    emitByte(OP_ITER_VALUE);
+    
+    beginScope();
+    addLocal(itemName);
+    markInitialized();
     statement();
+    
+    endScope();  // Remove item (slot 2), faz POP
     
     emitLoop(loopStart);
     
     patchJump(exitJump);
-    emitByte(OP_POP);
-    emitByte(OP_POP);
-    emitByte(OP_POP);
+    emitByte(OP_DISCARD2);
+    emitByte(OP_DISCARD2);
+    
+    localCount_ -= 2;  // Remove seq e iter
     
     endLoop();
-    endScope();
 }
+
+ 
+
+// void Compiler::foreachStatement()
+// {
+//     consume(TOKEN_LPAREN, "Expect '(' after 'foreach'");
+//     consume(TOKEN_IDENTIFIER, "Expect variable name");
+//     Token itemName = previous;
+//     consume(TOKEN_IN, "Expect 'in'");
+    
+//     expression();
+//     consume(TOKEN_RPAREN, "Expect ')'");
+    
+//     beginScope();
+    
+    
+ 
+
+//     Token tmp;
+//     tmp.lexeme = "__seq___";
+//     tmp.type = TOKEN_IDENTIFIER;
+//     tmp.column = previous.column;
+
+
+//     addLocal(tmp);
+//     markInitialized();
+//     uint8_t seqSlot = localCount_ - 1;
+//     emitByte(OP_SET_LOCAL);
+//     emitByte(seqSlot);
+    
+ 
+    
+//     // var __iter = nil
+//     emitByte(OP_NIL);
+//     tmp.lexeme = "__ite___";
+//     addLocal(tmp);
+//     markInitialized();
+//     uint8_t iterSlot = localCount_ - 1;
+//     emitByte(OP_SET_LOCAL);
+//     emitByte(iterSlot);
+ 
+    
+ 
+    
+//     int loopStart = currentChunk->count;
+//     beginLoop(loopStart);
+    
+//     emitByte(OP_GET_LOCAL);
+//     emitByte(seqSlot);
+//     emitByte(OP_GET_LOCAL);
+//     emitByte(iterSlot);
+//     emitByte(OP_ITER_NEXT);
+    
+//     int exitJump = emitJump(OP_JUMP_IF_FALSE);
+//     emitByte(OP_POP);  //   POP (bool)
+    
+//     emitByte(OP_SET_LOCAL);
+//     emitByte(iterSlot);
+ 
+ 
+    
+//     emitByte(OP_GET_LOCAL);
+//     emitByte(seqSlot);
+//     emitByte(OP_GET_LOCAL);
+//     emitByte(iterSlot);
+//     emitByte(OP_ITER_VALUE);
+    
+//     beginScope();
+//     addLocal(itemName);
+//     markInitialized();
+//     uint8_t itemSlot = localCount_ - 1;
+//     emitByte(OP_SET_LOCAL);
+//     emitByte(itemSlot);
+ 
+ 
+    
+//     statement();
+//     endScope();
+    
+//     emitLoop(loopStart);
+    
+//     patchJump(exitJump);
+    
+ 
+
+      
+
+//     endLoop();
+//     endScope();
+// }
 
 
 

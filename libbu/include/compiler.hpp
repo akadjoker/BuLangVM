@@ -93,6 +93,7 @@ struct LoopContext
   int breakJumps[MAX_BREAKS_PER_LOOP];
   int breakCount;
   int scopeDepth;
+  bool isForeach;
 
   LoopContext() : loopStart(0), breakCount(0), scopeDepth(0) {}
 
@@ -177,7 +178,7 @@ private:
   bool match(TokenType type);
   void consume(TokenType type, const char *message);
 
-  void beginLoop(int loopStart);
+  void beginLoop(int loopStart,bool isForeach = false);
   void endLoop();
   void emitBreak();
   void pushScope();

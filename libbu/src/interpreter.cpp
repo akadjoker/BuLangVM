@@ -297,6 +297,27 @@ void Interpreter::addStructField(NativeStructDef *def, const char *fieldName,
   def->fields.set(name, field);
 }
 
+void Interpreter::printStack()
+{
+
+   if (currentFiber)
+  {
+ 
+    Fiber *fiber = currentFiber;
+    if (fiber->stackTop == fiber->stack)
+        printf("  (empty)\n");
+    else
+        printf("          ");
+        for (Value *slot = fiber->stack; slot < fiber->stackTop; slot++)
+        {
+            printf("[ ");
+            printValue(*slot);
+            printf(" ]");
+        }
+        printf("\n");
+  }
+}
+
 void Interpreter::disassemble()
 {
 

@@ -151,25 +151,7 @@ size_t Debug::disassembleInstruction(const Code &chunk, size_t offset)
   case OP_CALL:
     return byteInstruction("OP_CALL", chunk, offset);
 
-  // case OP_CALL_NATIVE:
-  // {
-  //   // operands: nameIdx (constant) + argCount
-  //   if (!hasBytes(chunk, offset, 2))
-  //   {
-  //     printf("OP_CALL_NATIVE <truncated>\n");
-  //     return chunk.count;
-  //   }
-  //   uint8 nameIdx = chunk.code[offset + 1];
-  //   uint8 argCount = chunk.code[offset + 2];
-
-  //   Value c = chunk.constants[nameIdx];
-  //   const char *nm = (c.isString() ? c.asString()->chars() : "<non-string>");
-
-  //   printf("%-16s %4u '%s' (%u args)\n", "OP_CALL_NATIVE", (unsigned)nameIdx,
-  //          nm, (unsigned)argCount);
-
-  //   return offset + 3;
-  // }
+ 
   case OP_INVOKE:
   {
     if (!hasBytes(chunk, offset, 2))
@@ -206,14 +188,21 @@ size_t Debug::disassembleInstruction(const Code &chunk, size_t offset)
   case OP_SET_INDEX:
     return simpleInstruction("OP_SET_INDEX", offset);
 
-case OP_FOREACH_START:
-    return simpleInstruction("OP_FOREACH_START", offset);
+case OP_ITER_NEXT:
+    return simpleInstruction("OP_ITER_NEXT", offset);
     
-case OP_FOREACH_NEXT:
-    return simpleInstruction("OP_FOREACH_NEXT", offset);
+case OP_ITER_VALUE:
+    return simpleInstruction("OP_ITER_VALUE", offset);
     
-case OP_FOREACH_CHECK:
-    return simpleInstruction("OP_FOREACH_CHECK", offset); 
+     
+case OP_COPY2:
+    return simpleInstruction("OP_COPY2", offset);
+        
+case OP_SWAP:
+    return simpleInstruction("OP_SWAP", offset);
+        
+case OP_DISCARD2:
+    return simpleInstruction("OP_DISCARD2", offset);
     
  
 

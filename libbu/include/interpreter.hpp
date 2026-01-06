@@ -718,6 +718,7 @@ public:
   bool getModuleId(const char *name, uint16 *outId);
   bool containsModule(const char *name);
 
+  void printStack();
   void disassemble();
 
   int addGlobal(const char *name, Value value);

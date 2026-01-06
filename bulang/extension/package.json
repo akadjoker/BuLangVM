@@ -1,0 +1,43 @@
+{
+  "name": "bulang",
+  "displayName": "BuLang",
+  "description": "Syntax highlighting for BuLang programming language",
+  "version": "0.1.2",
+  "publisher": "akadjoker",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "bulang",
+    "scripting",
+    "game development"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/akadjoker/bulang-vscode"
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "bulang",
+        "aliases": ["BuLang", "bulang"],
+        "extensions": [".bu"],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icon.png",
+          "dark": "./icon.png"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "bulang",
+        "scopeName": "source.bulang",
+        "path": "./syntaxes/bulang.tmLanguage.json"
+      }
+    ]
+  }
+}

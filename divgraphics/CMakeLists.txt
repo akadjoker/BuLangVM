@@ -23,7 +23,7 @@ file(GLOB SOURCES "src/*.cpp")
 add_executable(divgraphics   ${SOURCES})
 
 
-target_include_directories(libwdiv PUBLIC  include src)
+target_include_directories(libbu PUBLIC  include src)
 
 
 if(CMAKE_BUILD_TYPE MATCHES Debug)

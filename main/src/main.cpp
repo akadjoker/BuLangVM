@@ -171,6 +171,18 @@ Value native_clock(Interpreter *vm, int argCount, Value *args)
     return vm->makeDouble(static_cast<double>(clock()) / CLOCKS_PER_SEC);
 }
 
+
+Value native_print_stack(Interpreter *vm, int argCount, Value *args)
+{
+
+    if (argCount == 1)
+    {
+        Info("%s", args[0].asString()->chars());
+    }
+
+    vm->printStack();
+    return vm->makeNil();
+}
  
 
 Value native_rand(Interpreter *vm, int argCount, Value *args)
@@ -278,7 +290,8 @@ int main()
 
     vm.registerNative("write", native_write, -1);
     vm.registerNative("format", native_format, -1);
-     vm.registerNative("clock", native_clock, 0);
+    vm.registerNative("clock", native_clock, 0);
+    vm.registerNative("print_stack", native_print_stack, -1);
 
 
     vm.addModule("math")
@@ -312,16 +325,16 @@ int main()
     }
 
  
-    if (vm.functionExists("update"))
-    {
-        vm.callFunction("update", 0);
-    }
+    // if (vm.functionExists("update"))
+    // {
+    //     vm.callFunction("update", 0);
+    // }
 
  
-    if (vm.functionExists("draw"))
-    {
-        vm.callFunction("draw", 0);
-    }
+    // if (vm.functionExists("draw"))
+    // {
+    //     vm.callFunction("draw", 0);
+    // }
 
     vm.dumpToFile("main.dump");
     return 0;

@@ -119,7 +119,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
         // inter functions
         &&op_len,
         // forech
-        &&op_foreach_start, &&op_foreach_next, &&op_foreach_check};
+        &&op_iter_next, &&op_iter_item};
 
     // #define DISPATCH()                                    \
     //     do                                                \
@@ -919,7 +919,7 @@ op_call:
 
         Value literal = makeNativeClassInstance();
         NativeClassInstance *instance = literal.as.sClassInstance;
-  
+
         instance->klass = klass;
         instance->userData = userData;
 
@@ -2529,52 +2529,55 @@ op_foreach_start:
     DISPATCH();
 }
 
-op_foreach_next:
+op_iter_next:
 {
-    Value vindex = POP();  // → [array]
-    Value varray = PEEK(); // → [array] (não remove)
+    Value iter = POP();
+    Value seq = POP();
 
-    if (!varray.isArray())
+    if (!seq.isArray())
     {
-        runtimeError("foreach requires an array");
+        runtimeError("Type is not iterable");
         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
     }
 
-    ArrayInstance *array = varray.asArray();
-    int index = vindex.asInt();
+    ArrayInstance *array = seq.as.array;
+    int index = iter.isNil() ? 0 : iter.as.integer + 1;
 
-    if (index >= array->values.size())
+    if (index < (int)array->values.size())
     {
-        runtimeError("Index out of bounds");
-        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+        PUSH(makeInt(index));
+        PUSH(makeBool(true));
+    }
+    else
+    {
+        PUSH(makeNil());
+        PUSH(makeBool(false));
     }
 
-    Value item = array->values[index];
-
-    PUSH(makeInt(index + 1)); // → [array, index+1]
-    PUSH(item);                      // → [array, index+1, item]
     DISPATCH();
 }
-op_foreach_check:
+
+op_iter_item:
 {
-    Value index = PEEK();
-    Value array = PEEK2();
+    Value iter = POP();
+    Value seq = POP();
 
-    //  printf("index: ");
-    //  printValue(index);
-
-    // printf("\narray: ");
-    // printValueNl(array);
-
-    if (!array.isArray())
+    if (!seq.isArray())
     {
-        runtimeError("foreach requires an array");
+        runtimeError("Type is not iterable");
         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
     }
 
-    bool done = index.asInt() < array.asArray()->values.size();
+    ArrayInstance *array = seq.as.array;
+    int index = iter.as.integer;
 
-    push(makeBool(done));
+    if (index < 0 || index >= (int)array->values.size())
+    {
+        runtimeError("Iterator out of bounds");
+        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    }
+
+    PUSH(array->values[index]);
     DISPATCH();
 }
 
