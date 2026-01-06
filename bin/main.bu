@@ -1,209 +1,413 @@
  
 
-def get(n) 
-{
-    if (n < 2) return n;
-    return get(n - 1) + get(n - 2);
-}
+// // def get(n) 
+// // {
+// //     if (n < 2) return n;
+// //     return get(n - 1) + get(n - 2);
+// // }
 
-var start = clock();
-for(var i=1;i<5;i=i+1)
-{
-    print(get(28));
-}
+// // var start = clock();
+// // for(var i=1;i<5;i=i+1)
+// // {
+// //     print(get(28));
+// // }
 
-write("elapsed: ({}} - start)\n",clock());
+// // write("elapsed: ({}} - start)\n",clock());
 
-// Hex numbers
-var hex1 = 0xFF;
-var hex2 = 0x1A;
-var hex3 = 0x00;
+// // // Hex numbers
+// // var hex1 = 0xFF;
+// // var hex2 = 0x1A;
+// // var hex3 = 0x00;
 
-// Unicode escapes na string
-var str1 = "Hello\u263A";           // Emoji ☺️
-var str2 = "Rocket\U0001F680";      // Emoji 🚀
-var str3 = "Tab\there";             // Tab normal
-var str4 = "Hex\x41";               // \x41 = 'A'
+// // // Unicode escapes na string
+// // var str1 = "Hello\u263A";           // Emoji ☺️
+// // var str2 = "Rocket\U0001F680";      // Emoji 🚀
+// // var str3 = "Tab\there";             // Tab normal
+// // var str4 = "Hex\x41";               // \x41 = 'A'
 
-print(hex1);
-print(hex2);
-print(hex3);
-print(str1);
-print(str2);
-print(str4);
-
-
-def zort(a,b)
-{
-    return a<b;
-}
+// // print(hex1);
+// // print(hex2);
+// // print(hex3);
+// // print(str1);
+// // print(str2);
+// // print(str4);
 
 
-def sorte_array(a, fun)
-{
-    var result = [];
+// // def zort(a,b)
+// // {
+// //     return a<b;
+// // }
+
+
+// // def sorte_array(a, fun)
+// // {
+// //     var result = [];
     
-    // copiar array original
-    for (var i = 0; i < a.length(); i = i + 1)
-    {
-        result.push(a[i]);
-    }
+// //     // copiar array original
+// //     for (var i = 0; i < a.length(); i = i + 1)
+// //     {
+// //         result.push(a[i]);
+// //     }
 
-    // bubble sort usando a função fun
-    for (var i = 0; i < result.length(); i = i + 1)
-    {
-        for (var j = i + 1; j < result.length(); j = j + 1)
-        {
-            if (!fun(result[i], result[j]))
-            {
-                var temp = result[i];
-                result[i] = result[j];
-                result[j] = temp;
-            }
-        }
-    }
+// //     // bubble sort usando a função fun
+// //     for (var i = 0; i < result.length(); i = i + 1)
+// //     {
+// //         for (var j = i + 1; j < result.length(); j = j + 1)
+// //         {
+// //             if (!fun(result[i], result[j]))
+// //             {
+// //                 var temp = result[i];
+// //                 result[i] = result[j];
+// //                 result[j] = temp;
+// //             }
+// //         }
+// //     }
 
-    return result;
-}
-
-
-
-var list = [0,4,2,5,6,23];
+// //     return result;
+// // }
 
 
-var b =sorte_array(list,zort);
-print(b);
+
+// // var list = [0,4,2,5,6,23];
 
 
-// Sort with custom comparator
-
-def asc(a, b)
-{
-    return a < b;
-}
-
-def desc(a, b)
-{
-    return a > b;
-}
-
-def sort_array(a, cmp)
-{
-    var r = [];
-
-    for (var i = 0; i < a.length(); i = i + 1)
-        r.push(a[i]);
-
-    for (var i = 0; i < r.length(); i = i + 1)
-    {
-        for (var j = i + 1; j < r.length(); j = j + 1)
-        {
-            if (!cmp(r[i], r[j]))
-            {
-                var t = r[i];
-                r[i] = r[j];
-                r[j] = t;
-            }
-        }
-    }
-
-    return r;
-}
-
-var list = [5, 1, 4, 2, 8];
-
-print(sort_array(list, asc));
-print(sort_array(list, desc));
+// // var b =sorte_array(list,zort);
+// // print(b);
 
 
-// for_each example
+// // // Sort with custom comparator
 
-def for_each(a, fn)
-{
-    for (var i = 0; i < a.length(); i = i + 1)
-        fn(a[i]);
-}
+// // def asc(a, b)
+// // {
+// //     return a < b;
+// // }
 
-def show(x)
-{
-    write("value = {}\n", x);
-}
+// // def desc(a, b)
+// // {
+// //     return a > b;
+// // }
 
-var nums = [10, 20, 30];
-for_each(nums, show);
+// // def sort_array(a, cmp)
+// // {
+// //     var r = [];
 
-// Filter example
+// //     for (var i = 0; i < a.length(); i = i + 1)
+// //         r.push(a[i]);
 
-def filter(a, pred)
-{
-    var r = [];
-    for (var i = 0; i < a.length(); i = i + 1)
-    {
-        if (pred(a[i]))
-            r.push(a[i]);
-    }
-    return r;
-}
+// //     for (var i = 0; i < r.length(); i = i + 1)
+// //     {
+// //         for (var j = i + 1; j < r.length(); j = j + 1)
+// //         {
+// //             if (!cmp(r[i], r[j]))
+// //             {
+// //                 var t = r[i];
+// //                 r[i] = r[j];
+// //                 r[j] = t;
+// //             }
+// //         }
+// //     }
 
-def is_even(n)
-{
-    return n % 2 == 0;
-}
+// //     return r;
+// // }
 
-print(filter([1,2,3,4,5,6], is_even));
+// // var list = [5, 1, 4, 2, 8];
 
-
-// Map example
-
-def map(a, fn)
-{
-    var r = [];
-    for (var i = 0; i < a.length(); i = i + 1)
-        r.push(fn(a[i]));
-    return r;
-}
-
-def square(x)
-{
-    return x * x;
-}
-
-print(map([1,2,3,4], square));
+// // print(sort_array(list, asc));
+// // print(sort_array(list, desc));
 
 
-class Point
-{
-    var x,y;
-    def init(x,y)
-    {
-        self.x=x;
-        self.y=y;
-        print(self);
+// // // for_each example
+
+// // def for_each(a, fn)
+// // {
+// //     for (var i = 0; i < a.length(); i = i + 1)
+// //         fn(a[i]);
+// // }
+
+// // def show(x)
+// // {
+// //     write("value = {}\n", x);
+// // }
+
+// // var nums = [10, 20, 30];
+// // for_each(nums, show);
+
+// // // Filter example
+
+// // def filter(a, pred)
+// // {
+// //     var r = [];
+// //     for (var i = 0; i < a.length(); i = i + 1)
+// //     {
+// //         if (pred(a[i]))
+// //             r.push(a[i]);
+// //     }
+// //     return r;
+// // }
+
+// // def is_even(n)
+// // {
+// //     return n % 2 == 0;
+// // }
+
+// // print(filter([1,2,3,4,5,6], is_even));
+
+
+// // // Map example
+
+// // def map(a, fn)
+// // {
+// //     var r = [];
+// //     for (var i = 0; i < a.length(); i = i + 1)
+// //         r.push(fn(a[i]));
+// //     return r;
+// // }
+
+// // def square(x)
+// // {
+// //     return x * x;
+// // }
+
+// // print(map([1,2,3,4], square));
+
+
+// class Point
+// {
+//     var x,y;
+//     def init(x,y)
+//     {
+//         self.x=x;
+//         self.y=y;
+//         print(self);
     
      
-    }
+//     }
 
-    def show()
-    {
-        print(self);
-        write("Point({}, {})\n", self.x, 2);
-    }
-}
+//     def show()
+//     {
+//         print(self);
+//         write("Point({}, {})\n", self.x, 2);
+//     }
+// }
 
-p = Point(10,20);
-p.show();
-
-
-def update() 
-{
-     print("update");
-}
-
-def draw() 
-{
-    print("draw");
-}
+// // p = Point(10,20);
+// // p.show();
 
 
 
  
+// // 1. Array vazio
+// var vazio = [];
+// foreach (x in vazio) {
+//     print(x);  // não deve imprimir nada
+// }
+
+// // 2. Array com 1 elemento
+// var um = [42];
+// foreach (x in um) {
+//     print(x);  // imprime 42
+// }
+
+// //3. Break dentro do foreach
+// var nums = [1, 2, 3, 4, 5];
+// foreach (x in nums) {
+//     if (x == 3) break;
+//     print(x);  // imprime 1, 2
+// }
+
+// print_stack("1");
+
+// //4. Continue dentro do foreach
+// foreach (x in nums) {
+//     if (x == 3) continue;
+//     print(x);  // imprime 1, 2, 4, 5
+// }
+
+// // 5. Foreach aninhados
+// var a = [1, 2];
+// var b = [10, 20];
+// foreach (x in a) {
+//     foreach (y in b) {
+//         print(x * y);  // 10, 20, 20, 40
+//     }
+// }
+
+// // 6. Modificar array durante iteração 
+// var arr = [1, 2, 3];
+// foreach (x in arr) {
+//     print(x);
+//     // arr.push(x * 10);  // cuidado com isto!
+// }
+
+// var points =[Point(0,0),Point(1,0),Point(2,0),Point(3,0),Point(4,0)];
+
+// foreach (point in points)
+// {
+//     print(point.x);
+//     point.x=point.x+10;
+// }
+
+
+// foreach (point in points)
+// {
+//     print(point.x);
+
+// }
+
+
+
+// // def update() 
+// // {
+// //      print("update");
+// // }
+
+// // def draw() 
+// // {
+// //     print("draw");
+// // }
+
+
+// //print_stack("Loop Simples:");
+
+// foreach (x in [1,2,3]) 
+// {
+//     write("{}",x);
+// }
+// print("\n1 ok");
+
+
+ 
+// var sum = 0;
+// foreach (x in [1,2,3,4,5]) 
+// {
+//     for (var i = 0; i < 5; i = i + 1) 
+//     {
+      
+//         sum = sum + x;
+//     }
+ 
+// }
+
+// print(sum);
+ 
+
+// for (var i = 0; i < 5; i = i + 1)
+// {
+//       foreach (x in [1,2,3])
+//       {
+//         print(x);
+//       }
+// }
+// print("3 ok");
+
+// print("- 1\n");
+// foreach (x in [1,2,3]) {
+//     print(x);
+// }
+// print("- 2\n");
+// foreach (x in [1,2]) {
+//     foreach (y in [10,20]) {
+//         write("{},{} ", x, y);
+//     }
+// }
+
+// print("- 3\n");
+// for (var i = 0; i < 2; i = i + 1) {
+//     foreach (x in [1,2,3]) {
+//         write("{} ", x);
+//     }
+//     print("");
+// }
+
+// foreach (x in [1,2,3]) {
+//     print(x);
+// }
+// print_stack("final: ");
+
+
+
+// var sum = 0;
+// foreach (x in [1,2,3,4,5]) {
+//     if (x == 3) break;
+//     sum = sum + x;
+// }
+// print(sum);  // Esperado: 3 (1+2)
+// print_stack("stack: ");
+
+// var sum = 0;
+// foreach (x in [1,2,3,4,5]) {
+//     if (x == 3) continue;
+//     sum = sum + x;
+// }
+// print(sum);  // Esperado: 12 (1+2+4+5)
+// print_stack("stack: ");
+
+
+// Teste 1: For tradicional
+var start = clock();
+var sum1 = 0;
+var arr = [1,2,3,4,5,6,7,8,9,10];
+
+for (var i = 0; i < 100000; i = i + 1) 
+{
+    for (var j = 0; j < 10; j = j + 1) 
+    {
+        sum1 = sum1 + arr[j];
+    }
+}
+var time1 = clock() - start;
+write("For tradicional: {} ms \n", time1);
+write("Sum: {} \n", sum1);
+
+// Teste 2: Foreach
+start = clock();
+var sum2 = 0;
+
+for (var i = 0; i < 100000; i = i + 1) 
+{
+    foreach (x in arr) 
+    {
+        sum2 = sum2 + x;
+    }
+}
+var time2 = clock() - start;
+write("Forecah: {} ms \n", time2);
+write("Sum: {} \n", sum2);
+
+
+// Comparação
+write("Diferença: {} ms\n", time2 - time1);
+if (time1 < time2) 
+{
+    print("For é mais rápido!");
+} else {
+    print("Foreach é mais rápido!");
+}
+
+
+// 1. Array vazio
+foreach (x in []) {
+    print("não deve imprimir");
+}
+print("ok 1");
+
+// 2. Array com 1 elemento
+foreach (x in [42]) {
+    print(x);  // Deve imprimir 42
+}
+print("ok 2");
+
+// 3. Break na primeira iteração
+foreach (x in [1,2,3]) {
+    break;
+}
+print("ok 3");
+
+// 4. Continue em todas iterações
+var count = 0;
+foreach (x in [1,2,3]) {
+    count = count + 1;
+    continue;
+    print("nunca executa");
+}
+print(count);  // Deve ser 3

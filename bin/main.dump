@@ -7,940 +7,341 @@ GLOBAL FUNCTIONS
 ========================================
 
 
->>> Function: desc
-    Arity: 2
-    Has return: yes
-    Index: 5
-
-  Constants (0):
-
-  Bytecode:
-    0000   87 OP_GET_LOCAL        1
-    0002    | OP_GET_LOCAL        2
-    0004    | OP_GREATER
-    0005    | OP_RETURN
-    0006   88 OP_POP
-    0007    | OP_POP
-    0008    | OP_POP
-
-
->>> Function: sorte_array
-    Arity: 2
-    Has return: yes
-    Index: 3
-
-  Constants (15):
-    [0] = "result"
-    [1] = "i"
-    [2] = 0
-    [3] = "length"
-    [4] = 1
-    [5] = "push"
-    [6] = "i"
-    [7] = 0
-    [8] = "length"
-    [9] = 1
-    [10] = "j"
-    [11] = 1
-    [12] = "length"
-    [13] = 1
-    [14] = "temp"
-
-  Bytecode:
-    0000   44 OP_DEFINE_ARRAY     0
-    0002   47 OP_CONSTANT         2 '0'
-    0004    | OP_GET_LOCAL        4
-    0006    | OP_GET_LOCAL        1
-    0008    | OP_INVOKE           3 'length' (0 args)
-    0011    | OP_LESS
-    0012    | OP_JUMP_IF_FALSE   12 -> 44
-    0015    | OP_POP
-    0016    | OP_JUMP            16 -> 30
-    0019    | OP_GET_LOCAL        4
-    0021    | OP_CONSTANT         4 '1'
-    0023    | OP_ADD
-    0024    | OP_SET_LOCAL        4
-    0026    | OP_POP
-    0027    | OP_LOOP            27 -> 4
-    0030   49 OP_GET_LOCAL        3
-    0032    | OP_GET_LOCAL        1
-    0034    | OP_GET_LOCAL        4
-    0036    | OP_GET_INDEX
-    0037    | OP_INVOKE           5 'push' (1 args)
-    0040    | OP_POP
-    0041   50 OP_LOOP            41 -> 19
-    0044    | OP_POP
-    0045    | OP_POP
-    0046   53 OP_CONSTANT         7 '0'
-    0048    | OP_GET_LOCAL        4
-    0050    | OP_GET_LOCAL        3
-    0052    | OP_INVOKE           8 'length' (0 args)
-    0055    | OP_LESS
-    0056    | OP_JUMP_IF_FALSE   56 -> 161
-    0059    | OP_POP
-    0060    | OP_JUMP            60 -> 74
-    0063    | OP_GET_LOCAL        4
-    0065    | OP_CONSTANT         9 '1'
-    0067    | OP_ADD
-    0068    | OP_SET_LOCAL        4
-    0070    | OP_POP
-    0071    | OP_LOOP            71 -> 48
-    0074   55 OP_GET_LOCAL        4
-    0076    | OP_CONSTANT        11 '1'
-    0078    | OP_ADD
-    0079    | OP_GET_LOCAL        5
-    0081    | OP_GET_LOCAL        3
-    0083    | OP_INVOKE          12 'length' (0 args)
-    0086    | OP_LESS
-    0087    | OP_JUMP_IF_FALSE   87 -> 156
-    0090    | OP_POP
-    0091    | OP_JUMP            91 -> 105
-    0094    | OP_GET_LOCAL        5
-    0096    | OP_CONSTANT        13 '1'
-    0098    | OP_ADD
-    0099    | OP_SET_LOCAL        5
-    0101    | OP_POP
-    0102    | OP_LOOP           102 -> 79
-    0105   57 OP_GET_LOCAL        2
-    0107    | OP_GET_LOCAL        3
-    0109    | OP_GET_LOCAL        4
-    0111    | OP_GET_INDEX
-    0112    | OP_GET_LOCAL        3
-    0114    | OP_GET_LOCAL        5
-    0116    | OP_GET_INDEX
-    0117    | OP_CALL             2
-    0119    | OP_NOT
-    0120    | OP_JUMP_IF_FALSE  120 -> 152
-    0123    | OP_POP
-    0124   59 OP_GET_LOCAL        3
-    0126    | OP_GET_LOCAL        4
-    0128    | OP_GET_INDEX
-    0129   60 OP_GET_LOCAL        3
-    0131    | OP_GET_LOCAL        4
-    0133    | OP_GET_LOCAL        3
-    0135    | OP_GET_LOCAL        5
-    0137    | OP_GET_INDEX
-    0138    | OP_SET_INDEX
-    0139    | OP_POP
-    0140   61 OP_GET_LOCAL        3
-    0142    | OP_GET_LOCAL        5
-    0144    | OP_GET_LOCAL        6
-    0146    | OP_SET_INDEX
-    0147    | OP_POP
-    0148   62 OP_POP
-    0149    | OP_JUMP           149 -> 153
-    0152    | OP_POP
-    0153   63 OP_LOOP           153 -> 94
-    0156    | OP_POP
-    0157    | OP_POP
-    0158   64 OP_LOOP           158 -> 63
-    0161    | OP_POP
-    0162    | OP_POP
-    0163   66 OP_GET_LOCAL        3
-    0165    | OP_RETURN
-    0166   67 OP_POP
-    0167    | OP_POP
-    0168    | OP_POP
-    0169    | OP_POP
-
-
->>> Function: square
-    Arity: 1
-    Has return: yes
-    Index: 12
-
-  Constants (0):
-
-  Bytecode:
-    0000  168 OP_GET_LOCAL        1
-    0002    | OP_GET_LOCAL        1
-    0004    | OP_MULTIPLY
-    0005    | OP_RETURN
-    0006  169 OP_POP
-    0007    | OP_POP
-
-
->>> Function: asc
-    Arity: 2
-    Has return: yes
-    Index: 4
-
-  Constants (0):
-
-  Bytecode:
-    0000   82 OP_GET_LOCAL        1
-    0002    | OP_GET_LOCAL        2
-    0004    | OP_LESS
-    0005    | OP_RETURN
-    0006   83 OP_POP
-    0007    | OP_POP
-    0008    | OP_POP
-
-
->>> Function: sort_array
-    Arity: 2
-    Has return: yes
-    Index: 6
-
-  Constants (15):
-    [0] = "r"
-    [1] = "i"
-    [2] = 0
-    [3] = "length"
-    [4] = 1
-    [5] = "push"
-    [6] = "i"
-    [7] = 0
-    [8] = "length"
-    [9] = 1
-    [10] = "j"
-    [11] = 1
-    [12] = "length"
-    [13] = 1
-    [14] = "t"
-
-  Bytecode:
-    0000   92 OP_DEFINE_ARRAY     0
-    0002   94 OP_CONSTANT         2 '0'
-    0004    | OP_GET_LOCAL        4
-    0006    | OP_GET_LOCAL        1
-    0008    | OP_INVOKE           3 'length' (0 args)
-    0011    | OP_LESS
-    0012    | OP_JUMP_IF_FALSE   12 -> 44
-    0015    | OP_POP
-    0016    | OP_JUMP            16 -> 30
-    0019    | OP_GET_LOCAL        4
-    0021    | OP_CONSTANT         4 '1'
-    0023    | OP_ADD
-    0024    | OP_SET_LOCAL        4
-    0026    | OP_POP
-    0027    | OP_LOOP            27 -> 4
-    0030   95 OP_GET_LOCAL        3
-    0032    | OP_GET_LOCAL        1
-    0034    | OP_GET_LOCAL        4
-    0036    | OP_GET_INDEX
-    0037    | OP_INVOKE           5 'push' (1 args)
-    0040    | OP_POP
-    0041    | OP_LOOP            41 -> 19
-    0044    | OP_POP
-    0045    | OP_POP
-    0046   97 OP_CONSTANT         7 '0'
-    0048    | OP_GET_LOCAL        4
-    0050    | OP_GET_LOCAL        3
-    0052    | OP_INVOKE           8 'length' (0 args)
-    0055    | OP_LESS
-    0056    | OP_JUMP_IF_FALSE   56 -> 161
-    0059    | OP_POP
-    0060    | OP_JUMP            60 -> 74
-    0063    | OP_GET_LOCAL        4
-    0065    | OP_CONSTANT         9 '1'
-    0067    | OP_ADD
-    0068    | OP_SET_LOCAL        4
-    0070    | OP_POP
-    0071    | OP_LOOP            71 -> 48
-    0074   99 OP_GET_LOCAL        4
-    0076    | OP_CONSTANT        11 '1'
-    0078    | OP_ADD
-    0079    | OP_GET_LOCAL        5
-    0081    | OP_GET_LOCAL        3
-    0083    | OP_INVOKE          12 'length' (0 args)
-    0086    | OP_LESS
-    0087    | OP_JUMP_IF_FALSE   87 -> 156
-    0090    | OP_POP
-    0091    | OP_JUMP            91 -> 105
-    0094    | OP_GET_LOCAL        5
-    0096    | OP_CONSTANT        13 '1'
-    0098    | OP_ADD
-    0099    | OP_SET_LOCAL        5
-    0101    | OP_POP
-    0102    | OP_LOOP           102 -> 79
-    0105  101 OP_GET_LOCAL        2
-    0107    | OP_GET_LOCAL        3
-    0109    | OP_GET_LOCAL        4
-    0111    | OP_GET_INDEX
-    0112    | OP_GET_LOCAL        3
-    0114    | OP_GET_LOCAL        5
-    0116    | OP_GET_INDEX
-    0117    | OP_CALL             2
-    0119    | OP_NOT
-    0120    | OP_JUMP_IF_FALSE  120 -> 152
-    0123    | OP_POP
-    0124  103 OP_GET_LOCAL        3
-    0126    | OP_GET_LOCAL        4
-    0128    | OP_GET_INDEX
-    0129  104 OP_GET_LOCAL        3
-    0131    | OP_GET_LOCAL        4
-    0133    | OP_GET_LOCAL        3
-    0135    | OP_GET_LOCAL        5
-    0137    | OP_GET_INDEX
-    0138    | OP_SET_INDEX
-    0139    | OP_POP
-    0140  105 OP_GET_LOCAL        3
-    0142    | OP_GET_LOCAL        5
-    0144    | OP_GET_LOCAL        6
-    0146    | OP_SET_INDEX
-    0147    | OP_POP
-    0148  106 OP_POP
-    0149    | OP_JUMP           149 -> 153
-    0152    | OP_POP
-    0153  107 OP_LOOP           153 -> 94
-    0156    | OP_POP
-    0157    | OP_POP
-    0158  108 OP_LOOP           158 -> 63
-    0161    | OP_POP
-    0162    | OP_POP
-    0163  110 OP_GET_LOCAL        3
-    0165    | OP_RETURN
-    0166  111 OP_POP
-    0167    | OP_POP
-    0168    | OP_POP
-    0169    | OP_POP
-
-
->>> Function: for_each
-    Arity: 2
-    Has return: no
-    Index: 7
-
-  Constants (4):
-    [0] = "i"
-    [1] = 0
-    [2] = "length"
-    [3] = 1
-
-  Bytecode:
-    0000  123 OP_CONSTANT         1 '0'
-    0002    | OP_GET_LOCAL        3
-    0004    | OP_GET_LOCAL        1
-    0006    | OP_INVOKE           2 'length' (0 args)
-    0009    | OP_LESS
-    0010    | OP_JUMP_IF_FALSE   10 -> 41
-    0013    | OP_POP
-    0014    | OP_JUMP            14 -> 28
-    0017    | OP_GET_LOCAL        3
-    0019    | OP_CONSTANT         3 '1'
-    0021    | OP_ADD
-    0022    | OP_SET_LOCAL        3
-    0024    | OP_POP
-    0025    | OP_LOOP            25 -> 2
-    0028  124 OP_GET_LOCAL        2
-    0030    | OP_GET_LOCAL        1
-    0032    | OP_GET_LOCAL        3
-    0034    | OP_GET_INDEX
-    0035    | OP_CALL             1
-    0037    | OP_POP
-    0038    | OP_LOOP            38 -> 17
-    0041    | OP_POP
-    0042    | OP_POP
-    0043  125 OP_POP
-    0044    | OP_POP
-    0045    | OP_POP
-    0046    | OP_NIL
-    0047    | OP_RETURN
-
-
->>> Function: map
-    Arity: 2
-    Has return: yes
-    Index: 11
-
-  Constants (6):
-    [0] = "r"
-    [1] = "i"
-    [2] = 0
-    [3] = "length"
-    [4] = 1
-    [5] = "push"
-
-  Bytecode:
-    0000  160 OP_DEFINE_ARRAY     0
-    0002  161 OP_CONSTANT         2 '0'
-    0004    | OP_GET_LOCAL        4
-    0006    | OP_GET_LOCAL        1
-    0008    | OP_INVOKE           3 'length' (0 args)
-    0011    | OP_LESS
-    0012    | OP_JUMP_IF_FALSE   12 -> 48
-    0015    | OP_POP
-    0016    | OP_JUMP            16 -> 30
-    0019    | OP_GET_LOCAL        4
-    0021    | OP_CONSTANT         4 '1'
-    0023    | OP_ADD
-    0024    | OP_SET_LOCAL        4
-    0026    | OP_POP
-    0027    | OP_LOOP            27 -> 4
-    0030  162 OP_GET_LOCAL        3
-    0032    | OP_GET_LOCAL        2
-    0034    | OP_GET_LOCAL        1
-    0036    | OP_GET_LOCAL        4
-    0038    | OP_GET_INDEX
-    0039    | OP_CALL             1
-    0041    | OP_INVOKE           5 'push' (1 args)
-    0044    | OP_POP
-    0045    | OP_LOOP            45 -> 19
-    0048    | OP_POP
-    0049    | OP_POP
-    0050  163 OP_GET_LOCAL        3
-    0052    | OP_RETURN
-    0053  164 OP_POP
-    0054    | OP_POP
-    0055    | OP_POP
-    0056    | OP_POP
-
-
->>> Function: draw
-    Arity: 0
-    Has return: no
-    Index: 14
-
-  Constants (1):
-    [0] = "draw"
-
-  Bytecode:
-    0000  204 OP_CONSTANT         0 'draw'
-    0002    | OP_PRINT
-    0003  205 OP_POP
-    0004    | OP_NIL
-    0005    | OP_RETURN
-
-
->>> Function: update
-    Arity: 0
-    Has return: no
-    Index: 13
-
-  Constants (1):
-    [0] = "update"
-
-  Bytecode:
-    0000  199 OP_CONSTANT         0 'update'
-    0002    | OP_PRINT
-    0003  200 OP_POP
-    0004    | OP_NIL
-    0005    | OP_RETURN
-
-
->>> Function: get
-    Arity: 1
-    Has return: yes
-    Index: 1
-
-  Constants (3):
-    [0] = 2
-    [1] = 1
-    [2] = 2
-
-  Bytecode:
-    0000    5 OP_GET_LOCAL        1
-    0002    | OP_CONSTANT         0 '2'
-    0004    | OP_LESS
-    0005    | OP_JUMP_IF_FALSE    5 -> 15
-    0008    | OP_POP
-    0009    | OP_GET_LOCAL        1
-    0011    | OP_RETURN
-    0012    | OP_JUMP            12 -> 16
-    0015    | OP_POP
-    0016    6 OP_GET_LOCAL        0
-    0018    | OP_GET_LOCAL        1
-    0020    | OP_CONSTANT         1 '1'
-    0022    | OP_SUBTRACT
-    0023    | OP_CALL             1
-    0025    | OP_GET_LOCAL        0
-    0027    | OP_GET_LOCAL        1
-    0029    | OP_CONSTANT         2 '2'
-    0031    | OP_SUBTRACT
-    0032    | OP_CALL             1
-    0034    | OP_ADD
-    0035    | OP_RETURN
-    0036    7 OP_POP
-    0037    | OP_POP
-
-
 >>> Function: __main__
     Arity: 0
     Has return: no
     Index: 0
 
-  Constants (112):
-    [0] = <value type 15>
-    [1] = "get"
-    [2] = "start"
-    [3] = "clock"
-    [4] = "i"
+  Constants (81):
+    [0] = "start"
+    [1] = "clock"
+    [2] = "sum1"
+    [3] = 0
+    [4] = "arr"
     [5] = 1
-    [6] = 5
-    [7] = 1
-    [8] = "get"
-    [9] = 28
-    [10] = "write"
-    [11] = "elapsed: ({}} - start)
+    [6] = 2
+    [7] = 3
+    [8] = 4
+    [9] = 5
+    [10] = 6
+    [11] = 7
+    [12] = 8
+    [13] = 9
+    [14] = 10
+    [15] = "i"
+    [16] = 0
+    [17] = 100000
+    [18] = 1
+    [19] = "j"
+    [20] = 0
+    [21] = 10
+    [22] = 1
+    [23] = "sum1"
+    [24] = "sum1"
+    [25] = "arr"
+    [26] = "time1"
+    [27] = "clock"
+    [28] = "start"
+    [29] = "write"
+    [30] = "For tradicional: {} ms 
 "
-    [12] = "clock"
-    [13] = "hex1"
-    [14] = 255
-    [15] = "hex2"
-    [16] = 26
-    [17] = "hex3"
-    [18] = 0
-    [19] = "str1"
-    [20] = "Hello☺"
-    [21] = "str2"
-    [22] = "Rocket🚀"
-    [23] = "str3"
-    [24] = "Tab	here"
-    [25] = "str4"
-    [26] = "HexA"
-    [27] = "hex1"
-    [28] = "hex2"
-    [29] = "hex3"
-    [30] = "str1"
-    [31] = "str2"
-    [32] = "str4"
-    [33] = <value type 15>
-    [34] = "zort"
-    [35] = <value type 15>
-    [36] = "sorte_array"
-    [37] = "list"
+    [31] = "time1"
+    [32] = "write"
+    [33] = "Sum: {} 
+"
+    [34] = "sum1"
+    [35] = "start"
+    [36] = "clock"
+    [37] = "sum2"
     [38] = 0
-    [39] = 4
-    [40] = 2
-    [41] = 5
-    [42] = 6
-    [43] = 23
-    [44] = "b"
-    [45] = "sorte_array"
-    [46] = "list"
-    [47] = "zort"
-    [48] = "b"
-    [49] = <value type 15>
-    [50] = "asc"
-    [51] = <value type 15>
-    [52] = "desc"
-    [53] = <value type 15>
-    [54] = "sort_array"
-    [55] = "list"
-    [56] = 5
-    [57] = 1
-    [58] = 4
-    [59] = 2
-    [60] = 8
-    [61] = "sort_array"
-    [62] = "list"
-    [63] = "asc"
-    [64] = "sort_array"
-    [65] = "list"
-    [66] = "desc"
-    [67] = <value type 15>
-    [68] = "for_each"
-    [69] = <value type 15>
-    [70] = "show"
-    [71] = "nums"
-    [72] = 10
-    [73] = 20
-    [74] = 30
-    [75] = "for_each"
-    [76] = "nums"
-    [77] = "show"
-    [78] = <value type 15>
-    [79] = "filter"
-    [80] = <value type 15>
-    [81] = "is_even"
-    [82] = "filter"
-    [83] = 1
-    [84] = 2
-    [85] = 3
-    [86] = 4
-    [87] = 5
-    [88] = 6
-    [89] = "is_even"
-    [90] = <value type 15>
-    [91] = "map"
-    [92] = <value type 15>
-    [93] = "square"
-    [94] = "map"
-    [95] = 1
-    [96] = 2
-    [97] = 3
-    [98] = 4
-    [99] = "square"
-    [100] = "Point"
-    [101] = <value type 21>
-    [102] = "p"
-    [103] = "Point"
-    [104] = 10
-    [105] = 20
-    [106] = "p"
-    [107] = "show"
-    [108] = <value type 15>
-    [109] = "update"
-    [110] = <value type 15>
-    [111] = "draw"
-
-  Bytecode:
-    0000    7 OP_CONSTANT         0 '<function 1>'
-    0002    | OP_DEFINE_GLOBAL    1 'get'
-    0004    9 OP_GET_GLOBAL       3 'clock'
-    0006    | OP_CALL             0
-    0008    | OP_DEFINE_GLOBAL    2 'start'
-    0010   10 OP_CONSTANT         5 '1'
-    0012    | OP_GET_LOCAL        0
-    0014    | OP_CONSTANT         6 '5'
-    0016    | OP_LESS
-    0017    | OP_JUMP_IF_FALSE   17 -> 45
-    0020    | OP_POP
-    0021    | OP_JUMP            21 -> 35
-    0024    | OP_GET_LOCAL        0
-    0026    | OP_CONSTANT         7 '1'
-    0028    | OP_ADD
-    0029    | OP_SET_LOCAL        0
-    0031    | OP_POP
-    0032    | OP_LOOP            32 -> 12
-    0035   12 OP_GET_GLOBAL       8 'get'
-    0037    | OP_CONSTANT         9 '28'
-    0039    | OP_CALL             1
-    0041    | OP_PRINT
-    0042   13 OP_LOOP            42 -> 24
-    0045    | OP_POP
-    0046    | OP_POP
-    0047   15 OP_GET_GLOBAL      10 'write'
-    0049    | OP_CONSTANT        11 'elapsed: ({}} - start)'
-    0051    | OP_GET_GLOBAL      12 'clock'
-    0053    | OP_CALL             0
-    0055    | OP_CALL             2
-    0057    | OP_POP
-    0058   18 OP_CONSTANT        14 '255'
-    0060    | OP_DEFINE_GLOBAL   13 'hex1'
-    0062   19 OP_CONSTANT        16 '26'
-    0064    | OP_DEFINE_GLOBAL   15 'hex2'
-    0066   20 OP_CONSTANT        18 '0'
-    0068    | OP_DEFINE_GLOBAL   17 'hex3'
-    0070   23 OP_CONSTANT        20 'Hello☺'
-    0072    | OP_DEFINE_GLOBAL   19 'str1'
-    0074   24 OP_CONSTANT        22 'Rocket🚀'
-    0076    | OP_DEFINE_GLOBAL   21 'str2'
-    0078   25 OP_CONSTANT        24 'Tab	here'
-    0080    | OP_DEFINE_GLOBAL   23 'str3'
-    0082   26 OP_CONSTANT        26 'HexA'
-    0084    | OP_DEFINE_GLOBAL   25 'str4'
-    0086   28 OP_GET_GLOBAL      27 'hex1'
-    0088    | OP_PRINT
-    0089   29 OP_GET_GLOBAL      28 'hex2'
-    0091    | OP_PRINT
-    0092   30 OP_GET_GLOBAL      29 'hex3'
-    0094    | OP_PRINT
-    0095   31 OP_GET_GLOBAL      30 'str1'
-    0097    | OP_PRINT
-    0098   32 OP_GET_GLOBAL      31 'str2'
-    0100    | OP_PRINT
-    0101   33 OP_GET_GLOBAL      32 'str4'
-    0103    | OP_PRINT
-    0104   39 OP_CONSTANT        33 '<function 2>'
-    0106    | OP_DEFINE_GLOBAL   34 'zort'
-    0108   67 OP_CONSTANT        35 '<function 3>'
-    0110    | OP_DEFINE_GLOBAL   36 'sorte_array'
-    0112   71 OP_CONSTANT        38 '0'
-    0114    | OP_CONSTANT        39 '4'
-    0116    | OP_CONSTANT        40 '2'
-    0118    | OP_CONSTANT        41 '5'
-    0120    | OP_CONSTANT        42 '6'
-    0122    | OP_CONSTANT        43 '23'
-    0124    | OP_DEFINE_ARRAY     6
-    0126    | OP_DEFINE_GLOBAL   37 'list'
-    0128   74 OP_GET_GLOBAL      45 'sorte_array'
-    0130    | OP_GET_GLOBAL      46 'list'
-    0132    | OP_GET_GLOBAL      47 'zort'
-    0134    | OP_CALL             2
-    0136    | OP_DEFINE_GLOBAL   44 'b'
-    0138   75 OP_GET_GLOBAL      48 'b'
-    0140    | OP_PRINT
-    0141   83 OP_CONSTANT        49 '<function 4>'
-    0143    | OP_DEFINE_GLOBAL   50 'asc'
-    0145   88 OP_CONSTANT        51 '<function 5>'
-    0147    | OP_DEFINE_GLOBAL   52 'desc'
-    0149  111 OP_CONSTANT        53 '<function 6>'
-    0151    | OP_DEFINE_GLOBAL   54 'sort_array'
-    0153  113 OP_CONSTANT        56 '5'
-    0155    | OP_CONSTANT        57 '1'
-    0157    | OP_CONSTANT        58 '4'
-    0159    | OP_CONSTANT        59 '2'
-    0161    | OP_CONSTANT        60 '8'
-    0163    | OP_DEFINE_ARRAY     5
-    0165    | OP_DEFINE_GLOBAL   55 'list'
-    0167  115 OP_GET_GLOBAL      61 'sort_array'
-    0169    | OP_GET_GLOBAL      62 'list'
-    0171    | OP_GET_GLOBAL      63 'asc'
-    0173    | OP_CALL             2
-    0175    | OP_PRINT
-    0176  116 OP_GET_GLOBAL      64 'sort_array'
-    0178    | OP_GET_GLOBAL      65 'list'
-    0180    | OP_GET_GLOBAL      66 'desc'
-    0182    | OP_CALL             2
-    0184    | OP_PRINT
-    0185  125 OP_CONSTANT        67 '<function 7>'
-    0187    | OP_DEFINE_GLOBAL   68 'for_each'
-    0189  130 OP_CONSTANT        69 '<function 8>'
-    0191    | OP_DEFINE_GLOBAL   70 'show'
-    0193  132 OP_CONSTANT        72 '10'
-    0195    | OP_CONSTANT        73 '20'
-    0197    | OP_CONSTANT        74 '30'
-    0199    | OP_DEFINE_ARRAY     3
-    0201    | OP_DEFINE_GLOBAL   71 'nums'
-    0203  133 OP_GET_GLOBAL      75 'for_each'
-    0205    | OP_GET_GLOBAL      76 'nums'
-    0207    | OP_GET_GLOBAL      77 'show'
-    0209    | OP_CALL             2
-    0211    | OP_POP
-    0212  146 OP_CONSTANT        78 '<function 9>'
-    0214    | OP_DEFINE_GLOBAL   79 'filter'
-    0216  151 OP_CONSTANT        80 '<function 10>'
-    0218    | OP_DEFINE_GLOBAL   81 'is_even'
-    0220  153 OP_GET_GLOBAL      82 'filter'
-    0222    | OP_CONSTANT        83 '1'
-    0224    | OP_CONSTANT        84 '2'
-    0226    | OP_CONSTANT        85 '3'
-    0228    | OP_CONSTANT        86 '4'
-    0230    | OP_CONSTANT        87 '5'
-    0232    | OP_CONSTANT        88 '6'
-    0234    | OP_DEFINE_ARRAY     6
-    0236    | OP_GET_GLOBAL      89 'is_even'
-    0238    | OP_CALL             2
-    0240    | OP_PRINT
-    0241  164 OP_CONSTANT        90 '<function 11>'
-    0243    | OP_DEFINE_GLOBAL   91 'map'
-    0245  169 OP_CONSTANT        92 '<function 12>'
-    0247    | OP_DEFINE_GLOBAL   93 'square'
-    0249  171 OP_GET_GLOBAL      94 'map'
-    0251    | OP_CONSTANT        95 '1'
-    0253    | OP_CONSTANT        96 '2'
-    0255    | OP_CONSTANT        97 '3'
-    0257    | OP_CONSTANT        98 '4'
-    0259    | OP_DEFINE_ARRAY     4
-    0261    | OP_GET_GLOBAL      99 'square'
-    0263    | OP_CALL             2
-    0265    | OP_PRINT
-    0266  174 OP_CONSTANT       101 '<class 0>'
-    0268    | OP_DEFINE_GLOBAL  100 'Point'
-    0270  193 OP_GET_GLOBAL     103 'Point'
-    0272    | OP_CONSTANT       104 '10'
-    0274    | OP_CONSTANT       105 '20'
-    0276    | OP_CALL             2
-    0278    | OP_SET_GLOBAL     102 'p'
-    0280    | OP_POP
-    0281  194 OP_GET_GLOBAL     106 'p'
-    0283    | OP_INVOKE         107 'show' (0 args)
-    0286    | OP_POP
-    0287  200 OP_CONSTANT       108 '<function 13>'
-    0289    | OP_DEFINE_GLOBAL  109 'update'
-    0291  205 OP_CONSTANT       110 '<function 14>'
-    0293    | OP_DEFINE_GLOBAL  111 'draw'
-    0295  210 OP_NIL
-    0296    | OP_RETURN
-
-
->>> Function: zort
-    Arity: 2
-    Has return: yes
-    Index: 2
-
-  Constants (0):
-
-  Bytecode:
-    0000   38 OP_GET_LOCAL        1
-    0002    | OP_GET_LOCAL        2
-    0004    | OP_LESS
-    0005    | OP_RETURN
-    0006   39 OP_POP
-    0007    | OP_POP
-    0008    | OP_POP
-
-
->>> Function: filter
-    Arity: 2
-    Has return: yes
-    Index: 9
-
-  Constants (6):
-    [0] = "r"
-    [1] = "i"
-    [2] = 0
-    [3] = "length"
-    [4] = 1
-    [5] = "push"
-
-  Bytecode:
-    0000  139 OP_DEFINE_ARRAY     0
-    0002  140 OP_CONSTANT         2 '0'
-    0004    | OP_GET_LOCAL        4
-    0006    | OP_GET_LOCAL        1
-    0008    | OP_INVOKE           3 'length' (0 args)
-    0011    | OP_LESS
-    0012    | OP_JUMP_IF_FALSE   12 -> 61
-    0015    | OP_POP
-    0016    | OP_JUMP            16 -> 30
-    0019    | OP_GET_LOCAL        4
-    0021    | OP_CONSTANT         4 '1'
-    0023    | OP_ADD
-    0024    | OP_SET_LOCAL        4
-    0026    | OP_POP
-    0027    | OP_LOOP            27 -> 4
-    0030  142 OP_GET_LOCAL        2
-    0032    | OP_GET_LOCAL        1
-    0034    | OP_GET_LOCAL        4
-    0036    | OP_GET_INDEX
-    0037    | OP_CALL             1
-    0039    | OP_JUMP_IF_FALSE   39 -> 57
-    0042    | OP_POP
-    0043  143 OP_GET_LOCAL        3
-    0045    | OP_GET_LOCAL        1
-    0047    | OP_GET_LOCAL        4
-    0049    | OP_GET_INDEX
-    0050    | OP_INVOKE           5 'push' (1 args)
-    0053    | OP_POP
-    0054    | OP_JUMP            54 -> 58
-    0057    | OP_POP
-    0058  144 OP_LOOP            58 -> 19
-    0061    | OP_POP
-    0062    | OP_POP
-    0063  145 OP_GET_LOCAL        3
-    0065    | OP_RETURN
-    0066  146 OP_POP
-    0067    | OP_POP
-    0068    | OP_POP
-    0069    | OP_POP
-
-
->>> Function: is_even
-    Arity: 1
-    Has return: yes
-    Index: 10
-
-  Constants (2):
-    [0] = 2
-    [1] = 0
-
-  Bytecode:
-    0000  150 OP_GET_LOCAL        1
-    0002    | OP_CONSTANT         0 '2'
-    0004    | OP_MODULO
-    0005    | OP_CONSTANT         1 '0'
-    0007    | OP_EQUAL
-    0008    | OP_RETURN
-    0009  151 OP_POP
-    0010    | OP_POP
-
-
->>> Function: show
-    Arity: 1
-    Has return: no
-    Index: 8
-
-  Constants (2):
-    [0] = "write"
-    [1] = "value = {}
+    [39] = "i"
+    [40] = 0
+    [41] = 100000
+    [42] = 1
+    [43] = "arr"
+    [44] = "sum2"
+    [45] = "sum2"
+    [46] = "time2"
+    [47] = "clock"
+    [48] = "start"
+    [49] = "write"
+    [50] = "Forecah: {} ms 
 "
+    [51] = "time2"
+    [52] = "write"
+    [53] = "Sum: {} 
+"
+    [54] = "sum2"
+    [55] = "write"
+    [56] = "Diferença: {} ms
+"
+    [57] = "time2"
+    [58] = "time1"
+    [59] = "time1"
+    [60] = "time2"
+    [61] = "For é mais rápido!"
+    [62] = "Foreach é mais rápido!"
+    [63] = "não deve imprimir"
+    [64] = "ok 1"
+    [65] = 42
+    [66] = "ok 2"
+    [67] = 1
+    [68] = 2
+    [69] = 3
+    [70] = "ok 3"
+    [71] = "count"
+    [72] = 0
+    [73] = 1
+    [74] = 2
+    [75] = 3
+    [76] = "count"
+    [77] = "count"
+    [78] = 1
+    [79] = "nunca executa"
+    [80] = "count"
 
   Bytecode:
-    0000  129 OP_GET_GLOBAL       0 'write'
-    0002    | OP_CONSTANT         1 'value = {}'
-    0004    | OP_GET_LOCAL        1
-    0006    | OP_CALL             2
-    0008    | OP_POP
-    0009  130 OP_POP
-    0010    | OP_POP
-    0011    | OP_NIL
-    0012    | OP_RETURN
+    0000  347 OP_GET_GLOBAL       1 'clock'
+    0002    | OP_CALL             0
+    0004    | OP_DEFINE_GLOBAL    0 'start'
+    0006  348 OP_CONSTANT         3 '0'
+    0008    | OP_DEFINE_GLOBAL    2 'sum1'
+    0010  349 OP_CONSTANT         5 '1'
+    0012    | OP_CONSTANT         6 '2'
+    0014    | OP_CONSTANT         7 '3'
+    0016    | OP_CONSTANT         8 '4'
+    0018    | OP_CONSTANT         9 '5'
+    0020    | OP_CONSTANT        10 '6'
+    0022    | OP_CONSTANT        11 '7'
+    0024    | OP_CONSTANT        12 '8'
+    0026    | OP_CONSTANT        13 '9'
+    0028    | OP_CONSTANT        14 '10'
+    0030    | OP_DEFINE_ARRAY    10
+    0032    | OP_DEFINE_GLOBAL    4 'arr'
+    0034  351 OP_CONSTANT        16 '0'
+    0036    | OP_GET_LOCAL        0
+    0038    | OP_CONSTANT        17 '100000'
+    0040    | OP_LESS
+    0041    | OP_JUMP_IF_FALSE   41 -> 103
+    0044    | OP_POP
+    0045    | OP_JUMP            45 -> 59
+    0048    | OP_GET_LOCAL        0
+    0050    | OP_CONSTANT        18 '1'
+    0052    | OP_ADD
+    0053    | OP_SET_LOCAL        0
+    0055    | OP_POP
+    0056    | OP_LOOP            56 -> 36
+    0059  353 OP_CONSTANT        20 '0'
+    0061    | OP_GET_LOCAL        1
+    0063    | OP_CONSTANT        21 '10'
+    0065    | OP_LESS
+    0066    | OP_JUMP_IF_FALSE   66 -> 98
+    0069    | OP_POP
+    0070    | OP_JUMP            70 -> 84
+    0073    | OP_GET_LOCAL        1
+    0075    | OP_CONSTANT        22 '1'
+    0077    | OP_ADD
+    0078    | OP_SET_LOCAL        1
+    0080    | OP_POP
+    0081    | OP_LOOP            81 -> 61
+    0084  355 OP_GET_GLOBAL      24 'sum1'
+    0086    | OP_GET_GLOBAL      25 'arr'
+    0088    | OP_GET_LOCAL        1
+    0090    | OP_GET_INDEX
+    0091    | OP_ADD
+    0092    | OP_SET_GLOBAL      23 'sum1'
+    0094    | OP_POP
+    0095  356 OP_LOOP            95 -> 73
+    0098    | OP_POP
+    0099    | OP_POP
+    0100  357 OP_LOOP           100 -> 48
+    0103    | OP_POP
+    0104    | OP_POP
+    0105  358 OP_GET_GLOBAL      27 'clock'
+    0107    | OP_CALL             0
+    0109    | OP_GET_GLOBAL      28 'start'
+    0111    | OP_SUBTRACT
+    0112    | OP_DEFINE_GLOBAL   26 'time1'
+    0114  359 OP_GET_GLOBAL      29 'write'
+    0116    | OP_CONSTANT        30 'For tradicional: {} ms '
+    0118    | OP_GET_GLOBAL      31 'time1'
+    0120    | OP_CALL             2
+    0122    | OP_POP
+    0123  360 OP_GET_GLOBAL      32 'write'
+    0125    | OP_CONSTANT        33 'Sum: {} '
+    0127    | OP_GET_GLOBAL      34 'sum1'
+    0129    | OP_CALL             2
+    0131    | OP_POP
+    0132  363 OP_GET_GLOBAL      36 'clock'
+    0134    | OP_CALL             0
+    0136    | OP_SET_GLOBAL      35 'start'
+    0138    | OP_POP
+    0139  364 OP_CONSTANT        38 '0'
+    0141    | OP_DEFINE_GLOBAL   37 'sum2'
+    0143  366 OP_CONSTANT        40 '0'
+    0145    | OP_GET_LOCAL        0
+    0147    | OP_CONSTANT        41 '100000'
+    0149    | OP_LESS
+    0150    | OP_JUMP_IF_FALSE  150 -> 198
+    0153    | OP_POP
+    0154    | OP_JUMP           154 -> 168
+    0157    | OP_GET_LOCAL        0
+    0159    | OP_CONSTANT        42 '1'
+    0161    | OP_ADD
+    0162    | OP_SET_LOCAL        0
+    0164    | OP_POP
+    0165    | OP_LOOP           165 -> 145
+    0168  368 OP_GET_GLOBAL      43 'arr'
+    0170    | OP_NIL
+    0171    | OP_COPY2
+    0172    | OP_ITER_NEXT
+    0173    | OP_JUMP_IF_FALSE  173 -> 193
+    0176    | OP_POP
+    0177    | OP_SWAP
+    0178    | OP_POP
+    0179    | OP_COPY2
+    0180    | OP_ITER_VALUE
+    0181  370 OP_GET_GLOBAL      45 'sum2'
+    0183    | OP_GET_LOCAL        3
+    0185    | OP_ADD
+    0186    | OP_SET_GLOBAL      44 'sum2'
+    0188    | OP_POP
+    0189  371 OP_POP
+    0190    | OP_LOOP           190 -> 171
+    0193    | OP_DISCARD2
+    0194    | OP_DISCARD2
+    0195  372 OP_LOOP           195 -> 157
+    0198    | OP_POP
+    0199    | OP_POP
+    0200  373 OP_GET_GLOBAL      47 'clock'
+    0202    | OP_CALL             0
+    0204    | OP_GET_GLOBAL      48 'start'
+    0206    | OP_SUBTRACT
+    0207    | OP_DEFINE_GLOBAL   46 'time2'
+    0209  374 OP_GET_GLOBAL      49 'write'
+    0211    | OP_CONSTANT        50 'Forecah: {} ms '
+    0213    | OP_GET_GLOBAL      51 'time2'
+    0215    | OP_CALL             2
+    0217    | OP_POP
+    0218  375 OP_GET_GLOBAL      52 'write'
+    0220    | OP_CONSTANT        53 'Sum: {} '
+    0222    | OP_GET_GLOBAL      54 'sum2'
+    0224    | OP_CALL             2
+    0226    | OP_POP
+    0227  379 OP_GET_GLOBAL      55 'write'
+    0229    | OP_CONSTANT        56 'Diferença: {} ms'
+    0231    | OP_GET_GLOBAL      57 'time2'
+    0233    | OP_GET_GLOBAL      58 'time1'
+    0235    | OP_SUBTRACT
+    0236    | OP_CALL             2
+    0238    | OP_POP
+    0239  380 OP_GET_GLOBAL      59 'time1'
+    0241    | OP_GET_GLOBAL      60 'time2'
+    0243    | OP_LESS
+    0244    | OP_JUMP_IF_FALSE  244 -> 254
+    0247    | OP_POP
+    0248  382 OP_CONSTANT        61 'For é mais rápido!'
+    0250    | OP_PRINT
+    0251  383 OP_JUMP           251 -> 258
+    0254    | OP_POP
+    0255  384 OP_CONSTANT        62 'Foreach é mais rápido!'
+    0257    | OP_PRINT
+    0258  389 OP_DEFINE_ARRAY     0
+    0260    | OP_NIL
+    0261    | OP_COPY2
+    0262    | OP_ITER_NEXT
+    0263    | OP_JUMP_IF_FALSE  263 -> 278
+    0266    | OP_POP
+    0267    | OP_SWAP
+    0268    | OP_POP
+    0269    | OP_COPY2
+    0270    | OP_ITER_VALUE
+    0271  390 OP_CONSTANT        63 'não deve imprimir'
+    0273    | OP_PRINT
+    0274  391 OP_POP
+    0275    | OP_LOOP           275 -> 261
+    0278    | OP_DISCARD2
+    0279    | OP_DISCARD2
+    0280  392 OP_CONSTANT        64 'ok 1'
+    0282    | OP_PRINT
+    0283  395 OP_CONSTANT        65 '42'
+    0285    | OP_DEFINE_ARRAY     1
+    0287    | OP_NIL
+    0288    | OP_COPY2
+    0289    | OP_ITER_NEXT
+    0290    | OP_JUMP_IF_FALSE  290 -> 305
+    0293    | OP_POP
+    0294    | OP_SWAP
+    0295    | OP_POP
+    0296    | OP_COPY2
+    0297    | OP_ITER_VALUE
+    0298  396 OP_GET_LOCAL        2
+    0300    | OP_PRINT
+    0301  397 OP_POP
+    0302    | OP_LOOP           302 -> 288
+    0305    | OP_DISCARD2
+    0306    | OP_DISCARD2
+    0307  398 OP_CONSTANT        66 'ok 2'
+    0309    | OP_PRINT
+    0310  401 OP_CONSTANT        67 '1'
+    0312    | OP_CONSTANT        68 '2'
+    0314    | OP_CONSTANT        69 '3'
+    0316    | OP_DEFINE_ARRAY     3
+    0318    | OP_NIL
+    0319    | OP_COPY2
+    0320    | OP_ITER_NEXT
+    0321    | OP_JUMP_IF_FALSE  321 -> 338
+    0324    | OP_POP
+    0325    | OP_SWAP
+    0326    | OP_POP
+    0327    | OP_COPY2
+    0328    | OP_ITER_VALUE
+    0329  402 OP_POP
+    0330    | OP_DISCARD2
+    0331    | OP_JUMP           331 -> 340
+    0334  403 OP_POP
+    0335    | OP_LOOP           335 -> 319
+    0338    | OP_DISCARD2
+    0339    | OP_DISCARD2
+    0340  404 OP_CONSTANT        70 'ok 3'
+    0342    | OP_PRINT
+    0343  407 OP_CONSTANT        72 '0'
+    0345    | OP_DEFINE_GLOBAL   71 'count'
+    0347  408 OP_CONSTANT        73 '1'
+    0349    | OP_CONSTANT        74 '2'
+    0351    | OP_CONSTANT        75 '3'
+    0353    | OP_DEFINE_ARRAY     3
+    0355    | OP_NIL
+    0356    | OP_COPY2
+    0357    | OP_ITER_NEXT
+    0358    | OP_JUMP_IF_FALSE  358 -> 385
+    0361    | OP_POP
+    0362    | OP_SWAP
+    0363    | OP_POP
+    0364    | OP_COPY2
+    0365    | OP_ITER_VALUE
+    0366  409 OP_GET_GLOBAL      77 'count'
+    0368    | OP_CONSTANT        78 '1'
+    0370    | OP_ADD
+    0371    | OP_SET_GLOBAL      76 'count'
+    0373    | OP_POP
+    0374  410 OP_POP
+    0375    | OP_LOOP           375 -> 356
+    0378  411 OP_CONSTANT        79 'nunca executa'
+    0380    | OP_PRINT
+    0381  412 OP_POP
+    0382    | OP_LOOP           382 -> 356
+    0385    | OP_DISCARD2
+    0386    | OP_DISCARD2
+    0387  413 OP_GET_GLOBAL      80 'count'
+    0389    | OP_PRINT
+    0390  414 OP_NIL
+    0391    | OP_RETURN
 
 
 ========================================
 CLASSES
 ========================================
-
-
->>> Class: Point
-    Index: 0
-    Field count: 2
-    Has superclass: no
-
-    Fields:
-      [1] y
-      [0] x
-
-    >>> Constructor (init)
-        Arity: 2
-
-      Constants (2):
-        [0] = "x"
-        [1] = "y"
-
-      Bytecode:
-        0000  179 OP_GET_LOCAL        0
-        0002    | OP_GET_LOCAL        1
-        0004    | OP_SET_PROPERTY     0 'x'
-        0006    | OP_POP
-        0007  180 OP_GET_LOCAL        0
-        0009    | OP_GET_LOCAL        2
-        0011    | OP_SET_PROPERTY     1 'y'
-        0013    | OP_POP
-        0014  181 OP_GET_LOCAL        0
-        0016    | OP_PRINT
-        0017  184 OP_GET_LOCAL        0
-        0019    | OP_RETURN
-        0020    | OP_POP
-        0021    | OP_POP
-        0022    | OP_POP
-
-    Methods:
-
-    >>> Method: init
-        Arity: 2
-        Has return: yes
-
-      Constants (2):
-        [0] = "x"
-        [1] = "y"
-
-      Bytecode:
-        0000  179 OP_GET_LOCAL        0
-        0002    | OP_GET_LOCAL        1
-        0004    | OP_SET_PROPERTY     0 'x'
-        0006    | OP_POP
-        0007  180 OP_GET_LOCAL        0
-        0009    | OP_GET_LOCAL        2
-        0011    | OP_SET_PROPERTY     1 'y'
-        0013    | OP_POP
-        0014  181 OP_GET_LOCAL        0
-        0016    | OP_PRINT
-        0017  184 OP_GET_LOCAL        0
-        0019    | OP_RETURN
-        0020    | OP_POP
-        0021    | OP_POP
-        0022    | OP_POP
-
-
-    >>> Method: show
-        Arity: 0
-        Has return: yes
-
-      Constants (4):
-        [0] = "write"
-        [1] = "Point({}, {})
-"
-        [2] = "x"
-        [3] = 2
-
-      Bytecode:
-        0000  188 OP_GET_LOCAL        0
-        0002    | OP_PRINT
-        0003  189 OP_GET_GLOBAL       0 'write'
-        0005    | OP_CONSTANT         1 'Point({}, {})'
-        0007    | OP_GET_LOCAL        0
-        0009    | OP_GET_PROPERTY     2 'x'
-        0011    | OP_CONSTANT         3 '2'
-        0013    | OP_CALL             3
-        0015    | OP_POP
-        0016  190 OP_GET_LOCAL        0
-        0018    | OP_RETURN
-        0019    | OP_POP
-
 
 
 ========================================
