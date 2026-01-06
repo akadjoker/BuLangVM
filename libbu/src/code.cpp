@@ -21,29 +21,11 @@ void Code::freeze()
     m_frozen = true;
 }
 
-//   FORCE_INLINE int asStructId() const
-//   {
-//     return as.integer;
-//   }
-
-//   FORCE_INLINE int asClassId() const
-//   {
-//     return as.integer;
-//   }
-
-//   FORCE_INLINE int asClassNativeId() const
-//   {
-//     return as.integer;
-//   }
-
-//   FORCE_INLINE int asNativeStructId() const
-//   {
-//     return as.integer;
-//   }
+ 
 
 int Code::addConstant(Value value)
 {
-    // 1. Tipos mutáveis - sempre adiciona novo
+    // 1. Tipos mutáveis - sempre  novo
     switch (value.type)
     {
         case ValueType::CLASSINSTANCE:
@@ -52,8 +34,8 @@ int Code::addConstant(Value value)
         case ValueType::NATIVESTRUCTINSTANCE:
         case ValueType::ARRAY:
         case ValueType::MAP:
-        case ValueType::PROCESS:
         case ValueType::POINTER:
+        case ValueType::MODULEREFERENCE:
             constants.push(value);
             return static_cast<int>(constants.size() - 1);
         default:
@@ -133,7 +115,12 @@ int Code::addConstant(Value value)
     }
     else if (value.type == ValueType::CLASS || 
              value.type == ValueType::STRUCT || 
-             value.type == ValueType::NATIVE)
+             value.type == ValueType::NATIVE  || 
+             value.type == ValueType::FUNCTION ||
+             value.type == ValueType::NATIVECLASS || 
+             value.type == ValueType::PROCESS || 
+             value.type == ValueType::NATIVESTRUCT
+            )
     {
         for (int i = 0; i < constants.size(); i++)
         {
