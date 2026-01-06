@@ -2548,11 +2548,11 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
             break;
         }
 
-        // 3. OP_DISCARD2: Remove 2 do topo
-        case OP_DISCARD2:
+  
+        case OP_DISCARD:
         {
-            POP();
-            POP();
+            uint8_t count = READ_BYTE();
+            fiber->stackTop -= count;
             break;
         }
      

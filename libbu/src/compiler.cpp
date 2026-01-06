@@ -416,6 +416,12 @@ void Compiler::emitBytes(uint8 byte1, uint8 byte2)
   emitByte(byte2);
 }
 
+void Compiler::emitDiscard(uint8 count)
+{
+  emitByte(OP_DISCARD);
+  emitByte(count);
+}
+
 void Compiler::emitReturn()
 {
   emitByte(OP_NIL);

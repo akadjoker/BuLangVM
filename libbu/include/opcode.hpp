@@ -87,7 +87,7 @@ enum Opcode : uint8
     OP_ITER_VALUE = 55,
     OP_COPY2 = 56,
     OP_SWAP = 57,
-    OP_DISCARD2 = 58,
+    OP_DISCARD = 58,
  
 
   

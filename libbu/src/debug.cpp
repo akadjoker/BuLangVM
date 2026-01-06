@@ -201,8 +201,10 @@ case OP_COPY2:
 case OP_SWAP:
     return simpleInstruction("OP_SWAP", offset);
         
-case OP_DISCARD2:
-    return simpleInstruction("OP_DISCARD2", offset);
+case OP_DISCARD:
+{
+    return byteInstruction("OP_DISCARD", chunk, offset);
+}
     
  
 

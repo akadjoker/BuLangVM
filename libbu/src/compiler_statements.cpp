@@ -701,7 +701,7 @@ void Compiler::emitBreak()
 
     if (ctx.isForeach)
     {
-         emitByte(OP_DISCARD2);
+       emitDiscard(2);
     }
 
 
@@ -1008,8 +1008,7 @@ void Compiler::foreachStatement()
     emitLoop(loopStart);
     
     patchJump(exitJump);
-    emitByte(OP_DISCARD2);
-    emitByte(OP_DISCARD2);
+    emitDiscard(4);
     
     localCount_ -= 2;  // Remove seq e iter
     

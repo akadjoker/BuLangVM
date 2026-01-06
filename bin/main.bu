@@ -171,28 +171,24 @@
 // // print(map([1,2,3,4], square));
 
 
-// class Point
-// {
-//     var x,y;
-//     def init(x,y)
-//     {
-//         self.x=x;
-//         self.y=y;
-//         print(self);
+class Point
+{
+    var x,y;
+    def init(x,y)
+    {
+        self.x=x;
+        self.y=y;
+ 
     
      
-//     }
+    }
 
-//     def show()
-//     {
-//         print(self);
-//         write("Point({}, {})\n", self.x, 2);
-//     }
-// }
-
-// // p = Point(10,20);
-// // p.show();
-
+    def show()
+    {
+        
+        write("Point({}, {})\n", self.x, 2);
+    }
+}
 
 
  
@@ -215,7 +211,7 @@
 //     print(x);  // imprime 1, 2
 // }
 
-// print_stack("1");
+// //print_stack("1");
 
 // //4. Continue dentro do foreach
 // foreach (x in nums) {
@@ -239,21 +235,56 @@
 //     // arr.push(x * 10);  // cuidado com isto!
 // }
 
-// var points =[Point(0,0),Point(1,0),Point(2,0),Point(3,0),Point(4,0)];
+var points =[Point(0,0),Point(1,0),Point(2,0),Point(3,0),Point(4,0)];
 
-// foreach (point in points)
-// {
-//     print(point.x);
-//     point.x=point.x+10;
+foreach (point in points)
+{
+    point.x=point.x+10;
+}
+
+
+foreach (point in points)
+{
+    point.show();
+
+}
+
+
+// // 1. Break no meio
+// foreach (x in [1,2,3,4,5]) {
+//     if (x == 3) break;
+//     print(x);
+// }
+// print("after");  // Deve imprimir "after"
+
+// // 2. Continue
+// foreach (x in [1,2,3,4,5]) {
+//     if (x == 3) continue;
+//     print(x);  // Imprime 1,2,4,5
 // }
 
-
-// foreach (point in points)
+// // 3. Nested com break
+// foreach (x in [1,2]) 
 // {
-//     print(point.x);
-
+//     foreach (y in [10,20,30]) 
+//     {
+//         if (y == 20) break;
+//         print(x);
+//         print(y);
+//     }
+//     print("outer");
 // }
 
+// // 4. Return dentro de foreach (dentro de função)
+// def test() 
+// {
+//     foreach (x in [1,2,3]) 
+//     {
+//         if (x == 2) return x;
+//     }
+//     return 99;
+// }
+// print(test());  // Deve imprimir 2
 
 
 // // def update() 
@@ -322,17 +353,18 @@
 // foreach (x in [1,2,3]) {
 //     print(x);
 // }
-// print_stack("final: ");
+// //print_stack("final: ");
 
 
 
 // var sum = 0;
-// foreach (x in [1,2,3,4,5]) {
+// foreach (x in [1,2,3,4,5]) 
+// {
 //     if (x == 3) break;
 //     sum = sum + x;
 // }
 // print(sum);  // Esperado: 3 (1+2)
-// print_stack("stack: ");
+// // //print_stack("stack: ");
 
 // var sum = 0;
 // foreach (x in [1,2,3,4,5]) {
@@ -340,74 +372,225 @@
 //     sum = sum + x;
 // }
 // print(sum);  // Esperado: 12 (1+2+4+5)
-// print_stack("stack: ");
+// //print_stack("stack: ");
 
 
-// Teste 1: For tradicional
-var start = clock();
-var sum1 = 0;
-var arr = [1,2,3,4,5,6,7,8,9,10];
+// // Teste 1: For tradicional
+// var start = clock();
 
-for (var i = 0; i < 100000; i = i + 1) 
+// var sum1 = 0;
+// var arr = [1,2,3,4,5,6,7,8,9,10];
+// //print_stack("stack: ");
+// for (var i = 0; i < 100000; i = i + 1) 
+// {
+//     for (var j = 0; j < 10; j = j + 1) 
+//     {
+//         sum1 = sum1 + arr[j];
+//     }
+// }
+// var time1 = clock() - start;
+// write("For tradicional: {} ms \n", time1);
+// write("Sum: {} \n", sum1);
+
+// // Teste 2: Foreach
+// start = clock();
+// var sum2 = 0;
+
+// for (var i = 0; i < 100000; i = i + 1) 
+// {
+//     foreach (x in arr) 
+//     {
+//         sum2 = sum2 + x;
+//     }
+// }
+// var time2 = clock() - start;
+// write("Forecah: {} ms \n", time2);
+// write("Sum: {} \n", sum2);
+
+
+// // Comparação
+// write("Diferença: {} ms\n", time2 - time1);
+// if (time1 < time2) 
+// {
+//     print("For é mais rápido!");
+// } else {
+//     print("Foreach é mais rápido!");
+// }
+
+
+// // 1. Array vazio
+// foreach (x in []) {
+//     print("não deve imprimir");
+// }
+// print("ok 1");
+
+// // 2. Array com 1 elemento
+// foreach (x in [42]) {
+//     print(x);  // Deve imprimir 42
+// }
+// print("ok 2");
+
+// // 3. Break na primeira iteração
+// foreach (x in [1,2,3]) 
+// {
+//     break;
+// }
+// print("ok 3");
+
+// // 4. Continue em todas iterações
+// var count = 0;
+// foreach (x in [1,2,3]) 
+// {
+//     count = count + 1;
+//     continue;
+//     print("nunca executa");
+// }
+// print(count);  // Deve ser 3
+
+
+// // foreach (x in arr) 
+// // {
+// //     arr.push(x);
+// // }
+
+
+//  // 1. TRIPLE NESTED FOREACH 
+// foreach (a in [1,2]) {
+//     foreach (b in [10,20]) {
+//         foreach (c in [100,200]) {
+//             print(a);
+//             print(b);
+//             print(c);
+//             print("---");
+//         }
+//     }
+// }
+
+// // 2. BREAK NO MEIO DE TRIPLE NESTED 
+// foreach (a in [1,2,3]) {
+//     foreach (b in [10,20,30]) {
+//         foreach (c in [100,200,300]) {
+//             if (c == 200) break;
+//             print(a);
+//             print(b); 
+//             print(c);
+//         }
+//         print("b-level");
+//     }
+//     print("a-level");
+// }
+
+// // 3. MODIFICAR ARRAY DURANTE ITERAÇÃO (edge case perigoso) 
+// // var arr = [1,2,3];
+// // foreach (x in arr) {
+// //     print(x);
+// //     arr.push(x * 10);
+// // }
+// // print("---");
+// // print(arr.length());
+
+// // 4. FOREACH COM ARRAY GIGANTE 
+// var big = [];
+// for (var i = 0; i < 10000; i = i + 1) 
+// {
+//     big.push(i);
+// }
+// var sum = 0;
+// foreach (x in big) 
+// {
+//     sum = sum + x;
+// }
+// print(sum);  // Deve ser 49995000
+
+// // 5. FOREACH DENTRO DE WHILE 
+// var i = 0;
+// while (i < 3) 
+// {
+//     foreach (x in [10,20]) 
+//     {
+//         print(i);
+//         print(x);
+//     }
+//     i = i + 1;
+// }
+
+// // 6. RETURN NO NESTED FOREACH 
+// def findPair() 
+// {
+//     foreach (a in [1,2,3]) 
+//     {
+//         foreach (b in [10,20,30]) 
+//         {
+//             if (a == 2 && b == 20) 
+//             {
+//                 return a * b;
+//             }
+//         }
+//     }
+//     return -1;
+// }
+// print(findPair());  // Deve ser 40
+
+
+
+class Collection
 {
-    for (var j = 0; j < 10; j = j + 1) 
+    var items;
+    
+    def init()
     {
-        sum1 = sum1 + arr[j];
+        self.items = [1, 2, 3, 4, 5];
+    }
+    
+    def sum()
+    {
+        var total = 0;
+        foreach (item in self.items)
+        {
+            total = total + item;
+        }
+        return total;
+    }
+    
+    def printAll()
+    {
+        foreach (item in self.items)
+        {
+            print(item);
+        }
+    }
+    
+    def findFirst(target)
+    {
+        foreach (item in self.items)
+        {
+            if (item == target)
+            {
+                return item;
+            }
+        }
+        return -1;
+    }
+    
+    def nested()
+    {
+        foreach (a in self.items)
+        {
+            foreach (b in self.items)
+            {
+                if (a == 2 && b == 3)
+                {
+                    return a * b;
+                }
+            }
+        }
+        return 0;
     }
 }
-var time1 = clock() - start;
-write("For tradicional: {} ms \n", time1);
-write("Sum: {} \n", sum1);
 
-// Teste 2: Foreach
-start = clock();
-var sum2 = 0;
-
-for (var i = 0; i < 100000; i = i + 1) 
-{
-    foreach (x in arr) 
-    {
-        sum2 = sum2 + x;
-    }
-}
-var time2 = clock() - start;
-write("Forecah: {} ms \n", time2);
-write("Sum: {} \n", sum2);
-
-
-// Comparação
-write("Diferença: {} ms\n", time2 - time1);
-if (time1 < time2) 
-{
-    print("For é mais rápido!");
-} else {
-    print("Foreach é mais rápido!");
-}
-
-
-// 1. Array vazio
-foreach (x in []) {
-    print("não deve imprimir");
-}
-print("ok 1");
-
-// 2. Array com 1 elemento
-foreach (x in [42]) {
-    print(x);  // Deve imprimir 42
-}
-print("ok 2");
-
-// 3. Break na primeira iteração
-foreach (x in [1,2,3]) {
-    break;
-}
-print("ok 3");
-
-// 4. Continue em todas iterações
-var count = 0;
-foreach (x in [1,2,3]) {
-    count = count + 1;
-    continue;
-    print("nunca executa");
-}
-print(count);  // Deve ser 3
+var c = Collection();
+print(c.sum());           // Deve ser 15
+c.printAll();              // Deve imprimir 1,2,3,4,5
+print(c.findFirst(3));    // Deve ser 3
+print(c.findFirst(99));   // Deve ser -1
+print(c.nested());        // Deve ser 6
