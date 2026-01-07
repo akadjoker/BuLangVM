@@ -1,0 +1,590 @@
+// ============================================
+// TEST SUITE - Language Features
+// ============================================
+
+print("=== Starting Test Suite ===\n");
+
+// ============================================
+// 1. BASIC LITERALS & ENCODING
+// ============================================
+print(">>> Test 1: Literals & Encoding");
+
+var hex1 = 0xFF;
+var hex2 = 0x1A;
+var hex3 = 0x00;
+
+var str1 = "Hello\u263A";
+var str2 = "Rocket\U0001F680";
+var str3 = "Tab\there";
+var str4 = "Hex\x41";
+
+print(hex1);    // 255
+print(hex2);    // 26
+print(hex3);    // 0
+print(str1);
+print(str2);
+print(str4);
+print("✓ Literals OK\n");
+
+// ============================================
+// 2. FOREACH - BASIC
+// ============================================
+print(">>> Test 2: Foreach Basic");
+
+// Empty array
+foreach (x in []) {
+    print("ERROR: should not print");
+}
+
+// Single element
+foreach (x in [42]) {
+    print(x);
+}
+
+// Simple iteration
+foreach (x in [1,2,3]) {
+    write("{} ", x);
+}
+print("\n✓ Foreach basic OK\n");
+
+// ============================================
+// 3. FOREACH - CONTROL FLOW
+// ============================================
+print(">>> Test 3: Foreach Control Flow");
+
+// Break
+var sum = 0;
+foreach (x in [1,2,3,4,5]) {
+    if (x == 3) break;
+    sum = sum + x;
+}
+print(sum);  // Expected: 3
+
+// Continue
+sum = 0;
+foreach (x in [1,2,3,4,5]) {
+    if (x == 3) continue;
+    sum = sum + x;
+}
+print(sum);  // Expected: 12
+
+print("✓ Control flow OK\n");
+
+// ============================================
+// 4. FOREACH - NESTED
+// ============================================
+print(">>> Test 4: Nested Foreach");
+
+// Double nested
+foreach (x in [1,2]) {
+    foreach (y in [10,20]) {
+        write("{},{} ", x, y);
+    }
+}
+print("");
+
+// Triple nested
+var count = 0;
+foreach (a in [1,2]) {
+    foreach (b in [10,20]) {
+        foreach (c in [100,200]) {
+            count = count + 1;
+        }
+    }
+}
+print(count);  // Expected: 8
+
+print("✓ Nested foreach OK\n");
+
+// ============================================
+// 5. FOREACH - MIXED WITH FOR/WHILE
+// ============================================
+print(">>> Test 5: Mixed Loops");
+
+// Foreach inside for
+for (var i = 0; i < 2; i = i + 1) {
+    foreach (x in [1,2,3]) {
+        write("{} ", x);
+    }
+    print("");
+}
+
+// Foreach inside while
+var i = 0;
+while (i < 2) {
+    foreach (x in [10,20]) {
+        write("{} ", x);
+    }
+    print("");
+    i = i + 1;
+}
+
+print("✓ Mixed loops OK\n");
+
+// ============================================
+// 6. FOREACH - WITH OBJECTS
+// ============================================
+print(">>> Test 6: Foreach with Objects");
+
+class Point {
+    var x, y;
+    
+    def init(x, y) {
+        self.x = x;
+        self.y = y;
+    }
+    
+    def show() {
+        write("Point({}, {})\n", self.x, self.y);
+    }
+}
+
+var points = [Point(0,0), Point(1,1), Point(2,2)];
+
+foreach (point in points) {
+    point.x = point.x + 10;
+}
+
+foreach (point in points) {
+    point.show();
+}
+
+print("✓ Objects OK\n");
+
+// ============================================
+// 7. FOREACH - IN CLASS METHODS
+// ============================================
+print(">>> Test 7: Foreach in Methods");
+
+class Collection {
+    var items;
+    
+    def init() {
+        self.items = [1, 2, 3, 4, 5];
+    }
+    
+    def sum() {
+        var total = 0;
+        foreach (item in self.items) {
+            total = total + item;
+        }
+        return total;
+    }
+    
+    def findFirst(target) {
+        foreach (item in self.items) {
+            if (item == target) return item;
+        }
+        return -1;
+    }
+    
+    def nested() {
+        foreach (a in self.items) {
+            foreach (b in self.items) {
+                if (a == 2 && b == 3) {
+                    return a * b;
+                }
+            }
+        }
+        return 0;
+    }
+}
+
+var c = Collection();
+print(c.sum());          // 15
+print(c.findFirst(3));   // 3
+print(c.findFirst(99));  // -1
+print(c.nested());       // 6
+
+print("✓ Methods OK\n");
+
+// ============================================
+// 8. HIGHER-ORDER FUNCTIONS
+// ============================================
+print(">>> Test 8: Higher-Order Functions");
+
+def forEach(a, fn) {
+    foreach (x in a) {
+        fn(x);
+    }
+}
+
+def map(a, fn) {
+    var r = [];
+    foreach (x in a) {
+        r.push(fn(x));
+    }
+    return r;
+}
+
+def filter(a, pred) {
+    var r = [];
+    foreach (x in a) {
+        if (pred(x)) r.push(x);
+    }
+    return r;
+}
+
+def sort_array(a, cmp) {
+    var r = [];
+    foreach (x in a) {
+        r.push(x);
+    }
+    
+    for (var i = 0; i < r.length(); i = i + 1) {
+        for (var j = i + 1; j < r.length(); j = j + 1) {
+            if (!cmp(r[i], r[j])) {
+                var t = r[i];
+                r[i] = r[j];
+                r[j] = t;
+            }
+        }
+    }
+    return r;
+}
+
+def square(x) { return x * x; }
+def isEven(n) { return n % 2 == 0; }
+def asc(a, b) { return a < b; }
+def desc(a, b) { return a > b; }
+
+print(map([1,2,3,4], square));           // [1,4,9,16]
+print(filter([1,2,3,4,5,6], isEven));    // [2,4,6]
+print(sort_array([5,1,4,2,8], asc));     // [1,2,4,5,8]
+print(sort_array([5,1,4,2,8], desc));    // [8,5,4,2,1]
+
+print("✓ Higher-order OK\n");
+
+// ============================================
+// 9. PERFORMANCE TEST
+// ============================================
+print(">>> Test 9: Performance Comparison");
+
+var arr = [1,2,3,4,5,6,7,8,9,10];
+var iterations = 100000;
+
+// Traditional for loop
+var start = clock();
+var sum1 = 0;
+for (var i = 0; i < iterations; i = i + 1) {
+    for (var j = 0; j < 10; j = j + 1) {
+        sum1 = sum1 + arr[j];
+    }
+}
+var time1 = clock() - start;
+
+// Foreach loop
+start = clock();
+var sum2 = 0;
+for (var i = 0; i < iterations; i = i + 1) {
+    foreach (x in arr) {
+        sum2 = sum2 + x;
+    }
+}
+var time2 = clock() - start;
+
+write("For loop:     {} ms (sum={})\n", time1, sum1);
+write("Foreach loop: {} ms (sum={})\n", time2, sum2);
+write("Difference:   {} ms\n", time2 - time1);
+
+if (time2 < time1) {
+    write("Foreach is {}% faster!\n", ((time1 - time2) / time1) * 100);
+} else {
+    write("For is {}% faster\n", ((time2 - time1) / time2) * 100);
+}
+
+print("✓ Performance OK\n");
+
+// ============================================
+// 10. STRESS TEST
+// ============================================
+print(">>> Test 10: Stress Test");
+
+// Large array
+var big = [];
+for (var i = 0; i < 10000; i = i + 1) {
+    big.push(i);
+}
+
+var sum = 0;
+foreach (x in big) {
+    sum = sum + x;
+}
+print(sum);  // 49995000
+
+// Fibonacci recursion
+def fib(n) {
+    if (n < 2) return n;
+    return fib(n - 1) + fib(n - 2);
+}
+
+start = clock();
+for (var i = 1; i < 5; i = i + 1) {
+    print(fib(28));
+}
+write("Fibonacci elapsed: {} ms\n", clock() - start);
+
+
+
+// ============================================
+// TESTES INTERNOS - TRY-CATCH-FINALLY
+// ============================================
+
+print("=== TESTE 1: Try-catch básico ===");
+try {
+    print("  antes do throw");
+    throw "erro1";
+    print("  NUNCA executa");
+} catch (e) {
+    print("  caught: " + e);
+}
+print("  continua normalmente");
+
+
+print("\n=== TESTE 2: Try sem erro ===");
+try {
+    print("  executando try");
+    var x = 42;
+    print("  x = " + x);
+} catch (e) {
+    print("  NUNCA executa catch");
+}
+print("  continua normalmente");
+
+
+print("\n=== TESTE 3: Try-finally sem erro ===");
+try {
+    print("  executando try");
+} finally {
+    print("  cleanup no finally");
+}
+print("  continua normalmente");
+
+
+print("\n=== TESTE 4: Try-finally com throw ===");
+try {
+    try {
+        throw "erro interno";
+    } finally {
+        print("  cleanup antes de propagar");
+    }
+} catch (e) {
+    print("  caught no outer: " + e);
+}
+
+
+print("\n=== TESTE 5: Try-catch-finally completo ===");
+try {
+    throw "erro5";
+} catch (e) {
+    print("  catch: " + e);
+} finally {
+    print("  finally sempre executa");
+}
+print("  continua normalmente");
+
+
+print("\n=== TESTE 6: Nested try-catch ===");
+try {
+    print("  outer try");
+    try {
+        print("    inner try");
+        throw "erro inner";
+    } catch (e) {
+        print("    inner catch: " + e);
+        throw "erro outer";
+    }
+} catch (e) {
+    print("  outer catch: " + e);
+}
+
+
+print("\n=== TESTE 7: Multiple throws ===");
+try {
+    try 
+    {
+        throw "primeiro";
+    } catch (e) 
+    {
+        write("  catch 1: {}\n" , e);
+        throw "segundo";
+    }
+} catch (e) {
+    write("  catch 2: {}\n" , e);
+}
+
+
+print("\n=== TESTE 8: Finally com variáveis locais ===");
+try {
+    var x = 10;
+    throw "erro8";
+} catch (e) {
+    var y = 20;
+    write("  y = {}\n" , y);
+} finally {
+    var z = 30;
+    write("  z = {}\n" , z);
+}
+
+
+print("\n=== TESTE 9: Throw em catch ===");
+try {
+    try {
+        throw "erro original";
+    } catch (e) {
+        print("  processando: " + e);
+        throw "erro transformado";
+    }
+} catch (e) {
+    print("  erro final: " + e);
+}
+
+
+print("\n=== TESTE 10: Finally não suprime retorno normal ===");
+try {
+    print("  try executou");
+} finally {
+    print("  finally executou");
+}
+print("  código após try-finally");
+
+
+print("\n=== TESTE 11: Stack restoration ===");
+var antes = 100;
+try {
+    var durante = 200;
+    throw "erro11";
+} catch (e) {
+    write("  antes ainda existe: {}\n" , antes);
+    // 'durante' não existe mais
+}
+write("  antes ainda existe: {}" , antes);
+
+
+print("\n=== TESTE 12: Múltiplos try-catch sequenciais ===");
+try {
+    throw "A";
+} catch (e) {
+    write("  1: {}\n" , e);
+}
+
+try {
+    throw "B";
+} catch (e) {
+    write("  2: {}\n" , e);
+}
+
+try {
+    throw "C";
+} catch (e) {
+    write("  3: {}\n" , e);
+}
+
+
+print("\n=== TESTE 13: Try-finally-finally (nested) ===");
+try {
+    try {
+        print("  inner try");
+    } finally {
+        print("  inner finally");
+    }
+} finally {
+    print("  outer finally");
+}
+
+
+print("\n=== TESTE 14: Throw strings, numbers, nil ===");
+try { throw "string error"; } catch (e) { print("  string: " + e); }
+try { throw 404; } catch (e) { print("  number: " + e); }
+try { throw true; } catch (e) { print("  bool: " + e); }
+try { throw nil; } catch (e) { print("  nil: " + e); }
+
+
+print("\n=== TESTE 15: Finally após catch bem-sucedido ===");
+var flag = false;
+try {
+    throw "erro15";
+} catch (e) {
+    flag = true;
+    print("  catch executou");
+} finally {
+    write("  flag = {}\n" , flag);
+}
+
+
+print("\n=== TESTE 16: Deep nesting (stress test) ===");
+try {
+    try {
+        try {
+            try {
+                throw "deep error";
+            } catch (e) {
+                print("  nível 4");
+                throw e;
+            }
+        } catch (e) {
+            print("  nível 3");
+            throw e;
+        }
+    } catch (e) {
+        print("  nível 2");
+        throw e;
+    }
+} catch (e) {
+    write("  nível 1: {}\n" , e);
+}
+
+
+print("\n=== TESTE 17: Finally com throw (substitui erro) ===");
+try {
+    try {
+        throw "erro original";
+    } finally {
+        print("  finally vai lançar novo erro");
+        throw "erro do finally";
+    }
+} catch (e) {
+    print(e);
+    write("  caught: {}\n" , e);  // Deve ser "erro do finally"
+}
+ 
+
+print("\n=== TESTE 18: Catch vazio (só captura) ===");
+try {
+    throw "silenciado";
+} catch (e) {
+    // não faz nada
+}
+print("  erro foi silenciado");
+
+
+print("\n=== TESTE 19: Try-catch em loop ===");
+ 
+for (var i = 0; i < 3; i = i + 1) 
+{
+    try 
+    {
+        if (i == 1) 
+        {
+            throw "erro no i=1";
+        }
+        write("  i = {}\n" , i);
+    } catch (e) 
+    {
+        write("  caught: {}\n" , e);
+    }
+}
+ 
+
+print("\n=== TESTE 20: Finally  executa sempre (mesmo com return) ===");
+try {
+    print("  try");
+    return 42;
+} finally {
+    print("  finally executa antes de sair");
+}
+
+
+print("\n\n✅ TODOS OS TESTES CONCLUÍDOS!\n");
+
+ 
