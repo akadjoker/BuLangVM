@@ -119,7 +119,9 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
         // inter functions
         &&op_len,
         // forech
-        &&op_iter_next, &&op_iter_item};
+        &&op_iter_next, &&op_iter_value,
+        &&op_copy2, &&op_swap, &&op_discard,
+        &&op_try, &&op_pop_try, &&op_throw, &&op_enter_catch, &&op_enter_finally, &&op_exit_finally};
 
     // #define DISPATCH()                                    \
     //     do                                                \
@@ -1019,13 +1021,33 @@ op_call:
 
 op_return:
 {
-
-    // printf("[DEBUG] OP_RETURN - frameCount: %d\n", fiber->frameCount);
-    // printf("[DEBUG] IP offset: %ld\n", (long)(ip - func->chunk->code));
-
     Value result = POP();
 
-    // printf("[DEBUG] Popped value type: %d\n", (int)result.type);
+    bool hasFinally = false;
+    if (fiber->tryDepth > 0)
+    {
+        for (int depth = fiber->tryDepth - 1; depth >= 0; depth--)
+        {
+            TryHandler &handler = fiber->tryHandlers[depth];
+
+            if (handler.finallyIP != nullptr && !handler.inFinally)
+            {
+                // Marca para executar finally
+                handler.pendingReturn = result;
+                handler.hasPendingReturn = true;
+                handler.inFinally = true;
+                fiber->tryDepth = depth + 1; // Ajusta depth
+                ip = handler.finallyIP;
+                hasFinally = true;
+                break;
+            }
+        }
+    }
+
+    if (hasFinally)
+    {
+        DISPATCH();
+    }
 
     fiber->frameCount--;
 
@@ -1047,10 +1069,7 @@ op_return:
 
         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
     }
-
-    //  Função nested - retorna para onde estava a chamada
     CallFrame *finished = &fiber->frames[fiber->frameCount];
-
     fiber->stackTop = finished->slots;
     *fiber->stackTop++ = result;
 
@@ -1177,9 +1196,21 @@ op_spawn:
 
 op_print:
 {
-    Value value = POP();
-    printValue(value);
+    uint8_t argCount = READ_BYTE();
+    Value *args = fiber->stackTop - argCount;
+    for (uint8_t i = 0; i < argCount; i++)
+    {
+        printValue(args[i]);
+        // if (i < argCount - 1)
+        // {
+        //     printf(" "); // Espaço entre argumentos
+        // }
+    }
     printf("\n");
+
+    // Remove argumentos da stack
+    fiber->stackTop -= argCount;
+
     DISPATCH();
 }
 
@@ -2531,12 +2562,13 @@ op_foreach_start:
 
 op_iter_next:
 {
+
     Value iter = POP();
     Value seq = POP();
 
     if (!seq.isArray())
     {
-        runtimeError("Type is not iterable");
+        runtimeError(" Iterator next Type is not iterable");
         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
     }
 
@@ -2553,18 +2585,18 @@ op_iter_next:
         PUSH(makeNil());
         PUSH(makeBool(false));
     }
-
     DISPATCH();
 }
 
-op_iter_item:
+op_iter_value:
 {
+
     Value iter = POP();
     Value seq = POP();
 
     if (!seq.isArray())
     {
-        runtimeError("Type is not iterable");
+        runtimeError("Iterator Type is not iterable");
         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
     }
 
@@ -2578,6 +2610,262 @@ op_iter_item:
     }
 
     PUSH(array->values[index]);
+
+    DISPATCH();
+}
+
+op_copy2:
+{
+    Value b = NPEEK(0);
+    Value a = NPEEK(1);
+    PUSH(a);
+    PUSH(b);
+    DISPATCH();
+}
+
+op_swap:
+{
+    Value a = POP();
+    Value b = POP();
+    PUSH(a);
+    PUSH(b);
+    DISPATCH();
+}
+
+op_discard:
+{
+    uint8_t count = READ_BYTE();
+    fiber->stackTop -= count;
+
+    DISPATCH();
+}
+
+op_try:
+{
+    uint16_t catchAddr = READ_SHORT();
+    uint16_t finallyAddr = READ_SHORT();
+
+    if (fiber->tryDepth >= TRY_MAX)
+    {
+        runtimeError("Try-catch nesting too deep");
+        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    }
+
+    TryHandler &handler = fiber->tryHandlers[fiber->tryDepth];
+    handler.catchIP = catchAddr == 0xFFFF ? nullptr : func->chunk->code + catchAddr;
+    handler.finallyIP = finallyAddr == 0xFFFF ? nullptr : func->chunk->code + finallyAddr;
+    handler.stackRestore = fiber->stackTop;
+    handler.inFinally = false;
+    handler.pendingError = makeNil();
+    handler.hasPendingError = false;
+    handler.catchConsumed = false;
+
+    fiber->tryDepth++;
+    DISPATCH();
+}
+
+op_pop_try:
+{
+    if (fiber->tryDepth > 0)
+    {
+        fiber->tryDepth--;
+    }
+    DISPATCH();
+}
+op_enter_catch:
+{
+    if (fiber->tryDepth > 0)
+    {
+        fiber->tryHandlers[fiber->tryDepth - 1].hasPendingError = false;
+    }
+    DISPATCH();
+}
+op_enter_finally:
+{
+    if (fiber->tryDepth > 0)
+    {
+        fiber->tryHandlers[fiber->tryDepth - 1].inFinally = true;
+    }
+    DISPATCH();
+}
+
+op_throw:
+{
+    Value error = POP();
+    bool handlerFound = false;
+
+    while (fiber->tryDepth > 0)
+    {
+        TryHandler &handler = fiber->tryHandlers[fiber->tryDepth - 1];
+
+        if (handler.inFinally)
+        {
+            handler.pendingError = error;
+            handler.hasPendingError = true;
+            fiber->tryDepth--;
+            continue;
+        }
+
+        fiber->stackTop = handler.stackRestore;
+
+        // Tem catch?
+        if (handler.catchIP != nullptr && !handler.catchConsumed)
+        {
+            handler.catchConsumed = true;
+
+            PUSH(error);
+            ip = handler.catchIP;
+            handlerFound = true;
+
+            break;
+        }
+
+        // Só finally?
+        else if (handler.finallyIP != nullptr)
+        {
+            handler.pendingError = error;
+            handler.hasPendingError = true;
+            handler.inFinally = true;
+            ip = handler.finallyIP;
+            handlerFound = true;
+            break;
+        }
+
+        fiber->tryDepth--;
+    }
+
+    if (!handlerFound)
+    {
+        char buffer[256];
+        valueToBuffer(error, buffer, sizeof(buffer));
+        runtimeError("Uncaught exception: %s", buffer);
+
+        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    }
+    DISPATCH();
+}
+
+op_exit_finally:
+{
+    if (fiber->tryDepth > 0)
+    {
+        TryHandler &handler = fiber->tryHandlers[fiber->tryDepth - 1];
+        handler.inFinally = false;
+
+        if (handler.hasPendingReturn)
+        {
+            Value returnValue = handler.pendingReturn;
+            handler.hasPendingReturn = false;
+            fiber->tryDepth--;
+
+            // Procura próximo finally
+            bool hasAnotherFinally = false;
+            for (int depth = fiber->tryDepth - 1; depth >= 0; depth--)
+            {
+                TryHandler &next = fiber->tryHandlers[depth];
+                if (next.finallyIP != nullptr && !next.inFinally)
+                {
+                    next.pendingReturn = returnValue;
+                    next.hasPendingReturn = true;
+                    next.inFinally = true;
+                    fiber->tryDepth = depth + 1;
+                    ip = next.finallyIP;
+                    hasAnotherFinally = true;
+                    break;
+                }
+            }
+
+            if (!hasAnotherFinally)
+            {
+                // Executa return de verdade
+                fiber->frameCount--;
+
+                if (fiber->frameCount == 0)
+                {
+                    fiber->stackTop = fiber->stack;
+                    *fiber->stackTop++ = returnValue;
+                    fiber->state = FiberState::DEAD;
+
+                    if (fiber == &currentProcess->fibers[0])
+                    {
+                        for (int i = 0; i < currentProcess->nextFiberIndex; i++)
+                        {
+                            currentProcess->fibers[i].state = FiberState::DEAD;
+                        }
+                        currentProcess->state = FiberState::DEAD;
+                    }
+
+                    STORE_FRAME();
+                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                }
+
+                CallFrame *finished = &fiber->frames[fiber->frameCount];
+                fiber->stackTop = finished->slots;
+                *fiber->stackTop++ = returnValue;
+
+                LOAD_FRAME();
+            }
+
+            DISPATCH();
+        }
+
+        if (handler.hasPendingError)
+        {
+            Value error = handler.pendingError;
+            handler.hasPendingError = false;
+            fiber->tryDepth--;
+
+            // Re-throw: procura próximo handler
+            bool handlerFound = false;
+
+            for (int depth = fiber->tryDepth - 1; depth >= 0; depth--)
+            {
+                TryHandler &nextHandler = fiber->tryHandlers[depth];
+
+                if (nextHandler.inFinally)
+                {
+                    nextHandler.pendingError = error;
+                    nextHandler.hasPendingError = true;
+                    continue;
+                }
+
+                fiber->stackTop = nextHandler.stackRestore;
+
+                if (nextHandler.catchIP != nullptr && !nextHandler.catchConsumed)
+                {
+                    nextHandler.catchConsumed = true;
+                    PUSH(error);
+                    ip = nextHandler.catchIP;
+                    handlerFound = true;
+                    fiber->tryDepth = depth + 1;
+                    break;
+                }
+                else if (nextHandler.finallyIP != nullptr)
+                {
+                    nextHandler.pendingError = error;
+                    nextHandler.hasPendingError = true;
+                    nextHandler.inFinally = true;
+                    ip = nextHandler.finallyIP;
+                    handlerFound = true;
+                    fiber->tryDepth = depth + 1;
+                    break;
+                }
+            }
+
+            if (!handlerFound)
+            {
+                char buffer[256];
+                valueToBuffer(error, buffer, sizeof(buffer));
+                runtimeError("Uncaught exception: %s", buffer);
+                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            }
+        }
+        else
+        {
+            // Sem erro nem return pendente, só remove handler
+            fiber->tryDepth--;
+        }
+    }
     DISPATCH();
 }
 

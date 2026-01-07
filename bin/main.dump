@@ -12,7 +12,7 @@ GLOBAL FUNCTIONS
     Has return: no
     Index: 0
 
-  Constants (8):
+  Constants (7):
     [0] = "i"
     [1] = 0
     [2] = 3
@@ -20,15 +20,13 @@ GLOBAL FUNCTIONS
     [4] = "erro no i=1"
     [5] = "  i = "
     [6] = "  caught: "
-    [7] = " ,
-"
 
   Bytecode:
     0000    2 OP_CONSTANT         1 '0'
     0002    | OP_GET_LOCAL        0
     0004    | OP_CONSTANT         2 '3'
     0006    | OP_LESS
-    0007    | OP_JUMP_IF_FALSE    7 -> 73
+    0007    | OP_JUMP_IF_FALSE    7 -> 71
     0010    | OP_POP
     0011    | OP_JUMP            11 -> 25
     0014    | OP_GET_LOCAL        0
@@ -55,21 +53,20 @@ GLOBAL FUNCTIONS
     0050    | OP_PRINT
     0051    | OP_TRUE
     0052   11 Unknown opcode 60
-    0053    | OP_JUMP            53 -> 70
+    0053    | OP_JUMP            53 -> 68
     0056   12 Unknown opcode 62
     0057   13 OP_CONSTANT         6 '  caught: '
     0059    | OP_GET_LOCAL        1
-    0061    | OP_CONSTANT         7 ' ,'
-    0063    | OP_PRINT
-    0064    | OP_FALSE
-    0065   14 OP_POP
-    0066    | Unknown opcode 60
-    0067    | OP_JUMP            67 -> 70
-    0070   15 OP_LOOP            70 -> 14
-    0073    | OP_POP
-    0074    | OP_POP
-    0075    | OP_NIL
-    0076    | OP_RETURN
+    0061    | OP_PRINT
+    0062    | OP_TRUE
+    0063   14 OP_POP
+    0064    | Unknown opcode 60
+    0065    | OP_JUMP            65 -> 68
+    0068   15 OP_LOOP            68 -> 14
+    0071    | OP_POP
+    0072    | OP_POP
+    0073    | OP_NIL
+    0074    | OP_RETURN
 
 
 ========================================
