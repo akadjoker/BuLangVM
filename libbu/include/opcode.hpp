@@ -88,6 +88,14 @@ enum Opcode : uint8
     OP_COPY2 = 56,
     OP_SWAP = 57,
     OP_DISCARD = 58,
+    OP_TRY = 59,           // Setup try handler
+    OP_POP_TRY = 60,       // Remove try handler (normal exit)
+    OP_THROW = 61,         // Lança exceção
+    OP_ENTER_CATCH =62,   // Entra no catch
+    OP_ENTER_FINALLY = 63, // Entra no finally
+    OP_EXIT_FINALLY = 64,  // Sai do finally (re-throw se necessário)
+    
+
  
 
   

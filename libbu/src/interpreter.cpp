@@ -300,21 +300,21 @@ void Interpreter::addStructField(NativeStructDef *def, const char *fieldName,
 void Interpreter::printStack()
 {
 
-   if (currentFiber)
+  if (currentFiber)
   {
- 
+
     Fiber *fiber = currentFiber;
     if (fiber->stackTop == fiber->stack)
-        printf("  (empty)\n");
+      printf("  (empty)\n");
     else
-        printf("          ");
-        for (Value *slot = fiber->stack; slot < fiber->stackTop; slot++)
-        {
-            printf("[ ");
-            printValue(*slot);
-            printf(" ]");
-        }
-        printf("\n");
+      printf("          ");
+    for (Value *slot = fiber->stack; slot < fiber->stackTop; slot++)
+    {
+      printf("[ ");
+      printValue(*slot);
+      printf(" ]");
+    }
+    printf("\n");
   }
 }
 
@@ -772,135 +772,172 @@ void Interpreter::addFunctionsClasses(Function *fun)
   functionsClass.push(fun);
 }
 
-StructInstance::StructInstance() : marked(0), def(nullptr) {}
-
-ArrayInstance::ArrayInstance() : marked(0) {}
-
-MapInstance::MapInstance() : marked(0) {}
-
-ClassInstance::ClassInstance() : marked(0) {}
-
-ClassInstance::~ClassInstance()
+bool Interpreter::findAndJumpToHandler(Value error, uint8 *&ip, Fiber *fiber)
 {
-}
+ 
+    while (fiber->tryDepth > 0)
+    {
+      TryHandler &handler = fiber->tryHandlers[fiber->tryDepth - 1];
 
-NativeClassInstance::NativeClassInstance() : marked(0), klass(nullptr), userData(nullptr)
-{
-}
+      if (handler.inFinally)
+      {
+        handler.pendingError = error;
+        handler.hasPendingError = true;
+        fiber->tryDepth--;
+        continue;
+      }
 
-NativeStructInstance::NativeStructInstance() : marked(0), def(nullptr), data(nullptr)
-{
-}
+      fiber->stackTop = handler.stackRestore;
 
-// bool ClassInstance::getMethod(String *name, Function **out)
-// {
-//   ClassDef *current = klass;
+      if (handler.catchIP != nullptr)
+      {
+        push(error);
+        ip = handler.catchIP;
+        return true;
+      }
+      else if (handler.finallyIP != nullptr)
+      {
+        handler.pendingError = error;
+        handler.hasPendingError = true;
+        handler.inFinally = true;
+        ip = handler.finallyIP;
+        return true;
+      }
 
-//   while (current)
-//   {
-//     if (current->methods.get(name, out))
-//     {
-//       return true;
-//     }
-//     current = current->superclass;
-//   }
-
-//   return false;
-// }
-
-// bool ClassInstance::getMethod(String *name, Function **out)
-// {
-//     if(klass->methods.get(name, out))
-//     {
-//         return true;
-//     }
-
-//     if (klass->inherited)
-//     {
-//         if(klass->superclass->methods.get(name,out));
-//         {
-//             return true;
-//         }
-//     }
-//     return false;
-// }
-
-Function *ClassDef::canRegisterFunction(String *pName)
-{
-
-  if (methods.exist(pName))
-  {
-    return nullptr;
+      fiber->tryDepth--;
+    }
+    return false;
   }
-  Function *func = new Function();
-  func->index = -1;
-  func->arity = 0;
-  func->hasReturn = false;
-  func->name = pName;
-  func->chunk = new Code(16);
-  methods.set(pName, func);
-  return func;
-}
 
-StructDef::~StructDef()
-{
-  names.destroy();
-}
+  StructInstance::StructInstance() : marked(0), def(nullptr) {}
 
-ClassDef::~ClassDef()
-{
-  fieldNames.destroy();
-  methods.destroy();
-  superclass = nullptr;
-}
+  ArrayInstance::ArrayInstance() : marked(0) {}
 
-NativeClassDef::~NativeClassDef()
-{
-  methods.destroy();
-  properties.destroy();
-}
+  MapInstance::MapInstance() : marked(0) {}
 
-void Interpreter::dumpToFile(const char *filename)
-{
+  ClassInstance::ClassInstance() : marked(0) {}
+
+  ClassInstance::~ClassInstance()
+  {
+  }
+
+  NativeClassInstance::NativeClassInstance() : marked(0), klass(nullptr), userData(nullptr)
+  {
+  }
+
+  NativeStructInstance::NativeStructInstance() : marked(0), def(nullptr), data(nullptr)
+  {
+  }
+
+  // bool ClassInstance::getMethod(String *name, Function **out)
+  // {
+  //   ClassDef *current = klass;
+
+  //   while (current)
+  //   {
+  //     if (current->methods.get(name, out))
+  //     {
+  //       return true;
+  //     }
+  //     current = current->superclass;
+  //   }
+
+  //   return false;
+  // }
+
+  // bool ClassInstance::getMethod(String *name, Function **out)
+  // {
+  //     if(klass->methods.get(name, out))
+  //     {
+  //         return true;
+  //     }
+
+  //     if (klass->inherited)
+  //     {
+  //         if(klass->superclass->methods.get(name,out));
+  //         {
+  //             return true;
+  //         }
+  //     }
+  //     return false;
+  // }
+
+  Function *ClassDef::canRegisterFunction(String * pName)
+  {
+
+    if (methods.exist(pName))
+    {
+      return nullptr;
+    }
+    Function *func = new Function();
+    func->index = -1;
+    func->arity = 0;
+    func->hasReturn = false;
+    func->name = pName;
+    func->chunk = new Code(16);
+    methods.set(pName, func);
+    return func;
+  }
+
+  StructDef::~StructDef()
+  {
+    names.destroy();
+  }
+
+  ClassDef::~ClassDef()
+  {
+    fieldNames.destroy();
+    methods.destroy();
+    superclass = nullptr;
+  }
+
+  NativeClassDef::~NativeClassDef()
+  {
+    methods.destroy();
+    properties.destroy();
+  }
+
+  void Interpreter::dumpToFile(const char *filename)
+  {
 
 #ifdef __linux__
 
-  FILE *f = fopen(filename, "w");
-  if (!f)
-  {
-    fprintf(stderr, "Failed to open %s for writing\n", filename);
-    return;
-  }
+    FILE *f = fopen(filename, "w");
+    if (!f)
+    {
+      fprintf(stderr, "Failed to open %s for writing\n", filename);
+      return;
+    }
 
-  fprintf(f, "========================================\n");
-  fprintf(f, "BULANG BYTECODE DUMP\n");
-  fprintf(f, "========================================\n\n");
+    fprintf(f, "========================================\n");
+    fprintf(f, "BULANG BYTECODE DUMP\n");
+    fprintf(f, "========================================\n\n");
 
-  // Dump global functions
-  dumpAllFunctions(f);
+    // Dump global functions
+    dumpAllFunctions(f);
 
-  // Dump classes e métodos
-  dumpAllClasses(f);
+    // Dump classes e métodos
+    dumpAllClasses(f);
 
-  fprintf(f, "\n========================================\n");
-  fprintf(f, "END OF DUMP\n");
-  fprintf(f, "========================================\n");
+    fprintf(f, "\n========================================\n");
+    fprintf(f, "END OF DUMP\n");
+    fprintf(f, "========================================\n");
 
-  fclose(f);
-  printf("Bytecode dumped to: %s\n", filename);
+    fclose(f);
+    printf("Bytecode dumped to: %s\n", filename);
 
 #endif
-}
+  }
 
-void Interpreter::dumpAllFunctions(FILE *f)
-{
+  void Interpreter::dumpAllFunctions(FILE * f)
+  {
 #ifdef __linux__
-  fprintf(f, "========================================\n");
-  fprintf(f, "GLOBAL FUNCTIONS\n");
-  fprintf(f, "========================================\n\n");
+    fprintf(f, "========================================\n");
+    fprintf(f, "GLOBAL FUNCTIONS\n");
+    fprintf(f, "========================================\n\n");
 
-  functionsMap.forEach([&](String *name, Function *func)
-                       {
+    functionsMap.forEach([&](String *name, Function *func)
+                         {
         fprintf(f, "\n>>> Function: %s\n", name->chars());
         fprintf(f, "    Arity: %d\n", func->arity);
         fprintf(f, "    Has return: %s\n", func->hasReturn ? "yes" : "no");
@@ -943,17 +980,17 @@ void Interpreter::dumpAllFunctions(FILE *f)
         
         fprintf(f, "\n"); });
 #endif
-}
+  }
 
-void Interpreter::dumpAllClasses(FILE *f)
-{
+  void Interpreter::dumpAllClasses(FILE * f)
+  {
 #ifdef __linux__
-  fprintf(f, "\n========================================\n");
-  fprintf(f, "CLASSES\n");
-  fprintf(f, "========================================\n\n");
+    fprintf(f, "\n========================================\n");
+    fprintf(f, "CLASSES\n");
+    fprintf(f, "========================================\n\n");
 
-  classesMap.forEach([&](String *name, ClassDef *klass)
-                     {
+    classesMap.forEach([&](String *name, ClassDef *klass)
+                       {
         fprintf(f, "\n>>> Class: %s\n", name->chars());
         fprintf(f, "    Index: %d\n", klass->index);
         fprintf(f, "    Field count: %d\n", klass->fieldCount);
@@ -1047,4 +1084,4 @@ void Interpreter::dumpAllClasses(FILE *f)
         
         fprintf(f, "\n"); });
 #endif
-}
+  }

@@ -51,7 +51,7 @@ static void valueToString(const Value &v, std::string &out)
         out += "{map}";
         break;
     default:
-        out += "<object>";
+        out += "<?>";
     }
 }
 

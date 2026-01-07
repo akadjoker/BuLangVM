@@ -4,7 +4,6 @@
 #include <cctype>
 #include <iostream>
 
-
 Lexer::Lexer(const std::string &src)
     : source(src),
       start(0),
@@ -21,8 +20,8 @@ Lexer::Lexer(const std::string &src)
 }
 
 Lexer::Lexer(const char *src, size_t len)
- : source(src, len), start(0), current(0), line(1),
-       column(1),
+    : source(src, len), start(0), current(0), line(1),
+      column(1),
       tokenColumn(1),
       hasPendingError(false),
       pendingErrorMessage(""),
@@ -31,7 +30,6 @@ Lexer::Lexer(const char *src, size_t len)
 {
     initKeywords();
 }
-
 
 void Lexer::setPendingError(const std::string &message)
 {
@@ -85,6 +83,10 @@ void Lexer::initKeywords()
         {"include", TOKEN_INCLUDE},
         {"import", TOKEN_IMPORT},
         {"using", TOKEN_USING},
+        {"try", TOKEN_TRY},
+        {"catch", TOKEN_CATCH},
+        {"finally", TOKEN_FINALLY},
+        {"throw", TOKEN_THROW},
     };
 }
 
@@ -245,23 +247,23 @@ Token Lexer::number()
     // Hex? Verifica no INÍCIO do número
     if (source[start] == '0' && (peek() == 'x' || peek() == 'X'))
     {
-        advance();  // consome 'x'
-        
+        advance(); // consome 'x'
+
         while (readHexDigit() != -1)
         {
             advance();
         }
-        
+
         std::string numStr = source.substr(start, current - start);
         return makeToken(TOKEN_INT, numStr);
     }
-    
+
     // Normal int/float
     while (isdigit(peek()))
     {
         advance();
     }
-    
+
     TokenType type = TOKEN_INT;
     if (peek() == '.' && isdigit(peekNext()))
     {
@@ -272,65 +274,88 @@ Token Lexer::number()
             advance();
         }
     }
-    
+
     std::string numStr = source.substr(start, current - start);
     return makeToken(type, numStr);
 }
-
 
 Token Lexer::string()
 {
     const size_t MAX_STRING_LENGTH = 10000;
     size_t startPos = current;
     std::string value;
-    
+
     while (peek() != '"' && !isAtEnd())
     {
         if (current - startPos > MAX_STRING_LENGTH)
         {
             return errorToken("String too long (max 10000 chars)");
         }
-        
+
         char c = advance();
-        
+
         if (c == '\\')
         {
             if (isAtEnd())
             {
                 return errorToken("Unterminated string");
             }
-            
+
             char next = advance();
             switch (next)
             {
-            case 'n': value += '\n'; break;
-            case 't': value += '\t'; break;
-            case 'r': value += '\r'; break;
-            case '\\': value += '\\'; break;
-            case '"': value += '"'; break;
-            case '0': value += '\0'; break;
-            case 'a': value += '\a'; break;
-            case 'b': value += '\b'; break;
-            case 'f': value += '\f'; break;
-            case 'v': value += '\v'; break;
-            case 'e': value += '\33'; break;
-            
+            case 'n':
+                value += '\n';
+                break;
+            case 't':
+                value += '\t';
+                break;
+            case 'r':
+                value += '\r';
+                break;
+            case '\\':
+                value += '\\';
+                break;
+            case '"':
+                value += '"';
+                break;
+            case '0':
+                value += '\0';
+                break;
+            case 'a':
+                value += '\a';
+                break;
+            case 'b':
+                value += '\b';
+                break;
+            case 'f':
+                value += '\f';
+                break;
+            case 'v':
+                value += '\v';
+                break;
+            case 'e':
+                value += '\33';
+                break;
+
             // Hex escape: \xHH
             case 'x':
             {
                 int hex1 = readHexDigit();
-                if (hex1 == -1) return errorToken("Invalid hex escape \\x");
+                if (hex1 == -1)
+                    return errorToken("Invalid hex escape \\x");
                 advance();
-                
+
                 int hex2 = readHexDigit();
-                if (hex2 == -1) return errorToken("Invalid hex escape \\x");
+                if (hex2 == -1)
+                    return errorToken("Invalid hex escape \\x");
                 advance();
-                
+
                 uint8_t byte = (hex1 << 4) | hex2;
                 value += (char)byte;
                 break;
             }
-            
+
             // Unicode escape: \uHHHH
             case 'u':
             {
@@ -338,11 +363,12 @@ Token Lexer::string()
                 for (int i = 0; i < 4; i++)
                 {
                     int hex = readHexDigit();
-                    if (hex == -1) return errorToken("Invalid unicode escape \\u");
+                    if (hex == -1)
+                        return errorToken("Invalid unicode escape \\u");
                     advance();
                     codepoint = (codepoint << 4) | hex;
                 }
-                
+
                 uint8_t bytes[4];
                 int numBytes = Utf8Encode(codepoint, bytes);
                 for (int i = 0; i < numBytes; i++)
@@ -351,7 +377,7 @@ Token Lexer::string()
                 }
                 break;
             }
-            
+
             // Unicode escape: \UHHHHHHHH
             case 'U':
             {
@@ -359,11 +385,12 @@ Token Lexer::string()
                 for (int i = 0; i < 8; i++)
                 {
                     int hex = readHexDigit();
-                    if (hex == -1) return errorToken("Invalid unicode escape \\U");
+                    if (hex == -1)
+                        return errorToken("Invalid unicode escape \\U");
                     advance();
                     codepoint = (codepoint << 4) | hex;
                 }
-                
+
                 uint8_t bytes[4];
                 int numBytes = Utf8Encode(codepoint, bytes);
                 for (int i = 0; i < numBytes; i++)
@@ -372,7 +399,7 @@ Token Lexer::string()
                 }
                 break;
             }
-            
+
             default:
                 value += '\\';
                 value += next;
@@ -384,13 +411,13 @@ Token Lexer::string()
             value += c;
         }
     }
-    
+
     if (isAtEnd())
     {
         return errorToken("Unterminated string");
     }
-    
-    advance();  // fecha "
+
+    advance(); // fecha "
     return makeToken(TOKEN_STRING, value);
 }
 
@@ -418,10 +445,10 @@ Token Lexer::identifier()
     }
 
     // if (peek() == ':')
-	// {
+    // {
     //     printf("label\n");
-	// 	return makeToken(TOKEN_LABEL,text);
-	// }
+    // 	return makeToken(TOKEN_LABEL,text);
+    // }
 
     return makeToken(TOKEN_IDENTIFIER, text);
 }

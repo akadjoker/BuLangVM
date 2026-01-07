@@ -314,6 +314,32 @@ struct FiberResult
   int framePercent; // Se PROCESS_FRAME
 };
 
+struct TryHandler
+{
+  uint8_t *catchIP;
+  uint8_t *finallyIP;
+  Value *stackRestore;
+  bool inFinally;
+  bool hasPendingError;
+  Value pendingError;
+  bool  catchConsumed;
+  Value pendingReturn;
+  bool hasPendingReturn;
+
+
+  TryHandler() : catchIP(nullptr), finallyIP(nullptr),
+                 stackRestore(nullptr), inFinally(false),
+                  hasPendingError(false) 
+                  {
+                    pendingError.as.byte = 0;
+                    pendingError.type = ValueType::NIL;
+                    catchConsumed = false;
+                    pendingReturn.as.byte = 0;
+                    pendingReturn.type = ValueType::NIL;
+                    hasPendingReturn = false;
+                  }
+};
+
 struct Fiber
 {
 
@@ -327,10 +353,13 @@ struct Fiber
   int frameCount;
   uint8_t *gosubStack[GOSUB_MAX];
   int gosubTop{0};
+  TryHandler tryHandlers[TRY_MAX];
+  int tryDepth;
+
 
   Fiber()
       : state(FiberState::DEAD), resumeTime(0), ip(nullptr), stackTop(stack),
-        frameCount(0) {}
+        frameCount(0), gosubTop(0), tryDepth(0) {}
 };
 enum class PrivateIndex : uint8
 {
@@ -393,8 +422,6 @@ class Interpreter
   HashMap<String *, ClassDef *, StringHasher, StringEq> classesMap;
   HashMap<const char *, int, CStringHash, CStringEq> privateIndexMap;
 
-  
-
   Vector<NativeDef> natives;
   Vector<Function *> functions;
   Vector<Function *> functionsClass;
@@ -407,8 +434,8 @@ class Interpreter
   // gc begin
 
   size_t totalAllocated = 0;
-  size_t nextGC = 1024;  
-  bool gcInProgress = false; 
+  size_t nextGC = 1024;
+  bool gcInProgress = false;
   bool enbaledGC = false;
 
   Vector<ClassInstance *> classInstances;
@@ -451,7 +478,7 @@ class Interpreter
   void freeInstances();
   void freeBlueprints();
 
-  void checkGC() ;
+  void checkGC();
 
   Fiber *get_ready_fiber(Process *proc);
   void resetFiber();
@@ -460,6 +487,7 @@ class Interpreter
   void checkType(int index, ValueType expected, const char *funcName);
 
   void addFunctionsClasses(Function *fun);
+  bool findAndJumpToHandler(Value error, uint8 *&ip, Fiber *fiber);
 
   friend class Compiler;
   friend class ModuleBuilder;
@@ -469,7 +497,7 @@ class Interpreter
 
   FORCE_INLINE ClassInstance *creatClass()
   {
-    
+
     checkGC();
     size_t size = sizeof(ClassInstance);
     void *mem = (MapInstance *)arena.Allocate(size); // 40kb
@@ -477,7 +505,7 @@ class Interpreter
     instance->marked = 0;
     classInstances.push(instance);
     totalAllocated += size;
- 
+
     return instance;
   }
 
@@ -489,7 +517,6 @@ class Interpreter
     c->~ClassInstance();
     arena.Free(c, size);
     totalAllocated -= size;
-   
   }
 
   FORCE_INLINE StructInstance *createStruct()
@@ -500,7 +527,7 @@ class Interpreter
     StructInstance *instance = new (mem) StructInstance();
     instance->marked = 0;
     totalAllocated += size;
- 
+
     return instance;
   }
 
@@ -511,7 +538,6 @@ class Interpreter
     s->~StructInstance();
     arena.Free(s, size);
     totalAllocated -= size;
- 
   }
   FORCE_INLINE ArrayInstance *createArray()
   {
@@ -522,19 +548,18 @@ class Interpreter
     arrayInstances.push(instance);
     instance->marked = 0;
     totalAllocated += size;
-   
+
     return instance;
   }
 
   FORCE_INLINE void freeArray(ArrayInstance *a)
   {
     size_t size = sizeof(ArrayInstance);
-    //size += a->values.capacity() * sizeof(Value);
+    // size += a->values.capacity() * sizeof(Value);
     a->values.destroy();
     a->~ArrayInstance();
     arena.Free(a, size);
     totalAllocated -= size;
- 
   }
 
   FORCE_INLINE MapInstance *createMap()
@@ -546,14 +571,14 @@ class Interpreter
     instance->marked = 0;
     mapInstances.push(instance);
     totalAllocated += size;
- 
+
     return instance;
   }
 
   FORCE_INLINE void freeMap(MapInstance *m)
   {
     size_t size = sizeof(MapInstance);
-    //size += m->table.capacity * sizeof(Value);
+    // size += m->table.capacity * sizeof(Value);
     totalAllocated -= size;
     m->table.destroy();
     m->~MapInstance();
@@ -562,14 +587,14 @@ class Interpreter
 
   FORCE_INLINE NativeClassInstance *createNativeClass()
   {
-   
+
     checkGC();
     size_t size = sizeof(NativeClassInstance);
     void *mem = (NativeClassInstance *)arena.Allocate(size); // 32kb
     NativeClassInstance *instance = new (mem) NativeClassInstance();
-    nativeInstances.push( instance);
+    nativeInstances.push(instance);
     totalAllocated += size;
-  
+
     return instance;
   }
 
@@ -588,7 +613,7 @@ class Interpreter
     void *mem = (NativeStructInstance *)arena.Allocate(size); // 32kb
     NativeStructInstance *instance = new (mem) NativeStructInstance();
     totalAllocated += size;
-  
+
     return instance;
   }
 
@@ -596,7 +621,7 @@ class Interpreter
   {
     size_t size = sizeof(NativeStructInstance);
     totalAllocated -= size;
-  
+
     n->~NativeStructInstance();
     arena.Free(n, size);
   }
@@ -704,11 +729,11 @@ public:
   void render();
 
   size_t getTotalAlocated() { return totalAllocated; }
-  size_t getTotalClasses() { return  classInstances.size(); }
-  size_t getTotalStructs() { return  structInstances.size(); }
-  size_t getTotalArrays() { return  arrayInstances.size(); }
-  size_t getTotalMaps() { return  mapInstances.size(); }
-  size_t getTotalNativeClasses() { return  nativeInstances.size(); }
+  size_t getTotalClasses() { return classInstances.size(); }
+  size_t getTotalStructs() { return structInstances.size(); }
+  size_t getTotalArrays() { return arrayInstances.size(); }
+  size_t getTotalMaps() { return mapInstances.size(); }
+  size_t getTotalNativeClasses() { return nativeInstances.size(); }
   size_t getTotalNativeStructs() { return nativeStructInstances.size(); }
 
   uint16 defineModule(const char *name);

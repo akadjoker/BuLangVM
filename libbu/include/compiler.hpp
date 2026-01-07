@@ -155,7 +155,7 @@ private:
 
   bool hadError;
   bool panicMode;
-
+  int tryDepth;  
   int scopeDepth;
   Local locals_[MAX_LOCALS];
   int localCount_;
@@ -247,6 +247,9 @@ private:
   void block();
   void yieldStatement();
   void fiberStatement();
+
+  void tryStatement();
+  void throwStatement();
 
   void dot(bool canAssign);
   void self(bool canAssign);

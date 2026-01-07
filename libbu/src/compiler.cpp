@@ -32,6 +32,7 @@ Compiler::Compiler(Interpreter *vm)
 
   initRules();
   cursor = 0;
+  tryDepth = 0;
 }
 Compiler::~Compiler()
 {
@@ -243,7 +244,7 @@ void Compiler::clear()
   hadError = false;
   importedModules.clear();
   usingModules.clear();
-
+  tryDepth = 0;
   panicMode = false;
   scopeDepth = 0;
   localCount_ = 0;

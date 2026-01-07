@@ -358,11 +358,12 @@ struct Value
   }
 };
 
+const char *typeToString(ValueType type);
 void printValue(const Value &value);
  
 void printValueNl(const Value &value);
 
-
+void valueToBuffer(const Value &v, char *out, size_t size);
 
 static FORCE_INLINE bool valuesEqual(const Value &a, const Value &b)
 {

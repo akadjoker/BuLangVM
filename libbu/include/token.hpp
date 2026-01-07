@@ -116,6 +116,12 @@ enum TokenType
     TOKEN_IMPORT,
     TOKEN_USING,
 
+    // Exceptions
+    TOKEN_TRY,
+    TOKEN_CATCH,
+    TOKEN_FINALLY,
+    TOKEN_THROW,
+
     // Special
     TOKEN_EOF,
     TOKEN_ERROR,

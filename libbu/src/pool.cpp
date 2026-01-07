@@ -467,15 +467,16 @@ String *StringPool::repeat(String *str, int count)
 String *StringPool::toString(int value)
 {
     char buf[32];
+ 
     snprintf(buf, sizeof(buf), "%d", value);
-    return create(buf, false);
+    return create(buf);
 }
 
 String *StringPool::toString(double value)
 {
     char buf[32];
     snprintf(buf, sizeof(buf), "%.6f", value);
-    return create(buf, false);
+    return create(buf);
 }
 
 // ========================================

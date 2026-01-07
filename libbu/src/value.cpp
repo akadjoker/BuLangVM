@@ -235,3 +235,42 @@ void printValueNl(const Value &value)
     printValue(value);
     OsPrintf("\n");
 }
+
+void valueToBuffer(const Value &v, char *out, size_t size)
+{
+    switch (v.type)
+    {
+    case ValueType::NIL:
+        snprintf(out, size, "nil");
+        break;
+    case ValueType::BOOL:
+        snprintf(out, size, "%s", v.as.boolean ? "true" : "false");
+        break;
+    case ValueType::BYTE:
+        snprintf(out, size, "%u", v.as.byte);
+        break;
+    case ValueType::INT:
+        snprintf(out, size, "%d", v.as.integer);
+        break;
+    case ValueType::UINT:
+        snprintf(out, size, "%u", v.as.unsignedInteger);
+        break;
+    case ValueType::FLOAT:
+        snprintf(out, size, "%.4f", v.as.real);
+        break;
+    case ValueType::DOUBLE:
+        snprintf(out, size, "%.4f", v.as.number);
+        break;
+    case ValueType::STRING:
+        snprintf(out, size, "%s", v.as.string->chars());
+        break;
+    case ValueType::ARRAY:
+        snprintf(out, size, "[array]");
+        break;
+    case ValueType::MAP:
+        snprintf(out, size, "{map}");
+        break;
+    default:
+        snprintf(out, size, "<object>");
+    }
+}

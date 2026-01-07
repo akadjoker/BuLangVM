@@ -125,6 +125,14 @@ void Compiler::statement()
     {
         classDeclaration();
     }
+    else if (match(TOKEN_TRY))
+    {
+        tryStatement();
+    }
+    else if (match(TOKEN_THROW))
+    {
+        throwStatement();
+    }
     else if (match(TOKEN_LBRACE))
     {
         beginScope();
@@ -143,11 +151,48 @@ void Compiler::statement()
 
 void Compiler::printStatement()
 {
-    expression();
-    consume(TOKEN_SEMICOLON, "Expect ';' after value");
-    emitByte(OP_PRINT);
+    uint8_t argCount = 0;
+    
+    // Se não tem parênteses, aceita sintaxe antiga: print x;
+    if (!check(TOKEN_LPAREN))
+    {
+        expression();
+        argCount = 1;
+    }
+    else
+    {
+        consume(TOKEN_LPAREN, "Expect '('");
+      
+        if (!check(TOKEN_RPAREN))
+        {
+            do
+            {
+                expression();
+                argCount++;
+                
+                if (argCount > 255)
+                {
+                    error("Cannot have more than 255 arguments");
+                }
+            } while (match(TOKEN_COMMA));
+        }
+        
+        consume(TOKEN_RPAREN, "Expect ')' after arguments");
+    }
+    
+    consume(TOKEN_SEMICOLON, "Expect ';'");
+    
+    emitBytes(OP_PRINT, argCount);  
 }
 
+
+// void Compiler::printStatement()
+// {
+//     expression();
+//     consume(TOKEN_SEMICOLON, "Expect ';' after value");
+//     emitByte(OP_PRINT);
+// }
+ 
 void Compiler::expressionStatement()
 {
 
@@ -695,15 +740,20 @@ void Compiler::emitBreak()
         return;
     }
 
+    if (tryDepth > 0)
+    {
+        error("Cannot use 'break' inside try-catch-finally block");
+        return;
+    }
+
     LoopContext &ctx = loopContexts_[loopDepth_ - 1];
 
     discardLocals(ctx.scopeDepth + 1);
 
     if (ctx.isForeach)
     {
-       emitDiscard(2);
+        emitDiscard(2);
     }
-
 
     if (!ctx.addBreak(emitJump(OP_JUMP)))
     {
@@ -716,6 +766,11 @@ void Compiler::emitContinue()
     if (loopDepth_ == 0)
     {
         error("Cannot use 'continue' outside of a loop");
+        return;
+    }
+    if (tryDepth > 0)
+    {
+        error("Cannot use 'continue' inside try-catch-finally block");
         return;
     }
     LoopContext &ctx = loopContexts_[loopDepth_ - 1];
@@ -864,6 +919,7 @@ void Compiler::switchStatement()
 
 void Compiler::breakStatement()
 {
+
     emitBreak();
     consume(TOKEN_SEMICOLON, "Expect ';' after 'break'");
 }
@@ -960,8 +1016,7 @@ void Compiler::forStatement()
 
     endLoop();  // Patch dos breaks
     endScope(); // Limpa variáveis do initializer
- }
-
+}
 
 void Compiler::foreachStatement()
 {
@@ -969,53 +1024,51 @@ void Compiler::foreachStatement()
     consume(TOKEN_IDENTIFIER, "Expect variable name");
     Token itemName = previous;
     consume(TOKEN_IN, "Expect 'in'");
-    
+
     expression();
     consume(TOKEN_RPAREN, "Expect ')'");
-    
+
     Token tmp;
     tmp.lexeme = "__seq___";
     tmp.type = TOKEN_IDENTIFIER;
     tmp.column = previous.column;
     addLocal(tmp);
-    markInitialized(); 
+    markInitialized();
     emitByte(OP_NIL);
     tmp.lexeme = "__iter__";
     addLocal(tmp);
     markInitialized();
     int loopStart = currentChunk->count;
     beginLoop(loopStart, true);
-    
+
     emitByte(OP_COPY2);
     emitByte(OP_ITER_NEXT);
-    
+
     int exitJump = emitJump(OP_JUMP_IF_FALSE);
     emitByte(OP_POP);
-    
+
     emitByte(OP_SWAP);
     emitByte(OP_POP);
-    
+
     emitByte(OP_COPY2);
     emitByte(OP_ITER_VALUE);
-    
+
     beginScope();
     addLocal(itemName);
     markInitialized();
     statement();
-    
-    endScope();  // Remove item (slot 2), faz POP
-    
+
+    endScope(); // Remove item (slot 2), faz POP
+
     emitLoop(loopStart);
-    
+
     patchJump(exitJump);
     emitDiscard(4);
-    
-    localCount_ -= 2;  // Remove seq e iter
-    
+
+    localCount_ -= 2; // Remove seq e iter
+
     endLoop();
 }
-
- 
 
 // void Compiler::foreachStatement()
 // {
@@ -1023,29 +1076,23 @@ void Compiler::foreachStatement()
 //     consume(TOKEN_IDENTIFIER, "Expect variable name");
 //     Token itemName = previous;
 //     consume(TOKEN_IN, "Expect 'in'");
-    
+
 //     expression();
 //     consume(TOKEN_RPAREN, "Expect ')'");
-    
+
 //     beginScope();
-    
-    
- 
 
 //     Token tmp;
 //     tmp.lexeme = "__seq___";
 //     tmp.type = TOKEN_IDENTIFIER;
 //     tmp.column = previous.column;
 
-
 //     addLocal(tmp);
 //     markInitialized();
 //     uint8_t seqSlot = localCount_ - 1;
 //     emitByte(OP_SET_LOCAL);
 //     emitByte(seqSlot);
-    
- 
-    
+
 //     // var __iter = nil
 //     emitByte(OP_NIL);
 //     tmp.lexeme = "__ite___";
@@ -1054,58 +1101,45 @@ void Compiler::foreachStatement()
 //     uint8_t iterSlot = localCount_ - 1;
 //     emitByte(OP_SET_LOCAL);
 //     emitByte(iterSlot);
- 
-    
- 
-    
+
 //     int loopStart = currentChunk->count;
 //     beginLoop(loopStart);
-    
+
 //     emitByte(OP_GET_LOCAL);
 //     emitByte(seqSlot);
 //     emitByte(OP_GET_LOCAL);
 //     emitByte(iterSlot);
 //     emitByte(OP_ITER_NEXT);
-    
+
 //     int exitJump = emitJump(OP_JUMP_IF_FALSE);
 //     emitByte(OP_POP);  //   POP (bool)
-    
+
 //     emitByte(OP_SET_LOCAL);
 //     emitByte(iterSlot);
- 
- 
-    
+
 //     emitByte(OP_GET_LOCAL);
 //     emitByte(seqSlot);
 //     emitByte(OP_GET_LOCAL);
 //     emitByte(iterSlot);
 //     emitByte(OP_ITER_VALUE);
-    
+
 //     beginScope();
 //     addLocal(itemName);
 //     markInitialized();
 //     uint8_t itemSlot = localCount_ - 1;
 //     emitByte(OP_SET_LOCAL);
 //     emitByte(itemSlot);
- 
- 
-    
+
 //     statement();
 //     endScope();
-    
-//     emitLoop(loopStart);
-    
-//     patchJump(exitJump);
-    
- 
 
-      
+//     emitLoop(loopStart);
+
+//     patchJump(exitJump);
 
 //     endLoop();
 //     endScope();
 // }
-
-
 
 void Compiler::returnStatement()
 {
@@ -1737,7 +1771,7 @@ void Compiler::dot(bool canAssign)
         // self.x++ (postfix)
         emitByte(OP_DUP);                    // [self, self]
         emitBytes(OP_GET_PROPERTY, nameIdx); // [self, old_x]
-        emitConstant(vm_->makeInt(1));     // [self, old_x, 1]
+        emitConstant(vm_->makeInt(1));       // [self, old_x, 1]
         emitByte(OP_ADD);                    // [self, new_x]
         emitBytes(OP_SET_PROPERTY, nameIdx); // []
     }
@@ -2149,4 +2183,117 @@ void Compiler::method(ClassDef *classDef)
     this->localCount_ = enclosingLocalCount;
     this->currentClass = enclosingClass;
     this->currentFunctionType = FunctionType::TYPE_SCRIPT;
+}
+
+void Compiler::tryStatement()
+{
+    consume(TOKEN_LBRACE, "Expect '{' after 'try'");
+    tryDepth++;
+
+    emitByte(OP_TRY);
+
+    int catchAddrOffset = currentChunk->count;
+    emitByte(0xFF);
+    emitByte(0xFF);
+
+    int finallyAddrOffset = currentChunk->count;
+    emitByte(0xFF);
+    emitByte(0xFF);
+
+    // TRY BLOCK
+    beginScope();
+    block();
+    endScope();
+
+    emitByte(OP_POP_TRY);
+    int tryExitJump = emitJump(OP_JUMP);
+
+    // CATCH BLOCK
+    int catchStart = -1;
+    int catchExitJump = -1;
+
+    if (match(TOKEN_CATCH))
+    {
+        catchStart = currentChunk->count;
+
+        consume(TOKEN_LPAREN, "Expect '(' after 'catch'");
+        consume(TOKEN_IDENTIFIER, "Expect exception variable");
+        Token errorVar = previous;
+        consume(TOKEN_RPAREN, "Expect ')'");
+        consume(TOKEN_LBRACE, "Expect '{'");
+
+        emitByte(OP_ENTER_CATCH);
+
+        beginScope();
+        addLocal(errorVar);
+        markInitialized();
+
+        block();
+        endScope();
+
+        emitByte(OP_POP_TRY);
+        catchExitJump = emitJump(OP_JUMP); // ← CRÍTICO! Catch também pula para finally
+    }
+
+    // FINALLY BLOCK
+    int finallyStart = -1;
+    if (match(TOKEN_FINALLY))
+    {
+        finallyStart = currentChunk->count;
+
+        // Patch tryExitJump para ir ao finally
+        patchJump(tryExitJump);
+
+        // Patch catchExitJump para ir ao finally (se houver catch)
+        if (catchExitJump != -1)
+        {
+            patchJump(catchExitJump);
+        }
+
+        consume(TOKEN_LBRACE, "Expect '{'");
+
+        emitByte(OP_ENTER_FINALLY);
+
+        beginScope();
+        block();
+        endScope();
+
+        emitByte(OP_EXIT_FINALLY);
+    }
+    else
+    {
+        // Sem finally
+        patchJump(tryExitJump);
+        if (catchExitJump != -1)
+        {
+            patchJump(catchExitJump);
+        }
+    }
+
+    // Valida
+    if (catchStart == -1 && finallyStart == -1)
+    {
+        error("Try must have catch or finally block");
+    }
+
+    // Patch endereços absolutos
+    if (catchStart != -1)
+    {
+        currentChunk->code[catchAddrOffset] = (catchStart >> 8) & 0xFF;
+        currentChunk->code[catchAddrOffset + 1] = catchStart & 0xFF;
+    }
+
+    if (finallyStart != -1)
+    {
+        currentChunk->code[finallyAddrOffset] = (finallyStart >> 8) & 0xFF;
+        currentChunk->code[finallyAddrOffset + 1] = finallyStart & 0xFF;
+    }
+    tryDepth--;
+}
+
+void Compiler::throwStatement()
+{
+    expression();
+    consume(TOKEN_SEMICOLON, "Expect ';' after throw");
+    emitByte(OP_THROW);
 }

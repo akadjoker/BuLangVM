@@ -12,6 +12,7 @@ static constexpr int MAX_FIBERS = 8;
 static constexpr int STACK_MAX = 1024;
 static constexpr int FRAMES_MAX = 1024;
 static constexpr int GOSUB_MAX = 16;
+static constexpr int TRY_MAX = 8;
 
 enum class InterpretResult : uint8
 {
