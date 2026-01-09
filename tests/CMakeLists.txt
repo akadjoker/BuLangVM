@@ -48,7 +48,7 @@ file(GLOB SOURCES "src/*.cpp")
 add_executable(tests   ${SOURCES})
 
 
-target_include_directories(libwdiv PUBLIC  include src)
+target_include_directories(libbu PUBLIC  include src)
 
 
 
@@ -62,7 +62,7 @@ endif()
    
 endif()
 
-target_link_libraries(tests libwdiv)
+target_link_libraries(tests libbu)
 
 if (WIN32)
     target_link_libraries(tests Winmm.lib)

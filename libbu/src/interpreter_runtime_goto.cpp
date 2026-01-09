@@ -4,29 +4,12 @@
 #include "debug.hpp"
 #include <cmath> // std::fmod
 #include <new>
+#include <ctime>
 
 #ifdef USE_COMPUTED_GOTO
 
 #define DEBUG_TRACE_EXECUTION 0 // 1 = ativa, 0 = desativa
 #define DEBUG_TRACE_STACK 0     // 1 = mostra stack, 0 = esconde
-
-const char *getOpcodeName(uint8 op)
-{
-    static const char *names[] = {
-        "OP_CONSTANT", "OP_NIL", "OP_TRUE", "OP_FALSE",
-        "OP_POP", "OP_HALT", "OP_NOT", "OP_DUP",
-        "OP_ADD", "OP_SUBTRACT", "OP_MULTIPLY", "OP_DIVIDE", "OP_NEGATE", "OP_MODULO",
-        "OP_BITWISE_AND", "OP_BITWISE_OR", "OP_BITWISE_XOR", "OP_BITWISE_NOT", "OP_SHIFT_LEFT", "OP_SHIFT_RIGHT",
-        "OP_EQUAL", "OP_NOT_EQUAL", "OP_GREATER", "OP_GREATER_EQUAL", "OP_LESS", "OP_LESS_EQUAL",
-        "OP_GET_LOCAL", "OP_SET_LOCAL", "OP_GET_GLOBAL", "OP_SET_GLOBAL", "OP_DEFINE_GLOBAL", "OP_GET_PRIVATE", "OP_SET_PRIVATE",
-        "OP_JUMP", "OP_JUMP_IF_FALSE", "OP_LOOP", "OP_GOSUB", "OP_RETURN_SUB",
-        "OP_CALL", "OP_RETURN", "OP_SPAWN", "OP_YIELD", "OP_FRAME", "OP_EXIT",
-        "OP_DEFINE_ARRAY", "OP_DEFINE_MAP",
-        "OP_GET_PROPERTY", "OP_SET_PROPERTY", "OP_GET_INDEX", "OP_SET_INDEX",
-        "OP_INVOKE", "OP_SUPER_INVOKE",
-        "OP_PRINT", "OP_LEN", "OP_FOREACHSTART,", "OP_FOREACHEAK", "OP_FOREACHNEXT"};
-    return (op <= 52) ? names[op] : "UNKNOWN";
-}
 
 bool toNumberPair(const Value &a, const Value &b, double &da, double &db)
 {
@@ -141,20 +124,31 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
         // forech
         &&op_iter_next, &&op_iter_value,
         &&op_copy2, &&op_swap, &&op_discard,
-        &&op_try, &&op_pop_try, &&op_throw, &&op_enter_catch, &&op_enter_finally, &&op_exit_finally};
+        &&op_try, &&op_pop_try, &&op_throw, &&op_enter_catch, &&op_enter_finally, &&op_exit_finally,
 
-    // #define DISPATCH()                                    \
-    //     do                                                \
-    //     {                                                 \
-    //         instructionsRun++;                            \
-    //         uint8 nextOp = *ip;                           \
-    //         printf("[DISPATCH] offset=%ld, opcode=%d (%s), ip=%p\n", \
-    //                (long)(ip - func->chunk->code),        \
-    //                nextOp,                                \
-    //                getOpcodeName(nextOp),                 \
-    //                (void*)ip);                            \
-    //         goto *dispatch_table[READ_BYTE()];            \
-    //     } while (0)
+        // --- MATH UNARY
+        &&op_sin,   // 65
+        &&op_cos,   // 66
+        &&op_tan,   // 67
+        &&op_asin,  // 68
+        &&op_acos,  // 69
+        &&op_atan,  // 70
+        &&op_sqrt,  // 71
+        &&op_abs,   // 72
+        &&op_log,   // 73
+        &&op_floor, // 74
+        &&op_ceil,  // 75
+        &&op_deg,   // 76
+        &&op_rad,   // 77
+        &&op_exp,   // 78
+
+        // --- MATH BINARY (Aqui estava o erro, faltavam estes dois) ---
+        &&op_atan2, // 79
+        &&op_pow,   // 80
+
+        // --- UTILS ---
+        &&op_clock // 81
+    };
 
 #define DISPATCH()                         \
     do                                     \
@@ -164,7 +158,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
         goto *dispatch_table[READ_BYTE()]; \
     } while (0)
 
-    LOAD_FRAME();
+            LOAD_FRAME();
 
     DISPATCH();
 
@@ -309,13 +303,13 @@ op_add:
             PUSH(makeString(stringPool.concat(a.asString(), right)));
             DISPATCH();
         }
-        // Se 'a' é string mas 'b' é nil/bool/array, 
+        // Se 'a' é string mas 'b' é nil/bool/array,
     }
-    
+
     // ---------------------------------------------------------
-    // 2. CONCATENAÇÃO REVERSA 
+    // 2. CONCATENAÇÃO REVERSA
     // Ex: 100 + " pontos"
- 
+
     // ---------------------------------------------------------
     else if (b.isString())
     {
@@ -332,7 +326,7 @@ op_add:
             DISPATCH();
         }
     }
- 
+
     else if (a.isNumber() && b.isNumber())
     {
         // Caminho rápido: Inteiros
@@ -341,7 +335,7 @@ op_add:
             PUSH(makeInt(a.asInt() + b.asInt()));
         }
         // Caminho misto: Converte tudo para double
-        else 
+        else
         {
             double da = a.isInt() ? (double)a.asInt() : a.asDouble();
             double db = b.isInt() ? (double)b.asInt() : b.asDouble();
@@ -349,7 +343,7 @@ op_add:
         }
         DISPATCH();
     }
- 
+
     THROW_RUNTIME_ERROR("Operands '+' must be numbers or strings");
 }
 // ============================================
@@ -466,7 +460,8 @@ op_divide:
 
         PUSH(makeDouble(a.asDouble() / ib));
         DISPATCH();
-    } else if (a.isInt() && b.isDouble())
+    }
+    else if (a.isInt() && b.isDouble())
     {
         double db = b.asDouble();
         if (db == 0.0)
@@ -572,7 +567,6 @@ op_negate:
     else
     {
         THROW_RUNTIME_ERROR("Operand 'NEGATE' must be a number");
-    
     }
     DISPATCH();
 }
@@ -606,7 +600,6 @@ op_greater:
     if (!toNumberPair(a, b, da, db))
     {
         THROW_RUNTIME_ERROR("Operands '>' must be numbers");
-        
     }
 
     PUSH(makeBool(da > db));
@@ -621,7 +614,6 @@ op_greater_equal:
     if (!toNumberPair(a, b, da, db))
     {
         THROW_RUNTIME_ERROR("Operands '>=' must be numbers");
-        
     }
     PUSH(makeBool(da >= db));
     DISPATCH();
@@ -637,9 +629,8 @@ op_less:
         printValueNl(a);
         printValueNl(b);
         THROW_RUNTIME_ERROR("Operands '<' must be numbers");
-     
     }
-    
+
     PUSH(makeBool(da < db));
     DISPATCH();
 }
@@ -651,7 +642,6 @@ op_less_equal:
     if (!toNumberPair(a, b, da, db))
     {
         THROW_RUNTIME_ERROR("Operands  '<=' must be numbers");
-      
     }
     PUSH(makeBool(da <= db));
     DISPATCH();
@@ -665,7 +655,6 @@ op_bitwise_and:
     if (!a.isInt() || !b.isInt())
     {
         THROW_RUNTIME_ERROR("Bitwise AND requires integers");
- 
     }
     PUSH(makeInt(a.asInt() & b.asInt()));
     DISPATCH();
@@ -677,7 +666,6 @@ op_bitwise_or:
     if (!a.isInt() || !b.isInt())
     {
         THROW_RUNTIME_ERROR("Bitwise OR requires integers");
-     
     }
     PUSH(makeInt(a.asInt() | b.asInt()));
     DISPATCH();
@@ -689,7 +677,6 @@ op_bitwise_xor:
     if (!a.isInt() || !b.isInt())
     {
         THROW_RUNTIME_ERROR("Bitwise XOR requires integers");
- 
     }
     PUSH(makeInt(a.asInt() ^ b.asInt()));
     DISPATCH();
@@ -701,7 +688,6 @@ op_bitwise_not:
     if (!a.isInt())
     {
         THROW_RUNTIME_ERROR("Bitwise NOT requires integer");
-   
     }
     PUSH(makeInt(~a.asInt()));
     DISPATCH();
@@ -713,7 +699,6 @@ op_shift_left:
     if (!a.isInt() || !b.isInt())
     {
         THROW_RUNTIME_ERROR("Shift left requires integers");
- 
     }
     PUSH(makeInt(a.asInt() << b.asInt()));
     DISPATCH();
@@ -725,7 +710,6 @@ op_shift_right:
     if (!a.isInt() || !b.isInt())
     {
         THROW_RUNTIME_ERROR("Shift right requires integers");
- 
     }
     PUSH(makeInt(a.asInt() >> b.asInt()));
     DISPATCH();
@@ -1266,7 +1250,7 @@ op_spawn:
     {
         newFiber->stack[i + 1] = fiber->stackTop[-(argCount - i)]; // fix
     }
-    newFiber->stackTop = newFiber->stack + argCount +1; //fix
+    newFiber->stackTop = newFiber->stack + argCount + 1; // fix
 
     CallFrame *frame = &newFiber->frames[newFiber->frameCount++];
     frame->func = func;
@@ -2954,6 +2938,245 @@ op_exit_finally:
             fiber->tryDepth--;
         }
     }
+    DISPATCH();
+}
+
+    // ============================================
+    // MATH: UNARY OPERATORS (1 Argumento)
+    // ============================================
+
+op_sin:
+{
+    Value v = POP();
+    if (!v.isNumber())
+    {
+        runtimeError("sin() expects a number");
+        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    }
+    double val = v.isInt() ? (double)v.asInt() : v.asDouble();
+    PUSH(makeDouble(std::sin(val)));
+    DISPATCH();
+}
+op_cos:
+{
+    Value v = POP();
+    if (!v.isNumber())
+    {
+        runtimeError("cos() expects a number");
+        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    }
+    double val = v.isInt() ? (double)v.asInt() : v.asDouble();
+    PUSH(makeDouble(std::cos(val)));
+    DISPATCH();
+}
+
+op_tan:
+{
+    Value v = POP();
+    if (!v.isNumber())
+    {
+        runtimeError("tan() expects a number");
+        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    }
+    double val = v.isInt() ? (double)v.asInt() : v.asDouble();
+    PUSH(makeDouble(std::tan(val)));
+    DISPATCH();
+}
+
+op_asin:
+{
+    Value v = POP();
+    if (!v.isNumber())
+    {
+        runtimeError("asin() expects a number");
+        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    }
+    double val = v.isInt() ? (double)v.asInt() : v.asDouble();
+    PUSH(makeDouble(std::asin(val)));
+    DISPATCH();
+}
+
+op_acos:
+{
+    Value v = POP();
+    if (!v.isNumber())
+    {
+        runtimeError("acos() expects a number");
+        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    }
+    double val = v.isInt() ? (double)v.asInt() : v.asDouble();
+    PUSH(makeDouble(std::acos(val)));
+    DISPATCH();
+}
+
+op_atan:
+{
+    Value v = POP();
+    if (!v.isNumber())
+    {
+        runtimeError("atan() expects a number");
+        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    }
+    double val = v.isInt() ? (double)v.asInt() : v.asDouble();
+    PUSH(makeDouble(std::atan(val)));
+    DISPATCH();
+}
+
+op_sqrt:
+{
+    Value v = POP();
+    if (!v.isNumber())
+    {
+        runtimeError("sqrt() expects a number");
+        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    }
+    double val = v.isInt() ? (double)v.asInt() : v.asDouble();
+    if (val < 0)
+    {
+        runtimeError("sqrt() of negative number");
+        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    }
+    PUSH(makeDouble(std::sqrt(val)));
+    DISPATCH();
+}
+op_abs:
+{
+    Value v = POP();
+    if (v.isInt())
+    {
+        PUSH(makeInt(std::abs(v.asInt())));
+    }
+    else if (v.isDouble())
+    {
+        PUSH(makeDouble(std::abs(v.asDouble())));
+    }
+    else
+    {
+        runtimeError("abs() expects a number");
+        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    }
+    DISPATCH();
+}
+op_log:
+{
+    Value v = POP();
+    if (!v.isNumber())
+    {
+        runtimeError("log() expects a number");
+        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    }
+    double val = v.isInt() ? (double)v.asInt() : v.asDouble();
+    if (val <= 0)
+    {
+        runtimeError("log() domain error");
+        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    }
+    PUSH(makeDouble(std::log(val)));
+    DISPATCH();
+}
+
+op_floor:
+{
+    Value v = POP();
+    if (!v.isNumber())
+    {
+        runtimeError("floor() expects a number");
+        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    }
+    double val = v.isInt() ? (double)v.asInt() : v.asDouble();
+    PUSH(makeInt((int)std::floor(val))); // Retorna Int
+    DISPATCH();
+}
+
+op_ceil:
+{
+    Value v = POP();
+    if (!v.isNumber())
+    {
+        runtimeError("ceil() expects a number");
+        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    }
+    double val = v.isInt() ? (double)v.asInt() : v.asDouble();
+    PUSH(makeInt((int)std::ceil(val))); // Retorna Int
+    DISPATCH();
+}
+
+    // --- CONVERSÃO ---
+op_deg:
+{
+    Value v = POP();
+    if (!v.isNumber())
+    {
+        runtimeError("deg() expects a number");
+        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    }
+    double val = v.isInt() ? (double)v.asInt() : v.asDouble();
+    PUSH(makeDouble(val * 57.29577951308232));
+    DISPATCH();
+}
+
+op_rad:
+{
+    Value v = POP();
+    if (!v.isNumber())
+    {
+        runtimeError("rad() expects a number");
+        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    }
+    double val = v.isInt() ? (double)v.asInt() : v.asDouble();
+    PUSH(makeDouble(val * 0.017453292519943295));
+    DISPATCH();
+}
+
+op_exp:
+{
+    Value v = POP();
+    if (!v.isNumber())
+    {
+        runtimeError("exp() expects a number");
+        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    }
+    double val = v.isInt() ? (double)v.asInt() : v.asDouble();
+
+    // std::exp calcula e^x
+    PUSH(makeDouble(std::exp(val)));
+    DISPATCH();
+}
+
+    // --- BINÁRIOS (2 Argumentos) ---
+op_atan2:
+{
+    Value vx = POP(); // X (topo)
+    Value vy = POP(); // Y (abaixo)
+    if (!vx.isNumber() || !vy.isNumber())
+    {
+        runtimeError("atan2(y, x) operands must be numbers");
+        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    }
+    double x = vx.isInt() ? (double)vx.asInt() : vx.asDouble();
+    double y = vy.isInt() ? (double)vy.asInt() : vy.asDouble();
+    PUSH(makeDouble(std::atan2(y, x)));
+    DISPATCH();
+}
+
+op_pow:
+{
+    Value vexp = POP();  // Expoente
+    Value vbase = POP(); // Base
+    if (!vexp.isNumber() || !vbase.isNumber())
+    {
+        runtimeError("pow(base, exp) operands must be numbers");
+        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    }
+    double exp = vexp.isInt() ? (double)vexp.asInt() : vexp.asDouble();
+    double base = vbase.isInt() ? (double)vbase.asInt() : vbase.asDouble();
+    PUSH(makeDouble(std::pow(base, exp)));
+    DISPATCH();
+}
+
+op_clock:
+{
+    PUSH(makeDouble(static_cast<double>(clock()) / CLOCKS_PER_SEC));
     DISPATCH();
 }
 

@@ -16,11 +16,98 @@ void Compiler::lengthExpression(bool canAssign)
 {
     consume(TOKEN_LPAREN, "Expect '(' after len");
 
-    expression();  // empilha o valor (array, string, etc.)
+    expression(); // empilha o valor (array, string, etc.)
 
     consume(TOKEN_RPAREN, "Expect ')' after expression");
 
     emitByte(OP_FUNC_LEN);
+}
+
+// 1. Para funções tipo: sin(x)
+void Compiler::mathUnary(bool canAssign)
+{
+    TokenType type = previous.type; // Guardamos qual foi (SIN, COS, etc)
+
+    consume(TOKEN_LPAREN, "Expect '('");
+    expression();
+    consume(TOKEN_RPAREN, "Expect ')'");
+
+    switch (type)
+    {
+    case TOKEN_SIN:
+        emitByte(OP_SIN);
+        break;
+    case TOKEN_COS:
+        emitByte(OP_COS);
+        break;
+    case TOKEN_TAN:
+        emitByte(OP_TAN);
+        break;
+    case TOKEN_ATAN:
+        emitByte(OP_ATAN);
+        break;
+    case TOKEN_SQRT:
+        emitByte(OP_SQRT);
+        break;
+    case TOKEN_ABS:
+        emitByte(OP_ABS);
+        break;
+    case TOKEN_FLOOR:
+        emitByte(OP_FLOOR);
+        break;
+    case TOKEN_CEIL:
+        emitByte(OP_CEIL);
+        break;
+    case TOKEN_DEG:
+        emitByte(OP_DEG);
+        break;
+    case TOKEN_RAD:
+        emitByte(OP_RAD);
+        break;
+    case TOKEN_LOG:
+        emitByte(OP_LOG);
+        break;
+    case TOKEN_EXP:
+        emitByte(OP_EXP);
+        break;
+    default:
+        return; // Erro
+    }
+}
+
+// 2. Para funções tipo: atan2(y, x) ou pow(base, exp)
+void Compiler::mathBinary(bool canAssign)
+{
+    TokenType type = previous.type;
+
+    consume(TOKEN_LPAREN, "Expect '('");
+    expression(); // Arg 1
+    consume(TOKEN_COMMA, "Expect ','");
+    expression(); // Arg 2
+    consume(TOKEN_RPAREN, "Expect ')'");
+
+    switch (type)
+    {
+    case TOKEN_ATAN2:
+        emitByte(OP_ATAN2);
+        break;
+    case TOKEN_POW:
+        emitByte(OP_POW);
+        break;
+    default:
+        return;
+    }
+}
+
+void Compiler::expressionClock(bool canAssign)
+{
+    (void)canAssign;
+
+    consume(TOKEN_LPAREN, "Expect '(' after clock");
+    consume(TOKEN_RPAREN, "Expect ')' after '('");
+
+
+    emitByte(OP_CLOCK);
 }
 
 void Compiler::number(bool canAssign)

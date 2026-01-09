@@ -267,7 +267,7 @@ int main(int argc, char **argv) {
   vm.registerNative("clock", native_clock, 0);
   vm.registerNative("format", native_format, -1);
   vm.registerNative("write", native_write, -1);
-      vm.registerNative("print_stack", native_print_stack, -1);
+  vm.registerNative("print_stack", native_print_stack, -1);
 
   int totalPassed = 0;
   int totalFailed = 0;

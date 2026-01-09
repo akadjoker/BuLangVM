@@ -87,6 +87,31 @@ void Lexer::initKeywords()
         {"catch", TOKEN_CATCH},
         {"finally", TOKEN_FINALLY},
         {"throw", TOKEN_THROW},
+
+        {"sin", TOKEN_SIN},
+        {"cos", TOKEN_COS},
+        {"atan", TOKEN_ATAN},
+        {"atan2", TOKEN_ATAN2},
+        {"sqrt", TOKEN_SQRT},
+        {"pow", TOKEN_POW},
+        {"log", TOKEN_LOG},
+        {"abs", TOKEN_ABS},
+        {"floor", TOKEN_FLOOR},
+        {"ceil", TOKEN_CEIL},
+        {"deg", TOKEN_DEG},
+        {"rad", TOKEN_RAD},
+        {"tan", TOKEN_TAN},
+        {"exp", TOKEN_EXP},
+
+ 
+        {"clock", TOKEN_CLOCK},
+
+
+        
+
+
+        
+
     };
 }
 

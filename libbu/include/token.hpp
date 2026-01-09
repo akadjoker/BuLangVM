@@ -122,6 +122,31 @@ enum TokenType
     TOKEN_FINALLY,
     TOKEN_THROW,
 
+    //MATH
+    TOKEN_SIN,
+    TOKEN_COS,
+    TOKEN_SQRT,
+    TOKEN_ABS,
+    TOKEN_FLOOR,
+    TOKEN_CEIL,
+    TOKEN_DEG,
+    TOKEN_RAD,
+    TOKEN_TAN,
+    TOKEN_ATAN,
+    TOKEN_ATAN2,
+    TOKEN_POW,
+    TOKEN_LOG,
+    TOKEN_EXP,
+
+    //array
+    TOKEN_PUSH,
+
+    //timer
+    TOKEN_CLOCK,
+    TOKEN_TIME,
+    
+    
+
     // Special
     TOKEN_EOF,
     TOKEN_ERROR,

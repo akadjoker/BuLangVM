@@ -4,6 +4,7 @@
 #include "debug.hpp"
 #include <cmath> // std::fmod
 #include <new>
+#include <ctime>
 
 #ifndef USE_COMPUTED_GOTO
 
@@ -450,24 +451,29 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
 
             if (!a.isNumber() || !b.isNumber())
             {
-                 THROW_RUNTIME_ERROR("Operands must be numbers.");
+                THROW_RUNTIME_ERROR("Operands must be numbers.");
             }
 
-            #define THROW_MOD_ZERO() \
-                do { \
-                    Value error = makeString("Modulo by zero"); \
-                    if (throwException(error)) { \
-                        ip = fiber->ip; \
-                        goto break_switch_mod; \
-                    } else { \
-                        runtimeError("Modulo by zero"); \
-                        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0}; \
-                    } \
-                } while (0)
+#define THROW_MOD_ZERO()                                             \
+    do                                                               \
+    {                                                                \
+        Value error = makeString("Modulo by zero");                  \
+        if (throwException(error))                                   \
+        {                                                            \
+            ip = fiber->ip;                                          \
+            goto break_switch_mod;                                   \
+        }                                                            \
+        else                                                         \
+        {                                                            \
+            runtimeError("Modulo by zero");                          \
+            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0}; \
+        }                                                            \
+    } while (0)
 
             if (a.isInt() && b.isInt())
             {
-                if (b.asInt() == 0) THROW_MOD_ZERO();
+                if (b.asInt() == 0)
+                    THROW_MOD_ZERO();
                 PUSH(makeInt(a.asInt() % b.asInt()));
                 break; // Sucesso, sai do switch
             }
@@ -477,16 +483,17 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
                 double da = a.isInt() ? (double)a.asInt() : a.asDouble();
                 double db = b.isInt() ? (double)b.asInt() : b.asDouble();
 
-                if (db == 0.0) THROW_MOD_ZERO();
+                if (db == 0.0)
+                    THROW_MOD_ZERO();
 
                 PUSH(makeDouble(fmod(da, db)));
             }
             // ---------------------------------
-            
-            break_switch_mod:
+
+        break_switch_mod:
             break;
-            
-            #undef THROW_MOD_ZERO
+
+#undef THROW_MOD_ZERO
         }
 
             //======== LOGICAL =====
@@ -2827,6 +2834,235 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
             }
             break;
         }
+            // =============================================================
+            // MATH OPERATORS
+            // =============================================================
+
+        case OP_SIN:
+        {
+            Value v = POP();
+            if (!v.isNumber())
+            {
+                runtimeError("sin() expects a number");
+                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            }
+            double val = v.isInt() ? (double)v.asInt() : v.asDouble();
+            PUSH(makeDouble(std::sin(val)));
+            break;
+        }
+        case OP_COS:
+        {
+            Value v = POP();
+            if (!v.isNumber())
+            {
+                runtimeError("cos() expects a number");
+                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            }
+            double val = v.isInt() ? (double)v.asInt() : v.asDouble();
+            PUSH(makeDouble(std::cos(val)));
+            break;
+        }
+         case OP_ASIN:
+        {
+            Value v = POP();
+            if (!v.isNumber())
+            {
+                runtimeError("asin() expects a number");
+                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            }
+            double val = v.isInt() ? (double)v.asInt() : v.asDouble();
+            PUSH(makeDouble(std::asin(val)));
+            break;
+        }
+        case OP_ACOS:
+        {
+            Value v = POP();
+            if (!v.isNumber())
+            {
+                runtimeError("acos() expects a number");
+                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            }
+            double val = v.isInt() ? (double)v.asInt() : v.asDouble();
+            PUSH(makeDouble(std::acos(val)));
+            break;
+        }
+        case OP_TAN:
+        {
+            Value v = POP();
+            if (!v.isNumber())
+            {
+                runtimeError("tan() expects a number");
+                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            }
+            double val = v.isInt() ? (double)v.asInt() : v.asDouble();
+            PUSH(makeDouble(std::tan(val)));
+            break;
+        }
+        case OP_SQRT:
+        {
+            Value v = POP();
+            if (!v.isNumber())
+            {
+                runtimeError("sqrt() expects a number");
+                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            }
+            double val = v.isInt() ? (double)v.asInt() : v.asDouble();
+            if (val < 0)
+            {
+                runtimeError("sqrt() of negative number");
+                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            }
+            PUSH(makeDouble(std::sqrt(val)));
+            break;
+        }
+        case OP_ABS:
+        {
+            Value v = POP();
+            if (v.isInt())
+            {
+                PUSH(makeInt(std::abs(v.asInt())));
+            }
+            else if (v.isDouble())
+            {
+                PUSH(makeDouble(std::abs(v.asDouble())));
+            }
+            else
+            {
+                runtimeError("abs() expects a number");
+                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            }
+            break;
+        }
+        case OP_FLOOR:
+        {
+            Value v = POP();
+            if (!v.isNumber())
+            {
+                runtimeError("floor() expects a number");
+                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            }
+            double val = v.isInt() ? (double)v.asInt() : v.asDouble();
+            PUSH(makeInt((int)std::floor(val))); // Retorna Int
+            break;
+        }
+        case OP_CEIL:
+        {
+            Value v = POP();
+            if (!v.isNumber())
+            {
+                runtimeError("ceil() expects a number");
+                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            }
+            double val = v.isInt() ? (double)v.asInt() : v.asDouble();
+            PUSH(makeInt((int)std::ceil(val))); // Retorna Int
+            break;
+        }
+        case OP_LOG:
+        {
+            Value v = POP();
+            if (!v.isNumber())
+            {
+                runtimeError("log() expects a number");
+                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            }
+            double val = v.isInt() ? (double)v.asInt() : v.asDouble();
+            if (val <= 0)
+            {
+                runtimeError("log() domain error");
+                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            }
+            PUSH(makeDouble(std::log(val)));
+            break;
+        }
+
+        // --- CONVERSÃO ---
+        case OP_DEG:
+        {
+            Value v = POP();
+            if (!v.isNumber())
+            {
+                runtimeError("deg() expects a number");
+                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            }
+            double val = v.isInt() ? (double)v.asInt() : v.asDouble();
+            PUSH(makeDouble(val * 57.29577951308232));
+            break;
+        }
+        case OP_RAD:
+        {
+            Value v = POP();
+            if (!v.isNumber())
+            {
+                runtimeError("rad() expects a number");
+                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            }
+            double val = v.isInt() ? (double)v.asInt() : v.asDouble();
+            PUSH(makeDouble(val * 0.017453292519943295));
+            break;
+        }
+        case OP_ATAN:
+        {
+            Value v = POP();
+            if (!v.isNumber())
+            {
+                runtimeError("atan() expects a number");
+                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            }
+            double val = v.isInt() ? (double)v.asInt() : v.asDouble();
+            PUSH(makeDouble(std::atan(val)));
+            break;
+        }
+        case OP_EXP:
+        {
+            Value v = POP();
+            if (!v.isNumber())
+            {
+                runtimeError("exp() expects a number");
+                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            }
+            double val = v.isInt() ? (double)v.asInt() : v.asDouble();
+            
+            // std::exp calcula e^x
+            PUSH(makeDouble(std::exp(val)));
+            break;
+        }
+
+        // --- BINÁRIOS (2 Argumentos) ---
+        case OP_ATAN2:
+        {
+            Value vx = POP(); // X (topo)
+            Value vy = POP(); // Y (abaixo)
+            if (!vx.isNumber() || !vy.isNumber())
+            {
+                runtimeError("atan2(y, x) operands must be numbers");
+                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            }
+            double x = vx.isInt() ? (double)vx.asInt() : vx.asDouble();
+            double y = vy.isInt() ? (double)vy.asInt() : vy.asDouble();
+            PUSH(makeDouble(std::atan2(y, x)));
+            break;
+        }
+        case OP_POW:
+        {
+            Value vexp = POP();  // Expoente
+            Value vbase = POP(); // Base
+            if (!vexp.isNumber() || !vbase.isNumber())
+            {
+                runtimeError("pow(base, exp) operands must be numbers");
+                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            }
+            double exp = vexp.isInt() ? (double)vexp.asInt() : vexp.asDouble();
+            double base = vbase.isInt() ? (double)vbase.asInt() : vbase.asDouble();
+            PUSH(makeDouble(std::pow(base, exp)));
+            break;
+        }
+        
+        case OP_CLOCK:
+        {
+            PUSH(makeDouble(static_cast<double>(clock()) / CLOCKS_PER_SEC));
+            break;
+        }
+ 
 
         default:
         {

@@ -221,6 +221,9 @@ private:
   void unary(bool canAssign);
   void variable(bool canAssign);
   void lengthExpression(bool canAssign);
+  void mathUnary(bool canAssign);
+  void mathBinary(bool canAssign);
+  void expressionClock(bool canAssign);
 
   // Parse functions (infix)
   void binary(bool canAssign);

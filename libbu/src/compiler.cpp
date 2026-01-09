@@ -36,8 +36,8 @@ Compiler::Compiler(Interpreter *vm)
 }
 Compiler::~Compiler()
 {
- 
-  delete lexer; 
+
+  delete lexer;
 }
 
 // ============================================
@@ -104,8 +104,29 @@ void Compiler::initRules()
   rules[TOKEN_FALSE] = {&Compiler::literal, nullptr, PREC_NONE};
   rules[TOKEN_NIL] = {&Compiler::literal, nullptr, PREC_NONE};
 
-  rules[TOKEN_FOREACH] = {nullptr, nullptr, PREC_NONE};
+  // math
+  // MATH UNARY (Funções de 1 argumento)
+  rules[TOKEN_SIN] = {&Compiler::mathUnary, nullptr, PREC_NONE};
+  rules[TOKEN_COS] = {&Compiler::mathUnary, nullptr, PREC_NONE};
+  rules[TOKEN_TAN] = {&Compiler::mathUnary, nullptr, PREC_NONE};  
+  rules[TOKEN_ATAN] = {&Compiler::mathUnary, nullptr, PREC_NONE}; 
+  rules[TOKEN_SQRT] = {&Compiler::mathUnary, nullptr, PREC_NONE};
+  rules[TOKEN_ABS] = {&Compiler::mathUnary, nullptr, PREC_NONE};
+  rules[TOKEN_FLOOR] = {&Compiler::mathUnary, nullptr, PREC_NONE};
+  rules[TOKEN_CEIL] = {&Compiler::mathUnary, nullptr, PREC_NONE};
+  rules[TOKEN_DEG] = {&Compiler::mathUnary, nullptr, PREC_NONE};
+  rules[TOKEN_RAD] = {&Compiler::mathUnary, nullptr, PREC_NONE};
+  rules[TOKEN_LOG] = {&Compiler::mathUnary, nullptr, PREC_NONE}; 
+  rules[TOKEN_EXP] = {&Compiler::mathUnary, nullptr, PREC_NONE}; 
 
+
+  // MATH BINARY (Funções de 2 argumentos)
+  rules[TOKEN_ATAN2] = {&Compiler::mathBinary, nullptr, PREC_NONE};
+  rules[TOKEN_POW] = {&Compiler::mathBinary, nullptr, PREC_NONE};
+ 
+  rules[TOKEN_CLOCK] = {&Compiler::expressionClock, nullptr, PREC_NONE};
+
+  rules[TOKEN_FOREACH] = {nullptr, nullptr, PREC_NONE};
 
   rules[TOKEN_LBRACKET] = {
       &Compiler::arrayLiteral, //  PREFIX: [1, 2, 3]
@@ -114,10 +135,9 @@ void Compiler::initRules()
   };
 
   rules[TOKEN_LEN] = {
-    &Compiler::lengthExpression, // PREFIX
-    nullptr,                     // INFIX
-    PREC_NONE
-};
+      &Compiler::lengthExpression, // PREFIX
+      nullptr,                     // INFIX
+      PREC_NONE};
 
   rules[TOKEN_LBRACE] = {&Compiler::mapLiteral, //  PREFIX: {key: value}
                          nullptr,               //  Sem INFIX
@@ -184,7 +204,8 @@ ProcessDef *Compiler::compile(const std::string &source)
   currentProcess->finalize();
 
   importedModules.clear();
-  usingModules.clear();;
+  usingModules.clear();
+  ;
 
   return currentProcess;
 }
@@ -225,7 +246,6 @@ ProcessDef *Compiler::compileExpression(const std::string &source)
 
   importedModules.clear();
   usingModules.clear();
-
 
   return currentProcess;
 }
@@ -352,54 +372,53 @@ void Compiler::errorAtCurrent(const char *message)
 
 void Compiler::synchronize()
 {
-    panicMode = false;
-    
-    while (current.type != TOKEN_EOF)
+  panicMode = false;
+
+  while (current.type != TOKEN_EOF)
+  {
+    if (previous.type == TOKEN_SEMICOLON)
+      return;
+
+    switch (current.type)
     {
-        if (previous.type == TOKEN_SEMICOLON)
-            return;
-        
-        switch (current.type)
-        {
-            //  TOP-LEVEL DECLARATIONS
-            case TOKEN_IMPORT:
-            case TOKEN_USING:
-            case TOKEN_INCLUDE:
-            case TOKEN_DEF:
-            case TOKEN_PROCESS:
-            case TOKEN_CLASS:
-            case TOKEN_STRUCT:
-            case TOKEN_VAR:
-            
-            //  CONTROL FLOW STATEMENTS
-            case TOKEN_IF:
-            case TOKEN_WHILE:
-            case TOKEN_DO:
-            case TOKEN_LOOP:
-            case TOKEN_FOR:
-            case TOKEN_SWITCH:
-            
-            //  JUMP STATEMENTS
-            case TOKEN_BREAK:
-            case TOKEN_CONTINUE:
-            case TOKEN_RETURN:
-            case TOKEN_GOTO:
-            case TOKEN_GOSUB:
-            
-            //  SPECIAL STATEMENTS
-            case TOKEN_PRINT:
-            case TOKEN_YIELD:
-            case TOKEN_FIBER:
-            case TOKEN_FRAME:
-            case TOKEN_EXIT:
-                return;
-            
-            default:
-                ; // Nothing
-        }
-        
-        advance();
+    //  TOP-LEVEL DECLARATIONS
+    case TOKEN_IMPORT:
+    case TOKEN_USING:
+    case TOKEN_INCLUDE:
+    case TOKEN_DEF:
+    case TOKEN_PROCESS:
+    case TOKEN_CLASS:
+    case TOKEN_STRUCT:
+    case TOKEN_VAR:
+
+    //  CONTROL FLOW STATEMENTS
+    case TOKEN_IF:
+    case TOKEN_WHILE:
+    case TOKEN_DO:
+    case TOKEN_LOOP:
+    case TOKEN_FOR:
+    case TOKEN_SWITCH:
+
+    //  JUMP STATEMENTS
+    case TOKEN_BREAK:
+    case TOKEN_CONTINUE:
+    case TOKEN_RETURN:
+    case TOKEN_GOTO:
+    case TOKEN_GOSUB:
+
+    //  SPECIAL STATEMENTS
+    case TOKEN_PRINT:
+    case TOKEN_YIELD:
+    case TOKEN_FIBER:
+    case TOKEN_FRAME:
+    case TOKEN_EXIT:
+      return;
+
+    default:; // Nothing
     }
+
+    advance();
+  }
 }
 
 // ============================================
