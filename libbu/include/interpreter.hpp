@@ -710,7 +710,8 @@ public:
   float getCurrentTime() const;
 
   void runtimeError(const char *format, ...);
-
+  void safetimeError(const char *format, ...);
+  bool throwException(Value error);
   bool callFunction(Function *func, int argCount);
   bool callFunction(const char *name, int argCount);
 

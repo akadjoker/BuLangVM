@@ -90,12 +90,16 @@ void Interpreter::freeInstances()
 void Interpreter::freeBlueprints()
 {
 
+ 
+
   for (size_t j = 0; j < classes.size(); j++)
   {
     ClassDef *proc = classes[j];
     delete proc;
   }
   classes.clear();
+
+
   for (size_t i = 0; i < nativeStructs.size(); i++)
   {
     NativeStructDef *a = nativeStructs[i];
@@ -112,7 +116,7 @@ void Interpreter::freeBlueprints()
   for (size_t i = 0; i < structs.size(); i++)
   {
     StructDef *a = structs[i];
-
+    a->names.destroy();
     delete a;
   }
   structs.clear();
@@ -147,7 +151,6 @@ Interpreter::~Interpreter()
   for (size_t i = 0; i < modules.size(); i++)
   {
     ModuleDef *mod = modules[i];
-    totalAllocated -= sizeof(ModuleDef);
     delete mod;
   }
 
@@ -155,14 +158,11 @@ Interpreter::~Interpreter()
 
   delete compiler;
 
-  // instances
   freeInstances();
-  // BLUEPRINTS
   freeBlueprints();
 
-  runGC();
-  functionsMap.destroy();
-  processesMap.destroy();
+  //runGC();
+
 
   for (size_t i = 0; i < functions.size(); i++)
   {
@@ -196,6 +196,11 @@ Interpreter::~Interpreter()
   }
 
   aliveProcesses.clear();
+  functionsMap.destroy();
+  processesMap.destroy();
+  structsMap.destroy();
+  classesMap.destroy();
+  globals.destroy();
 
   Info("Heap stats:");
   arena.Stats();
@@ -508,6 +513,55 @@ void Interpreter::runtimeError(const char *format, ...)
 
   resetFiber();
 }
+bool Interpreter::throwException(Value error)
+{
+    Fiber* fiber = currentFiber;
+
+    while (fiber->tryDepth > 0)
+    {
+        TryHandler &handler = fiber->tryHandlers[fiber->tryDepth - 1];
+
+        if (handler.inFinally) {
+            handler.pendingError = error;
+            handler.hasPendingError = true;
+            fiber->tryDepth--;
+            continue;
+        }
+
+        fiber->stackTop = handler.stackRestore; // Limpa a stack!
+
+        if (handler.catchIP != nullptr && !handler.catchConsumed) {
+            handler.catchConsumed = true;
+            push(error);
+            fiber->ip = handler.catchIP;
+            return true;  
+        }
+        else if (handler.finallyIP != nullptr) {
+            handler.pendingError = error;
+            handler.hasPendingError = true;
+            handler.inFinally = true;
+            fiber->ip = handler.finallyIP;
+            return true;  
+        }
+
+        fiber->tryDepth--;
+    }
+ 
+    return false; 
+}
+void Interpreter::safetimeError(const char *format, ...)
+{
+ 
+
+  OsPrintf("Runtime Error: ");
+  va_list args;
+  va_start(args, format);
+  OsVPrintf(format, args);
+  va_end(args);
+  OsPrintf("\n");
+
+ 
+}
 
 void Interpreter::resetFiber()
 {
@@ -633,7 +687,7 @@ void Interpreter::reset()
 
   aliveProcesses.clear();
 
-  structs.clear();
+ 
   currentFiber = nullptr;
   currentProcess = nullptr;
   currentTime = 0.0f;
@@ -691,6 +745,7 @@ StructDef *Interpreter::registerStruct(String *name)
 {
   if (structsMap.exist(name))
   {
+    Warning("Struct with name '%s' already exists", name->chars());
     return nullptr;
   }
 

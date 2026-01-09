@@ -35,7 +35,7 @@
   #define LIKELY(x)    (x)
 #endif
 
-#define USE_COMPUTED_GOTO 
+//#define USE_COMPUTED_GOTO 
  
 typedef signed char int8;
 typedef signed short int16;

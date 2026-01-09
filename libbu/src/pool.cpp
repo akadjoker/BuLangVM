@@ -48,7 +48,7 @@ void StringPool::deallocString(String *s)
     bytesAllocated -= sizeof(String) + s->length() + 1;
 
     if (s->isLong() && s->ptr)
-        allocator.Free(s->ptr, s->length());
+        allocator.Free(s->ptr, s->length() + 1);
 
     s->~String();
     allocator.Free(s, sizeof(String));
@@ -62,6 +62,7 @@ void StringPool::clear()
     for (size_t i = 0; i < map.size(); i++)
     {
         String *s = map[i];
+       
         deallocString(s);
     }
 

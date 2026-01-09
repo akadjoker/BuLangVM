@@ -94,6 +94,18 @@ enum Opcode : uint8
     OP_ENTER_CATCH =62,   // Entra no catch
     OP_ENTER_FINALLY = 63, // Entra no finally
     OP_EXIT_FINALLY = 64,  // Sai do finally (re-throw se necessário)
+    // features
+    OP_SIN = 65,
+    OP_COS = 66,
+    OP_SQRT = 67,
+    OP_ABS = 68,
+    OP_FLOOR = 69,  
+    OP_CEIL = 70,
+    OP_ATAN2 = 71,   
+    OP_DEG = 72,     
+    OP_RAD = 73,     
+    OP_ARRAY_PUSH = 74,   
+    
     
 
  

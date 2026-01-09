@@ -1,0 +1,87 @@
+print("--- TEST 08: Try / Catch ---");
+
+// ==========================================
+// CASO 1: Caminho Feliz (Sem erro)
+// ==========================================
+var executedTry = false;
+var executedCatch = false;
+
+try {
+    executedTry = true;
+    var x = 10 + 10;
+} catch (e) {
+    executedCatch = true;
+}
+
+assert(executedTry, "Try block executed");
+assert(!executedCatch, "Catch block skipped on success");
+
+// ==========================================
+// CASO 2: Erro de Runtime (Divisão por Zero)
+// ==========================================
+var successPath = false;
+var catchPath = false;
+var errorMsg = "";
+
+try {
+    // Forçar erro
+    var a = 10;
+    var b = 0;
+    var c = a / b; // Deve lançar erro aqui
+    
+    successPath = true; // Esta linha NUNCA deve ser atingida
+} catch (err) {
+    catchPath = true;
+    errorMsg = err; // Captura a mensagem de erro
+    print("   -> Erro capturado: " + err);
+}
+
+assert(!successPath, "Execution stopped at error");
+assert(catchPath, "Jumped to catch block");
+
+// ==========================================
+// CASO 3: Erro de Tipo (Type Error)
+// ==========================================
+var typeCatch = false;
+
+try 
+{
+    var s = "texto";
+    var n = s * 5; // erro 
+} catch (e) {
+    typeCatch = true;
+}
+
+assert(typeCatch, "Caught type error");
+
+// ==========================================
+// CASO 4: Acesso a Nulo
+// ==========================================
+var nilCatch = false;
+
+try {
+    var n = nil;
+    var x = n + 10; // Operação ilegal com nil
+} catch (e) {
+    nilCatch = true;
+}
+
+assert(nilCatch, "Caught nil operation error");
+
+// ==========================================
+// CASO 5: Estado após Catch
+// ==========================================
+// Garante que a VM continua saudável para executar código normal
+// depois de sair do bloco catch.
+
+var afterValue = 0;
+try {
+    var boom = 10 / 0;
+} catch (e) {
+    // Recupera
+}
+
+afterValue = 100;
+assert_eq(afterValue, 100, "VM continues execution after catch");
+
+pass("08_try_catch.bu completed");

@@ -68,6 +68,26 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
         func = frame->func;                            \
     } while (false)
 
+#define THROW_RUNTIME_ERROR(fmt, ...)                                \
+    do                                                               \
+    {                                                                \
+        char msgBuffer[256];                                         \
+        snprintf(msgBuffer, sizeof(msgBuffer), fmt, ##__VA_ARGS__);  \
+                                                                     \
+        Value errorVal = makeString(msgBuffer);                      \
+                                                                     \
+        if (throwException(errorVal))                                \
+        {                                                            \
+            ip = fiber->ip;                                          \
+            break; /* Sai do switch e continua no loop */            \
+        }                                                            \
+        else                                                         \
+        {                                                            \
+            runtimeError("%s", msgBuffer);                           \
+            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0}; \
+        }                                                            \
+    } while (0)
+
 #define READ_CONSTANT() (func->chunk->constants[READ_BYTE()])
     LOAD_FRAME();
 
@@ -229,7 +249,6 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
             globals.set(name.asString(), POP());
             break;
         }
-
             // ========== ARITHMETIC ==========
 
         // ============================================
@@ -239,69 +258,62 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
         {
             BINARY_OP_PREP();
 
-            // Info(" [OP_ADD] '%s' + '%s'",typeToString(a.type),"+",typeToString(b.type));
-            //  String concatenation
-            if (a.isString() && b.isString())
+            // 1. String à Esquerda
+            if (a.isString())
             {
-                String *result = stringPool.concat(a.asString(), b.asString());
-                PUSH(makeString(result));
-                break;
+                if (b.isString())
+                {
+                    PUSH(makeString(stringPool.concat(a.asString(), b.asString())));
+                    break;
+                }
+                else if (b.isInt())
+                {
+                    String *right = stringPool.toString(b.asInt());
+                    PUSH(makeString(stringPool.concat(a.asString(), right)));
+                    break;
+                }
+                else if (b.isDouble())
+                {
+                    String *right = stringPool.toString(b.asDouble());
+                    PUSH(makeString(stringPool.concat(a.asString(), right)));
+                    break;
+                }
+                // Se cair aqui, a string 'a' vai falhar nas verificações numéricas abaixo e lançar erro
             }
-            else if (a.isString() && b.isDouble())
+            // 2. String à Direita (Concatenação Reversa)
+            else if (b.isString())
             {
-                String *right = stringPool.toString(b.asDouble());
-                String *result = stringPool.concat(a.asString(), right);
-                PUSH(makeString(result));
-                break;
+                if (a.isInt())
+                {
+                    String *left = stringPool.toString(a.asInt());
+                    PUSH(makeString(stringPool.concat(left, b.asString())));
+                    break;
+                }
+                else if (a.isDouble())
+                {
+                    String *left = stringPool.toString(a.asDouble());
+                    PUSH(makeString(stringPool.concat(left, b.asString())));
+                    break;
+                }
             }
-            else if (a.isString() && b.isInt())
+            // 3. Matemática
+            else if (a.isNumber() && b.isNumber())
             {
-                String *right = stringPool.toString(b.asInt());
-                String *result = stringPool.concat(a.asString(), right);
-                PUSH(makeString(result));
-                break;
-            }
-            else if (a.isString() && b.isBool())
-            {
-                String *right = stringPool.create(b.asBool() ? "true" : "false");
-                String *result = stringPool.concat(a.asString(), right);
-                PUSH(makeString(result));
-                break;
-            }
-            else if (a.isString() && b.isNil())
-            {
-                String *right = stringPool.create("nil");
-                String *result = stringPool.concat(a.asString(), right);
-                PUSH(makeString(result));
-                break;
-            }
-            else
-                // Numeric operations
                 if (a.isInt() && b.isInt())
                 {
                     PUSH(makeInt(a.asInt() + b.asInt()));
-                    break;
                 }
-                else if (a.isInt() && b.isDouble())
+                else
                 {
-                    PUSH(makeDouble(a.asInt() + b.asDouble()));
-                    break;
+                    double da = a.isInt() ? (double)a.asInt() : a.asDouble();
+                    double db = b.isInt() ? (double)b.asInt() : b.asDouble();
+                    PUSH(makeDouble(da + db));
                 }
-                else if (a.isDouble() && b.isInt())
-                {
-                    PUSH(makeDouble(a.asDouble() + b.asInt()));
-                    break;
-                }
-                else if (a.isDouble() && b.isDouble())
-                {
-                    PUSH(makeDouble(a.asDouble() + b.asDouble()));
-                    break;
-                }
+                break;
+            }
 
-            runtimeError("Operands '+' must be numbers or strings");
-            printValueNl(a);
-            printValueNl(b);
-            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            THROW_RUNTIME_ERROR("Operands '+' must be numbers or strings");
+            break;
         }
 
         // ============================================
@@ -311,29 +323,23 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
         {
             BINARY_OP_PREP();
 
-            if (a.isInt() && b.isInt())
+            if (a.isNumber() && b.isNumber())
             {
-                PUSH(makeInt(a.asInt() - b.asInt()));
-                break;
-            }
-            if (a.isInt() && b.isDouble())
-            {
-                PUSH(makeDouble(a.asInt() - b.asDouble())); // ← FIX!
-                break;
-            }
-            if (a.isDouble() && b.isInt())
-            {
-                PUSH(makeDouble(a.asDouble() - b.asInt()));
-                break;
-            }
-            if (a.isDouble() && b.isDouble())
-            {
-                PUSH(makeDouble(a.asDouble() - b.asDouble()));
+                if (a.isInt() && b.isInt())
+                {
+                    PUSH(makeInt(a.asInt() - b.asInt()));
+                }
+                else
+                {
+                    double da = a.isInt() ? (double)a.asInt() : a.asDouble();
+                    double db = b.isInt() ? (double)b.asInt() : b.asDouble();
+                    PUSH(makeDouble(da - db));
+                }
                 break;
             }
 
-            runtimeError("Operands '-' must be numbers");
-            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            THROW_RUNTIME_ERROR("Operands '-' must be numbers");
+            break;
         }
 
         // ============================================
@@ -343,29 +349,23 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
         {
             BINARY_OP_PREP();
 
-            if (a.isInt() && b.isInt())
+            if (a.isNumber() && b.isNumber())
             {
-                PUSH(makeInt(a.asInt() * b.asInt()));
-                break;
-            }
-            if (a.isInt() && b.isDouble())
-            {
-                PUSH(makeDouble(a.asInt() * b.asDouble())); // ← FIX!
-                break;
-            }
-            if (a.isDouble() && b.isInt())
-            {
-                PUSH(makeDouble(a.asDouble() * b.asInt()));
-                break;
-            }
-            if (a.isDouble() && b.isDouble())
-            {
-                PUSH(makeDouble(a.asDouble() * b.asDouble()));
+                if (a.isInt() && b.isInt())
+                {
+                    PUSH(makeInt(a.asInt() * b.asInt()));
+                }
+                else
+                {
+                    double da = a.isInt() ? (double)a.asInt() : a.asDouble();
+                    double db = b.isInt() ? (double)b.asInt() : b.asDouble();
+                    PUSH(makeDouble(da * db));
+                }
                 break;
             }
 
-            runtimeError("Operands '*' must be numbers");
-            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            THROW_RUNTIME_ERROR("Operands '*' must be numbers");
+            break;
         }
 
         // ============================================
@@ -375,52 +375,72 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
         {
             BINARY_OP_PREP();
 
-            //  retorna double (divisão!)
+// Macro local para evitar repetição de código no switch
+#define THROW_DIV_ZERO()                                             \
+    do                                                               \
+    {                                                                \
+        Value error = makeString("Division by zero");                \
+        if (throwException(error))                                   \
+        {                                                            \
+            ip = fiber->ip;                                          \
+            goto break_switch; /* Trick para sair do switch */       \
+        }                                                            \
+        else                                                         \
+        {                                                            \
+            runtimeError("Division by zero");                        \
+            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0}; \
+        }                                                            \
+    } while (0)
+
             if (a.isInt() && b.isInt())
             {
-                if (b.asInt() == 0)
-                {
-                    runtimeError("Division by zero");
-                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
-                }
-                PUSH(makeDouble((double)a.asInt() / b.asInt())); //  Double!
+                int ib = b.asInt();
+                if (ib == 0)
+                    THROW_DIV_ZERO();
+
+                int ia = a.asInt();
+                if (ia % ib == 0)
+                    PUSH(makeInt(ia / ib));
+                else
+                    PUSH(makeDouble((double)ia / ib));
                 break;
             }
-            if (a.isInt() && b.isDouble())
+            else if (a.isDouble() && b.isInt())
             {
-                if (b.asDouble() == 0.0)
-                {
-                    runtimeError("Division by zero");
-                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
-                }
-                PUSH(makeDouble(a.asInt() / b.asDouble()));
+                int ib = b.asInt();
+                if (ib == 0)
+                    THROW_DIV_ZERO();
+                PUSH(makeDouble(a.asDouble() / ib));
                 break;
             }
-            if (a.isDouble() && b.isInt())
+            else if (a.isInt() && b.isDouble())
             {
-                if (b.asInt() == 0)
-                {
-                    runtimeError("Division by zero");
-                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
-                }
-                PUSH(makeDouble(a.asDouble() / b.asInt()));
+                double db = b.asDouble();
+                if (db == 0.0)
+                    THROW_DIV_ZERO();
+                PUSH(makeDouble(a.asInt() / db));
                 break;
             }
-            if (a.isDouble() && b.isDouble())
+            else if (a.isDouble() && b.isDouble())
             {
-                if (b.asDouble() == 0.0)
-                {
-                    runtimeError("Division by zero");
-                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
-                }
-                PUSH(makeDouble(a.asDouble() / b.asDouble()));
+                double db = b.asDouble();
+                if (db == 0.0)
+                    THROW_DIV_ZERO();
+                PUSH(makeDouble(a.asDouble() / db));
                 break;
             }
 
-            runtimeError("Operands must be numbers");
-            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            THROW_RUNTIME_ERROR("Operands '/' must be numbers");
+
+        break_switch: // Label para o goto da macro sair do case
+            break;
+
+#undef THROW_DIV_ZERO
         }
 
+        // ============================================
+        // OP_MODULO
+        // ============================================
         // ============================================
         // OP_MODULO
         // ============================================
@@ -428,29 +448,45 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
         {
             BINARY_OP_PREP();
 
+            if (!a.isNumber() || !b.isNumber())
+            {
+                 THROW_RUNTIME_ERROR("Operands must be numbers.");
+            }
+
+            #define THROW_MOD_ZERO() \
+                do { \
+                    Value error = makeString("Modulo by zero"); \
+                    if (throwException(error)) { \
+                        ip = fiber->ip; \
+                        goto break_switch_mod; \
+                    } else { \
+                        runtimeError("Modulo by zero"); \
+                        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0}; \
+                    } \
+                } while (0)
+
             if (a.isInt() && b.isInt())
             {
-                if (b.asInt() == 0)
-                {
-                    runtimeError("Modulo by zero");
-                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
-                }
+                if (b.asInt() == 0) THROW_MOD_ZERO();
                 PUSH(makeInt(a.asInt() % b.asInt()));
-                break;
+                break; // Sucesso, sai do switch
             }
 
-            // Para doubles, usa fmod
-            double da = a.isInt() ? a.asInt() : a.asDouble();
-            double db = b.isInt() ? b.asInt() : b.asDouble();
-
-            if (db == 0.0)
             {
-                runtimeError("Modulo by zero");
-                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
-            }
+                // Para doubles, usa fmod
+                double da = a.isInt() ? (double)a.asInt() : a.asDouble();
+                double db = b.isInt() ? (double)b.asInt() : b.asDouble();
 
-            PUSH(makeDouble(fmod(da, db)));
+                if (db == 0.0) THROW_MOD_ZERO();
+
+                PUSH(makeDouble(fmod(da, db)));
+            }
+            // ---------------------------------
+            
+            break_switch_mod:
             break;
+            
+            #undef THROW_MOD_ZERO
         }
 
             //======== LOGICAL =====
@@ -459,22 +495,14 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
         {
             Value a = POP();
             if (a.isInt())
-            {
                 PUSH(makeInt(-a.asInt()));
-            }
             else if (a.isDouble())
-            {
                 PUSH(makeDouble(-a.asDouble()));
-            }
             else if (a.isBool())
-            {
                 PUSH(makeBool(!a.asBool()));
-            }
             else
             {
-                runtimeError("Operand 'NEGATE' must be a number");
-                printValueNl(a);
-                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                THROW_RUNTIME_ERROR("Operand 'NEGATE' must be a number");
             }
             break;
         }
@@ -483,7 +511,6 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
         {
             BINARY_OP_PREP();
             PUSH(makeBool(valuesEqual(a, b)));
-
             break;
         }
 
@@ -504,14 +531,11 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
         case OP_GREATER:
         {
             BINARY_OP_PREP();
-
             double da, db;
             if (!toNumberPair(a, b, da, db))
             {
-                runtimeError("Operands '>' must be numbers");
-                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                THROW_RUNTIME_ERROR("Operands '>' must be numbers");
             }
-
             PUSH(makeBool(da > db));
             break;
         }
@@ -519,12 +543,10 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
         case OP_GREATER_EQUAL:
         {
             BINARY_OP_PREP();
-
             double da, db;
             if (!toNumberPair(a, b, da, db))
             {
-                runtimeError("Operands '>=' must be numbers");
-                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                THROW_RUNTIME_ERROR("Operands '>=' must be numbers");
             }
             PUSH(makeBool(da >= db));
             break;
@@ -533,16 +555,10 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
         case OP_LESS:
         {
             BINARY_OP_PREP();
-
             double da, db;
             if (!toNumberPair(a, b, da, db))
             {
-
-                runtimeError("Operands '<' must be numbers");
-                printValueNl(a);
-                printValueNl(b);
-
-                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                THROW_RUNTIME_ERROR("Operands '<' must be numbers");
             }
             PUSH(makeBool(da < db));
             break;
@@ -554,8 +570,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
             double da, db;
             if (!toNumberPair(a, b, da, db))
             {
-                runtimeError("Operands  '<=' must be numbers");
-                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                THROW_RUNTIME_ERROR("Operands '<=' must be numbers");
             }
             PUSH(makeBool(da <= db));
             break;
@@ -568,8 +583,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
             BINARY_OP_PREP();
             if (!a.isInt() || !b.isInt())
             {
-                runtimeError("Bitwise AND requires integers");
-                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                THROW_RUNTIME_ERROR("Bitwise AND requires integers");
             }
             PUSH(makeInt(a.asInt() & b.asInt()));
             break;
@@ -580,8 +594,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
             BINARY_OP_PREP();
             if (!a.isInt() || !b.isInt())
             {
-                runtimeError("Bitwise OR requires integers");
-                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                THROW_RUNTIME_ERROR("Bitwise OR requires integers");
             }
             PUSH(makeInt(a.asInt() | b.asInt()));
             break;
@@ -592,8 +605,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
             BINARY_OP_PREP();
             if (!a.isInt() || !b.isInt())
             {
-                runtimeError("Bitwise XOR requires integers");
-                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                THROW_RUNTIME_ERROR("Bitwise XOR requires integers");
             }
             PUSH(makeInt(a.asInt() ^ b.asInt()));
             break;
@@ -604,8 +616,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
             Value a = POP();
             if (!a.isInt())
             {
-                runtimeError("Bitwise NOT requires integer");
-                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                THROW_RUNTIME_ERROR("Bitwise NOT requires integer");
             }
             PUSH(makeInt(~a.asInt()));
             break;
@@ -616,8 +627,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
             BINARY_OP_PREP();
             if (!a.isInt() || !b.isInt())
             {
-                runtimeError("Shift left requires integers");
-                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                THROW_RUNTIME_ERROR("Shift left requires integers");
             }
             PUSH(makeInt(a.asInt() << b.asInt()));
             break;
@@ -628,8 +638,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
             BINARY_OP_PREP();
             if (!a.isInt() || !b.isInt())
             {
-                runtimeError("Shift right requires integers");
-                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                THROW_RUNTIME_ERROR("Shift right requires integers");
             }
             PUSH(makeInt(a.asInt() >> b.asInt()));
             break;
@@ -1097,13 +1106,11 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
                 runtimeError("No current process for spawn");
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
-
             if (currentProcess->nextFiberIndex >= MAX_FIBERS)
             {
                 runtimeError("Too many fibers in process (max %d)", MAX_FIBERS);
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
-
             if (!callee.isFunction())
             {
                 runtimeError("fiber expects a function");
@@ -1112,13 +1119,11 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
 
             int funcIndex = callee.asFunctionId();
             Function *func = functions[funcIndex];
-
             if (!func)
             {
                 runtimeError("Invalid function");
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
-
             if (argCount != func->arity)
             {
                 runtimeError("Expected %d arguments but got %d", func->arity, argCount);
@@ -1133,19 +1138,20 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
             newFiber->stackTop = newFiber->stack;
             newFiber->frameCount = 0;
 
+            newFiber->stack[0] = callee; // Slot 0 = Função
+
             for (int i = 0; i < argCount; i++)
             {
-                newFiber->stack[i] = fiber->stackTop[-(argCount - i)];
+                newFiber->stack[i + 1] = fiber->stackTop[-(argCount - i)];
             }
-            newFiber->stackTop = newFiber->stack + argCount;
+            newFiber->stackTop = newFiber->stack + argCount + 1;
 
             CallFrame *frame = &newFiber->frames[newFiber->frameCount++];
             frame->func = func;
             frame->ip = func->chunk->code;
-            frame->slots = newFiber->stack; // Argumentos começam aqui
+            frame->slots = newFiber->stack;
 
             fiber->stackTop -= (argCount + 1);
-
             PUSH(makeInt(fiberIdx));
 
             break;
@@ -1168,7 +1174,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
                 //     printf(" "); // Espaço entre argumentos
                 // }
             }
-           printf("\n");
+            printf("\n");
 
             // Remove argumentos da stack
             fiber->stackTop -= argCount;

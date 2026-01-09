@@ -1463,11 +1463,11 @@ void Compiler::prefixDecrement(bool canAssign)
 
 void Compiler::frameStatement()
 {
-    if (!isProcess_)
-    {
-        error("'frame' can only be used in process body");
-        return;
-    }
+    // if (!isProcess_)
+    // {
+    //     error("'frame' can only be used in process body");
+    //     return;
+    // }
 
     if (match(TOKEN_LPAREN))
     {
@@ -1693,12 +1693,14 @@ void Compiler::fiberStatement()
     }
 
     consume(TOKEN_RPAREN, "Expect ')' after arguments");
-    Warning("Compiling fiber call to '%s' with %d arguments", nameToken.lexeme.c_str(), argCount);
+    //Warning("Compiling fiber call to '%s' with %d arguments", nameToken.lexeme.c_str(), argCount);
 
     consume(TOKEN_SEMICOLON, "Expect ';' after fiber call.");
 
     emitByte(OP_SPAWN);
     emitByte(argCount);
+
+ 
 }
 
 void Compiler::dot(bool canAssign)

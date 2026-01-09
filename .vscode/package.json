@@ -1,0 +1,14 @@
+{
+  "activationEvents": [
+    "onLanguage:bulang" 
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "bulang",
+        "extensions": [".bu"],
+        "aliases": ["Bulang"]
+      }
+    ]
+  }
+}
