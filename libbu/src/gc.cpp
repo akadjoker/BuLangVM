@@ -1,5 +1,6 @@
 #include "interpreter.hpp"
 
+
 FORCE_INLINE void Interpreter::markRoots()
 {
     // stack da VM
@@ -73,6 +74,13 @@ void Interpreter::markNativeStruct(NativeStructInstance *n)
     if (!n || n->marked)
         return;
     n->marked = 1;
+}
+
+void Interpreter::markBuffer(BufferInstance *b)
+{
+    if (!b || b->marked)
+        return;
+    b->marked = 1;
 }
 
 void Interpreter::sweepArrays()
@@ -193,6 +201,26 @@ void Interpreter::sweepNativeStructs()
     }
 }
 
+void Interpreter::sweepBuffers()
+{
+
+    for (size_t i = 0; i < bufferInstances.size();)
+    {
+        BufferInstance *b = bufferInstances[i];
+        if (b->marked == 0)
+        {
+            freeBuffer(b);
+            bufferInstances[i] = bufferInstances.back();
+            bufferInstances.pop();
+        }
+        else
+        {
+            b->marked = 0;
+            ++i;
+        }
+    }
+}
+
 void Interpreter::markValue(const Value &v)
 {
     if (v.isClassInstance())
@@ -200,7 +228,10 @@ void Interpreter::markValue(const Value &v)
     else if (v.isArray())
         markArray(v.as.array);
     else if (v.isStruct())
+
         markStruct(v.as.sInstance);
+    else if (v.isBuffer())
+        markBuffer(v.as.buffer);
     else if (v.isMap())
         markMap(v.as.map);
     else if (v.isNativeClass())
@@ -247,6 +278,12 @@ void Interpreter::runGC()
     {
         mapInstances[i]->marked = 0;
     }
+
+    for (size_t i = 0; i < bufferInstances.size(); ++i)
+    {
+        bufferInstances[i]->marked = 0;
+    }
+
     for (size_t i = 0; i < nativeInstances.size(); ++i)
     {
         nativeInstances[i]->marked = 0;
@@ -259,6 +296,7 @@ void Interpreter::runGC()
     markRoots();
     sweepArrays();
     sweepMaps();
+    sweepBuffers();
     sweepStructs();
     sweepClasses();
     sweepNativeClasses();

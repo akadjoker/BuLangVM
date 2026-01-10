@@ -57,12 +57,13 @@ enum TokenType
     TOKEN_BANG,
 
     // Delimiters
-    TOKEN_LPAREN,
-    TOKEN_RPAREN,
-    TOKEN_LBRACE,
-    TOKEN_RBRACE,
-    TOKEN_COMMA,
-    TOKEN_SEMICOLON,
+    TOKEN_LPAREN,  // (
+    TOKEN_RPAREN,  // )
+    TOKEN_LBRACE,  // {
+    TOKEN_RBRACE,  // }
+    TOKEN_COMMA,   // ,
+    TOKEN_SEMICOLON, // ;
+    TOKEN_AT,              // @
 
  // Compound assignment
     TOKEN_PLUS_EQUAL,      // +=

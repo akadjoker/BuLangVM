@@ -2,11 +2,13 @@
 #include "pool.hpp"
 #include "opcode.hpp"
 #include "debug.hpp"
+#include "platform.hpp"
 #include <cmath> // std::fmod
 #include <new>
 #include <ctime>
 
 #ifndef USE_COMPUTED_GOTO
+extern size_t get_type_size(BufferType type);
 
 #define DEBUG_TRACE_EXECUTION 0 // 1 = ativa, 0 = desativa
 #define DEBUG_TRACE_STACK 0     // 1 = mostra stack, 0 = esconde
@@ -259,7 +261,10 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
         {
             BINARY_OP_PREP();
 
-            // 1. String à Esquerda
+            // ---------------------------------------------------------
+            // 1. CONCATENAÇÃO (String à Esquerda)
+            // Ex: "Pontos: " + 100
+            // ---------------------------------------------------------
             if (a.isString())
             {
                 if (b.isString())
@@ -273,15 +278,43 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
                     PUSH(makeString(stringPool.concat(a.asString(), right)));
                     break;
                 }
+                else if (b.isUInt())
+                {
+                    String *right = stringPool.toString(b.asUInt());
+                    PUSH(makeString(stringPool.concat(a.asString(), right)));
+                    break;
+                }
                 else if (b.isDouble())
                 {
                     String *right = stringPool.toString(b.asDouble());
                     PUSH(makeString(stringPool.concat(a.asString(), right)));
                     break;
                 }
-                // Se cair aqui, a string 'a' vai falhar nas verificações numéricas abaixo e lançar erro
+                else if (b.isBool())
+                {
+                    String *right = stringPool.toString(b.asBool());
+                    PUSH(makeString(stringPool.concat(a.asString(), right)));
+                    break;
+                }
+                else if (b.isNil())
+                {
+                    String *right = createString("nil");
+                    PUSH(makeString(stringPool.concat(a.asString(), right)));
+                    break;
+                }
+                else if (b.isByte())
+                {
+                    String *right = stringPool.toString(b.asByte());
+                    PUSH(makeString(stringPool.concat(a.asString(), right)));
+                    break;
+                }
             }
-            // 2. String à Direita (Concatenação Reversa)
+
+            // ---------------------------------------------------------
+            // 2. CONCATENAÇÃO REVERSA
+            // Ex: 100 + " pontos"
+
+            // ---------------------------------------------------------
             else if (b.isString())
             {
                 if (a.isInt())
@@ -296,14 +329,40 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
                     PUSH(makeString(stringPool.concat(left, b.asString())));
                     break;
                 }
+                else if (a.isUInt())
+                {
+                    String *left = stringPool.toString(a.asUInt());
+                    PUSH(makeString(stringPool.concat(left, b.asString())));
+                    break;
+                }
+                else if (a.isBool())
+                {
+                    String *left = stringPool.toString(a.asBool());
+                    PUSH(makeString(stringPool.concat(left, b.asString())));
+                    break;
+                }
+                else if (a.isNil())
+                {
+                    String *left = createString("nil");
+                    PUSH(makeString(stringPool.concat(left, b.asString())));
+                    break;
+                }
+                else if (a.isByte())
+                {
+                    String *left = stringPool.toString(a.asByte());
+                    PUSH(makeString(stringPool.concat(left, b.asString())));
+                    break;
+                }
             }
-            // 3. Matemática
+
             else if (a.isNumber() && b.isNumber())
             {
+                // Caminho rápido: Inteiros
                 if (a.isInt() && b.isInt())
                 {
                     PUSH(makeInt(a.asInt() + b.asInt()));
                 }
+                // Caminho misto: Converte tudo para double
                 else
                 {
                     double da = a.isInt() ? (double)a.asInt() : a.asDouble();
@@ -817,9 +876,10 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
 
                 StructDef *def = structs[index];
 
-                if (argCount != def->argCount)
+                if (argCount > def->argCount)
                 {
-                    runtimeError("Struct '%s' expects %zu arguments, got %d", def->name->chars(), def->argCount, argCount);
+                    runtimeError("Struct '%s' expects at most %zu arguments, got %d",
+                         def->name->chars(), def->argCount, argCount);
                     return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
                 }
 
@@ -831,6 +891,10 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
                 for (int i = argCount - 1; i >= 0; i--)
                 {
                     instance->values[i] = POP();
+                }
+                for (int i = argCount; i < def->argCount; i++)
+                {
+                    instance->values[i] = makeNil();
                 }
                 POP();
                 PUSH(value);
@@ -2217,6 +2281,371 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
                 break;
             }
 
+            // === BUFFER METHODS ===
+            if (receiver.isBuffer())
+            {
+                BufferInstance *buf = receiver.asBuffer();
+
+                // buf.fill(value)
+
+                if (compare_strings(nameValue.asString(), staticNames[STATIC_FILL]))
+                {
+                    if (argCount != 1)
+                    {
+                        runtimeError("fill() expects 1 argument");
+                        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                    }
+
+                    Value fillValue = PEEK();
+
+                    switch (buf->type)
+                    {
+                    case BufferType::UINT8:
+                    {
+
+                        uint8_t val = fillValue.asByte();
+                        memset(buf->data, val, buf->count);
+                        break;
+                    }
+
+                    case BufferType::INT16:
+                    case BufferType::UINT16:
+                    {
+                        //   Fill pattern de 2 bytes
+                        uint16_t val = (buf->type == BufferType::INT16)
+                                           ? (uint16_t)fillValue.asInt()
+                                           : (uint16_t)fillValue.asUInt();
+
+                        uint16_t *ptr = (uint16_t *)buf->data;
+
+                        // Se valor é 0x0000 ou 0xFFFF,  memset
+                        if (val == 0x0000)
+                        {
+                            memset(buf->data, 0, buf->count * 2);
+                        }
+                        else if (val == 0xFFFF)
+                        {
+                            memset(buf->data, 0xFF, buf->count * 2);
+                        }
+                        else
+                        {
+                            //  Fill por duplicação
+                            // Preenche primeiro elemento
+                            ptr[0] = val;
+
+                            // Duplica exponencialmente: 1 -> 2 -> 4 -> 8 -> ...
+                            size_t filled = 1;
+                            while (filled < (size_t)buf->count)
+                            {
+                                size_t toCopy = (filled * 2 <= (size_t)buf->count)
+                                                    ? filled
+                                                    : buf->count - filled;
+                                memcpy(ptr + filled, ptr, toCopy * sizeof(uint16_t));
+                                filled += toCopy;
+                            }
+                        }
+                        break;
+                    }
+
+                    case BufferType::INT32:
+                    case BufferType::UINT32:
+                    {
+                        // : Fill pattern de 4 bytes
+                        uint32_t val = (buf->type == BufferType::INT32)
+                                           ? (uint32_t)fillValue.asInt()
+                                           : fillValue.asUInt();
+
+                        uint32_t *ptr = (uint32_t *)buf->data;
+
+                        if (val == 0)
+                        {
+                            memset(buf->data, 0, buf->count * 4);
+                        }
+                        else if (val == 0xFFFFFFFF)
+                        {
+                            memset(buf->data, 0xFF, buf->count * 4);
+                        }
+                        else
+                        {
+                            // Duplicação exponencial
+                            ptr[0] = val;
+                            size_t filled = 1;
+                            while (filled < (size_t)buf->count)
+                            {
+                                size_t toCopy = (filled * 2 <= (size_t)buf->count)
+                                                    ? filled
+                                                    : buf->count - filled;
+                                memcpy(ptr + filled, ptr, toCopy * sizeof(uint32_t));
+                                filled += toCopy;
+                            }
+                        }
+                        break;
+                    }
+
+                    case BufferType::FLOAT:
+                    {
+                        //   Fill de floats
+                        float val = fillValue.asFloat();
+                        float *ptr = (float *)buf->data;
+
+                        // Se for 0.0, usa memset
+                        if (val == 0.0f)
+                        {
+                            memset(buf->data, 0, buf->count * sizeof(float));
+                        }
+                        else
+                        {
+                            // Duplicação exponencial
+                            ptr[0] = val;
+                            size_t filled = 1;
+                            while (filled < (size_t)buf->count)
+                            {
+                                size_t toCopy = (filled * 2 <= (size_t)buf->count)
+                                                    ? filled
+                                                    : buf->count - filled;
+                                memcpy(ptr + filled, ptr, toCopy * sizeof(float));
+                                filled += toCopy;
+                            }
+                        }
+                        break;
+                    }
+
+                    case BufferType::DOUBLE:
+                    {
+
+                        double val = fillValue.asDouble();
+                        double *ptr = (double *)buf->data;
+
+                        if (val == 0.0)
+                        {
+                            memset(buf->data, 0, buf->count * sizeof(double));
+                        }
+                        else
+                        {
+                            // Duplicação exponencial
+                            ptr[0] = val;
+                            size_t filled = 1;
+                            while (filled < (size_t)buf->count)
+                            {
+                                size_t toCopy = (filled * 2 <= (size_t)buf->count)
+                                                    ? filled
+                                                    : buf->count - filled;
+                                memcpy(ptr + filled, ptr, toCopy * sizeof(double));
+                                filled += toCopy;
+                            }
+                        }
+                        break;
+                    }
+                    }
+
+                    ARGS_CLEANUP();
+                    PUSH(receiver);
+                    break;
+                }
+
+                //   copy(dstOffset, srcBuffer, srcOffset, count)
+                else if (compare_strings(nameValue.asString(), staticNames[STATIC_COPY]))
+                {
+                    if (argCount != 4)
+                    {
+                        runtimeError("copy() expects 4 arguments (dstOffset, srcBuffer, srcOffset, count)");
+                        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                    }
+
+                    Value dstOffsetVal = NPEEK(3);
+                    Value srcBufferVal = NPEEK(2);
+                    Value srcOffsetVal = NPEEK(1);
+                    Value countVal = NPEEK(0);
+
+                    // Validações de tipo
+                    if (!dstOffsetVal.isInt())
+                    {
+                        runtimeError("copy() first argument (dstOffset) must be int");
+                        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                    }
+
+                    if (!srcBufferVal.isBuffer())
+                    {
+                        runtimeError("copy() second argument must be a buffer");
+                        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                    }
+
+                    if (!srcOffsetVal.isInt() || !countVal.isInt())
+                    {
+                        runtimeError("copy() srcOffset and count must be int");
+                        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                    }
+
+                    BufferInstance *srcBuf = srcBufferVal.asBuffer();
+                    int dstOffset = dstOffsetVal.asInt();
+                    int srcOffset = srcOffsetVal.asInt();
+                    int count = countVal.asInt();
+
+                    // Validações de compatibilidade
+                    if (buf->elementSize != srcBuf->elementSize)
+                    {
+                        runtimeError("Buffers must have compatible element sizes (dst:%zu, src:%zu)",
+                                     buf->elementSize, srcBuf->elementSize);
+                        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                    }
+
+                    // Validações de range
+                    if (dstOffset < 0 || srcOffset < 0 || count < 0)
+                    {
+                        runtimeError("Offsets and count must be non-negative");
+                        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                    }
+
+                    if (srcOffset + count > srcBuf->count)
+                    {
+                        runtimeError("Source range [%d:%d] out of bounds (buffer size: %d)",
+                                     srcOffset, srcOffset + count, srcBuf->count);
+                        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                    }
+
+                    if (dstOffset + count > buf->count)
+                    {
+                        runtimeError("Destination range [%d:%d] out of bounds (buffer size: %d)",
+                                     dstOffset, dstOffset + count, buf->count);
+                        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                    }
+
+                    size_t copySize = count * buf->elementSize;
+                    uint8 *srcPtr = srcBuf->data + (srcOffset * srcBuf->elementSize);
+                    uint8 *dstPtr = buf->data + (dstOffset * buf->elementSize);
+                    memmove(dstPtr, srcPtr, copySize);
+
+                    ARGS_CLEANUP();
+                    PUSH(receiver);
+                    break;
+                }
+
+                // buf.slice(start, end)
+                else if (compare_strings(nameValue.asString(), staticNames[STATIC_SLICE]))
+                {
+                    if (argCount != 2)
+                    {
+                        runtimeError("slice() expects 2 arguments (start, end)");
+                        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                    }
+
+                    Value startVal = PEEK2();
+                    Value endVal = PEEK();
+
+                    if (!startVal.isInt() || !endVal.isInt())
+                    {
+                        runtimeError("slice() expects int arguments");
+                        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                    }
+
+                    int start = startVal.asInt();
+                    int end = endVal.asInt();
+
+                    //  Suporte a índices negativos (estilo Python)
+                    if (start < 0)
+                        start = buf->count + start;
+                    if (end < 0)
+                        end = buf->count + end;
+
+                    // Clamp
+                    if (start < 0)
+                        start = 0;
+                    if (start > buf->count)
+                        start = buf->count;
+                    if (end < 0)
+                        end = 0;
+                    if (end > buf->count)
+                        end = buf->count;
+
+                    if (start >= end)
+                    {
+                        runtimeError("Invalid slice range: start must be < end");
+                        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                    }
+
+                    int newCount = end - start;
+
+                    // Cria novo buffer
+                    Value newBufVal = makeBuffer(newCount, (int)buf->type);
+                    BufferInstance *newBuf = newBufVal.asBuffer();
+
+                    // Copia os dados
+                    size_t copySize = newCount * buf->elementSize;
+                    memcpy(newBuf->data, buf->data + (start * buf->elementSize), copySize);
+
+                    ARGS_CLEANUP();
+                    PUSH(newBufVal);
+                    break;
+                }
+
+                // buf.clear()
+                else if (compare_strings(nameValue.asString(), staticNames[STATIC_CLEAR]))
+                {
+                    if (argCount != 0)
+                    {
+                        runtimeError("clear() expects 0 arguments");
+                        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                    }
+
+                    memset(buf->data, 0, buf->count * buf->elementSize);
+
+                    ARGS_CLEANUP();
+                    PUSH(receiver);
+                    break;
+                }
+
+                // buf.length()
+                else if (compare_strings(nameValue.asString(), staticNames[STATIC_LENGTH]))
+                {
+                    if (argCount != 0)
+                    {
+                        runtimeError("length() expects 0 arguments");
+                        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                    }
+
+                    ARGS_CLEANUP();
+                    PUSH(makeInt(buf->count));
+                    break;
+                } // buf.save(filename) - Salva dados RAW
+                else if (compare_strings(nameValue.asString(), staticNames[STATIC_SAVE]))
+                {
+                    if (argCount != 1)
+                    {
+                        runtimeError("save() expects 1 argument (filename)");
+                        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                    }
+
+                    Value filenameVal = PEEK();
+                    if (!filenameVal.isString())
+                    {
+                        runtimeError("save() expects string filename");
+                        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                    }
+
+                    const char *filename = filenameVal.asStringChars();
+
+                    // Escreve dados RAW
+                    size_t dataSize = buf->count * buf->elementSize;
+                    int written = OsFileWrite(filename, buf->data, dataSize);
+
+                    if (written < 0 || (size_t)written != dataSize)
+                    {
+                        runtimeError("Failed to save buffer to '%s'", filename);
+                        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                    }
+
+                    ARGS_CLEANUP();
+                    PUSH(receiver); // Retorna o próprio buffer (para chaining)
+                    break;
+                }
+
+                else
+                {
+                    runtimeError("Buffer has no method '%s'", name);
+                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                }
+            }
+
             runtimeError("Type does not support method calls");
 
             printf(": ");
@@ -2420,6 +2849,83 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
                 break;
             }
 
+            // === BUFER ===
+            if (container.isBuffer())
+            {
+                if (!index.isInt())
+                {
+                    runtimeError("Buffer index must be integer");
+                    PUSH(makeNil());
+                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                }
+
+                BufferInstance *buffer = container.asBuffer();
+                int idx = index.asInt();
+
+                if (idx < 0 || idx >= buffer->count)
+                {
+                    runtimeError("Buffer index %d out of bounds (size=%d)", idx, buffer->count);
+                    PUSH(makeNil());
+                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                }
+
+                size_t offset = idx * get_type_size(buffer->type);
+                uint8 *ptr = buffer->data + offset;
+                double num = value.asDouble();
+
+                switch (buffer->type)
+                {
+                case BufferType::UINT8:
+                {
+                    *ptr = (uint8_t)num;
+                    break;
+                }
+                case BufferType::INT16:
+                {
+                    *(int16 *)ptr = (int16)num;
+                    break;
+                }
+                case BufferType::UINT16:
+                {
+                    *(uint16 *)ptr = (uint16)num;
+                    break;
+                }
+                case BufferType::INT32:
+                {
+                    *(int32 *)ptr = (int32)num;
+                    break;
+                }
+                case BufferType::UINT32:
+                {
+                    *(uint32 *)ptr = (uint32)num;
+                    break;
+                }
+                case BufferType::FLOAT:
+                {
+                    *(float *)ptr = (float)num;
+                    break;
+                }
+
+                case BufferType::DOUBLE:
+                {
+                    *(double *)ptr = num;
+                    break;
+                }
+
+                default:
+                {
+                    *ptr = (uint8_t)num; // Escreve primeiro byte
+                    runtimeError("Invalid buffer type");
+
+                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                }
+                }
+
+                PUSH(value);
+
+                break;
+            }
+
             // STRING é imutável!
             if (container.isString())
             {
@@ -2428,7 +2934,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
                 break;
             }
 
-            runtimeError("Cannot index assign this type");
+            runtimeError("Cannot 'set' index assign this type");
             PUSH(value);
             return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             break;
@@ -2511,6 +3017,79 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
                     // Key não existe - retorna nil
                     PUSH(makeNil());
                 }
+                break;
+            }
+
+            // === BUFER ===
+            if (container.isBuffer())
+            {
+                if (!index.isInt())
+                {
+                    runtimeError("Buffer index must be integer");
+                    PUSH(makeNil());
+                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                }
+
+                BufferInstance *buffer = container.asBuffer();
+                int idx = index.asInt();
+
+                if (idx < 0 || idx >= buffer->count)
+                {
+                    runtimeError("Buffer index %d out of bounds (size=%d)", idx, buffer->count);
+                    PUSH(makeNil());
+                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                }
+
+                size_t offset = idx * get_type_size(buffer->type);
+                uint8 *ptr = buffer->data + offset;
+
+                switch (buffer->type)
+                {
+                case BufferType::UINT8:
+                {
+                    PUSH(makeInt((int)(*ptr)));
+                    break;
+                }
+                case BufferType::INT16:
+                {
+                    PUSH(makeInt((int)(*(int16 *)ptr)));
+                    break;
+                }
+                case BufferType::UINT16:
+                {
+                    PUSH(makeUInt((uint32)(*(uint16 *)ptr)));
+                    break;
+                }
+                case BufferType::INT32:
+                {
+                    PUSH(makeInt((int)(*(int32 *)ptr)));
+                    break;
+                }
+                case BufferType::UINT32:
+                {
+                    PUSH(makeUInt((double)(*(uint32 *)ptr)));
+                    break;
+                }
+                case BufferType::FLOAT:
+                {
+                    PUSH(makeDouble((float)(*(float *)ptr)));
+                    break;
+                }
+
+                case BufferType::DOUBLE:
+                {
+                    PUSH(makeDouble(*(double *)ptr));
+                    break;
+                }
+
+                default:
+                {
+                    runtimeError("Invalid buffer type");
+                    PUSH(makeNil());
+                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                }
+                }
+
                 break;
             }
 
@@ -2862,7 +3441,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
             PUSH(makeDouble(std::cos(val)));
             break;
         }
-         case OP_ASIN:
+        case OP_ASIN:
         {
             Value v = POP();
             if (!v.isNumber())
@@ -3021,7 +3600,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
             double val = v.isInt() ? (double)v.asInt() : v.asDouble();
-            
+
             // std::exp calcula e^x
             PUSH(makeDouble(std::exp(val)));
             break;
@@ -3056,13 +3635,92 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
             PUSH(makeDouble(std::pow(base, exp)));
             break;
         }
-        
+
         case OP_CLOCK:
         {
             PUSH(makeDouble(static_cast<double>(clock()) / CLOCKS_PER_SEC));
             break;
         }
- 
+        case OP_NEW_BUFFER:
+        {
+            Value type = POP();
+            Value size = POP();
+
+            if (!type.isInt())
+            {
+                THROW_RUNTIME_ERROR("Buffer type must be an integer.");
+            }
+            int t = type.asInt();
+            if (t < 0 || t >= (int)BufferType::COUNT)
+            {
+                THROW_RUNTIME_ERROR("Invalid buffer type: %d", type);
+            }
+
+            if (size.isNumber())
+            {
+
+                if (!size.isInt())
+                {
+                    THROW_RUNTIME_ERROR("Buffer size must be an integer.");
+                }
+
+                int count = size.asInt();
+
+                if (count < 0)
+                {
+                    THROW_RUNTIME_ERROR("Buffer size cannot be negative.");
+                }
+
+                PUSH(makeBuffer(count, t));
+            }
+            else if (size.isString())
+            {
+                const char *filename = size.asStringChars();
+
+                int fileSize = OsFileSize(filename);
+                if (fileSize < 0)
+                {
+                    THROW_RUNTIME_ERROR("Failed to get size of file '%s'", filename);
+                }
+                if (fileSize == 0)
+                {
+                    THROW_RUNTIME_ERROR("File '%s' is empty.", filename);
+                }
+
+                size_t elementSize = get_type_size((BufferType)t);
+                if (fileSize % elementSize != 0)
+                {
+                    THROW_RUNTIME_ERROR("File size %d is not a multiple of element size %zu (type %d)",
+                                        fileSize, elementSize, type);
+                }
+
+                int count = fileSize / elementSize;
+
+                // 3. Cria o buffer
+                Value bufferVal = makeBuffer(count, t);
+                if (bufferVal.asBuffer()->data == nullptr)
+                {
+                    THROW_RUNTIME_ERROR("Failed to allocate buffer of %d elements (type %d)", count, type);
+                }
+                BufferInstance *buf = bufferVal.asBuffer();
+                int bytesRead = OsFileRead(filename, buf->data, fileSize);
+                if (bytesRead < 0 || bytesRead != fileSize)
+                {
+                    THROW_RUNTIME_ERROR("Failed to read data from '%s' (%d bytes read, expected %d)",
+                                        filename, bytesRead, fileSize);
+                }
+
+                PUSH(bufferVal);
+
+                break;
+            }
+            else
+            {
+                THROW_RUNTIME_ERROR("Buffer size must be an integer or a string.");
+            }
+
+            break;
+        }
 
         default:
         {

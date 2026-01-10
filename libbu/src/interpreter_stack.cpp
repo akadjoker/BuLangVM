@@ -4,67 +4,7 @@
 #include "debug.hpp"
 #include <string>
 
-const char *valueTypeToString(ValueType type)
-{
-    switch (type)
-    {
-    case ValueType::NIL:
-        return "nil";
-    case ValueType::CHAR:
-        return "char";
-    
-    case ValueType::BOOL:
-        return "bool";
-    case ValueType::INT:
-        return "int";
-    case ValueType::BYTE:
-        return "byte";
-    case ValueType::FLOAT:
-        return "float";
-    case ValueType::UINT:
-        return "uint";
-    case ValueType::LONG:
-        return "long";
-    case ValueType::ULONG:
-        return "ulong";
-    case ValueType::DOUBLE:
-        return "float";
-    case ValueType::STRING:
-        return "string";
-    case ValueType::ARRAY:
-        return "array";
-    case ValueType::MAP:
-        return "map";
-    case ValueType::FUNCTION:
-        return "<function>";
-    case ValueType::NATIVE:
-        return "<native>";
-    case ValueType::PROCESS:
-        return "<process>";
-    case ValueType::STRUCT:
-        return "<struct>";
-    case ValueType::CLASS:
-        return "<class>";
-    case ValueType::STRUCTINSTANCE:
-        return "<struct_instances>";        
-    case ValueType::CLASSINSTANCE:
-        return "<class_instances>";     
-    case ValueType::NATIVECLASSINSTANCE:
-        return "<native_class_instances>";   
-    case ValueType::NATIVESTRUCTINSTANCE:
-        return "<native_struct_instances>";
-    case ValueType::POINTER:
-        return "<pointer>";
-    case ValueType::MODULEREFERENCE:
-        return "<module_reference>";
-    case ValueType::NATIVECLASS:
-        return "<native_class>";
-    case ValueType::NATIVESTRUCT:
-        return "<native_struct>";
 
-    }
-    return "<?>";
-}
 
 void Interpreter::checkType(int index, ValueType expected, const char *funcName)
 {

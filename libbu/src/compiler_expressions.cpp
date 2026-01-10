@@ -106,36 +106,45 @@ void Compiler::expressionClock(bool canAssign)
     consume(TOKEN_LPAREN, "Expect '(' after clock");
     consume(TOKEN_RPAREN, "Expect ')' after '('");
 
-
     emitByte(OP_CLOCK);
 }
 
 void Compiler::number(bool canAssign)
 {
     (void)canAssign;
+    const char *str = previous.lexeme.c_str();
+
     if (previous.type == TOKEN_INT)
     {
-        int value;
-        const char *str = previous.lexeme.c_str();
-
-        // Verifica se é hex (0xFF, 0x1A)
+        // Usamos strtoll (64 bits) para detetar se o número é maior que um int32
+        long long value;
         if (str[0] == '0' && (str[1] == 'x' || str[1] == 'X'))
         {
-            value = strtol(str, nullptr, 16); // Base 16!
+            value = std::strtoll(str, nullptr, 16);
         }
         else
         {
-            value = std::atoi(str); // Base 10
+            value = std::strtoll(str, nullptr, 10);
         }
 
-        emitConstant(vm_->makeInt(value));
+        // Se o valor for maior que o máximo de um int32 assinado,
+        // guardamos como DOUBLE para não virar negativo.
+        if (value > 2147483647LL || value < -2147483648LL)
+        {
+            emitConstant(vm_->makeUInt(value));
+        }
+        else
+        {
+            emitConstant(vm_->makeInt((int)value));
+        }
     }
     else
     {
-        double value = std::atof(previous.lexeme.c_str());
+        double value = std::atof(str);
         emitConstant(vm_->makeDouble(value));
     }
 }
+
 void Compiler::string(bool canAssign)
 {
     (void)canAssign;
@@ -255,6 +264,31 @@ void Compiler::binary(bool canAssign)
     default:
         return;
     }
+}
+
+void Compiler::bufferLiteral(bool canAssign)
+{
+    (void)canAssign; // Buffers não podem ser l-values
+
+
+    consume(TOKEN_LPAREN, "Expect '(' after '@'");
+
+    // Parse da expressão de tamanho (SIZE)
+    // Pode ser: 4, x+2, getSize(), etc.
+    expression();
+
+    // Espera vírgula
+    consume(TOKEN_COMMA, "Expect ',' in buffer literal");
+
+    // Parse da expressão de tipo (TYPE)
+    // Pode ser: TYPE_UINT8, getType(), etc.
+    expression();
+
+    // Espera ')' de fechamento
+    consume(TOKEN_RPAREN, "Expect ')' after buffer literal");
+
+    // Emite o opcode para criar o buffer
+    emitByte(OP_NEW_BUFFER);
 }
 
 void Compiler::arrayLiteral(bool canAssign)

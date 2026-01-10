@@ -291,6 +291,7 @@ private:
   void arrayLiteral(bool canAssign);
   void subscript(bool canAssign);
   void mapLiteral(bool canAssign);
+  void bufferLiteral(bool canAssign);
 
   void classDeclaration();
   void method(ClassDef *classDef);

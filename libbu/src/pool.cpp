@@ -473,6 +473,13 @@ String *StringPool::toString(int value)
     return create(buf);
 }
 
+String *StringPool::toString(uint32 value)
+{
+    char buf[32];
+    snprintf(buf, sizeof(buf), "%u", value);
+    return create(buf);
+}
+
 String *StringPool::toString(double value)
 {
     char buf[32];
@@ -613,38 +620,61 @@ ProcessPool::ProcessPool()
     pool.reserve(512);
 }
 
+ProcessPool::~ProcessPool()
+{
+    
+}
+
 Process *ProcessPool::create()
 {
     Process *proc = nullptr;
-    if (!pool.size())
+    
+    if (pool.size() == 0)
     {
-        proc = (Process *)aAlloc(sizeof(Process));
-        return proc;
+         proc = new Process();
     }
-
-    proc = pool.back();
-    pool.pop();
+    else
+    {
+        proc = pool.back();
+        pool.pop();
+        proc->reset();   
+    }
     return proc;
 }
 
-void ProcessPool::destory(Process *proc)
+void ProcessPool::recycle(Process *proc)
 {
+    if(proc->id ==3200171524)
+    {
+        Warning("Bad process");
+        return;
+    }
+  //  Warning("Recycling process");
+    proc->reset();
     pool.push(proc);
 }
 
-void ProcessPool::free(Process *proc)
+void ProcessPool::destroy(Process *proc)
 {
-    proc->release();
-    aFree(proc);
+  //  Warning("Delteing process");
+
+    delete proc;
 }
 
 void ProcessPool::clear()
 {
+  //  Warning("Freeing %zu processes", pool.size());
+    
     for (size_t j = 0; j < pool.size(); j++)
     {
         Process *proc = pool[j];
-        proc->release();
-        aFree(proc);
+        if(!proc || proc->id == 3200171524)
+        {
+            Warning("Bad process");
+            continue;
+        }
+        delete proc;
     }
     pool.clear();
+ 
 }

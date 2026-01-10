@@ -69,7 +69,37 @@ const uint8 STATIC_INDEXOF = 19;
 const uint8 STATIC_REPEAT = 20;
 const uint8 STATIC_INIT = 21;
 
-const uint STATIC_COUNT = 22;
+//buffer
+
+const uint8 STATIC_FILL = 22;
+const uint8 STATIC_COPY = 23;
+const uint8 STATIC_SLICE = 24;
+const uint8 STATIC_SAVE = 25;
+
+const uint8 STATIC_WRITE_BYTE = 26;
+const uint8 STATIC_WRITE_SHORT = 27;
+const uint8 STATIC_WRITE_USHORT = 28;
+const uint8 STATIC_WRITE_INT = 29;
+const uint8 STATIC_WRITE_UINT = 30;
+const uint8 STATIC_WRITE_FLOAT = 31;
+const uint8 STATIC_WRITE_DOUBLE = 32;
+const uint8 STATIC_READ_BYTE = 33;
+const uint8 STATIC_READ_SHORT = 34;
+const uint8 STATIC_READ_USHORT = 35;
+const uint8 STATIC_READ_INT = 36;
+const uint8 STATIC_READ_UINT = 37;
+const uint8 STATIC_READ_FLOAT = 38;
+const uint8 STATIC_READ_DOUBLE = 39;
+const uint8 STATIC_WRITE_STRING = 40;
+const uint8 STATIC_READ_STRING = 41;
+const uint8 STATIC_SEEK = 42;
+const uint8 STATIC_TELL = 43;
+const uint8 STATIC_REWIND = 44;
+const uint8 STATIC_SKIP = 45;
+const uint8 STATIC_REMAINING = 46;
+
+
+const uint8 STATIC_COUNT = 47;
 
 // startsWith
 // endsWith
@@ -260,6 +290,30 @@ struct ArrayInstance
   ArrayInstance();
 };
 
+enum class BufferType : uint8
+{
+  UINT8, // 0: Byte  
+  INT16, // 1: Short  
+  UINT16, // 2: UShort
+  INT32, // 3: Int 
+  UINT32, // 4: UInt
+  FLOAT, // 5: Float  
+  DOUBLE, // 6: Double 
+  COUNT
+};
+
+struct BufferInstance
+{
+  uint8 marked;    // Para o Garbage Collector
+  BufferType type;  
+  int count;       // Quantos elementos tem
+  int elementSize; // Tamanho em bytes de 1 elemento (cache)
+  int cursor; 
+  uint8*data;    
+  BufferInstance(int count, BufferType type);
+  ~BufferInstance();
+};
+
 struct MapInstance
 {
   uint8 marked;
@@ -322,22 +376,21 @@ struct TryHandler
   bool inFinally;
   bool hasPendingError;
   Value pendingError;
-  bool  catchConsumed;
+  bool catchConsumed;
   Value pendingReturn;
   bool hasPendingReturn;
 
-
   TryHandler() : catchIP(nullptr), finallyIP(nullptr),
                  stackRestore(nullptr), inFinally(false),
-                  hasPendingError(false) 
-                  {
-                    pendingError.as.byte = 0;
-                    pendingError.type = ValueType::NIL;
-                    catchConsumed = false;
-                    pendingReturn.as.byte = 0;
-                    pendingReturn.type = ValueType::NIL;
-                    hasPendingReturn = false;
-                  }
+                 hasPendingError(false)
+  {
+    pendingError.as.byte = 0;
+    pendingError.type = ValueType::NIL;
+    catchConsumed = false;
+    pendingReturn.as.byte = 0;
+    pendingReturn.type = ValueType::NIL;
+    hasPendingReturn = false;
+  }
 };
 
 struct Fiber
@@ -355,7 +408,6 @@ struct Fiber
   int gosubTop{0};
   TryHandler tryHandlers[TRY_MAX];
   int tryDepth;
-
 
   Fiber()
       : state(FiberState::DEAD), resumeTime(0), ip(nullptr), stackTop(stack),
@@ -392,15 +444,15 @@ struct Process
 {
 
   String *name{nullptr};
-  uint32 id;
+  uint32 id{0};
 
   FiberState state;        //  Estado do PROCESSO (frame)
   float resumeTime = 0.0f; // Quando acorda (frame)
 
   Fiber fibers[MAX_FIBERS];
-  int nextFiberIndex;
-  int currentFiberIndex;
-  Fiber *current;
+  int nextFiberIndex{0};
+  int currentFiberIndex{0};
+  Fiber *current{nullptr};
 
   Value privates[MAX_PRIVATES];
 
@@ -410,6 +462,7 @@ struct Process
 
   void release();
   void finalize();
+  void reset();
 };
 
 class Interpreter
@@ -441,6 +494,7 @@ class Interpreter
   Vector<ClassInstance *> classInstances;
   Vector<StructInstance *> structInstances;
   Vector<ArrayInstance *> arrayInstances;
+  Vector<BufferInstance *> bufferInstances;
   Vector<NativeClassInstance *> nativeInstances;
   Vector<NativeStructInstance *> nativeStructInstances;
   Vector<MapInstance *> mapInstances;
@@ -562,6 +616,9 @@ class Interpreter
     totalAllocated -= size;
   }
 
+  BufferInstance *createBuffer(int count, int typeRaw);
+  void freeBuffer(BufferInstance *b);
+
   FORCE_INLINE MapInstance *createMap()
   {
     checkGC();
@@ -635,6 +692,7 @@ class Interpreter
   FORCE_INLINE void markMap(MapInstance *m);
   FORCE_INLINE void markNativeClass(NativeClassInstance *n);
   FORCE_INLINE void markNativeStruct(NativeStructInstance *n);
+  FORCE_INLINE void markBuffer(BufferInstance *b);
 
   // SWEEP
   void sweepArrays();
@@ -643,6 +701,7 @@ class Interpreter
   void sweepMaps();
   void sweepNativeClasses();
   void sweepNativeStructs();
+  void sweepBuffers();
 
 public:
   Interpreter();
@@ -817,6 +876,15 @@ public:
     v.as.sInstance = createStruct();
     return v;
   }
+  FORCE_INLINE Value makeBuffer(int count, int typeRaw)
+  {
+    Value v;
+    v.type = ValueType::BUFFER;
+    v.as.buffer = createBuffer(count, typeRaw);
+    return v;
+  }
+  
+  
 
   FORCE_INLINE Value makeMap()
   {
@@ -870,6 +938,16 @@ public:
     v.as.integer = i;
     return v;
   }
+
+  FORCE_INLINE Value makeUInt(uint32 i)
+  {
+    Value v;
+    v.type = ValueType::UINT;
+    v.as.unsignedInteger = i;
+    return v;
+  }
+
+
 
   FORCE_INLINE Value makeDouble(double d)
   {
@@ -959,13 +1037,7 @@ public:
     return v;
   }
 
-  FORCE_INLINE Value makeUInt(int idx)
-  {
-    Value v;
-    v.type = ValueType::UINT;
-    v.as.unsignedInteger = idx;
-    return v;
-  }
+ 
 
   FORCE_INLINE Value makeFloat(float idx)
   {

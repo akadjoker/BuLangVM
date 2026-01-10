@@ -529,6 +529,9 @@ Token Lexer::scanToken()
         return makeToken(TOKEN_COLON, ":");
     case '.':
         return makeToken(TOKEN_DOT, ".");
+    
+    case '@':
+        return makeToken(TOKEN_AT, "@");
 
     // Operators com compound assignment e increment/decrement
     case '+':

@@ -87,6 +87,7 @@ private:
     String *repeat(String *str, int count);
 
     String *toString(int value);
+    String *toString(uint32 value);
     String *toString(double value);
 
     void clear();
@@ -102,9 +103,10 @@ class ProcessPool
 {
 
     Vector<Process*> pool;
+ 
 public:
     ProcessPool();
-    ~ProcessPool() = default;
+    ~ProcessPool();
 
     static ProcessPool &instance()
     {
@@ -113,8 +115,8 @@ public:
     }
 
     Process* create();
-    void free(Process *proc);
-    void destory(Process *proc);
+    void destroy(Process *proc);
+    void recycle(Process *proc);
     void clear();
 
 };

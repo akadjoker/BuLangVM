@@ -6,6 +6,7 @@
 
 struct StructInstance;
 struct ArrayInstance;
+struct BufferInstance;
 struct MapInstance;
 struct ClassInstance;
 struct NativeClassInstance;
@@ -26,6 +27,7 @@ enum class ValueType : uint8
   STRING,
   ARRAY,
   MAP,
+  BUFFER,
   STRUCT,
   STRUCTINSTANCE,
   FUNCTION,
@@ -49,6 +51,7 @@ struct Value
     bool boolean;
     uint8 byte;
     int integer;
+    
     float real;
     double number;
     String *string;
@@ -56,6 +59,7 @@ struct Value
     uint32 unsignedInteger;
     StructInstance *sInstance;
     ArrayInstance *array;
+    BufferInstance *buffer;
     MapInstance *map;
     ClassInstance *sClass;
     NativeClassInstance *sClassInstance;
@@ -73,7 +77,7 @@ struct Value
   
 
   // Type checks
-  FORCE_INLINE bool isNumber() const { return ((type == ValueType::INT) || (type == ValueType::DOUBLE) || (type == ValueType::BYTE) || (type == ValueType::FLOAT)); }
+  FORCE_INLINE bool isNumber() const { return ((type == ValueType::INT) || (type == ValueType::DOUBLE) || (type == ValueType::BYTE) || (type == ValueType::FLOAT) || (type == ValueType::UINT)); }
   FORCE_INLINE bool isNil() const { return type == ValueType::NIL; }
   FORCE_INLINE bool isBool() const { return type == ValueType::BOOL; }
   FORCE_INLINE bool isInt() const { return type == ValueType::INT; }
@@ -90,6 +94,7 @@ struct Value
   FORCE_INLINE bool isStructInstance() const { return type == ValueType::STRUCTINSTANCE; }
   FORCE_INLINE bool isMap() const { return type == ValueType::MAP; }
   FORCE_INLINE bool isArray() const { return type == ValueType::ARRAY; }
+  FORCE_INLINE bool isBuffer() const { return type == ValueType::BUFFER; }
   FORCE_INLINE bool isClass() const { return type == ValueType::CLASS; }
   FORCE_INLINE bool isClassInstance() const { return type == ValueType::CLASSINSTANCE; }
   FORCE_INLINE bool isNativeClassInstance()const  { return type == ValueType::NATIVECLASSINSTANCE; }
@@ -105,6 +110,7 @@ struct Value
   FORCE_INLINE int asFunctionId() const { return as.integer; }
   FORCE_INLINE int asNativeId() const { return as.integer; }
   FORCE_INLINE int asProcessId() const { return as.integer; }
+
 
   FORCE_INLINE int asStructId() const
   {
@@ -150,6 +156,11 @@ struct Value
   FORCE_INLINE MapInstance *asMap() const
   {
     return as.map;
+  }
+
+  FORCE_INLINE BufferInstance *asBuffer() const
+  {
+    return as.buffer;
   }
 
    FORCE_INLINE NativeClassInstance *asNativeClassInstance() const
@@ -221,6 +232,8 @@ struct Value
       return 0;
     }
   }
+
+
 
   FORCE_INLINE int asInt() const
   {
@@ -358,9 +371,9 @@ struct Value
   }
 };
 
-const char *typeToString(ValueType type);
+
 void printValue(const Value &value);
- 
+ const char *valueTypeToString(ValueType type);
 void printValueNl(const Value &value);
 
 void valueToBuffer(const Value &v, char *out, size_t size);

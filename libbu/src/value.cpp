@@ -30,49 +30,69 @@ Value::Value() : type(ValueType::NIL)
 
 
 
-const char *typeToString(ValueType type)
+
+const char *valueTypeToString(ValueType type)
 {
     switch (type)
     {
     case ValueType::NIL:
         return "nil";
+    case ValueType::CHAR:
+        return "char";
+    
     case ValueType::BOOL:
         return "bool";
-    case ValueType::BYTE:
-        return "byte";
     case ValueType::INT:
         return "int";
-    case ValueType::UINT:
-        return "uint";
+    case ValueType::BYTE:
+        return "byte";
     case ValueType::FLOAT:
         return "float";
+    case ValueType::UINT:
+        return "uint";
+    case ValueType::LONG:
+        return "long";
+    case ValueType::ULONG:
+        return "ulong";
     case ValueType::DOUBLE:
-        return "double";
+        return "float";
     case ValueType::STRING:
         return "string";
-    case ValueType::FUNCTION:
-        return "function";
-    case ValueType::NATIVE:
-        return "native";
-    case ValueType::PROCESS:
-        return "process";
     case ValueType::ARRAY:
         return "array";
     case ValueType::MAP:
         return "map";
+    case ValueType::BUFFER:
+        return "buffer";
+    case ValueType::FUNCTION:
+        return "<function>";
+    case ValueType::NATIVE:
+        return "<native>";
+    case ValueType::PROCESS:
+        return "<process>";
     case ValueType::STRUCT:
-        return "struct";
+        return "<struct>";
+    case ValueType::CLASS:
+        return "<class>";
     case ValueType::STRUCTINSTANCE:
-        return "struct_instance";
+        return "<struct_instances>";        
     case ValueType::CLASSINSTANCE:
-        return "class_instance";
+        return "<class_instances>";     
     case ValueType::NATIVECLASSINSTANCE:
-        return "native_class_instance";
+        return "<native_class_instances>";   
     case ValueType::NATIVESTRUCTINSTANCE:
-        return "native_struct_instance";
-    default:
-        return "unknown";
+        return "<native_struct_instances>";
+    case ValueType::POINTER:
+        return "<pointer>";
+    case ValueType::MODULEREFERENCE:
+        return "<module_reference>";
+    case ValueType::NATIVECLASS:
+        return "<native_class>";
+    case ValueType::NATIVESTRUCT:
+        return "<native_struct>";
+
     }
+    return "<?>";
 }
 
 void printValue(const Value &value)
@@ -95,10 +115,10 @@ void printValue(const Value &value)
         OsPrintf("%u", value.as.unsignedInteger);
         break;
     case ValueType::FLOAT:
-        OsPrintf("%f.4f", value.as.real);
+        OsPrintf("%.4f", value.as.real);
         break;
     case ValueType::DOUBLE:
-        OsPrintf("%f.4f", value.as.number);
+        OsPrintf("%.4f", value.as.number);
         break;
     case ValueType::STRING:
     {
@@ -140,6 +160,14 @@ void printValue(const Value &value)
             if (i < (int)arr->values.size() - 1)
                 OsPrintf(", ");
         }
+        OsPrintf("]");
+        break;
+    }
+    case ValueType::BUFFER:
+    {
+        BufferInstance *buffer = value.asBuffer();
+        OsPrintf("[");
+        OsPrintf("0x%08x", buffer->data);
         OsPrintf("]");
         break;
     }

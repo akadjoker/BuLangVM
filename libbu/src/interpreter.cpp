@@ -34,6 +34,47 @@ Interpreter::Interpreter()
   staticNames[STATIC_INDEXOF] = createString("indexof");
   staticNames[STATIC_REPEAT] = createString("repeat");
   staticNames[STATIC_INIT] = createString("init");
+
+  staticNames[STATIC_FILL] = createString("fill");
+  staticNames[STATIC_COPY] = createString("copy");
+  staticNames[STATIC_SLICE] = createString("slice");
+  staticNames[STATIC_SAVE] = createString("save");
+
+ 
+
+staticNames[STATIC_WRITE_BYTE] = createString("writeByte");
+staticNames[STATIC_READ_BYTE] = createString("readByte");
+staticNames[STATIC_WRITE_SHORT] = createString("writeShort");
+staticNames[STATIC_READ_SHORT] = createString("readShort");
+staticNames[STATIC_WRITE_INT] = createString("writeInt");
+staticNames[STATIC_READ_INT] = createString("readInt");
+staticNames[STATIC_WRITE_FLOAT] = createString("writeFloat");
+staticNames[STATIC_READ_FLOAT] = createString("readFloat");
+staticNames[STATIC_WRITE_DOUBLE] = createString("writeDouble");
+staticNames[STATIC_READ_DOUBLE] = createString("readDouble");
+staticNames[STATIC_WRITE_USHORT] = createString("writeUShort");
+staticNames[STATIC_READ_USHORT] = createString("readUShort");
+staticNames[STATIC_WRITE_UINT] = createString("writeUInt");
+staticNames[STATIC_READ_UINT] = createString("readUInt");
+staticNames[STATIC_WRITE_STRING] = createString("writeString");
+staticNames[STATIC_READ_STRING] = createString("readString");
+staticNames[STATIC_SEEK] = createString("seek");
+staticNames[STATIC_TELL] = createString("tell");
+staticNames[STATIC_REWIND] = createString("rewind");
+staticNames[STATIC_SKIP] = createString("skip");
+staticNames[STATIC_REMAINING] = createString("remaining");
+
+ 
+ 
+  globals.set(createString("TYPE_UINT8"),  makeInt(0));
+  globals.set(createString("TYPE_INT16"),  makeInt(1));
+  globals.set(createString("TYPE_UINT16"), makeInt(2));
+  globals.set(createString("TYPE_INT32"),  makeInt(3));
+  globals.set(createString("TYPE_UINT32"), makeInt(4));
+  globals.set(createString("TYPE_FLOAT"),  makeInt(5));
+  globals.set(createString("TYPE_DOUBLE"), makeInt(6));
+
+ 
 }
 
 void Interpreter::freeInstances()
@@ -59,6 +100,13 @@ void Interpreter::freeInstances()
     freeClass(a);
   }
   classInstances.clear();
+
+  for (size_t i = 0; i < bufferInstances.size(); i++)
+  {
+    BufferInstance *a = bufferInstances[i];
+    freeBuffer(a);
+  }
+  bufferInstances.clear();
 
   for (size_t i = 0; i < mapInstances.size(); i++)
   {
@@ -90,15 +138,12 @@ void Interpreter::freeInstances()
 void Interpreter::freeBlueprints()
 {
 
- 
-
   for (size_t j = 0; j < classes.size(); j++)
   {
     ClassDef *proc = classes[j];
     delete proc;
   }
   classes.clear();
-
 
   for (size_t i = 0; i < nativeStructs.size(); i++)
   {
@@ -147,6 +192,7 @@ Interpreter::~Interpreter()
   Info("Maps             : %zu", getTotalMaps());
   Info("Native classes   : %zu", getTotalNativeClasses());
   Info("Native structs   : %zu", getTotalNativeStructs());
+  Info("Processes        : %zu", aliveProcesses.size());
 
   for (size_t i = 0; i < modules.size(); i++)
   {
@@ -161,8 +207,7 @@ Interpreter::~Interpreter()
   freeInstances();
   freeBlueprints();
 
-  //runGC();
-
+  // runGC();
 
   for (size_t i = 0; i < functions.size(); i++)
   {
@@ -178,24 +223,21 @@ Interpreter::~Interpreter()
   }
   functionsClass.clear();
 
-  ProcessPool::instance().clear();
-
+  
   for (size_t j = 0; j < cleanProcesses.size(); j++)
   {
     Process *proc = cleanProcesses[j];
-    proc->release();
-    ProcessPool::instance().free(proc);
+    ProcessPool::instance().destroy(proc);
   }
   cleanProcesses.clear();
-
+  
   for (size_t i = 0; i < aliveProcesses.size(); i++)
   {
-    Process *process = aliveProcesses[i];
-    process->release();
-    ProcessPool::instance().free(process);
+    ProcessPool::instance().destroy(aliveProcesses[i]);
   }
-
   aliveProcesses.clear();
+  
+  ProcessPool::instance().clear();
   functionsMap.destroy();
   processesMap.destroy();
   structsMap.destroy();
@@ -207,6 +249,35 @@ Interpreter::~Interpreter()
   arena.Clear();
   Info("String Heap stats:");
   stringPool.clear();
+}
+
+
+BufferInstance *Interpreter::createBuffer(int count, int typeRaw)
+{
+    checkGC();
+    size_t size = sizeof(BufferInstance);
+    void *mem = (BufferInstance *)arena.Allocate(size);
+    
+    BufferInstance *instance = new (mem) BufferInstance(count, (BufferType)typeRaw);
+    instance->marked = 0;
+    
+    bufferInstances.push(instance);
+    totalAllocated += size;
+    totalAllocated += (count * instance->elementSize); // Conta também os dados crus!
+
+    return instance;
+  }
+
+void Interpreter::freeBuffer(BufferInstance *b)
+{
+    size_t size = sizeof(BufferInstance);
+    size_t dataSize = b->count * b->elementSize;
+    
+    b->~BufferInstance();  
+    arena.Free(b, size);  
+
+    
+    totalAllocated -= (size + dataSize);
 }
 
 void Interpreter::setFileLoader(FileLoaderCallback loader, void *userdata)
@@ -515,43 +586,45 @@ void Interpreter::runtimeError(const char *format, ...)
 }
 bool Interpreter::throwException(Value error)
 {
-    Fiber* fiber = currentFiber;
+  Fiber *fiber = currentFiber;
 
-    while (fiber->tryDepth > 0)
+  while (fiber->tryDepth > 0)
+  {
+    TryHandler &handler = fiber->tryHandlers[fiber->tryDepth - 1];
+
+    if (handler.inFinally)
     {
-        TryHandler &handler = fiber->tryHandlers[fiber->tryDepth - 1];
-
-        if (handler.inFinally) {
-            handler.pendingError = error;
-            handler.hasPendingError = true;
-            fiber->tryDepth--;
-            continue;
-        }
-
-        fiber->stackTop = handler.stackRestore; // Limpa a stack!
-
-        if (handler.catchIP != nullptr && !handler.catchConsumed) {
-            handler.catchConsumed = true;
-            push(error);
-            fiber->ip = handler.catchIP;
-            return true;  
-        }
-        else if (handler.finallyIP != nullptr) {
-            handler.pendingError = error;
-            handler.hasPendingError = true;
-            handler.inFinally = true;
-            fiber->ip = handler.finallyIP;
-            return true;  
-        }
-
-        fiber->tryDepth--;
+      handler.pendingError = error;
+      handler.hasPendingError = true;
+      fiber->tryDepth--;
+      continue;
     }
- 
-    return false; 
+
+    fiber->stackTop = handler.stackRestore; // Limpa a stack!
+
+    if (handler.catchIP != nullptr && !handler.catchConsumed)
+    {
+      handler.catchConsumed = true;
+      push(error);
+      fiber->ip = handler.catchIP;
+      return true;
+    }
+    else if (handler.finallyIP != nullptr)
+    {
+      handler.pendingError = error;
+      handler.hasPendingError = true;
+      handler.inFinally = true;
+      fiber->ip = handler.finallyIP;
+      return true;
+    }
+
+    fiber->tryDepth--;
+  }
+
+  return false;
 }
 void Interpreter::safetimeError(const char *format, ...)
 {
- 
 
   OsPrintf("Runtime Error: ");
   va_list args;
@@ -559,8 +632,6 @@ void Interpreter::safetimeError(const char *format, ...)
   OsVPrintf(format, args);
   va_end(args);
   OsPrintf("\n");
-
- 
 }
 
 void Interpreter::resetFiber()
@@ -670,24 +741,21 @@ void Interpreter::reset()
   processes.clear();
   ProcessPool::instance().clear();
 
-  for (size_t j = 0; j < cleanProcesses.size(); j++)
-  {
-    Process *proc = cleanProcesses[j];
-    proc->release();
-    ProcessPool::instance().free(proc);
-  }
+  // for (size_t j = 0; j < cleanProcesses.size(); j++)
+  // {
+  //   Process *proc = cleanProcesses[j];
+  //   ProcessPool::instance().destroy(proc);
+  // }
   cleanProcesses.clear();
 
-  for (size_t i = 0; i < aliveProcesses.size(); i++)
-  {
-    Process *process = aliveProcesses[i];
-    process->release();
-    ProcessPool::instance().free(process);
-  }
+  // for (size_t i = 0; i < aliveProcesses.size(); i++)
+  // {
+  //   Process *process = aliveProcesses[i];
+  //   ProcessPool::instance().destroy(process);
+  // }
 
   aliveProcesses.clear();
 
- 
   currentFiber = nullptr;
   currentProcess = nullptr;
   currentTime = 0.0f;
@@ -829,170 +897,220 @@ void Interpreter::addFunctionsClasses(Function *fun)
 
 bool Interpreter::findAndJumpToHandler(Value error, uint8 *&ip, Fiber *fiber)
 {
- 
-    while (fiber->tryDepth > 0)
+
+  while (fiber->tryDepth > 0)
+  {
+    TryHandler &handler = fiber->tryHandlers[fiber->tryDepth - 1];
+
+    if (handler.inFinally)
     {
-      TryHandler &handler = fiber->tryHandlers[fiber->tryDepth - 1];
-
-      if (handler.inFinally)
-      {
-        handler.pendingError = error;
-        handler.hasPendingError = true;
-        fiber->tryDepth--;
-        continue;
-      }
-
-      fiber->stackTop = handler.stackRestore;
-
-      if (handler.catchIP != nullptr)
-      {
-        push(error);
-        ip = handler.catchIP;
-        return true;
-      }
-      else if (handler.finallyIP != nullptr)
-      {
-        handler.pendingError = error;
-        handler.hasPendingError = true;
-        handler.inFinally = true;
-        ip = handler.finallyIP;
-        return true;
-      }
-
+      handler.pendingError = error;
+      handler.hasPendingError = true;
       fiber->tryDepth--;
+      continue;
     }
-    return false;
-  }
 
-  StructInstance::StructInstance() : marked(0), def(nullptr) {}
+    fiber->stackTop = handler.stackRestore;
 
-  ArrayInstance::ArrayInstance() : marked(0) {}
-
-  MapInstance::MapInstance() : marked(0) {}
-
-  ClassInstance::ClassInstance() : marked(0) {}
-
-  ClassInstance::~ClassInstance()
-  {
-  }
-
-  NativeClassInstance::NativeClassInstance() : marked(0), klass(nullptr), userData(nullptr)
-  {
-  }
-
-  NativeStructInstance::NativeStructInstance() : marked(0), def(nullptr), data(nullptr)
-  {
-  }
-
-  // bool ClassInstance::getMethod(String *name, Function **out)
-  // {
-  //   ClassDef *current = klass;
-
-  //   while (current)
-  //   {
-  //     if (current->methods.get(name, out))
-  //     {
-  //       return true;
-  //     }
-  //     current = current->superclass;
-  //   }
-
-  //   return false;
-  // }
-
-  // bool ClassInstance::getMethod(String *name, Function **out)
-  // {
-  //     if(klass->methods.get(name, out))
-  //     {
-  //         return true;
-  //     }
-
-  //     if (klass->inherited)
-  //     {
-  //         if(klass->superclass->methods.get(name,out));
-  //         {
-  //             return true;
-  //         }
-  //     }
-  //     return false;
-  // }
-
-  Function *ClassDef::canRegisterFunction(String * pName)
-  {
-
-    if (methods.exist(pName))
+    if (handler.catchIP != nullptr)
     {
-      return nullptr;
+      push(error);
+      ip = handler.catchIP;
+      return true;
     }
-    Function *func = new Function();
-    func->index = -1;
-    func->arity = 0;
-    func->hasReturn = false;
-    func->name = pName;
-    func->chunk = new Code(16);
-    methods.set(pName, func);
-    return func;
+    else if (handler.finallyIP != nullptr)
+    {
+      handler.pendingError = error;
+      handler.hasPendingError = true;
+      handler.inFinally = true;
+      ip = handler.finallyIP;
+      return true;
+    }
+
+    fiber->tryDepth--;
+  }
+  return false;
+}
+
+StructInstance::StructInstance() : marked(0), def(nullptr) {}
+
+ArrayInstance::ArrayInstance() : marked(0) {}
+
+MapInstance::MapInstance() : marked(0) {}
+
+ClassInstance::ClassInstance() : marked(0) {}
+
+ClassInstance::~ClassInstance()
+{
+}
+
+BufferInstance::BufferInstance(int count, BufferType type)
+{
+  this->count = count;
+  this->type = type;
+  this->cursor = 0;
+ 
+  switch (type)
+  {
+  case BufferType::UINT8:
+    this->elementSize = 1;
+    break;
+  case BufferType::INT16:
+  case BufferType::UINT16:
+    this->elementSize = 2;
+    break;  
+  case BufferType::INT32:
+  case BufferType::UINT32:
+  case BufferType::FLOAT:
+    this->elementSize = 4;
+    break;
+  case BufferType::DOUBLE:
+    this->elementSize = 8;
+    break;
+  default:
+    this->elementSize = 1;
+    break;
   }
 
-  StructDef::~StructDef()
+   size_t byteSize = count * this->elementSize;
+ 
+  //this->data = (uint8 *)calloc(count, this->elementSize * count);
+  this->data = (uint8 *)malloc( byteSize );
+  if (!this->data)
   {
-    names.destroy();
+    Error("Failed to allocate buffer");
+    return;
   }
+    memset(data, 0, byteSize);
+}
 
-  ClassDef::~ClassDef()
+BufferInstance::~BufferInstance()
+{
+  if (this->data)
   {
-    fieldNames.destroy();
-    methods.destroy();
-    superclass = nullptr;
+    free(this->data); 
+    this->data = nullptr;
   }
+}
+ 
 
-  NativeClassDef::~NativeClassDef()
+NativeClassInstance::NativeClassInstance() : marked(0), klass(nullptr), userData(nullptr)
+{
+}
+
+NativeStructInstance::NativeStructInstance() : marked(0), def(nullptr), data(nullptr)
+{
+}
+
+// bool ClassInstance::getMethod(String *name, Function **out)
+// {
+//   ClassDef *current = klass;
+
+//   while (current)
+//   {
+//     if (current->methods.get(name, out))
+//     {
+//       return true;
+//     }
+//     current = current->superclass;
+//   }
+
+//   return false;
+// }
+
+// bool ClassInstance::getMethod(String *name, Function **out)
+// {
+//     if(klass->methods.get(name, out))
+//     {
+//         return true;
+//     }
+
+//     if (klass->inherited)
+//     {
+//         if(klass->superclass->methods.get(name,out));
+//         {
+//             return true;
+//         }
+//     }
+//     return false;
+// }
+
+Function *ClassDef::canRegisterFunction(String *pName)
+{
+
+  if (methods.exist(pName))
   {
-    methods.destroy();
-    properties.destroy();
+    return nullptr;
   }
+  Function *func = new Function();
+  func->index = -1;
+  func->arity = 0;
+  func->hasReturn = false;
+  func->name = pName;
+  func->chunk = new Code(16);
+  methods.set(pName, func);
+  return func;
+}
 
-  void Interpreter::dumpToFile(const char *filename)
-  {
+StructDef::~StructDef()
+{
+  names.destroy();
+}
+
+ClassDef::~ClassDef()
+{
+  fieldNames.destroy();
+  methods.destroy();
+  superclass = nullptr;
+}
+
+NativeClassDef::~NativeClassDef()
+{
+  methods.destroy();
+  properties.destroy();
+}
+
+void Interpreter::dumpToFile(const char *filename)
+{
 
 #ifdef __linux__
 
-    FILE *f = fopen(filename, "w");
-    if (!f)
-    {
-      fprintf(stderr, "Failed to open %s for writing\n", filename);
-      return;
-    }
+  FILE *f = fopen(filename, "w");
+  if (!f)
+  {
+    fprintf(stderr, "Failed to open %s for writing\n", filename);
+    return;
+  }
 
-    fprintf(f, "========================================\n");
-    fprintf(f, "BULANG BYTECODE DUMP\n");
-    fprintf(f, "========================================\n\n");
+  fprintf(f, "========================================\n");
+  fprintf(f, "BULANG BYTECODE DUMP\n");
+  fprintf(f, "========================================\n\n");
 
-    // Dump global functions
-    dumpAllFunctions(f);
+  // Dump global functions
+  dumpAllFunctions(f);
 
-    // Dump classes e métodos
-    dumpAllClasses(f);
+  // Dump classes e métodos
+  dumpAllClasses(f);
 
-    fprintf(f, "\n========================================\n");
-    fprintf(f, "END OF DUMP\n");
-    fprintf(f, "========================================\n");
+  fprintf(f, "\n========================================\n");
+  fprintf(f, "END OF DUMP\n");
+  fprintf(f, "========================================\n");
 
-    fclose(f);
-    printf("Bytecode dumped to: %s\n", filename);
+  fclose(f);
+  printf("Bytecode dumped to: %s\n", filename);
 
 #endif
-  }
+}
 
-  void Interpreter::dumpAllFunctions(FILE * f)
-  {
+void Interpreter::dumpAllFunctions(FILE *f)
+{
 #ifdef __linux__
-    fprintf(f, "========================================\n");
-    fprintf(f, "GLOBAL FUNCTIONS\n");
-    fprintf(f, "========================================\n\n");
+  fprintf(f, "========================================\n");
+  fprintf(f, "GLOBAL FUNCTIONS\n");
+  fprintf(f, "========================================\n\n");
 
-    functionsMap.forEach([&](String *name, Function *func)
-                         {
+  functionsMap.forEach([&](String *name, Function *func)
+                       {
         fprintf(f, "\n>>> Function: %s\n", name->chars());
         fprintf(f, "    Arity: %d\n", func->arity);
         fprintf(f, "    Has return: %s\n", func->hasReturn ? "yes" : "no");
@@ -1035,17 +1153,17 @@ bool Interpreter::findAndJumpToHandler(Value error, uint8 *&ip, Fiber *fiber)
         
         fprintf(f, "\n"); });
 #endif
-  }
+}
 
-  void Interpreter::dumpAllClasses(FILE * f)
-  {
+void Interpreter::dumpAllClasses(FILE *f)
+{
 #ifdef __linux__
-    fprintf(f, "\n========================================\n");
-    fprintf(f, "CLASSES\n");
-    fprintf(f, "========================================\n\n");
+  fprintf(f, "\n========================================\n");
+  fprintf(f, "CLASSES\n");
+  fprintf(f, "========================================\n\n");
 
-    classesMap.forEach([&](String *name, ClassDef *klass)
-                       {
+  classesMap.forEach([&](String *name, ClassDef *klass)
+                     {
         fprintf(f, "\n>>> Class: %s\n", name->chars());
         fprintf(f, "    Index: %d\n", klass->index);
         fprintf(f, "    Field count: %d\n", klass->fieldCount);
@@ -1139,4 +1257,36 @@ bool Interpreter::findAndJumpToHandler(Value error, uint8 *&ip, Fiber *fiber)
         
         fprintf(f, "\n"); });
 #endif
+}
+
+// enum class BufferType : uint8
+// {
+//   UINT8, // 0: Byte  
+//   INT16, // 1: Short  
+//   UINT16, // 2: UShort
+//   INT32, // 3: Int 
+//   UINT32, // 4: UInt
+//   FLOAT, // 5: Float  
+//   DOUBLE // 6: Double 
+// };
+
+size_t get_type_size(BufferType type) 
+{
+  switch (type)
+  {
+  case BufferType::UINT8:
+    return 1;
+  case BufferType::INT16:
+  case BufferType::UINT16:
+    return 2;
+  case BufferType::INT32:
+  case BufferType::UINT32:
+  case BufferType::FLOAT:
+    return 4;
+  case BufferType::DOUBLE:
+    return 8;
+  default:
+    return 1;
   }
+   
+} 

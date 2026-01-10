@@ -1877,7 +1877,6 @@ void Compiler::gosubStatement()
     j.jumpOffset = emitJump(OP_GOSUB); // devolve offset do OPERANDO
     pendingGosubs.push_back(j);
 }
-
 void Compiler::structDeclaration()
 {
     consume(TOKEN_IDENTIFIER, "Expect struct name");
@@ -1899,10 +1898,17 @@ void Compiler::structDeclaration()
     //  Loop externo: múltiplas linhas de fields
     while (!check(TOKEN_RBRACE) && !check(TOKEN_EOF))
     {
-        //  Opcional: pode ter 'var' ou não
+
+        if (check(TOKEN_SEMICOLON)) 
+        {
+            // Se encontrarmos um ; perdido, ignoramos e continuamos
+            advance(); 
+            continue; 
+        }
+        // 1. Opcional: pode ter 'var' ou não
         bool hasVar = match(TOKEN_VAR);
 
-        //  Loop interno: múltiplos fields separados por vírgula
+        // 2. Loop interno: múltiplos fields separados por vírgula
         do
         {
             consume(TOKEN_IDENTIFIER, "Expect field name");
@@ -1913,16 +1919,24 @@ void Compiler::structDeclaration()
 
         } while (match(TOKEN_COMMA));
 
-        //  Se tinha 'var', precisa de ';'
+        // === CORREÇÃO AQUI ===
+        // Se tinha 'var', o ';' é obrigatório.
         if (hasVar)
         {
             consume(TOKEN_SEMICOLON, "Expect ';' after field declaration");
         }
-        //  Se não tinha 'var', aceita ',' ou '}'
+        else
+        {
+            // Se não tinha 'var', o ';' é opcional, mas se estiver lá, TEMOS de o comer.
+            // Caso contrário, ele bloqueia o loop seguinte.
+            match(TOKEN_SEMICOLON); 
+        }
     }
 
     consume(TOKEN_RBRACE, "Expect '}' after struct body");
-    consume(TOKEN_SEMICOLON, "Expect ';' after struct");
+    
+    // Opcional: permitir ou exigir ; no final da struct
+    match(TOKEN_SEMICOLON); 
 
     emitConstant(vm_->makeStruct(structDef->index));
     defineVariable(nameConstant);

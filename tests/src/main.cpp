@@ -52,25 +52,9 @@ void resetTestStats() {
 }
 
 std::string valueToString(const Value &value) {
-  switch (value.type) {
-  case ValueType::NIL:
-    return "nil";
-  case ValueType::BOOL:
-    return value.as.boolean ? "true" : "false";
-  case ValueType::INT:
-    return std::to_string(value.as.integer);
-  case ValueType::DOUBLE:
-    return std::to_string(value.as.number);
-  case ValueType::STRING:
-    return value.as.string->chars();
-  case ValueType::FUNCTION:
-    return "<function>";
-  case ValueType::NATIVE:
-    return "<native>";
-  case ValueType::PROCESS:
-    return "<process>";
-  }
-  return "<?>)";
+  
+  return valueTypeToString(value.type);
+
 }
 
 static Value native_pass(Interpreter *vm, int argc, Value *args) {
@@ -189,6 +173,7 @@ static void valueToString(const Value &v, std::string &out) {
   case ValueType::MAP:
     out += "{map}";
     break;
+  
   default:
     out += "<object>";
   }

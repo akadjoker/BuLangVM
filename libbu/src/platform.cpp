@@ -1,5 +1,5 @@
 #include "platform.hpp"
-#include <cstdio>
+
 #include <cstdarg>
 
 // ============================================
@@ -86,6 +86,7 @@ void OsEPrintf(const char *fmt, ...)
 #ifdef __EMSCRIPTEN__
 
 #include <string>
+#include <emscripten.h>
 #include "Outputcapture.h"
 
 extern OutputCapture *g_currentOutput;
@@ -144,4 +145,170 @@ void OsEPrintf(const char *fmt, ...)
     }
 }
 
+// Emscripten tem filesystem virtual via IDBFS
+int OsFileWrite(const char *filename, const void *data, size_t size)
+{
+    FILE *file = fopen(filename, "wb");
+    if (!file)
+    {
+        OsEPrintf("Failed to open file '%s' for writing", filename);
+        return -1;
+    }
+
+    size_t written = fwrite(data, 1, size, file);
+    fclose(file);
+
+    // Sync filesystem
+    EM_ASM(
+        FS.syncfs(false, function(err) {
+            if (err) console.error('FS sync error:', err); }););
+
+    if (written != size)
+    {
+        return -1;
+    }
+
+    return (int)written;
+}
+
+int OsFileRead(const char *filename, void *buffer, size_t maxSize)
+{
+    FILE *file = fopen(filename, "rb");
+    if (!file)
+    {
+        OsEPrintf("Failed to open file '%s' for reading", filename);
+        return -1;
+    }
+
+    if (buffer == NULL)
+    {
+        fseek(file, 0, SEEK_END);
+        long size = ftell(file);
+        fclose(file);
+        return (int)size;
+    }
+
+    size_t read = fread(buffer, 1, maxSize, file);
+    fclose(file);
+
+    return (int)read;
+}
+
+bool OsFileExists(const char *filename)
+{
+    FILE *file = fopen(filename, "rb");
+    if (file)
+    {
+        fclose(file);
+        return true;
+    }
+    return false;
+}
+
+int OsFileSize(const char *filename)
+{
+    FILE *file = fopen(filename, "rb");
+    if (!file)
+        return -1;
+
+    fseek(file, 0, SEEK_END);
+    long size = ftell(file);
+    fclose(file);
+
+    return (int)size;
+}
+
+bool OsFileDelete(const char *filename)
+{
+    bool result = remove(filename) == 0;
+
+    // Sync filesystem
+    EM_ASM(
+        FS.syncfs(false, function(err) {
+            if (err) console.error('FS sync error:', err); }););
+
+    return result;
+}
+
 #endif // __EMSCRIPTEN__
+
+// ============================================
+// LINUX/DESKTOP/WINDOWS/MAC
+// ============================================
+#if defined(__linux__) || defined(_WIN32) || defined(__APPLE__)
+
+int OsFileWrite(const char *filename, const void *data, size_t size)
+{
+    FILE *file = fopen(filename, "wb");
+    if (!file)
+    {
+        OsEPrintf("Failed to open file '%s' for writing", filename);
+        return -1;
+    }
+
+    size_t written = fwrite(data, 1, size, file);
+    fclose(file);
+
+    if (written != size)
+    {
+        OsEPrintf("Failed to write %zu bytes (wrote %zu)", size, written);
+        return -1;
+    }
+
+    return (int)written;
+}
+
+int OsFileRead(const char *filename, void *buffer, size_t maxSize)
+{
+    FILE *file = fopen(filename, "rb");
+    if (!file)
+    {
+        OsEPrintf("Failed to open file '%s' for reading", filename);
+        return -1;
+    }
+
+ 
+    if (buffer == NULL)
+    {
+        fseek(file, 0, SEEK_END);
+        long size = ftell(file);
+        fclose(file);
+        return (int)size;
+    }
+
+    size_t read = fread(buffer, 1, maxSize, file);
+    fclose(file);
+
+    return (int)read;
+}
+
+bool OsFileExists(const char *filename)
+{
+    FILE *file = fopen(filename, "rb");
+    if (file)
+    {
+        fclose(file);
+        return true;
+    }
+    return false;
+}
+
+int OsFileSize(const char *filename)
+{
+    FILE *file = fopen(filename, "rb");
+    if (!file)
+        return -1;
+
+    fseek(file, 0, SEEK_END);
+    long size = ftell(file);
+    fclose(file);
+
+    return (int)size;
+}
+
+bool OsFileDelete(const char *filename)
+{
+    return remove(filename) == 0;
+}
+
+#endif
