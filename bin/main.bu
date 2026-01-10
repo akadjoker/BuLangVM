@@ -1,15 +1,606 @@
+ // ==========================================
+// RAY TRACER com STRUCTS - Performance Otimizado
+// ==========================================
+import math;
+var width = 800;
+var height = 600;
 
-for (var i = 0; i < 3; i = i + 1) 
+// ==========================================
+// STRUCT DEFINITIONS
+// ==========================================
+
+struct Vec3
 {
-    try 
-    {
-        if (i == 1) 
-        {
-            throw "erro no i=1";
-        }
-        print("  i = " , i);
-    } catch (e) 
-    {
-        print("  caught: " , e);
-    }
+    var x, y, z;
+};
+
+struct Ray
+{
+    var ox, oy, oz;  // origin
+    var dx, dy, dz;  // direction
+};
+
+struct Sphere
+{
+    var cx, cy, cz;      // center
+    var radius;
+    var r, g, b;         // color
+    var reflective;
+};
+
+struct HitRecord
+{
+    var hit;             // 0 ou 1
+    var t;               // distance
+    var sphereIdx;       // qual esfera
+    var px, py, pz;      // hit point
+    var nx, ny, nz;      // normal
+};
+
+// ==========================================
+// VECTOR MATH (usando structs diretamente)
+// ==========================================
+
+def dot(ax, ay, az, bx, by, bz)
+{
+    return ax * bx + ay * by + az * bz;
 }
+
+def length(x, y, z)
+{
+    return sqrt(x * x + y * y + z * z);
+}
+
+def normalize(x, y, z)
+{
+    var l = length(x, y, z);
+    if (l < 0.0001)
+    {
+        return Vec3 (0.0,  1.0,  0.0);
+    }
+    return Vec3 (x / l, y / l, z / l);
+}
+
+def reflect(vx, vy, vz, nx, ny, nz)
+{
+    var d = dot(vx, vy, vz, nx, ny, nz);
+    return Vec3(
+         vx - 2.0 * d * nx,
+         vy - 2.0 * d * ny,
+         vz - 2.0 * d * nz
+    );
+} 
+
+
+
+// ==========================================
+// SPHERE INTERSECTION
+// ==========================================
+
+def intersectSphere(ray, sphere) 
+{
+    var ocx = ray.ox - sphere.cx;
+    var ocy = ray.oy - sphere.cy;
+    var ocz = ray.oz - sphere.cz;
+    
+    var a = dot(ray.dx, ray.dy, ray.dz, ray.dx, ray.dy, ray.dz);
+    var b = 2.0 * dot(ocx, ocy, ocz, ray.dx, ray.dy, ray.dz);
+    var c = dot(ocx, ocy, ocz, ocx, ocy, ocz) - sphere.radius * sphere.radius;
+    
+    var discriminant = b * b - 4.0 * a * c;
+    
+    if (discriminant < 0.0)
+    {
+        return -1.0;
+    }
+    
+    var t = (-b - sqrt(discriminant)) / (2.0 * a);
+    if (t > 0.001)
+    {
+        return t;
+    }
+    
+    return -1.0;
+}
+
+
+
+// ==========================================
+// SCENE SETUP
+// ==========================================
+
+var sphere1 = Sphere();
+sphere1.cx = 0.0;
+sphere1.cy = 0.0;
+sphere1.cz = -5.0;
+sphere1.radius = 1.0;
+sphere1.r = 1.0;
+sphere1.g = 0.3;
+sphere1.b = 0.3;
+sphere1.reflective = 0.3;
+
+var sphere2 = Sphere();
+sphere2.cx = -2.5;
+sphere2.cy = 0.5;
+sphere2.cz = -6.0;
+sphere2.radius = 1.2;
+sphere2.r = 0.3;
+sphere2.g = 1.0;
+sphere2.b = 0.3;
+sphere2.reflective = 0.5;
+
+var sphere3 = Sphere();
+sphere3.cx = 2.0;
+sphere3.cy = -0.5;
+sphere3.cz = -4.5;
+sphere3.radius = 0.8;
+sphere3.r = 0.3;
+sphere3.g = 0.3;
+sphere3.b = 1.0;
+sphere3.reflective = 0.7;
+
+var sphere4 = Sphere();
+sphere4.cx = 0.0;
+sphere4.cy = -101.0;
+sphere4.cz = -5.0;
+sphere4.radius = 100.0;
+sphere4.r = 0.8;
+sphere4.g = 0.8;
+sphere4.b = 0.8;
+sphere4.reflective = 0.2;
+
+var spheres = [sphere1, sphere2, sphere3,sphere4 ];
+
+
+ 
+var lightX = 3.0;   // Era 5.0
+var lightY = 8.0;   // Era 5.0
+var lightZ = -2.0;  // Era -3.0
+
+var lightRadius = 1.0;  //  Tamanho da área de luz
+var shadowSamples = 16;   //  Quantos rays por sombra (4-16)
+
+
+// ==========================================
+// RENDERING
+// ==========================================
+
+def findClosestHit(ray)
+{
+    var closestT = 999999.0;
+    var closestIdx = -1;
+    
+    for (var i = 0; i < len(spheres); i = i + 1)
+    {
+        var s = spheres[i];
+        var t = intersectSphere(ray, s);
+        
+        if (t > 0.0 && t < closestT)
+        {
+            closestT = t;
+            closestIdx = i;
+        }
+    }
+    
+ 
+    if (closestIdx >= 0)
+    {
+        var rayOx = ray.ox + 0.0;
+        var rayOy = ray.oy + 0.0;
+        var rayOz = ray.oz + 0.0;
+        var rayDx = ray.dx + 0.0;
+        var rayDy = ray.dy + 0.0;
+        var rayDz = ray.dz + 0.0;
+        
+        var px = rayOx + rayDx * closestT;
+        var py = rayOy + rayDy * closestT;
+        var pz = rayOz + rayDz * closestT;
+        
+        var sphere = spheres[closestIdx];
+        var nx = px - sphere.cx;
+        var ny = py - sphere.cy;
+        var nz = pz - sphere.cz;
+        var nlen = length(nx, ny, nz);
+        if (nlen < 0.0001) 
+        {
+            nlen = 1.0;
+        }
+        nx = nx / nlen;
+        ny = ny / nlen;
+        nz = nz / nlen;
+        
+        var hit = HitRecord();
+        hit.hit = 1;
+        hit.t = closestT;
+        hit.sphereIdx = closestIdx;
+        hit.px = px;
+        hit.py = py;
+        hit.pz = pz;
+        hit.nx = nx;
+        hit.ny = ny;
+        hit.nz = nz;
+         return hit;
+    }
+    
+    var miss = HitRecord();
+    miss.hit = 0;
+    return miss;
+}
+def shade_basic(hitRec)
+{
+    var sphere = spheres[hitRec.sphereIdx];
+    
+    // Ambient
+    var ar = sphere.r * 0.2;  
+    var ag = sphere.g * 0.2;
+    var ab = sphere.b * 0.2;
+    
+    // Light direction (normalizado)
+    var ldx = lightX - hitRec.px;
+    var ldy = lightY - hitRec.py;
+    var ldz = lightZ - hitRec.pz;
+    var ldlen = length(ldx, ldy, ldz);
+    ldx = ldx / ldlen;
+    ldy = ldy / ldlen;
+    ldz = ldz / ldlen;
+    
+    // Diffuse
+    var diff = dot(hitRec.nx, hitRec.ny, hitRec.nz, ldx, ldy, ldz);
+    if (diff < 0.0) diff = 0.0;
+    
+    var dr = sphere.r * diff * 0.8;   
+    var dg = sphere.g * diff * 0.8;
+    var db = sphere.b * diff * 0.8;
+    
+    // View direction CORRETO (camera em 0,0,0)
+    var viewX = 0.0 - hitRec.px;
+    var viewY = 0.0 - hitRec.py;
+    var viewZ = 0.0 - hitRec.pz;
+    var viewLen = length(viewX, viewY, viewZ);
+    viewX = viewX / viewLen;
+    viewY = viewY / viewLen;
+    viewZ = viewZ / viewLen;
+    
+    // Specular (modelo Blinn-Phong é melhor)
+    // Half vector entre light e view
+    var hx = ldx + viewX;
+    var hy = ldy + viewY;
+    var hz = ldz + viewZ;
+    var hlen = length(hx, hy, hz);
+    hx = hx / hlen;
+    hy = hy / hlen;
+    hz = hz / hlen;
+    
+    var spec = dot(hitRec.nx, hitRec.ny, hitRec.nz, hx, hy, hz);
+    if (spec < 0.0) spec = 0.0;
+    
+    // Expoente maior  
+    var specPow = spec;
+    specPow = specPow * specPow;  // ^2
+    specPow = specPow * specPow;  // ^4
+    specPow = specPow * specPow;  // ^8
+    specPow = specPow * specPow;  // ^16
+    specPow = specPow * specPow;  // ^32
+    specPow = specPow * specPow;  // ^64
+    
+    //  Intensity  
+    var sr = specPow * 0.15;
+    var sg = specPow * 0.15;
+    var sb = specPow * 0.15;
+    
+    // Shadow
+    var shadowRay = Ray();
+    shadowRay.ox = hitRec.px + hitRec.nx * 0.001;
+    shadowRay.oy = hitRec.py + hitRec.ny * 0.001;
+    shadowRay.oz = hitRec.pz + hitRec.nz * 0.001;
+    shadowRay.dx = ldx;
+    shadowRay.dy = ldy;
+    shadowRay.dz = ldz;
+    
+    var shadowHit = findClosestHit(shadowRay);
+    if (shadowHit.hit == 1)
+    {
+        dr = dr * 0.2;  //  Sombras mais escuras 
+        dg = dg * 0.2;
+        db = db * 0.2;
+        sr = 0.0;
+        sg = 0.0;
+        sb = 0.0;
+    }
+    
+    var color = Vec3();
+    color.x = ar + dr + sr;
+    color.y = ag + dg + sg;
+    color.z = ab + db + sb;
+    return color;
+}
+ 
+
+def shade(hitRec)
+{
+    var sphere = spheres[hitRec.sphereIdx];
+    
+    // Ambient
+    var ar = sphere.r * 0.2;
+    var ag = sphere.g * 0.2;
+    var ab = sphere.b * 0.2;
+    
+    // Light direction base
+    var ldx = lightX - hitRec.px;
+    var ldy = lightY - hitRec.py;
+    var ldz = lightZ - hitRec.pz;
+    var ldlen = length(ldx, ldy, ldz);
+    ldx = ldx / ldlen;
+    ldy = ldy / ldlen;
+    ldz = ldz / ldlen;
+    
+    // Diffuse
+    var diff = dot(hitRec.nx, hitRec.ny, hitRec.nz, ldx, ldy, ldz);
+    if (diff < 0.0) diff = 0.0;
+    
+    var dr = sphere.r * diff * 0.8;
+    var dg = sphere.g * diff * 0.8;
+    var db = sphere.b * diff * 0.8;
+    
+    // View direction
+    var viewX = 0.0 - hitRec.px;
+    var viewY = 0.0 - hitRec.py;
+    var viewZ = 0.0 - hitRec.pz;
+    var viewLen = length(viewX, viewY, viewZ);
+    viewX = viewX / viewLen;
+    viewY = viewY / viewLen;
+    viewZ = viewZ / viewLen;
+    
+    // Specular (Blinn-Phong)
+    var hx = ldx + viewX;
+    var hy = ldy + viewY;
+    var hz = ldz + viewZ;
+    var hlen = length(hx, hy, hz);
+    hx = hx / hlen;
+    hy = hy / hlen;
+    hz = hz / hlen;
+    
+    var spec = dot(hitRec.nx, hitRec.ny, hitRec.nz, hx, hy, hz);
+    if (spec < 0.0) spec = 0.0;
+    
+    var specPow = spec;
+    specPow = specPow * specPow;
+    specPow = specPow * specPow;
+    specPow = specPow * specPow;
+    specPow = specPow * specPow;
+    specPow = specPow * specPow;
+    specPow = specPow * specPow;
+    
+    var sr = specPow * 0.15;
+    var sg = specPow * 0.15;
+    var sb = specPow * 0.15;
+    
+    //  SOFT SHADOWS - Sample múltiplos pontos na área de luz
+    var shadowFactor = 0.0;
+    
+    var sample = 0;
+    while (sample < shadowSamples)
+    {
+        // Gera ponto aleatório na esfera de luz
+        var theta = math.rand() * 6.28318;  // 0 to 2π
+        var phi = math.rand() * 3.14159;    // 0 to π
+        
+        var offsetX = lightRadius * sin(phi) * cos(theta);
+        var offsetY = lightRadius * sin(phi) * sin(theta);
+        var offsetZ = lightRadius * cos(phi);
+        
+        // Posição do sample de luz
+        var sampleLightX = lightX + offsetX;
+        var sampleLightY = lightY + offsetY;
+        var sampleLightZ = lightZ + offsetZ;
+        
+        // Direção para este sample
+        var toLightX = sampleLightX - hitRec.px;
+        var toLightY = sampleLightY - hitRec.py;
+        var toLightZ = sampleLightZ - hitRec.pz;
+        var toLightLen = length(toLightX, toLightY, toLightZ);
+        toLightX = toLightX / toLightLen;
+        toLightY = toLightY / toLightLen;
+        toLightZ = toLightZ / toLightLen;
+        
+        // Shadow ray
+        var shadowRay = Ray();
+        shadowRay.ox = hitRec.px + hitRec.nx * 0.001;
+        shadowRay.oy = hitRec.py + hitRec.ny * 0.001;
+        shadowRay.oz = hitRec.pz + hitRec.nz * 0.001;
+        shadowRay.dx = toLightX;
+        shadowRay.dy = toLightY;
+        shadowRay.dz = toLightZ;
+        
+        var shadowHit = findClosestHit(shadowRay);
+        
+        // Se não bateu em nada, está iluminado
+        if (shadowHit.hit == 0)
+        {
+            shadowFactor = shadowFactor + 1.0;
+        }
+        else if (shadowHit.t > toLightLen)
+        {
+            // Bateu em algo, mas depois da luz
+            shadowFactor = shadowFactor + 1.0;
+        }
+        
+        sample = sample + 1;
+    }
+    
+    // Normaliza (0.0 = totalmente na sombra, 1.0 = totalmente iluminado)
+    shadowFactor = shadowFactor / shadowSamples;
+    
+    //  Aplica sombra suave
+    dr = dr * shadowFactor;
+    dg = dg * shadowFactor;
+    db = db * shadowFactor;
+    
+    // Specular só aparece se tiver luz direta
+    if (shadowFactor < 0.5)
+    {
+        sr = sr * (shadowFactor * 2.0);
+        sg = sg * (shadowFactor * 2.0);
+        sb = sb * (shadowFactor * 2.0);
+    }
+    
+    var color = Vec3();
+    color.x = ar + dr + sr;
+    color.y = ag + dg + sg;
+    color.z = ab + db + sb;
+    return color;
+}
+
+ 
+
+def trace(ray, depth)
+{
+    if (depth <= 0)
+    {
+        var black = Vec3();
+        black.x = 0.0;
+        black.y = 0.0;
+        black.z = 0.0;
+        return black;
+    }
+    
+    var hit = findClosestHit(ray);
+    
+    if (hit.hit == 0)
+    {
+        // Sky
+        var t = 0.5 * (ray.dy + 1.0);
+        var sky = Vec3();
+        sky.x = 0.5 * (1.0 - t) + 1.0 * t;
+        sky.y = 0.7 * (1.0 - t) + 1.0 * t;
+        sky.z = 1.0 * (1.0 - t) + 1.0 * t;
+        return sky;
+    }
+ 
+    
+    var color = shade(hit);
+    
+    //Reflection
+    var sphere = spheres[hit.sphereIdx];
+    if (sphere.reflective > 0.01 && depth > 1)
+    {
+        var reflDir = reflect(ray.dx, ray.dy, ray.dz, hit.nx, hit.ny, hit.nz);
+        
+        var reflRay = Ray();
+        reflRay.ox = hit.px + hit.nx * 0.001;
+        reflRay.oy = hit.py + hit.ny * 0.001;
+        reflRay.oz = hit.pz + hit.nz * 0.001;
+        reflRay.dx = reflDir.x;
+        reflRay.dy = reflDir.y;
+        reflRay.dz = reflDir.z;
+        
+        var reflColor = trace(reflRay, depth - 1);
+        
+        var k = sphere.reflective;
+        color.x = color.x * (1.0 - k) + reflColor.x * k;
+        color.y = color.y * (1.0 - k) + reflColor.y * k;
+        color.z = color.z * (1.0 - k) + reflColor.z * k;
+    }
+    
+    return color;
+}
+
+def getRay(x, y)
+{
+    var u = (x / width) * 2.0 - 1.0;
+    var v = (y / height) * 2.0 - 1.0;
+    v = -v;
+    
+    var aspectRatio = width / height;
+    u = u * aspectRatio;
+    
+    var l = sqrt(u * u + v * v + 1.0);
+    
+    var r = Ray();
+    r.ox = 0.0;
+    r.oy = 0.0;
+    r.oz = 0.0;
+    r.dx = u / l;
+    r.dy = v / l;
+    r.dz = -1.0 / l;
+    return r;
+}
+
+def clamp(x, min, max)
+{
+    if (x < min) return min;
+    if (x > max) return max;
+    return x;
+}
+
+
+// ==========================================
+// RENDER
+// ==========================================
+
+print("Ray tracing " + width + "x" + height + "...");
+
+var rowSize = width * 3;
+var padding = (4 - (rowSize % 4)) % 4;
+var pixelDataSize = (rowSize + padding) * height;
+var headerSize = 54;
+var totalSize = headerSize + pixelDataSize;
+var bmp = @(totalSize, TYPE_UINT8);
+
+
+bmp.writeByte(66); // B
+bmp.writeByte(77); // M
+bmp.writeInt(totalSize);
+bmp.writeShort(0);
+bmp.writeShort(0);
+bmp.writeInt(54);
+bmp.writeInt(40); 
+bmp.writeInt(width);
+bmp.writeInt(-height);
+bmp.writeShort(1);
+bmp.writeShort(24);
+bmp.writeInt(0);
+bmp.writeInt(pixelDataSize);
+bmp.writeInt(2835); 
+bmp.writeInt(2835);
+bmp.writeInt(0);
+bmp.writeInt(0);
+
+var y = 0;
+while (y < height)
+{
+    if (y % 50 == 0)
+    {
+        print("Row " + y + "/" + height);
+    }
+    
+    var x = 0;
+    while (x < width)
+    {
+        var r = getRay(x, y);
+        var color = trace(r, 3);
+        
+ 
+        color.x = sqrt(color.x);
+        color.y = sqrt(color.y);
+        color.z = sqrt(color.z);
+        
+         var ir = clamp(color.x * 255.0, 0.0, 255.0);
+         var ig = clamp(color.y * 255.0, 0.0, 255.0);
+         var ib = clamp(color.z * 255.0, 0.0, 255.0);
+        
+         bmp.writeByte(ib);
+         bmp.writeByte(ig);
+         bmp.writeByte(ir);
+        
+        x = x + 1;
+    }
+    for (var p = 0; p < padding; p = p + 1)
+    {
+        bmp.writeByte(0);
+    }
+    y = y + 1;
+}
+
+bmp.save("raytraced.bmp");
+print("Done! Open 'raytraced.bmp'");

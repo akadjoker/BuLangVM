@@ -118,59 +118,8 @@ Value native_write(Interpreter *vm, int argCount, Value *args)
     return vm->makeNil();
 }
 
-Value native_sqrt(Interpreter *vm, int argCount, Value *args)
-{
-    if (argCount != 1)
-    {
-        vm->runtimeError("sqrt expects 1 argument");
-        return vm->makeNil();
-    }
-
-    double value;
-    if (args[0].isInt())
-        value = (double)args[0].asInt();
-    else if (args[0].isDouble())
-        value = args[0].asDouble();
-    else
-    {
-        vm->runtimeError("sqrt expects a number");
-        return vm->makeNil();
-    }
-
-    if (value < 0)
-    {
-        vm->runtimeError("sqrt of negative number");
-        return vm->makeNil();
-    }
-
-    return vm->makeDouble(std::sqrt(value));
-}
-
-Value native_sin(Interpreter *vm, int argCount, Value *args)
-{
-    double x = args[0].isInt() ? (double)args[0].asInt() : args[0].asDouble();
-    return vm->makeDouble(std::sin(x));
-}
-
-Value native_cos(Interpreter *vm, int argCount, Value *args)
-{
-    double x = args[0].isInt() ? (double)args[0].asInt() : args[0].asDouble();
-    return vm->makeDouble(std::cos(x));
-}
-
-Value native_abs(Interpreter *vm, int argCount, Value *args)
-{
-    if (args[0].isInt())
-        return vm->makeInt(std::abs(args[0].asInt()));
-    else
-        return vm->makeDouble(std::fabs(args[0].asDouble()));
-}
-
-Value native_clock(Interpreter *vm, int argCount, Value *args)
-{
-    return vm->makeDouble(static_cast<double>(clock()) / CLOCKS_PER_SEC);
-}
-
+ 
+ 
 
 Value native_print_stack(Interpreter *vm, int argCount, Value *args)
 {
@@ -290,7 +239,6 @@ int main()
 
     vm.registerNative("write", native_write, -1);
     vm.registerNative("format", native_format, -1);
-    vm.registerNative("clock", native_clock, 0);
     vm.registerNative("print_stack", native_print_stack, -1);
 
 
@@ -299,10 +247,6 @@ int main()
         .addDouble("E", 2.71828182845905)
         .addFloat("SQRT2", 1.41421356f)
         .addInt("MAX_INT", 2147483647)
-        .addFunction("sin",  native_sin , 1)
-        .addFunction("cos",  native_cos , 1)
-        .addFunction("sqrt", native_sqrt, 1)
-        .addFunction("abs",  native_abs , 1)
         .addFunction("rand", native_rand, -1);
  
 

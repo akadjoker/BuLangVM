@@ -879,7 +879,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
                 if (argCount > def->argCount)
                 {
                     runtimeError("Struct '%s' expects at most %zu arguments, got %d",
-                         def->name->chars(), def->argCount, argCount);
+                                 def->name->chars(), def->argCount, argCount);
                     return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
                 }
 
@@ -887,16 +887,17 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
                 StructInstance *instance = value.as.sInstance;
                 instance->def = def;
                 structInstances.push(instance);
-                instance->values.reserve(argCount);
-                for (int i = argCount - 1; i >= 0; i--)
+                instance->values.reserve(def->argCount);
+                Value *args = fiber->stackTop - argCount;
+                for (int i = 0; i < argCount; i++)
                 {
-                    instance->values[i] = POP();
+                    instance->values.push(args[i]);
                 }
                 for (int i = argCount; i < def->argCount; i++)
                 {
-                    instance->values[i] = makeNil();
+                    instance->values.push(makeNil());
                 }
-                POP();
+                fiber->stackTop -= (argCount + 1);
                 PUSH(value);
                 break;
             }
@@ -2285,6 +2286,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
             if (receiver.isBuffer())
             {
                 BufferInstance *buf = receiver.asBuffer();
+                size_t totalSize = buf->count * buf->elementSize;
 
                 // buf.fill(value)
 
@@ -2640,10 +2642,542 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
                 }
 
                 else
-                {
-                    runtimeError("Buffer has no method '%s'", name);
-                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
-                }
+                    // ========================================
+                    // WRITE METHODS (avançam cursor)
+                    // ========================================
+
+                    // buf.writeByte(value)
+                    if (compare_strings(nameValue.asString(), staticNames[STATIC_WRITE_BYTE]))
+                    {
+                        if (argCount != 1)
+                        {
+                            runtimeError("writeByte() expects 1 argument");
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        if (buf->cursor < 0 || buf->cursor + 1 > (int)totalSize)
+                        {
+                            runtimeError("writeByte() cursor %d out of bounds", buf->cursor);
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        buf->data[buf->cursor] = PEEK().asByte();
+                        buf->cursor += 1;
+
+                        ARGS_CLEANUP();
+                        PUSH(receiver);
+                        break;
+                    }
+
+                    // buf.writeShort(value) - int16
+                    else if (compare_strings(nameValue.asString(), staticNames[STATIC_WRITE_SHORT]))
+                    {
+                        if (argCount != 1)
+                        {
+                            runtimeError("writeShort() expects 1 argument");
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        if (buf->cursor < 0 || buf->cursor + 2 > (int)totalSize)
+                        {
+                            runtimeError("writeShort() cursor %d out of bounds", buf->cursor);
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        int16_t value = (int16_t)PEEK().asInt();
+                        memcpy(buf->data + buf->cursor, &value, 2);
+                        buf->cursor += 2;
+
+                        ARGS_CLEANUP();
+                        PUSH(receiver);
+                        break;
+                    }
+
+                    // buf.writeUShort(value) - uint16
+                    else if (compare_strings(nameValue.asString(), staticNames[STATIC_WRITE_USHORT]))
+                    {
+                        if (argCount != 1)
+                        {
+                            runtimeError("writeUShort() expects 1 argument");
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        if (buf->cursor < 0 || buf->cursor + 2 > (int)totalSize)
+                        {
+                            runtimeError("writeUShort() cursor %d out of bounds", buf->cursor);
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        uint16_t value = (uint16_t)PEEK().asInt();
+                        memcpy(buf->data + buf->cursor, &value, 2);
+                        buf->cursor += 2;
+
+                        ARGS_CLEANUP();
+                        PUSH(receiver);
+                        break;
+                    }
+
+                    // buf.writeInt(value) - int32
+                    else if (compare_strings(nameValue.asString(), staticNames[STATIC_WRITE_INT]))
+                    {
+                        if (argCount != 1)
+                        {
+                            runtimeError("writeInt() expects 1 argument");
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        if (buf->cursor < 0 || buf->cursor + 4 > (int)totalSize)
+                        {
+                            runtimeError("writeInt() cursor %d out of bounds", buf->cursor);
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        int32_t value = PEEK().asInt();
+                        memcpy(buf->data + buf->cursor, &value, 4);
+                        buf->cursor += 4;
+
+                        ARGS_CLEANUP();
+                        PUSH(receiver);
+                        break;
+                    }
+
+                    // buf.writeUInt(value) - uint32 (aceita double para valores > 2^31)
+                    else if (compare_strings(nameValue.asString(), staticNames[STATIC_WRITE_UINT]))
+                    {
+                        if (argCount != 1)
+                        {
+                            runtimeError("writeUInt() expects 1 argument");
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        if (buf->cursor < 0 || buf->cursor + 4 > (int)totalSize)
+                        {
+                            runtimeError("writeUInt() cursor %d out of bounds", buf->cursor);
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        Value val = PEEK();
+                        uint32_t value = val.isInt() ? (uint32_t)val.asInt() : (uint32_t)val.asDouble();
+                        memcpy(buf->data + buf->cursor, &value, 4);
+                        buf->cursor += 4;
+
+                        ARGS_CLEANUP();
+                        PUSH(receiver);
+                        break;
+                    }
+
+                    // buf.writeFloat(value)
+                    else if (compare_strings(nameValue.asString(), staticNames[STATIC_WRITE_FLOAT]))
+                    {
+                        if (argCount != 1)
+                        {
+                            runtimeError("writeFloat() expects 1 argument");
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        if (buf->cursor < 0 || buf->cursor + 4 > (int)totalSize)
+                        {
+                            runtimeError("writeFloat() cursor %d out of bounds", buf->cursor);
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        float value = PEEK().asFloat();
+                        memcpy(buf->data + buf->cursor, &value, 4);
+                        buf->cursor += 4;
+
+                        ARGS_CLEANUP();
+                        PUSH(receiver);
+                        break;
+                    }
+
+                    // buf.writeDouble(value)
+                    else if (compare_strings(nameValue.asString(), staticNames[STATIC_WRITE_DOUBLE]))
+                    {
+                        if (argCount != 1)
+                        {
+                            runtimeError("writeDouble() expects 1 argument");
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        if (buf->cursor < 0 || buf->cursor + 8 > (int)totalSize)
+                        {
+                            runtimeError("writeDouble() cursor %d out of bounds", buf->cursor);
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        double value = PEEK().asDouble();
+                        memcpy(buf->data + buf->cursor, &value, 8);
+                        buf->cursor += 8;
+
+                        ARGS_CLEANUP();
+                        PUSH(receiver);
+                        break;
+                    }
+
+                    // buf.writeString(str) - Escreve bytes da string (UTF-8)
+                    else if (compare_strings(nameValue.asString(), staticNames[STATIC_WRITE_STRING]))
+                    {
+                        if (argCount != 1)
+                        {
+                            runtimeError("writeString() expects 1 argument");
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        Value strVal = PEEK();
+                        if (!strVal.isString())
+                        {
+                            runtimeError("writeString() expects string");
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        String *str = strVal.asString();
+                        int length = str->length();
+
+                        if (buf->cursor < 0 || buf->cursor + length > (int)totalSize)
+                        {
+                            runtimeError("writeString() not enough space (need %d bytes)", length);
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        memcpy(buf->data + buf->cursor, str->chars(), length);
+                        buf->cursor += length;
+
+                        ARGS_CLEANUP();
+                        PUSH(receiver);
+                        break;
+                    }
+
+                    // ========================================
+                    // READ METHODS (avançam cursor)
+                    // ========================================
+
+                    // buf.readByte()
+                    else if (compare_strings(nameValue.asString(), staticNames[STATIC_READ_BYTE]))
+                    {
+                        if (argCount != 0)
+                        {
+                            runtimeError("readByte() expects 0 arguments");
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        if (buf->cursor < 0 || buf->cursor + 1 > (int)totalSize)
+                        {
+                            runtimeError("readByte() cursor %d out of bounds", buf->cursor);
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        uint8_t value = buf->data[buf->cursor];
+                        buf->cursor += 1;
+
+                        ARGS_CLEANUP();
+                        PUSH(makeByte(value));
+                        break;
+                    }
+
+                    // buf.readShort()
+                    else if (compare_strings(nameValue.asString(), staticNames[STATIC_READ_SHORT]))
+                    {
+                        if (argCount != 0)
+                        {
+                            runtimeError("readShort() expects 0 arguments");
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        if (buf->cursor < 0 || buf->cursor + 2 > (int)totalSize)
+                        {
+                            runtimeError("readShort() cursor %d out of bounds", buf->cursor);
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        int16_t value;
+                        memcpy(&value, buf->data + buf->cursor, 2);
+                        buf->cursor += 2;
+
+                        ARGS_CLEANUP();
+                        PUSH(makeInt(value));
+                        break;
+                    }
+
+                    // buf.readUShort()
+                    else if (compare_strings(nameValue.asString(), staticNames[STATIC_READ_USHORT]))
+                    {
+                        if (argCount != 0)
+                        {
+                            runtimeError("readUShort() expects 0 arguments");
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        if (buf->cursor < 0 || buf->cursor + 2 > (int)totalSize)
+                        {
+                            runtimeError("readUShort() cursor %d out of bounds", buf->cursor);
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        uint16_t value;
+                        memcpy(&value, buf->data + buf->cursor, 2);
+                        buf->cursor += 2;
+
+                        ARGS_CLEANUP();
+                        PUSH(makeInt(value));
+                        break;
+                    }
+
+                    // buf.readInt()
+                    else if (compare_strings(nameValue.asString(), staticNames[STATIC_READ_INT]))
+                    {
+                        if (argCount != 0)
+                        {
+                            runtimeError("readInt() expects 0 arguments");
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        if (buf->cursor < 0 || buf->cursor + 4 > (int)totalSize)
+                        {
+                            runtimeError("readInt() cursor %d out of bounds", buf->cursor);
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        int32_t value;
+                        memcpy(&value, buf->data + buf->cursor, 4);
+                        buf->cursor += 4;
+
+                        ARGS_CLEANUP();
+                        PUSH(makeInt(value));
+                        break;
+                    }
+
+                    // buf.readUInt() - Retorna como double (para valores > 2^31)
+                    else if (compare_strings(nameValue.asString(), staticNames[STATIC_READ_UINT]))
+                    {
+                        if (argCount != 0)
+                        {
+                            runtimeError("readUInt() expects 0 arguments");
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        if (buf->cursor < 0 || buf->cursor + 4 > (int)totalSize)
+                        {
+                            runtimeError("readUInt() cursor %d out of bounds", buf->cursor);
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        uint32_t value;
+                        memcpy(&value, buf->data + buf->cursor, 4);
+                        buf->cursor += 4;
+
+                        ARGS_CLEANUP();
+                        PUSH(makeDouble((double)value));
+                        break;
+                    }
+
+                    // buf.readFloat()
+                    else if (compare_strings(nameValue.asString(), staticNames[STATIC_READ_FLOAT]))
+                    {
+                        if (argCount != 0)
+                        {
+                            runtimeError("readFloat() expects 0 arguments");
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        if (buf->cursor < 0 || buf->cursor + 4 > (int)totalSize)
+                        {
+                            runtimeError("readFloat() cursor %d out of bounds", buf->cursor);
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        float value;
+                        memcpy(&value, buf->data + buf->cursor, 4);
+                        buf->cursor += 4;
+
+                        ARGS_CLEANUP();
+                        PUSH(makeFloat(value));
+                        break;
+                    }
+
+                    // buf.readDouble()
+                    else if (compare_strings(nameValue.asString(), staticNames[STATIC_READ_DOUBLE]))
+                    {
+                        if (argCount != 0)
+                        {
+                            runtimeError("readDouble() expects 0 arguments");
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        if (buf->cursor < 0 || buf->cursor + 8 > (int)totalSize)
+                        {
+                            runtimeError("readDouble() cursor %d out of bounds", buf->cursor);
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        double value;
+                        memcpy(&value, buf->data + buf->cursor, 8);
+                        buf->cursor += 8;
+
+                        ARGS_CLEANUP();
+                        PUSH(makeDouble(value));
+                        break;
+                    }
+
+                    // buf.readString(length)
+                    else if (compare_strings(nameValue.asString(), staticNames[STATIC_READ_STRING]))
+                    {
+                        if (argCount != 1)
+                        {
+                            runtimeError("readString() expects 1 argument (length)");
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        Value lengthVal = PEEK();
+                        if (!lengthVal.isInt())
+                        {
+                            runtimeError("readString() length must be int");
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        int length = lengthVal.asInt();
+
+                        if (length < 0)
+                        {
+                            runtimeError("readString() length cannot be negative");
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        if (buf->cursor < 0 || buf->cursor + length > (int)totalSize)
+                        {
+                            runtimeError("readString() not enough data (need %d bytes)", length);
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        char *temp = (char *)malloc(length + 1);
+                        memcpy(temp, buf->data + buf->cursor, length);
+                        temp[length] = 0;
+
+                        String *str = createString(temp);
+                        free(temp);
+
+                        buf->cursor += length;
+
+                        ARGS_CLEANUP();
+                        PUSH(makeString(str));
+                        break;
+                    }
+
+                    // ========================================
+                    // CURSOR CONTROL
+                    // ========================================
+
+                    // buf.seek(position)
+                    else if (compare_strings(nameValue.asString(), staticNames[STATIC_SEEK]))
+                    {
+                        if (argCount != 1)
+                        {
+                            runtimeError("seek() expects 1 argument");
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        Value posVal = PEEK();
+                        if (!posVal.isInt())
+                        {
+                            runtimeError("seek() position must be int");
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        int position = posVal.asInt();
+
+                        if (position < 0 || position > (int)totalSize)
+                        {
+                            runtimeError("seek() position %d out of bounds (size=%zu)", position, totalSize);
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        buf->cursor = position;
+
+                        ARGS_CLEANUP();
+                        PUSH(receiver);
+                        break;
+                    }
+
+                    // buf.tell()
+                    else if (compare_strings(nameValue.asString(), staticNames[STATIC_TELL]))
+                    {
+                        if (argCount != 0)
+                        {
+                            runtimeError("tell() expects 0 arguments");
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        ARGS_CLEANUP();
+                        PUSH(makeInt(buf->cursor));
+                        break;
+                    }
+
+                    // buf.rewind()
+                    else if (compare_strings(nameValue.asString(), staticNames[STATIC_REWIND]))
+                    {
+                        if (argCount != 0)
+                        {
+                            runtimeError("rewind() expects 0 arguments");
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        buf->cursor = 0;
+
+                        ARGS_CLEANUP();
+                        PUSH(receiver);
+                        break;
+                    }
+
+                    // buf.skip(bytes)
+                    else if (compare_strings(nameValue.asString(), staticNames[STATIC_SKIP]))
+                    {
+                        if (argCount != 1)
+                        {
+                            runtimeError("skip() expects 1 argument");
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        Value bytesVal = PEEK();
+                        if (!bytesVal.isInt())
+                        {
+                            runtimeError("skip() bytes must be int");
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        int bytes = bytesVal.asInt();
+                        buf->cursor += bytes;
+
+                        if (buf->cursor < 0 || buf->cursor > (int)totalSize)
+                        {
+                            runtimeError("skip() moved cursor out of bounds (%d)", buf->cursor);
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        ARGS_CLEANUP();
+                        PUSH(receiver);
+                        break;
+                    }
+
+                    // buf.remaining()
+                    else if (compare_strings(nameValue.asString(), staticNames[STATIC_REMAINING]))
+                    {
+                        if (argCount != 0)
+                        {
+                            runtimeError("remaining() expects 0 arguments");
+                            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        }
+
+                        int remaining = totalSize - buf->cursor;
+
+                        ARGS_CLEANUP();
+                        PUSH(makeInt(remaining));
+                        break;
+                    }
+
+                    else
+                    {
+                        runtimeError("Buffer has no method '%s'", name);
+                        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                    }
             }
 
             runtimeError("Type does not support method calls");

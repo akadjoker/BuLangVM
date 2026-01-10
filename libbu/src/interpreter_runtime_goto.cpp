@@ -996,17 +996,17 @@ op_call:
         StructInstance *instance = value.as.sInstance;
         instance->def = def;
         structInstances.push(instance);
-        instance->values.reserve(argCount);
-
-        for (int i = argCount - 1; i >= 0; i--)
+        instance->values.reserve(def->argCount);
+        Value *args = fiber->stackTop - argCount;
+        for (int i = 0; i < argCount; i++)
         {
-            instance->values[i] = POP();
+            instance->values.push(args[i]);
         }
         for (int i = argCount; i < def->argCount; i++)
         {
-            instance->values[i] = makeNil();
+            instance->values.push(makeNil());
         }
-        POP(); // Remove callee
+        fiber->stackTop -= (argCount + 1);
         PUSH(value);
 
         DISPATCH();

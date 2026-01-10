@@ -39,7 +39,6 @@ const char *valueTypeToString(ValueType type)
         return "nil";
     case ValueType::CHAR:
         return "char";
-    
     case ValueType::BOOL:
         return "bool";
     case ValueType::INT:
@@ -92,7 +91,7 @@ const char *valueTypeToString(ValueType type)
         return "<native_struct>";
 
     }
-    return "<?>";
+    return "<unknown>";
 }
 
 void printValue(const Value &value)
@@ -253,8 +252,11 @@ void printValue(const Value &value)
     }
 
     default:
-        OsPrintf("<?%ld?>", (int)(value.type));
+    {
+        const char* str = valueTypeToString(value.type);
+        OsPrintf("<?%s?>", str);
         break;
+    }
     }
 }
 
