@@ -1235,25 +1235,27 @@ void Compiler::processDeclaration()
     Token nameToken = previous;
     isProcess_ = true;
     argNames.clear();
-    numFibers_ = 1;
-
+    
     // Warning("Compiling process '%s'", nameToken.lexeme.c_str());
-
+    
     // Cria função para o process
 
     Function *func = vm_->addFunction(nameToken.lexeme.c_str(), 0);
-
+    
     if (!func)
     {
         error("Function already exists");
         return;
     }
-
+    
     // Compila processo
+    numFibers_ = 1;
     compileFunction(func, true); // true = É PROCESS!
 
     // Cria blueprint (process não vai para globals como callable)
-    ProcessDef *proc = vm_->addProcess(nameToken.lexeme.c_str(), func);
+    ProcessDef *proc = vm_->addProcess(nameToken.lexeme.c_str(), func, numFibers_);
+    currentProcess = proc;
+    
 
 
     for (uint32 i = 0; i < argNames.size(); i++)

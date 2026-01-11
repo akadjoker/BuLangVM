@@ -25,7 +25,7 @@ ParseRule Compiler::rules[TOKEN_COUNT];
 
 Compiler::Compiler(Interpreter *vm)
     : vm_(vm), lexer(nullptr), function(nullptr), currentChunk(nullptr),
-      currentFiber(nullptr), currentProcess(nullptr), hadError(false),
+       currentProcess(nullptr), hadError(false),
       panicMode(false), scopeDepth(0), localCount_(0), loopDepth_(0),
       isProcess_(false)
 {
@@ -185,14 +185,7 @@ ProcessDef *Compiler::compile(const std::string &source)
     error("Fail to create main function");
     return nullptr;
   }
-  currentProcess = vm_->addProcess("__main_process__", function);
-  if (!currentProcess)
-  {
-    error("Fail to create main process");
-    return nullptr;
-  }
   currentChunk = function->chunk;
-  currentFiber = &currentProcess->fibers[0];
   currentFunctionType = FunctionType::TYPE_SCRIPT;
   currentClass = nullptr;
   
@@ -204,6 +197,14 @@ ProcessDef *Compiler::compile(const std::string &source)
     declaration();
   }
   
+  currentProcess = vm_->addProcess("__main_process__", function, numFibers_);
+
+  if (!currentProcess)
+  {
+    error("Fail to create main process");
+    return nullptr;
+  }
+ 
   Warning("Process 'main' call %d fibers",  numFibers_);
   emitReturn();
 
@@ -211,6 +212,9 @@ ProcessDef *Compiler::compile(const std::string &source)
   {
     return nullptr;
   }
+
+  // currentProcess->totalFibers = numFibers_;
+  // currentProcess->fibers =      (Fiber *)malloc(numFibers_ * sizeof(Fiber));
 
   currentProcess->finalize();
 
@@ -230,9 +234,9 @@ ProcessDef *Compiler::compileExpression(const std::string &source)
   tokens = lexer->scanAll();
 
   function = vm_->addFunction("__expr__", 0);
-  currentProcess = vm_->addProcess("__main__", function);
   currentChunk = function->chunk;
-  currentFiber = &currentProcess->fibers[0];
+  
+  currentProcess = vm_->addProcess("__main__", function,1);
   currentFunctionType = FunctionType::TYPE_SCRIPT;
   currentClass = nullptr;
 
@@ -254,6 +258,9 @@ ProcessDef *Compiler::compileExpression(const std::string &source)
   {
     return nullptr;
   }
+
+  //   currentProcess->totalFibers = numFibers_;
+  // currentProcess->fibers =      (Fiber *)malloc(numFibers_ * sizeof(Fiber));
   currentProcess->finalize();
 
   importedModules.clear();
@@ -270,7 +277,7 @@ void Compiler::clear()
   lexer = nullptr;
   function = nullptr;
   currentChunk = nullptr;
-  currentFiber = nullptr;
+ 
   currentProcess = nullptr;
   currentClass = nullptr;
   hadError = false;

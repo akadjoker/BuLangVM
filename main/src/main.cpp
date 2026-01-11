@@ -190,7 +190,7 @@ const char *multiPathFileLoader(const char *filename, size_t *outSize, void *use
             continue; // Tenta próximo path
         }
 
-        if (size >= sizeof(ctx->buffer))
+        if (size >= (long)sizeof(ctx->buffer))
         {
             fprintf(stderr, "File too large: %s (%ld bytes, max %zu)\n",
                     ctx->fullPath, size, sizeof(ctx->buffer));

@@ -617,7 +617,7 @@ String *StringPool::getString(int index)
 
 ProcessPool::ProcessPool()
 {
-    pool.reserve(512);
+    pool.reserve(1000);
 }
 
 ProcessPool::~ProcessPool()
@@ -631,48 +631,40 @@ Process *ProcessPool::create()
     
     if (pool.size() == 0)
     {
-         proc = new Process();
+        proc = new Process();
     }
     else
     {
         proc = pool.back();
         pool.pop();
-        proc->reset();   
     }
     return proc;
 }
 
 void ProcessPool::recycle(Process *proc)
 {
-    if(proc->id ==3200171524)
-    {
-        Warning("Bad process");
-        return;
-    }
-  //  Warning("Recycling process");
     proc->reset();
     pool.push(proc);
+    if (pool.size() > 1000)
+    {
+        clear();
+    }
 }
 
 void ProcessPool::destroy(Process *proc)
 {
-  //  Warning("Delteing process");
-
+    proc->reset();
     delete proc;
 }
 
 void ProcessPool::clear()
 {
-  //  Warning("Freeing %zu processes", pool.size());
+  //  Warning("Freeing %zu processes on pool", pool.size());
     
     for (size_t j = 0; j < pool.size(); j++)
     {
         Process *proc = pool[j];
-        if(!proc || proc->id == 3200171524)
-        {
-            Warning("Bad process");
-            continue;
-        }
+        proc->reset();
         delete proc;
     }
     pool.clear();

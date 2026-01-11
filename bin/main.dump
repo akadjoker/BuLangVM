@@ -106,19 +106,22 @@ GLOBAL FUNCTIONS
     0033   32 OP_GET_GLOBAL       3 'worker'
     0035    | OP_GET_GLOBAL       6 's'
     0037    | OP_SPAWN            1
-    0039   35 OP_CONSTANT         8 '100'
-    0041    | OP_FRAME
-    0042    | OP_CONSTANT         8 '100'
-    0044    | OP_FRAME
-    0045    | OP_CONSTANT         8 '100'
+    0039   33 OP_GET_GLOBAL       3 'worker'
+    0041    | OP_GET_GLOBAL       6 's'
+    0043    | OP_SPAWN            1
+    0045   36 OP_CONSTANT         8 '100'
     0047    | OP_FRAME
     0048    | OP_CONSTANT         8 '100'
     0050    | OP_FRAME
-    0051   37 OP_CONSTANT         9 'State updated by main fiber'
-    0053    | OP_PRINT
-    0054    | OP_NIL
-    0055    | OP_NIL
-    0056    | OP_RETURN
+    0051    | OP_CONSTANT         8 '100'
+    0053    | OP_FRAME
+    0054    | OP_CONSTANT         8 '100'
+    0056    | OP_FRAME
+    0057   38 OP_CONSTANT         9 'State updated by main fiber'
+    0059    | OP_PRINT
+    0060    | OP_NIL
+    0061    | OP_NIL
+    0062    | OP_RETURN
 
 
 >>> Function: enemy

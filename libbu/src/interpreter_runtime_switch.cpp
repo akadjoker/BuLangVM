@@ -45,11 +45,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
 #define PUSH(value) (*fiber->stackTop++ = value)
 #define NPEEK(n) (fiber->stackTop[-1 - (n)])
 
-    // if (frame->ip == nullptr)
-    // {
-    //     runtimeError("FATAL: frame->ip is NULL! Code was not initialized properly.");
-    //     return {FiberResult::FIBER_DONE, 0, 0, 0};
-    // }
+  
 
 #define READ_BYTE() (*ip++)
 #define READ_SHORT() (ip += 2, (uint16)((ip[-2] << 8) | ip[-1]))
@@ -1152,7 +1148,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
             currentProcess->state = FiberState::DEAD;
 
             // Mata todas as fibers (incluindo a atual)
-            for (int i = 0; i < MAX_FIBERS; i++)
+            for (int i = 0; i < currentProcess->totalFibers; i++)
             {
                 Fiber *f = &currentProcess->fibers[i];
                 f->state = FiberState::DEAD;
@@ -1178,9 +1174,9 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
                 runtimeError("No current process for spawn");
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
-            if (currentProcess->nextFiberIndex >= MAX_FIBERS)
+            if (currentProcess->nextFiberIndex >= currentProcess->totalFibers)
             {
-                runtimeError("Too many fibers in process (max %d)", MAX_FIBERS);
+                runtimeError("Too many fibers in process (max %d)", currentProcess->totalFibers);
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
             if (!callee.isFunction())

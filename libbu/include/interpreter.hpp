@@ -433,7 +433,7 @@ struct ProcessDef
   int index;
   Vector<uint8> argsNames;
   String *name{nullptr};
-  Fiber fibers[MAX_FIBERS];
+  Fiber *fibers{nullptr};
   Value privates[MAX_PRIVATES];
   int totalFibers;
   int nextFiberIndex;
@@ -450,7 +450,8 @@ struct Process
   FiberState state;        //  Estado do PROCESSO (frame)
   float resumeTime = 0.0f; // Quando acorda (frame)
 
-  Fiber fibers[MAX_FIBERS];
+  Fiber *fibers{nullptr};
+  int totalFibers{0};
   int nextFiberIndex{0};
   int currentFiberIndex{0};
   Fiber *current{nullptr};
@@ -462,8 +463,10 @@ struct Process
   bool initialized = false;
 
   void release();
-  void finalize();
+ 
   void reset();
+
+ 
 };
 
 class Interpreter
@@ -490,7 +493,7 @@ class Interpreter
   size_t totalAllocated = 0;
   size_t nextGC = 1024 *4;
   bool gcInProgress = false;
-  bool enbaledGC = true;
+  bool enbaledGC = false;
 
   Vector<ClassInstance *> classInstances;
   Vector<StructInstance *> structInstances;
@@ -512,7 +515,7 @@ class Interpreter
   HeapAllocator arena;
 
   StringPool stringPool;
-  bool asEnded = false;
+ 
 
   float currentTime;
   float lastFrameTime;
@@ -532,7 +535,8 @@ class Interpreter
 
   void freeInstances();
   void freeBlueprints();
-
+  void freeFunctions();       
+  void freeRunningProcesses();
   void checkGC();
 
   Fiber *get_ready_fiber(Process *proc);
@@ -733,7 +737,7 @@ public:
   void addStructField(NativeStructDef *def, const char *fieldName,
                       size_t offset, FieldType type, bool readOnly = false);
 
-  ProcessDef *addProcess(const char *name, Function *func);
+  ProcessDef *addProcess(const char *name, Function *func,int totalFibers);
   void destroyProcess(Process *proc);
   Process *spawnProcess(ProcessDef *proc);
 

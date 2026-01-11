@@ -147,7 +147,7 @@ private:
   FunctionType currentFunctionType;
   Function *function;
   Code *currentChunk;
-  Fiber *currentFiber;
+ 
   ClassDef *currentClass;
   ProcessDef *currentProcess;
   Vector<String *> argNames;
