@@ -5,9 +5,12 @@ static uint64_t PROCESS_IDS = 0;
 
 void ProcessDef::finalize()
 {
-    for (int i = 0; i < fiberCount; i++)
+
+  
+
+    for (int i = 0; i < MAX_FIBERS; i++)
     {
-        Fiber *fiber = &fibers[i];
+       Fiber *fiber = &fibers[i];
 
         if (fiber->frameCount > 0)
         {
@@ -29,46 +32,34 @@ void ProcessDef::finalize()
 }
 void ProcessDef::release()
 {
-  
-}
-ProcessDef::ProcessDef()
-{
-    fiberCount = 0;
-    fibers = nullptr;
-    name = nullptr;
-
-}
-ProcessDef::~ProcessDef()
-{
-    if(fibers)
-    {
-     free(fibers);
-     fibers = nullptr;
-    }
+    // for (int i = 0; i < argsNames.size(); i++)
+    // {
+    //     destroyString(argsNames[i]);
+    // }
 }
 void Process::finalize()
 {
-    for (int i = 0; i < fiberCount; i++)
-    {
-        Fiber *fiber = &fibers[i];
+    // for (int i = 0; i < MAX_FIBERS; i++)
+    // {
+    //     Fiber *fiber = &fibers[i];
 
-        if (fiber->frameCount > 0)
-        {
-            for (int j = 0; j < fiber->frameCount; j++)
-            {
-                CallFrame *frame = &fiber->frames[j];
-                if (frame->func && frame->ip == nullptr)
-                {
-                    frame->ip = frame->func->chunk->code;
-                }
-            }
+    //     if (fiber->frameCount > 0)
+    //     {
+    //         for (int j = 0; j < fiber->frameCount; j++)
+    //         {
+    //             CallFrame *frame = &fiber->frames[j];
+    //             if (frame->func && frame->ip == nullptr)
+    //             {
+    //                 frame->ip = frame->func->chunk->code;
+    //             }
+    //         }
 
-            if (fiber->ip == nullptr && fiber->frames[0].func)
-            {
-                fiber->ip = fiber->frames[0].func->chunk->code;
-            }
-        }
-    }
+    //         if (fiber->ip == nullptr && fiber->frames[0].func)
+    //         {
+    //             fiber->ip = fiber->frames[0].func->chunk->code;
+    //         }
+    //     }
+    // }
 }
 
 void Process::reset()
@@ -78,12 +69,6 @@ void Process::reset()
     this->initialized = false;
 
     name = nullptr;
-
-    if(fibers)
-    {
-     free(fibers);
-     fibers = nullptr;
-    }
 
     state = FiberState::DEAD; // Estado do PROCESSO (frame)
     resumeTime = 0.0f;        // Quando acorda (frame)
@@ -127,7 +112,7 @@ int Interpreter::getProcessPrivateIndex(const char *name)
     return -1;
 }
 
-ProcessDef *Interpreter::addProcess(const char *name )
+ProcessDef *Interpreter::addProcess(const char *name, Function *func)
 {
     String *pName = createString(name);
     ProcessDef *existing = nullptr;
@@ -141,7 +126,14 @@ ProcessDef *Interpreter::addProcess(const char *name )
 
     proc->name = pName;
     proc->index = processes.size();
- 
+    for (int i = 0; i < MAX_FIBERS; i++)
+    {
+        proc->fibers[i].state = FiberState::DEAD;
+        proc->fibers[i].resumeTime = 0;
+        proc->fibers[i].stackTop = proc->fibers[i].stack;
+        proc->fibers[i].frameCount = 0;
+        proc->fibers[i].ip = nullptr;
+    }
 
     proc->privates[0] = makeDouble(0); // x
     proc->privates[1] = makeDouble(0); // y
@@ -153,14 +145,10 @@ ProcessDef *Interpreter::addProcess(const char *name )
     proc->privates[7] = makeInt(-1);   // id
     proc->privates[8] = makeInt(-1);   // father
 
-    proc->fibers = nullptr;
-    proc->fiberCount = 1;  // Main fiber (será incrementado se houver "fiber X()")
-    
+    initFiber(&proc->fibers[0], func);
+ 
 
-    // Warning("Process %s created (%ld)", name,sizeof(ProcessDef)); //334520
-    // Warning("Process %s created (%ld)", name,sizeof(ProcessDef)); //336
-
-    
+ 
 
     processesMap.set(pName, proc);
     processes.push(proc);
@@ -180,8 +168,6 @@ Process *Interpreter::spawnProcess(ProcessDef *blueprint)
     instance->current = nullptr;
     instance->initialized = false;
     instance->exitCode = 0;
-    instance->fiberCount = blueprint->fiberCount;
-    instance->fibers = (Fiber *)malloc(instance->fiberCount * sizeof(Fiber));
 
     // Clona privates
     for (int i = 0; i < MAX_PRIVATES; i++)
@@ -190,7 +176,7 @@ Process *Interpreter::spawnProcess(ProcessDef *blueprint)
     }
 
     // Clona fibers
-    for (int i = 0; i < instance->fiberCount; i++)
+    for (int i = 0; i < MAX_FIBERS; i++)
     {
         Fiber *srcFiber = &blueprint->fibers[i];
         Fiber *dstFiber = &instance->fibers[i];
@@ -240,63 +226,6 @@ Process *Interpreter::spawnProcess(ProcessDef *blueprint)
     return instance;
 }
 
-// Process* Interpreter::spawnProcess(ProcessDef* blueprint)
-// {
-//     Process* instance = ProcessPool::instance().create();
-
-//     instance->name = blueprint->name;
-//     instance->id = PROCESS_IDS++;
-//     instance->state = FiberState::RUNNING;
-//     instance->resumeTime = 0;
-//     instance->initialized = false;
-//     instance->exitCode = 0;
-
-//     // Clona privates
-//     for (int i = 0; i < MAX_PRIVATES; i++)
-//     {
-//         instance->privates[i] = blueprint->privates[i];
-//     }
-
-  
-//     instance->fiberCount = blueprint->fiberCount;
-//     instance->fibers = (Fiber*)malloc(instance->fiberCount * sizeof(Fiber));
-    
-//     for (int i = 0; i < instance->fiberCount; i++)
-//     {
-//         Fiber* srcFiber = &blueprint->fibers[i];
-//         Fiber* dstFiber = &instance->fibers[i];
-
-//         // Copia estado
-//         dstFiber->state = srcFiber->state;
-//         dstFiber->resumeTime = srcFiber->resumeTime;
-//         dstFiber->frameCount = srcFiber->frameCount;
-
-//         // Copia stack
-//         size_t stackSize = srcFiber->stackTop - srcFiber->stack;
-//         memcpy(dstFiber->stack, srcFiber->stack, stackSize * sizeof(Value));
-//         dstFiber->stackTop = dstFiber->stack + stackSize;
-
-//         dstFiber->ip = srcFiber->ip;
-
-//         // Copia frames
-//         for (int j = 0; j < srcFiber->frameCount; j++)
-//         {
-//             dstFiber->frames[j].func = srcFiber->frames[j].func;
-//             dstFiber->frames[j].ip = srcFiber->frames[j].ip;
-
-//             // Ajusta slots para nova stack
-//             ptrdiff_t offset = srcFiber->frames[j].slots - srcFiber->stack;
-//             dstFiber->frames[j].slots = dstFiber->stack + offset;
-//         }
-//     }
-
-//     // Current é sempre fiber[0] (main)
-//     instance->current = &instance->fibers[0];
-
-//     aliveProcesses.push(instance);
-
-//     return instance;
-// }
 uint32 Interpreter::getTotalProcesses() const
 {
     return static_cast<uint32>(processes.size());

@@ -1178,9 +1178,9 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
                 runtimeError("No current process for spawn");
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
-            if (currentProcess->nextFiberIndex >= currentProcess->fiberCount)
+            if (currentProcess->nextFiberIndex >= MAX_FIBERS)
             {
-                runtimeError("Too many fibers in process (max %d)", currentProcess->fiberCount);
+                runtimeError("Too many fibers in process (max %d)", MAX_FIBERS);
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
             if (!callee.isFunction())

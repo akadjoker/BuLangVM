@@ -1235,19 +1235,9 @@ void Compiler::processDeclaration()
     Token nameToken = previous;
     isProcess_ = true;
     argNames.clear();
+    numFibers_ = 1;
 
     // Warning("Compiling process '%s'", nameToken.lexeme.c_str());
-
-// Cria blueprint (process não vai para globals como callable)
-    ProcessDef *proc = vm_->addProcess(nameToken.lexeme.c_str());
-    if (!proc)
-    {
-        error("Process already exists or invalid name");
-        return;
-    }
-    currentProcess = proc;
-
-
 
     // Cria função para o process
 
@@ -1262,21 +1252,9 @@ void Compiler::processDeclaration()
     // Compila processo
     compileFunction(func, true); // true = É PROCESS!
 
-    
-    // Info("Process '%s' needs %d fibers", 
-    //      nameToken.lexeme.c_str(), 
-    //      proc->fiberCount);
+    // Cria blueprint (process não vai para globals como callable)
+    ProcessDef *proc = vm_->addProcess(nameToken.lexeme.c_str(), func);
 
-    proc->fibers = (Fiber *)malloc(proc->fiberCount * sizeof(Fiber));
-    vm_->initFiber(&proc->fibers[0], func);
-    for (int i = 1; i < proc->fiberCount; i++)
-    {
-        proc->fibers[i].state = FiberState::DEAD;
-        proc->fibers[i].stackTop = proc->fibers[i].stack;
-        proc->fibers[i].frameCount = 0;
-        proc->fibers[i].ip = nullptr;
-        proc->fibers[i].resumeTime = 0;
-    }
 
     for (uint32 i = 0; i < argNames.size(); i++)
     {
@@ -1304,8 +1282,8 @@ void Compiler::processDeclaration()
         }
     }
     argNames.clear();
-
-    // Warning("Process '%s' registered with index %d", nameToken.lexeme.c_str(), index);
+ 
+    Warning("Process '%s' registered with index %d and %d fibers", nameToken.lexeme.c_str(), proc->index, numFibers_);
 
     emitConstant(vm_->makeProcess(proc->index));
     uint8 nameConstant = identifierConstant(nameToken);
@@ -1720,13 +1698,10 @@ void Compiler::fiberStatement()
 
     consume(TOKEN_SEMICOLON, "Expect ';' after fiber call.");
 
-    if (currentProcess)
-    {
-        currentProcess->fiberCount++;
-    }
-
     emitByte(OP_SPAWN);
     emitByte(argCount);
+    numFibers_ +=1;
+
 }
 
 void Compiler::dot(bool canAssign)

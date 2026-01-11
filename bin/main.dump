@@ -7,36 +7,65 @@ GLOBAL FUNCTIONS
 ========================================
 
 
->>> Function: timeTest
-    Arity: 0
+>>> Function: worker
+    Arity: 1
     Has return: no
-    Index: 2
+    Index: 1
 
-  Constants (4):
-    [0] = "sleeper"
-    [1] = 100
-    [2] = "Timer still running (16ms)"
-    [3] = "Timer still running (32ms)"
+  Constants (9):
+    [0] = "steps"
+    [1] = 0
+    [2] = 3
+    [3] = "x"
+    [4] = 1
+    [5] = "Step "
+    [6] = ": x="
+    [7] = 1.00
+    [8] = "Worker Done"
 
   Bytecode:
-    0000   10 OP_GET_GLOBAL       0 'sleeper'
-    0002    | OP_SPAWN            0
-    0004   12 OP_CONSTANT         1 '100'
-    0006    | OP_FRAME
-    0007   13 OP_CONSTANT         2 'Timer still running (16ms)'
-    0009    | OP_PRINT
-    0010    | OP_NIL
-    0011   15 OP_CONSTANT         1 '100'
-    0013    | OP_FRAME
-    0014   16 OP_CONSTANT         3 'Timer still running (32ms)'
-    0016    | OP_PRINT
-    0017    | OP_NIL
-    0018   18 OP_CONSTANT         1 '100'
-    0020    | OP_FRAME
-    0021   20 OP_CONSTANT         1 '100'
-    0023    | OP_FRAME
-    0024   23 OP_NIL
-    0025    | OP_RETURN
+    0000    5 OP_CONSTANT         1 '0'
+    0002    6 OP_GET_LOCAL        2
+    0004    | OP_CONSTANT         2 '3'
+    0006    | OP_LESS
+    0007    | OP_JUMP_IF_FALSE    7 -> 55
+    0010    | OP_POP
+    0011    8 OP_GET_LOCAL        1
+    0013    | OP_GET_LOCAL        1
+    0015    | OP_GET_PROPERTY     3 'x'
+    0017    | OP_CONSTANT         4 '1'
+    0019    | OP_ADD
+    0020    | OP_SET_PROPERTY     3 'x'
+    0022    | OP_POP
+    0023    9 OP_CONSTANT         5 'Step '
+    0025    | OP_GET_LOCAL        2
+    0027    | OP_ADD
+    0028    | OP_CONSTANT         6 ': x='
+    0030    | OP_ADD
+    0031    | OP_GET_LOCAL        1
+    0033    | OP_GET_PROPERTY     3 'x'
+    0035    | OP_ADD
+    0036    | OP_PRINT
+    0037    | OP_NIL
+    0038   10 OP_CONSTANT         7 '1.0000'
+    0040    | OP_YIELD
+    0041   11 OP_GET_LOCAL        2
+    0043    | OP_GET_LOCAL        2
+    0045    | OP_CONSTANT         4 '1'
+    0047    | OP_ADD
+    0048    | OP_SET_LOCAL        2
+    0050    | OP_POP
+    0051    | OP_POP
+    0052   12 OP_LOOP            52 -> 2
+    0055    | OP_POP
+    0056   13 OP_CONSTANT         8 'Worker Done'
+    0058    | OP_PRINT
+    0059    | OP_NIL
+    0060   14 OP_POP
+    0061    | OP_POP
+    0062    | OP_POP
+    0063    | OP_NIL
+    0064    | OP_RETURN
 
 
 >>> Function: __main__
@@ -44,54 +73,89 @@ GLOBAL FUNCTIONS
     Has return: no
     Index: 0
 
-  Constants (7):
-    [0] = "timerDone"
-    [1] = <value type 16>
-    [2] = "sleeper"
-    [3] = <value type 24>
-    [4] = "timeTest"
-    [5] = "start"
-    [6] = 10
+  Constants (10):
+    [0] = "State"
+    [1] = <value type 14>
+    [2] = <value type 16>
+    [3] = "worker"
+    [4] = <value type 24>
+    [5] = "enemy"
+    [6] = "s"
+    [7] = 0
+    [8] = 100
+    [9] = "State updated by main fiber"
 
   Bytecode:
-    0000    1 OP_FALSE
-    0001    | OP_DEFINE_GLOBAL    0 'timerDone'
-    0003    7 OP_CONSTANT         1 '<function 1>'
-    0005    | OP_DEFINE_GLOBAL    2 'sleeper'
-    0007   23 OP_CONSTANT         3 '<process>'
-    0009    | OP_DEFINE_GLOBAL    4 'timeTest'
-    0011   26 OP_CONSTANT         5 'start'
-    0013    | OP_PRINT
-    0014    | OP_NIL
-    0015   27 OP_CONSTANT         6 '10'
-    0017    | OP_FRAME
-    0018   28 OP_GET_GLOBAL       4 'timeTest'
-    0020    | OP_CALL             0
-    0022    | OP_POP
-    0023   29 OP_CONSTANT         6 '10'
-    0025    | OP_FRAME
-    0026   33 OP_NIL
-    0027    | OP_RETURN
+    0000    1 OP_CONSTANT         1 '<struct 0>'
+    0002    | OP_DEFINE_GLOBAL    0 'State'
+    0004   14 OP_CONSTANT         2 '<function 1>'
+    0006    | OP_DEFINE_GLOBAL    3 'worker'
+    0008   25 OP_CONSTANT         4 '<process>'
+    0010    | OP_DEFINE_GLOBAL    5 'enemy'
+    0012   27 OP_GET_GLOBAL       5 'enemy'
+    0014    | OP_CALL             0
+    0016    | OP_POP
+    0017   30 OP_GET_GLOBAL       0 'State'
+    0019    | OP_CONSTANT         7 '0'
+    0021    | OP_CONSTANT         7 '0'
+    0023    | OP_CALL             2
+    0025    | OP_DEFINE_GLOBAL    6 's'
+    0027   31 OP_GET_GLOBAL       3 'worker'
+    0029    | OP_GET_GLOBAL       6 's'
+    0031    | OP_SPAWN            1
+    0033   32 OP_GET_GLOBAL       3 'worker'
+    0035    | OP_GET_GLOBAL       6 's'
+    0037    | OP_SPAWN            1
+    0039   35 OP_CONSTANT         8 '100'
+    0041    | OP_FRAME
+    0042    | OP_CONSTANT         8 '100'
+    0044    | OP_FRAME
+    0045    | OP_CONSTANT         8 '100'
+    0047    | OP_FRAME
+    0048    | OP_CONSTANT         8 '100'
+    0050    | OP_FRAME
+    0051   37 OP_CONSTANT         9 'State updated by main fiber'
+    0053    | OP_PRINT
+    0054    | OP_NIL
+    0055    | OP_NIL
+    0056    | OP_RETURN
 
 
->>> Function: sleeper
+>>> Function: enemy
     Arity: 0
     Has return: no
-    Index: 1
+    Index: 2
 
-  Constants (2):
-    [0] = 50
-    [1] = "timerDone"
+  Constants (6):
+    [0] = "s"
+    [1] = "State"
+    [2] = 0
+    [3] = "worker"
+    [4] = 100
+    [5] = "State updated by fiber"
 
   Bytecode:
-    0000    5 OP_CONSTANT         0 '50'
-    0002    | OP_YIELD
-    0003    6 OP_TRUE
-    0004    | OP_SET_GLOBAL       1 'timerDone'
-    0006    | OP_POP
-    0007    7 OP_POP
-    0008    | OP_NIL
-    0009    | OP_RETURN
+    0000   18 OP_GET_GLOBAL       1 'State'
+    0002    | OP_CONSTANT         2 '0'
+    0004    | OP_CONSTANT         2 '0'
+    0006    | OP_CALL             2
+    0008   19 OP_GET_GLOBAL       3 'worker'
+    0010    | OP_GET_LOCAL        0
+    0012    | OP_SPAWN            1
+    0014   22 OP_CONSTANT         4 '100'
+    0016    | OP_FRAME
+    0017    | OP_CONSTANT         4 '100'
+    0019    | OP_FRAME
+    0020    | OP_CONSTANT         4 '100'
+    0022    | OP_FRAME
+    0023    | OP_CONSTANT         4 '100'
+    0025    | OP_FRAME
+    0026   24 OP_CONSTANT         5 'State updated by fiber'
+    0028    | OP_PRINT
+    0029    | OP_NIL
+    0030   25 OP_POP
+    0031    | OP_NIL
+    0032    | OP_RETURN
 
 
 ========================================

@@ -147,7 +147,7 @@ private:
   FunctionType currentFunctionType;
   Function *function;
   Code *currentChunk;
- 
+  Fiber *currentFiber;
   ClassDef *currentClass;
   ProcessDef *currentProcess;
   Vector<String *> argNames;
@@ -163,6 +163,7 @@ private:
   LoopContext loopContexts_[MAX_LOOP_DEPTH];
   int loopDepth_;
   bool isProcess_;
+  int numFibers_;
 
   std::vector<Label> labels;
   std::vector<GotoJump> pendingGotos;
