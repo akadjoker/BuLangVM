@@ -882,7 +882,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber,Process *process)
                 StructInstance *instance = value.as.sInstance;
                 instance->marked = 0;
                 instance->def = def;
-                structInstances.push(instance);
+      
                 instance->values.reserve(def->argCount);
                 Value *args = fiber->stackTop - argCount;
                 for (int i = 0; i < argCount; i++)
@@ -997,7 +997,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber,Process *process)
                 Value literal = makeNativeStructInstance();
                 // Cria instance wrapper
                 NativeStructInstance *instance = literal.as.sNativeStruct;
-                nativeStructInstances.push(instance);
+          
                 instance->def = def;
                 instance->data = data;
 

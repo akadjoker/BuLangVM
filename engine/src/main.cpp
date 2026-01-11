@@ -125,6 +125,7 @@ Value native_write(Interpreter *vm, int argCount, Value *args)
 Value native_gc(Interpreter *vm, int argCount, Value *args)
 {
     vm->runGC();
+    
     return vm->makeNil();
 }
 

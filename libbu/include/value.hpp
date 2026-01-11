@@ -103,6 +103,8 @@ struct Value
   FORCE_INLINE bool isNativeStructInstance() const { return type == ValueType::NATIVESTRUCTINSTANCE; }
   FORCE_INLINE bool isModuleRef() { return type == ValueType::MODULEREFERENCE; }
 
+  FORCE_INLINE bool isObject() const { return   (isBuffer() || isMap() || isArray() || isClassInstance() || isStructInstance() ||  isNativeClassInstance() || isNativeStructInstance()); }
+
   // Conversions
 
   FORCE_INLINE const char *asStringChars() const { return as.string->chars(); }

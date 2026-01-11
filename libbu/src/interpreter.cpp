@@ -73,60 +73,7 @@ Interpreter::Interpreter()
 
 void Interpreter::freeInstances()
 {
-  for (size_t i = 0; i < nativeInstances.size(); i++)
-  {
-    NativeClassInstance *a = nativeInstances[i];
-    a->klass->destructor(this, a->userData); // so depois apagamos as def
-    freeNativeClass(a);
-  }
-  nativeInstances.clear();
-
-  for (size_t i = 0; i < structInstances.size(); i++)
-  {
-    StructInstance *a = structInstances[i];
-    freeStruct(a);
-  }
-  structInstances.clear();
-
-  for (size_t i = 0; i < classInstances.size(); i++)
-  {
-    ClassInstance *a = classInstances[i];
-    freeClass(a);
-  }
-  classInstances.clear();
-
-  for (size_t i = 0; i < bufferInstances.size(); i++)
-  {
-    BufferInstance *a = bufferInstances[i];
-    freeBuffer(a);
-  }
-  bufferInstances.clear();
-
-  for (size_t i = 0; i < mapInstances.size(); i++)
-  {
-    MapInstance *a = mapInstances[i];
-    freeMap(a);
-  }
-  mapInstances.clear();
-
-  for (size_t i = 0; i < arrayInstances.size(); i++)
-  {
-    ArrayInstance *a = arrayInstances[i];
-    freeArray(a);
-  }
-  arrayInstances.clear();
-
-  for (size_t i = 0; i < nativeStructInstances.size(); i++)
-  {
-    NativeStructInstance *a = nativeStructInstances[i];
-    if (a->def->destructor)
-    {
-      a->def->destructor(this, a->data);
-    }
-    arena.Free(a->data, a->def->structSize);
-    freeNativeStruct(a);
-  }
-  nativeStructInstances.clear();
+  
 }
 
 void Interpreter::freeFunctions()
@@ -214,6 +161,22 @@ void Interpreter::reset()
   // 2. Limpa código compilado (Bytecode das funções)
   freeFunctions();
 
+  clearAllGCObjects();
+
+
+  gcObjects = nullptr;
+  totalAllocated = 0;
+  totalArrays = 0;
+  totalStructs = 0;
+  totalClasses = 0;
+  totalMaps = 0;
+  totalNativeClasses = 0;
+  totalNativeStructs = 0;
+  nextGC = 1024 * 4;
+  gcInProgress = false;
+ 
+  frameCount = 0;
+
   // 3. Limpa blueprints de processos (gerados pelo script anterior)
   // Nota: Mantivemos este loop aqui pois reset() pode não querer limpar
   // todas as Classes/Structs se forem partilhadas, mas os ProcessDefs do script sim.
@@ -263,6 +226,7 @@ Interpreter::~Interpreter()
   freeFunctions();
   freeBlueprints();
   globals.destroy();
+  clearAllGCObjects();
 
   Info("Heap stats:");
   arena.Stats();
@@ -282,7 +246,10 @@ BufferInstance *Interpreter::createBuffer(int count, int typeRaw)
   BufferInstance *instance = new (mem) BufferInstance(count, (BufferType)typeRaw);
   instance->marked = 0;
 
-  bufferInstances.push(instance);
+  instance->next = gcObjects;
+  gcObjects = instance;
+  totalBuffers++;
+ 
   totalAllocated += size;
   totalAllocated += (count * instance->elementSize); // Conta também os dados raw!
 
@@ -296,6 +263,8 @@ void Interpreter::freeBuffer(BufferInstance *b)
 
   b->~BufferInstance();
   arena.Free(b, size);
+
+  totalBuffers--;
 
   totalAllocated -= (size + dataSize);
 }
@@ -317,7 +286,7 @@ NativeClassDef *Interpreter::registerNativeClass(const char *name,
   klass->destructor = dtor;
   klass->argCount = argCount;
 
-  nativeClasses.push(klass);
+ 
 
   // Define global
   globals.set(klass->name, makeNativeClass(id));
@@ -883,19 +852,9 @@ bool Interpreter::findAndJumpToHandler(Value error, uint8 *&ip, Fiber *fiber)
   return false;
 }
 
-StructInstance::StructInstance() : marked(0), def(nullptr) {}
+ 
 
-ArrayInstance::ArrayInstance() : marked(0) {}
-
-MapInstance::MapInstance() : marked(0) {}
-
-ClassInstance::ClassInstance() : marked(0) {}
-
-ClassInstance::~ClassInstance()
-{
-}
-
-BufferInstance::BufferInstance(int count, BufferType type)
+BufferInstance::BufferInstance(int count, BufferType type):GCObject(GCObjectType::BUFFER)
 {
   this->count = count;
   this->type = type;
@@ -944,13 +903,7 @@ BufferInstance::~BufferInstance()
   }
 }
 
-NativeClassInstance::NativeClassInstance() : marked(0), klass(nullptr), userData(nullptr)
-{
-}
-
-NativeStructInstance::NativeStructInstance() : marked(0), def(nullptr), data(nullptr)
-{
-}
+ 
 
 // bool ClassInstance::getMethod(String *name, Function **out)
 // {

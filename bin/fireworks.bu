@@ -69,22 +69,22 @@ class Rocket
         self.vy = self.vy + gravity * 0.5;  // Gravity slows it down
         
  
-        // self.trail.push(Point(self.x, self.y));
+        self.trail.push(Point(self.x, self.y));
      
-        // if (len(self.trail) > 15)
-        // {
+        if (len(self.trail) > 15)
+        {
             
-        //     // Remove oldest trail point
-        //     var newTrail = [];
-        //     for (var i = 1; i < len(self.trail); i = i + 1)
-        //     {
-        //         newTrail.push(self.trail[i]);
-        //     }
+            // Remove oldest trail point
+            var newTrail = [];
+            for (var i = 1; i < len(self.trail); i = i + 1)
+            {
+                newTrail.push(self.trail[i]);
+            }
             
-        //     free(self.trail);
+            free(self.trail);
             
-        //     self.trail = newTrail;
-        // }
+            self.trail = newTrail;
+        }
 
         
         
@@ -223,7 +223,7 @@ var aliveRockets = [];
 var aliveParticles = [];
 var frameCount=0;
 
-var clean=[];
+ 
 
 while (!WindowShouldClose())
 {
@@ -259,7 +259,7 @@ while (!WindowShouldClose())
         {
             rockets[i] = rockets.back();
             rockets.pop();
-            clean.push(r);
+   
         } else
         {
         i=i+1;
@@ -277,7 +277,7 @@ while (!WindowShouldClose())
          
            particles[i]=particles.back();
            particles.pop();
-           clean.push(p);
+       
            
         }else
         {
@@ -309,48 +309,60 @@ while (!WindowShouldClose())
 
 
     i=0;
-    while(i < len(clean))
-    {
-        var p = clean[i];
-        free(p);
-        i++;
-    }
-    clean.clear();
+  
 
 
     frameCount=frameCount+1;
     if(frameCount % 100 ==0)
     {
 
-        _gc();
+       //_gc();
     }
 
 }
 
 CloseWindow();
 
+
+// struct RGBA 
+// {
+//     r,g,b,a;
+// };
  
 
-// var i=0;
-// var colors =[];
+
+
+//  var i=0;
+//  var colors =[];
 
 
 // while(i<50)
 // {
-//     var color =  Color(255, 50, 50, 255);
+//     var color =  RGBA(255, 50, 50, 255);
 //     colors.push(color);
-
+//     var c = Color(1,1,2,3);
+//     free(c);
 //     i++;
     
 // }
 
+// colors.pop();
+// colors.pop();
+ 
+
 // free(colors);
 
-// var c = Color(1,1,1,1);
-// free(c);
+// print("First gc");
+// _gc();
+
+
+// print("second gc");
+// _gc();
 
 
 
 
-print("byby");
+
+
+// print("byby");
 
