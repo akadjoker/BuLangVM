@@ -21,6 +21,8 @@ void Interpreter::markRoots()
         // Marca privates
         for (int j = 0; j < MAX_PRIVATES; j++)
         {
+            if (!proc->privates[j].isObject())
+                continue;
             markValue(proc->privates[j]);
         }
 
@@ -34,6 +36,8 @@ void Interpreter::markRoots()
                 {
                     for (Value *v = fiber->stack; v < fiber->stackTop; v++)
                     {
+                        if (!v->isObject())
+                            continue;
                         markValue(*v);
                     }
                 }
@@ -42,61 +46,69 @@ void Interpreter::markRoots()
     }
 }
 
+// void Interpreter::markObject(GCObject *obj)
+// {
+//     if (!obj || obj->marked)
+//         return;
+
+//     obj->marked = 1;
+
+//     // Info("Marking %d", (int) obj->type);
+
+//     switch (obj->type)
+//     {
+//     case GCObjectType::STRUCT:
+//     {
+//         StructInstance *s = static_cast<StructInstance *>(obj);
+//         for (size_t i = 0; i < s->values.size(); i++)
+//         {
+//             markValue(s->values[i]);
+//         }
+//         break;
+//     }
+
+//     case GCObjectType::CLASS:
+//     {
+//         ClassInstance *c = static_cast<ClassInstance *>(obj);
+//         for (size_t i = 0; i < c->fields.size(); i++)
+//         {
+//             markValue(c->fields[i]);
+//         }
+//         break;
+//     }
+
+//     case GCObjectType::ARRAY:
+//     {
+//         ArrayInstance *a = static_cast<ArrayInstance *>(obj);
+//         for (size_t i = 0; i < a->values.size(); i++)
+//         {
+//             markValue(a->values[i]);
+//         }
+//         break;
+//     }
+
+//     case GCObjectType::MAP:
+//     {
+//         MapInstance *m = static_cast<MapInstance *>(obj);
+//         m->table.forEach([this](String *key, Value val)
+//                          { markValue(val); });
+//         break;
+//     }
+
+//     case GCObjectType::BUFFER:
+//     case GCObjectType::NATIVE_CLASS:
+//     case GCObjectType::NATIVE_STRUCT:
+//         //  Sem conteúdo para marcar ???
+//         break;
+//     }
+// }
+
 void Interpreter::markObject(GCObject *obj)
 {
-    if (!obj || obj->marked)
+    if (obj == nullptr || obj->marked)
         return;
-
     obj->marked = 1;
-
-    // Info("Marking %d", (int) obj->type);
-
-    switch (obj->type)
-    {
-    case GCObjectType::STRUCT:
-    {
-        StructInstance *s = static_cast<StructInstance *>(obj);
-        for (size_t i = 0; i < s->values.size(); i++)
-        {
-            markValue(s->values[i]);
-        }
-        break;
-    }
-
-    case GCObjectType::CLASS:
-    {
-        ClassInstance *c = static_cast<ClassInstance *>(obj);
-        for (size_t i = 0; i < c->fields.size(); i++)
-        {
-            markValue(c->fields[i]);
-        }
-        break;
-    }
-
-    case GCObjectType::ARRAY:
-    {
-        ArrayInstance *a = static_cast<ArrayInstance *>(obj);
-        for (size_t i = 0; i < a->values.size(); i++)
-        {
-            markValue(a->values[i]);
-        }
-        break;
-    }
-
-    case GCObjectType::MAP:
-    {
-        MapInstance *m = static_cast<MapInstance *>(obj);
-        m->table.forEach([this](String *key, Value val)
-                         { markValue(val); });
-        break;
-    }
-
-    case GCObjectType::BUFFER:
-    case GCObjectType::NATIVE_CLASS:
-    case GCObjectType::NATIVE_STRUCT:
-        //  Sem conteúdo para marcar ???
-        break;
-    }
+    grayStack.push(obj);
 }
 
 void Interpreter::markValue(const Value &v)
@@ -228,6 +240,81 @@ void Interpreter::checkGC()
     }
 }
 
+void Interpreter::blackenObject(GCObject *obj)
+{
+    switch (obj->type)
+    {
+    case GCObjectType::STRUCT:
+    {
+        StructInstance *s = static_cast<StructInstance *>(obj);
+        for (size_t i = 0; i < s->values.size(); i++)
+        {
+            if (!s->values[i].isObject())
+                continue;
+            markValue(s->values[i]);
+        }
+        break;
+    }
+
+    case GCObjectType::CLASS:
+    {
+        ClassInstance *c = static_cast<ClassInstance *>(obj);
+        for (size_t i = 0; i < c->fields.size(); i++)
+        {
+            if (!c->fields[i].isObject())
+                continue;
+            markValue(c->fields[i]);
+        }
+        break;
+    }
+
+    case GCObjectType::ARRAY:
+    {
+        ArrayInstance *a = static_cast<ArrayInstance *>(obj);
+        for (size_t i = 0; i < a->values.size(); i++)
+        {
+            if (!a->values[i].isObject())
+                continue;
+            markValue(a->values[i]);
+        }
+        break;
+    }
+
+    case GCObjectType::MAP:
+    {
+        MapInstance *m = static_cast<MapInstance *>(obj);
+        // Marcamos apenas os VALORES. As chaves (Strings) são ignoradas como pediste.
+        m->table.forEach([this](String *key, Value val)
+                         { 
+                            if(val.isObject())
+                                markValue(val); 
+                        });
+        break;
+    }
+
+    // Estes objetos não têm filhos (referências internas), ficam logo Black
+    case GCObjectType::BUFFER:
+    case GCObjectType::NATIVE_CLASS:
+    case GCObjectType::NATIVE_STRUCT:
+        break;
+    }
+
+ 
+}
+
+void Interpreter::traceReferences()
+{
+    // Enquanto houver objetos na lista Gray...
+    while (!grayStack.empty())
+    {
+        // 1. Tira o último objeto da pilha
+        GCObject* obj = grayStack.back();
+        grayStack.pop();
+        // 2. Processa-o (transforma-o em BLACK)
+        blackenObject(obj);
+    }
+}
+
 void Interpreter::runGC()
 {
     if (gcInProgress)
@@ -237,7 +324,13 @@ void Interpreter::runGC()
     size_t bytesBefore = totalAllocated;
     size_t objectsBefore = totalArrays + totalClasses + totalStructs + totalMaps + totalBuffers + totalNativeClasses + totalNativeStructs;
 
+    grayStack.clear();
+
     markRoots();
+
+
+    traceReferences();
+
     sweep();
 
     size_t objectCount = totalArrays + totalClasses + totalStructs + totalMaps + totalBuffers + totalNativeClasses + totalNativeStructs;
@@ -255,10 +348,10 @@ void Interpreter::runGC()
         nextGC = MAX_GC_THRESHOLD;
     }
 
-// Info("GC: End - Freed %zu objects (%.2f KB). Remaining: %zu objects (%.2f KB). Next GC: %.2f KB",
-//          objectsFreed, bytesFreed / 1024.0,
-//          objectCount, totalAllocated / 1024.0,
-//          nextGC / 1024.0);
+    // Info("GC: End - Freed %zu objects (%.2f KB). Remaining: %zu objects (%.2f KB). Next GC: %.2f KB",
+    //          objectsFreed, bytesFreed / 1024.0,
+    //          objectCount, totalAllocated / 1024.0,
+    //          nextGC / 1024.0);
 
     gcInProgress = false;
 

@@ -520,6 +520,7 @@ class Interpreter
   bool enbaledGC = true;
   GCObject *gcObjects;
   int frameCount;
+  Vector<GCObject *> grayStack;
 
   // gc end
 
@@ -555,6 +556,8 @@ class Interpreter
   void freeFunctions();
   void freeRunningProcesses();
   void checkGC();
+  void blackenObject(GCObject *obj);
+  void traceReferences();
 
   Fiber *get_ready_fiber(Process *proc);
   void resetFiber();
