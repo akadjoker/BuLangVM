@@ -26,7 +26,7 @@ bool toNumberPair(const Value &a, const Value &b, double &da, double &db)
     return true;
 }
 
-FiberResult Interpreter::run_fiber(Fiber *fiber)
+FiberResult Interpreter::run_fiber(Fiber *fiber,Process *process)
 {
 
     currentFiber = fiber;
@@ -279,14 +279,14 @@ op_set_local:
 op_get_private:
 {
     uint8 index = READ_BYTE();
-    PUSH(currentProcess->privates[index]);
+    PUSH(process->privates[index]);
     DISPATCH();
 }
 
 op_set_private:
 {
     uint8 index = READ_BYTE();
-    currentProcess->privates[index] = PEEK();
+    process->privates[index] = PEEK();
     DISPATCH();
 }
 
@@ -963,7 +963,7 @@ op_call:
         fiber->stackTop -= (argCount + 1);
 
         instance->privates[(int)PrivateIndex::ID] = makeInt(instance->id);
-        instance->privates[(int)PrivateIndex::FATHER] = makeProcess(currentProcess->id);
+        instance->privates[(int)PrivateIndex::FATHER] = makeProcess(process->id);
 
         if (hooks.onStart)
         {
@@ -1233,13 +1233,13 @@ op_return:
 
         fiber->state = FiberState::DEAD;
 
-        if (fiber == &currentProcess->fibers[0])
+        if (fiber == &process->fibers[0])
         {
-            for (int i = 0; i < currentProcess->nextFiberIndex; i++)
+            for (int i = 0; i < process->nextFiberIndex; i++)
             {
-                currentProcess->fibers[i].state = FiberState::DEAD;
+                process->fibers[i].state = FiberState::DEAD;
             }
-            currentProcess->state = FiberState::DEAD;
+            process->state = FiberState::DEAD;
         }
 
         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
@@ -1280,15 +1280,15 @@ op_exit:
     Value exitCode = POP();
 
     // Define exit code (int ou 0)
-    currentProcess->exitCode = exitCode.isInt() ? exitCode.asInt() : 0;
+    process->exitCode = exitCode.isInt() ? exitCode.asInt() : 0;
 
     // Mata o processo
-    currentProcess->state = FiberState::DEAD;
+    process->state = FiberState::DEAD;
 
     // Mata todas as fibers (incluindo a atual)
     for (int i = 0; i < MAX_FIBERS; i++)
     {
-        Fiber *f = &currentProcess->fibers[i];
+        Fiber *f = &process->fibers[i];
         f->state = FiberState::DEAD;
         f->frameCount = 0;
         f->ip = nullptr;
@@ -1308,13 +1308,13 @@ op_spawn:
     uint8 argCount = READ_BYTE();
     Value callee = NPEEK(argCount);
 
-    if (!currentProcess)
+    if (!process)
     {
         runtimeError("No current process for spawn");
         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
     }
 
-    if (currentProcess->nextFiberIndex >= MAX_FIBERS)
+    if (process->nextFiberIndex >= MAX_FIBERS)
     {
         runtimeError("Too many fibers in process (max %d)", MAX_FIBERS);
         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
@@ -1341,8 +1341,8 @@ op_spawn:
         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
     }
 
-    int fiberIdx = currentProcess->nextFiberIndex++;
-    Fiber *newFiber = &currentProcess->fibers[fiberIdx];
+    int fiberIdx = process->nextFiberIndex++;
+    Fiber *newFiber = &process->fibers[fiberIdx];
 
     newFiber->state = FiberState::RUNNING;
     newFiber->resumeTime = 0;
@@ -3998,13 +3998,13 @@ op_exit_finally:
                     *fiber->stackTop++ = returnValue;
                     fiber->state = FiberState::DEAD;
 
-                    if (fiber == &currentProcess->fibers[0])
+                    if (fiber == &process->fibers[0])
                     {
-                        for (int i = 0; i < currentProcess->nextFiberIndex; i++)
+                        for (int i = 0; i < process->nextFiberIndex; i++)
                         {
-                            currentProcess->fibers[i].state = FiberState::DEAD;
+                            process->fibers[i].state = FiberState::DEAD;
                         }
-                        currentProcess->state = FiberState::DEAD;
+                        process->state = FiberState::DEAD;
                     }
 
                     STORE_FRAME();

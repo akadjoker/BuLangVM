@@ -207,6 +207,8 @@ var WHITE = Color(255, 255, 255, 255);
 var LIGHTGRAY = Color(200, 200, 200, 255);
 
 var cooldown = 0;
+var aliveRockets = [];
+var aliveParticles = [];
 
 while (!WindowShouldClose())
 {
@@ -222,39 +224,45 @@ while (!WindowShouldClose())
     }
     
     // // Auto-launch rockets
-    // cooldown = cooldown - 1;
-    // if (cooldown <= 0)
-    // {
-    //     var x = 100 + math.rand(600);
-    //     var targetY = 100 + math.rand(150);
-    //     var r = Rocket(x, 600, targetY);
-    //     rockets.push(r);
-    //     cooldown = 30 + math.rand(30);  // 0.5-1 second
-    // }
+    cooldown = cooldown - 1;
+    if (cooldown <= 0)
+    {
+        var x = 100 + math.rand(600);
+        var targetY = 100 + math.rand(150);
+        var r = Rocket(x, 600, targetY);
+        rockets.push(r);
+        cooldown = 30 + math.rand(30);  // 0.5-1 second
+    }
     
     // Update rockets
-    var aliveRockets = [];
-    for (var i = 0; i < len(rockets); i = i + 1)
+    var i=0;
+    while(i< len(rockets))
     {
         var r = rockets[i];
-        if (r.update() == 1)
+        if (r.update() == 0)
         {
-            aliveRockets.push(r);
+            rockets[i] = rockets.back();
+            rockets.pop();
+            continue;
         }
+        i=i+1;
     }
-    rockets = aliveRockets;
+ 
     
     // Update particles
-    var aliveParticles = [];
-    for (var i = 0; i < len(particles); i = i + 1)
+    i=0;
+    while(i < len(particles))
     {
         var p = particles[i];
-        if (p.update() == 1)
+        if (p.update() == 0)
         {
-            aliveParticles.push(p);
+           particles[i]=particles.back();
+           particles.pop();
+           continue;
         }
+        i++;
     }
-    particles = aliveParticles;
+ 
     
     // Draw particles
     for (var i = 0; i < len(particles); i = i + 1)

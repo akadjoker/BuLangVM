@@ -389,7 +389,7 @@ bool Interpreter::callFunction(Function *func, int argCount)
 
     while (currentFiber->frameCount > targetFrames)
     {
-        FiberResult result = run_fiber(currentFiber);
+        FiberResult result = run_fiber(currentFiber,currentProcess);
 
         if (result.reason == FiberResult::ERROR)
         {
