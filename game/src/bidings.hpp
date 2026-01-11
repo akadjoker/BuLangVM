@@ -42,6 +42,8 @@ namespace RaylibBindings
     Value native_DrawRectangle(Interpreter *vm, int argc, Value *args);
     Value native_DrawRectangleRec(Interpreter *vm, int argc, Value *args);
 
+    
+
     // ========================================
     // TEXTURES
     // ========================================
@@ -51,7 +53,11 @@ namespace RaylibBindings
     Value native_DrawTexture(Interpreter *vm, int argc, Value *args);
     Value native_DrawTextureV(Interpreter *vm, int argc, Value *args);
     Value native_DrawTextureEx(Interpreter *vm, int argc, Value *args);
+    Value native_DrawTextureRotateScale(Interpreter *vm, int argc, Value *args);
+ 
 
+
+    
     // ========================================
     // TEXT
     // ========================================

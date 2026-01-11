@@ -92,10 +92,10 @@ static  const char* formatBytes(size_t bytes)
     void color_ctor(Interpreter *vm, void *buffer, int argc, Value *args)
     {
         Color *v = (Color *)buffer;
-        v->r = args[0].asByte();
-        v->g = args[1].asByte();
-        v->b = args[2].asByte();
-        v->a = args[3].asByte();
+        v->r =(uint8) args[0].asNumber();
+        v->g =(uint8) args[1].asNumber();
+        v->b =(uint8) args[2].asNumber();
+        v->a =(uint8) args[3].asNumber();
         // Info("Color(%d, %d, %d, %d)", v->r, v->g, v->b, v->a);
     }
 
@@ -148,8 +148,8 @@ static  const char* formatBytes(size_t bytes)
         {
             return vm->makeNil();
         }
-        int width = args[0].asInt();
-        int height = args[1].asInt();
+        int width = args[0].asNumber();
+        int height = args[1].asNumber();
         const char *title = args[2].asString()->chars();
 
         InitWindow(width, height, title);
@@ -175,7 +175,7 @@ static  const char* formatBytes(size_t bytes)
             Error("SetTargetFPS expects 1 argument");
             return vm->makeNil();
         }
-        SetTargetFPS(args[0].asInt());
+        SetTargetFPS(args[0].asNumber());
         return vm->makeNil();
     }
 
@@ -217,9 +217,9 @@ static  const char* formatBytes(size_t bytes)
         Color *tint = (Color *)colorInst->data;
 
         const char *text = args[0].asString()->chars();
-        int x = args[1].asInt();
-        int y = args[2].asInt();
-        int fontSize = args[3].asInt();
+        int x = args[1].asNumber();
+        int y = args[2].asNumber();
+        int fontSize = args[3].asNumber();
 
         DrawText(text, x, y, fontSize, *tint); 
         return vm->makeNil();
@@ -271,8 +271,8 @@ static  const char* formatBytes(size_t bytes)
             return vm->makeNil();
         }
 
-        int x =  args[0].asInt();
-        int y = args[1].asInt();
+        int x =  args[0].asNumber();
+        int y = args[1].asNumber();
 
         auto *inst = args[2].asNativeStructInstance();
         Color *color = (Color *)inst->data;
@@ -295,10 +295,10 @@ static  const char* formatBytes(size_t bytes)
             return vm->makeNil();
         }
 
-        int x1 =  args[0].asInt();
-        int y1 =  args[1].asInt();
-        int x2 =  args[2].asInt();
-        int y2 =  args[3].asInt();
+        int x1 =  args[0].asNumber();
+        int y1 =  args[1].asNumber();
+        int x2 =  args[2].asNumber();
+        int y2 =  args[3].asNumber();
 
         auto *inst = args[4].asNativeStructInstance();
         Color *color = (Color *)inst->data;
@@ -319,8 +319,8 @@ static  const char* formatBytes(size_t bytes)
             Error("DrawCircle expects Color");
             return vm->makeNil();
         }
-        int x = args[0].asInt();
-        int y = args[1].asInt();
+        int x = args[0].asNumber();
+        int y = args[1].asNumber();
         float radius = args[2].asDouble();
 
         auto *inst = args[3].asNativeStructInstance();
@@ -366,10 +366,10 @@ static  const char* formatBytes(size_t bytes)
             Error("DrawRectangle expects Color");
             return vm->makeNil();
         }
-        int x = args[0].asInt();
-        int y = args[1].asInt();
-        int width = args[2].asInt();
-        int height = args[3].asInt();
+        int x = args[0].asNumber();
+        int y = args[1].asNumber();
+        int width = args[2].asNumber();
+        int height = args[3].asNumber();
 
         auto *inst = args[4].asNativeStructInstance();
         Color *color = (Color *)inst->data;
@@ -457,14 +457,51 @@ static  const char* formatBytes(size_t bytes)
             return vm->makeNil();
         }
         Texture2D *tex = (Texture2D *)args[0].asPointer();
-        int x = args[1].asInt();
-        int y = args[2].asInt();
+        int x = args[1].asNumber();
+        int y = args[2].asNumber();
 
         auto *colorInst = args[3].asNativeStructInstance();
         Color *tint = (Color *)colorInst->data;
 
         DrawTexture(*tex, x, y, *tint);
         return vm->makeNil();
+    }
+
+
+    Value native_DrawTextureRootateScale(Interpreter *vm, int argc, Value *args)
+    {
+
+         if (argc != 6)
+        {
+            Error("DrawTexture expects 6 arguments");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("DrawTexture expects Texture2D");
+            return vm->makeNil();
+        }
+        if (!args[5].isNativeStructInstance())
+        {
+            Error("DrawTexture expects Color");
+            return vm->makeNil();
+        }
+        Texture2D *tex = (Texture2D *)args[0].asPointer();
+        int x =(int) args[1].asNumber();
+        int y =(int) args[2].asNumber();
+        double rotation = args[3].asNumber();
+        double scale = args[4].asNumber();
+        Vector2 position = {x, y};
+
+        auto *colorInst = args[5].asNativeStructInstance();
+        Color *tint = (Color *)colorInst->data;
+
+        DrawTextureEx(*tex, position, rotation, scale, *tint);
+        return vm->makeNil();
+
+
+        //void DrawTextureEx(Texture2D texture, Vector2 position, float rotation, float scale, Color tint)
+        
     }
 
     Value native_DrawTextureV(Interpreter *vm, int argc, Value *args)
@@ -509,8 +546,8 @@ static  const char* formatBytes(size_t bytes)
             Error("DrawFps expects 2 arguments");
             return vm->makeNil();
         }
-        int x = args[0].asInt();
-        int y = args[1].asInt();
+        int x = args[0].asNumber();
+        int y = args[1].asNumber();
 
         
       //  DrawRectangle(0, 0, 300, 114, Fade(BLACK, 0.5f));
@@ -538,7 +575,7 @@ static  const char* formatBytes(size_t bytes)
             return vm->makeNil();
         }
 
-        return vm->makeBool(IsMouseButtonDown(args[0].asInt()));
+        return vm->makeBool(IsMouseButtonDown(args[0].asNumber()));
     }
 
     Value native_IsMouseButtonPressed(Interpreter *vm, int argc, Value *args)
@@ -554,7 +591,7 @@ static  const char* formatBytes(size_t bytes)
             return vm->makeNil();
         }
 
-        return vm->makeBool(IsMouseButtonPressed(args[0].asInt()));
+        return vm->makeBool(IsMouseButtonPressed(args[0].asNumber()));
     }
 
     Value native_IsMouseButtonReleased(Interpreter *vm, int argc, Value *args)
@@ -570,7 +607,7 @@ static  const char* formatBytes(size_t bytes)
             return vm->makeNil();
         }
 
-        return vm->makeBool(IsMouseButtonReleased(args[0].asInt()));
+        return vm->makeBool(IsMouseButtonReleased(args[0].asNumber()));
     }
 
     Value native_IsMouseButtonUp(Interpreter *vm, int argc, Value *args)
@@ -586,7 +623,7 @@ static  const char* formatBytes(size_t bytes)
             return vm->makeNil();
         }
 
-        return vm->makeBool(IsMouseButtonUp(args[0].asInt()));
+        return vm->makeBool(IsMouseButtonUp(args[0].asNumber()));
     }
 
     Value native_GetMouseX(Interpreter *vm, int argc, Value *args)
@@ -604,5 +641,6 @@ static  const char* formatBytes(size_t bytes)
         Vector2 v = GetMousePosition();
         return vm->makeInt(-1);
     }
+
 
 }

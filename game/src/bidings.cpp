@@ -92,10 +92,10 @@ static  const char* formatBytes(size_t bytes)
     void color_ctor(Interpreter *vm, void *buffer, int argc, Value *args)
     {
         Color *v = (Color *)buffer;
-        v->r = args[0].asByte();
-        v->g = args[1].asByte();
-        v->b = args[2].asByte();
-        v->a = args[3].asByte();
+        v->r =(uint8) args[0].asNumber();
+        v->g =(uint8) args[1].asNumber();
+        v->b =(uint8) args[2].asNumber();
+        v->a =(uint8) args[3].asNumber();
         // Info("Color(%d, %d, %d, %d)", v->r, v->g, v->b, v->a);
     }
 
@@ -465,6 +465,45 @@ static  const char* formatBytes(size_t bytes)
 
         DrawTexture(*tex, x, y, *tint);
         return vm->makeNil();
+    }
+
+
+    Value native_DrawTextureRotateScale(Interpreter *vm, int argc, Value *args)
+    {
+
+         if (argc != 6)
+        {
+            Error("DrawTexture expects 6 arguments");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("DrawTexture expects Texture2D");
+            return vm->makeNil();
+        }
+        if (!args[5].isNativeStructInstance())
+        {
+            Error("DrawTexture expects Color");
+            return vm->makeNil();
+        }
+        Texture2D *tex = (Texture2D *)args[0].asPointer();
+        int x =(int) args[1].asNumber();
+        int y =(int) args[2].asNumber();
+        double rotation = args[3].asNumber();
+        double scale = args[4].asNumber();
+        Vector2 position;
+        position.x = x;
+        position.y = y;
+
+        auto *colorInst = args[5].asNativeStructInstance();
+        Color *tint = (Color *)colorInst->data;
+
+        DrawTextureEx(*tex, position, rotation, scale, *tint);
+        return vm->makeNil();
+
+
+        //void DrawTextureEx(Texture2D texture, Vector2 position, float rotation, float scale, Color tint)
+        
     }
 
     Value native_DrawTextureV(Interpreter *vm, int argc, Value *args)

@@ -81,7 +81,7 @@ class Rocket
                 newTrail.push(self.trail[i]);
             }
             
-            free(self.trail);
+           // free(self.trail);
             
             self.trail = newTrail;
         }
@@ -134,13 +134,14 @@ class Rocket
                 self.color.b,
                 alpha
             );
-             DrawCircle(point.x, point.y, 3, trailColor);
+             //DrawCircle(point.x, point.y, 3, trailColor);
+             DrawTextureRotate(tex, point.x, point.y, 0,1.0,trailColor);
        
         }
         
         // Draw rocket head (bright)
-        DrawCircle(self.x, self.y, 5, WHITE);
-        DrawCircle(self.x, self.y, 4, self.color);
+        //DrawCircle(self.x, self.y, 5, WHITE);
+        DrawTextureRotate(tex, self.x,self.y, 0,1.0,self.color);
     }
 }
 
@@ -199,7 +200,7 @@ class Particle
         );
         
         var size = (self.life / self.maxLife) * 3 + 1;
-        DrawCircle(self.x, self.y, size, c);
+        DrawTextureRotate(tex, self.x,self.y, 0,size * 0.5,c);
  
 
     }
@@ -223,7 +224,7 @@ var aliveRockets = [];
 var aliveParticles = [];
 var frameCount=0;
 
- 
+var tex = LoadTexture("assets/texture.png"); 
 
 while (!WindowShouldClose())
 {
@@ -316,10 +317,12 @@ while (!WindowShouldClose())
     if(frameCount % 100 ==0)
     {
 
-       //_gc();
+       _gc();
     }
 
 }
+
+UnloadTexture(tex);
 
 CloseWindow();
 
