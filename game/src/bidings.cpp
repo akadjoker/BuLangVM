@@ -512,18 +512,37 @@ static  const char* formatBytes(size_t bytes)
         int x = args[0].asInt();
         int y = args[1].asInt();
 
-        
-      //  DrawRectangle(0, 0, 300, 114, Fade(BLACK, 0.5f));
+         
         DrawFPS(x, y);
-        //DrawRectangleLines(x, y, 200, 64, WHITE);
-        // DrawText(TextFormat("RAM: %s", formatBytes(vm->getTotalAlocated())), 10, y + 16, 20, WHITE);
-        // DrawText(TextFormat("Classes %d, Structs %d", vm->getTotalClasses(), vm->getTotalStructs()), 10, y + 32, 20, WHITE);
-        // DrawText(TextFormat("Arrays %d Maps  %d", vm->getTotalArrays(), vm->getTotalMaps()), 10, y + 48, 20, WHITE);
-        // DrawText(TextFormat("Native Classes %d, Structs %d", vm->getTotalNativeClasses(), vm->getTotalNativeStructs()), 10, y + 64, 20, WHITE);
+         
 
 
         return vm->makeNil();
     }
+
+       Value native_DrawStats(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 2)
+        {
+            Error("DrawStats expects 2 arguments");
+            return vm->makeNil();
+        }
+        int x = args[0].asInt();
+        int y = args[1].asInt();
+
+        
+        DrawRectangle(x-2, y-2, 300, 104, Fade(BLACK, 0.5f));
+        
+        DrawRectangleLines(x-2, y-2, 300, 104, WHITE);
+        DrawText(TextFormat("RAM: %s", formatBytes(vm->getTotalAlocated())), x, y + 16, 20, WHITE);
+        DrawText(TextFormat("Classes %d, Structs %d", vm->getTotalClasses(), vm->getTotalStructs()), x, y + 32, 20, WHITE);
+        DrawText(TextFormat("Arrays %d Maps  %d", vm->getTotalArrays(), vm->getTotalMaps()), x, y + 48, 20, WHITE);
+        DrawText(TextFormat("Native Classes %d, Structs %d", vm->getTotalNativeClasses(), vm->getTotalNativeStructs()), x, y + 64, 20, WHITE);
+
+
+        return vm->makeNil();
+    }
+
 
     Value native_IsMouseButtonDown(Interpreter *vm, int argc, Value *args)
     {

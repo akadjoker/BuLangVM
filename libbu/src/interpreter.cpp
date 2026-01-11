@@ -271,6 +271,8 @@ Interpreter::~Interpreter()
   stringPool.clear();
 }
 
+
+
 BufferInstance *Interpreter::createBuffer(int count, int typeRaw)
 {
   checkGC();

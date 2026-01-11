@@ -217,6 +217,11 @@ void Compiler::varDeclaration()
         if (scopeDepth > 0)
         {
             declareVariable();
+            validateIdentifierName(nameToken);
+            if (hadError)
+            {
+                return;
+            }
 
             if (currentClass != nullptr && loopDepth_ > 1 && scopeDepth > 1)
             {
@@ -1210,6 +1215,11 @@ void Compiler::funDeclaration()
 {
     consume(TOKEN_IDENTIFIER, "Expect function name");
     Token nameToken = previous;
+    validateIdentifierName(nameToken);
+    if (hadError)
+    {
+        return;
+    }
 
     Function *func = vm_->addFunction(nameToken.lexeme.c_str(), 0);
 
@@ -1235,19 +1245,25 @@ void Compiler::processDeclaration()
     Token nameToken = previous;
     isProcess_ = true;
     argNames.clear();
-    
+
+    validateIdentifierName(nameToken);
+    if (hadError)
+    {
+        return;
+    }
+
     // Warning("Compiling process '%s'", nameToken.lexeme.c_str());
-    
+
     // Cria função para o process
 
     Function *func = vm_->addFunction(nameToken.lexeme.c_str(), 0);
-    
+
     if (!func)
     {
         error("Function already exists");
         return;
     }
-    
+
     // Compila processo
     numFibers_ = 1;
     compileFunction(func, true); // true = É PROCESS!
@@ -1255,8 +1271,6 @@ void Compiler::processDeclaration()
     // Cria blueprint (process não vai para globals como callable)
     ProcessDef *proc = vm_->addProcess(nameToken.lexeme.c_str(), func, numFibers_);
     currentProcess = proc;
-    
-
 
     for (uint32 i = 0; i < argNames.size(); i++)
     {
@@ -1284,7 +1298,7 @@ void Compiler::processDeclaration()
         }
     }
     argNames.clear();
- 
+
     Warning("Process '%s' registered with index %d and %d fibers", nameToken.lexeme.c_str(), proc->index, numFibers_);
 
     emitConstant(vm_->makeProcess(proc->index));
@@ -1702,8 +1716,7 @@ void Compiler::fiberStatement()
 
     emitByte(OP_SPAWN);
     emitByte(argCount);
-    numFibers_ +=1;
-
+    numFibers_ += 1;
 }
 
 void Compiler::dot(bool canAssign)
@@ -1886,6 +1899,11 @@ void Compiler::structDeclaration()
     Token structName = previous;
     uint8_t nameConstant = identifierConstant(structName);
 
+    validateIdentifierName(structName);
+    if (hadError)
+    {
+        return;
+    }
     consume(TOKEN_LBRACE, "Expect '{' before struct body");
 
     StructDef *structDef = vm_->registerStruct(vm_->createString(structName.lexeme.c_str()));
@@ -1917,6 +1935,11 @@ void Compiler::structDeclaration()
             consume(TOKEN_IDENTIFIER, "Expect field name");
 
             String *fieldName = vm_->createString(previous.lexeme.c_str());
+            validateIdentifierName(previous);
+            if (hadError)
+            {
+                return;
+            }
             structDef->names.set(fieldName, structDef->argCount);
             structDef->argCount++;
 
@@ -2005,6 +2028,11 @@ void Compiler::classDeclaration()
     Token className = previous;
     uint8_t nameConstant = identifierConstant(className);
 
+    validateIdentifierName(className);
+    if (hadError)
+    {
+        return;
+    }
     //  Regista class blueprint na VM
 
     ClassDef *classDef = vm_->registerClass(
@@ -2060,7 +2088,11 @@ void Compiler::classDeclaration()
         {
             consume(TOKEN_IDENTIFIER, "Expect field name");
             Token fieldName = previous;
-
+            validateIdentifierName(fieldName);
+            if (hadError)
+            {
+                return;
+            }
             String *name = vm_->createString(fieldName.lexeme.c_str());
             classDef->fieldNames.set(name, classDef->fieldCount);
             classDef->fieldCount++;

@@ -612,6 +612,10 @@ class Interpreter
     return instance;
   }
 
+ 
+  void markForFree(const Value& v);
+
+
   FORCE_INLINE void freeArray(ArrayInstance *a)
   {
     size_t size = sizeof(ArrayInstance);
@@ -643,6 +647,7 @@ class Interpreter
     size_t size = sizeof(MapInstance);
     // size += m->table.capacity * sizeof(Value);
     totalAllocated -= size;
+ 
     m->table.destroy();
     m->~MapInstance();
     arena.Free(m, size);
@@ -684,7 +689,6 @@ class Interpreter
   {
     size_t size = sizeof(NativeStructInstance);
     totalAllocated -= size;
-
     n->~NativeStructInstance();
     arena.Free(n, size);
   }

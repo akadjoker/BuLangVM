@@ -214,6 +214,9 @@ private:
   void parsePrecedence(Precedence precedence);
   ParseRule *getRule(TokenType type);
 
+
+  void validateIdentifierName(const Token& nameToken);
+
   // Parse functions (prefix)
   void number(bool canAssign);
   void string(bool canAssign);
@@ -222,6 +225,7 @@ private:
   void unary(bool canAssign);
   void variable(bool canAssign);
   void lengthExpression(bool canAssign);
+   void freeExpression(bool canAssign); 
   void mathUnary(bool canAssign);
   void mathBinary(bool canAssign);
   void expressionClock(bool canAssign);

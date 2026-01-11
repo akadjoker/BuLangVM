@@ -19,7 +19,7 @@ public:
 
     std::vector<Token> scanAll();
     void printTokens(const std::vector<Token> &tokens) const;
-
+    bool isKeyword(const std::string& name);
     void reset();
 
 private:
@@ -51,6 +51,7 @@ private:
     int readHexDigit();
     Token makeToken(TokenType type, const std::string &lexeme);
     Token errorToken(const std::string &message);
+
 
     // Token scanners
     Token number();

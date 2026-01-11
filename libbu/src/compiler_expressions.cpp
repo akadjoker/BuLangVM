@@ -23,6 +23,17 @@ void Compiler::lengthExpression(bool canAssign)
     emitByte(OP_FUNC_LEN);
 }
 
+void Compiler::freeExpression(bool canAssign)
+{
+    consume(TOKEN_LPAREN, "Expect '(' after 'free'");
+
+    expression();  
+
+    consume(TOKEN_RPAREN, "Expect ')' after expression");
+
+    emitByte(OP_FREE);
+}
+
 // 1. Para funções tipo: sin(x)
 void Compiler::mathUnary(bool canAssign)
 {
@@ -269,7 +280,6 @@ void Compiler::binary(bool canAssign)
 void Compiler::bufferLiteral(bool canAssign)
 {
     (void)canAssign; // Buffers não podem ser l-values
-
 
     consume(TOKEN_LPAREN, "Expect '(' after '@'");
 

@@ -1,78 +1,71 @@
 #include "interpreter.hpp"
 
-
 FORCE_INLINE void Interpreter::markRoots()
 {
     // stack da VM
+    //  for (auto* proc : aliveProcesses) {
+    //     for (int f = 0; f < proc->totalFibers; f++) {
+    //         Fiber* fiber = &proc->fibers[f];
+    //         for (Value* v = fiber->stack; v < fiber->stackTop; v++) {
+    //             markValue(*v);
+    //         }
+    //     }
+    // }
 
-    Fiber *fiber = currentFiber;
-    if (fiber)
-    {
-        for (Value *v = fiber->stack; v < fiber->stackTop; v++)
-        {
-            markValue(*v);
-        }
-    }
-
-    globals.forEach([this](String *key, Value val)
-                    { markValue(val); });
+    
 }
 
 void Interpreter::markArray(ArrayInstance *a)
 {
-    if (!a || a->marked)
-        return;
-    a->marked = 1;
-    for (size_t i = 0; i < a->values.size(); i++)
+
+   // Info("Sweeping array");
+    for (size_t j = 0; j < a->values.size(); j++)
     {
-        markValue(a->values[i]);
+        Value v = a->values[j];
+        markForFree(v);
+ 
     }
+    a->values.clear();
+ 
 }
 
 void Interpreter::markClass(ClassInstance *c)
 {
-    if (!c || c->marked)
-        return;
-
     c->marked = 1;
     for (size_t i = 0; i < c->fields.size(); i++)
     {
-        markValue(c->fields[i]);
+        markForFree(c->fields[i]);
     }
+    c->fields.clear();
 }
 
 void Interpreter::markStruct(StructInstance *s)
 {
-    if (!s || s->marked)
-        return;
+
     s->marked = 1;
     for (size_t i = 0; i < s->values.size(); i++)
     {
-        markValue(s->values[i]);
+        markForFree(s->values[i]);
     }
+    s->values.clear();
 }
 
 void Interpreter::markMap(MapInstance *m)
 {
-    if (!m || m->marked)
-        return;
-    m->marked = 1;
 
+    m->marked = 1;
     m->table.forEach([this](String *key, Value val)
-                     { markValue(val); });
+                     { markForFree(val); });
+    m->table.destroy();
 }
 
 void Interpreter::markNativeClass(NativeClassInstance *n)
 {
-    if (!n || n->marked)
-        return;
     n->marked = 1;
 }
 
 void Interpreter::markNativeStruct(NativeStructInstance *n)
 {
-    if (!n || n->marked)
-        return;
     n->marked = 1;
 }
 
@@ -83,17 +76,93 @@ void Interpreter::markBuffer(BufferInstance *b)
     b->marked = 1;
 }
 
+ 
+ 
+
+void Interpreter::markForFree(const Value &v)
+{
+    if (v.isStructInstance())
+    {
+        StructInstance *s = v.asStructInstance();
+
+        if (s && s->marked == 0)
+        {
+            s->marked = 1;
+
+            for (size_t i = 0; i < s->values.size(); i++)
+            {
+                markForFree(s->values[i]);
+            }
+        }
+    }
+    else if (v.isArray())
+    {
+        ArrayInstance *a = v.asArray();
+        if (a && a->marked == 0)
+        {
+            a->marked = 1;
+            for (size_t i = 0; i < a->values.size(); i++)
+            {
+                markForFree(a->values[i]);
+            }
+        }
+    }
+    else if (v.isMap())
+    {
+        MapInstance *m = v.asMap();
+        if (m && m->marked == 0)
+        {
+            m->marked = 1;
+            m->table.forEach([this](String *key, Value val)
+                             { markForFree(val); });
+        }
+    }
+    else if (v.isClassInstance())
+    {
+        ClassInstance *c = v.asClassInstance();
+        if (c && c->marked == 0)
+        {
+            c->marked = 1;
+
+            for (size_t i = 0; i < c->fields.size(); i++)
+            {
+                markForFree(c->fields[i]);
+            }
+        }
+    } else if (v.isNativeStructInstance())
+    {
+        NativeStructInstance *ns = v.asNativeStructInstance();
+        if (ns && ns->marked == 0)
+        {
+            ns->marked = 1;
+
+        }
+
+    }
+    else if (v.isBuffer())
+    {
+        BufferInstance *b = v.asBuffer();
+        if (b && b->marked == 0)
+        {
+            b->marked = 1;
+        }
+    }
+}
+
 void Interpreter::sweepArrays()
 {
+
+   // Info("Sweeping arrays (%zu)", arrayInstances.size());
 
     for (size_t i = 0; i < arrayInstances.size();)
     {
         ArrayInstance *a = arrayInstances[i];
-        if (a->marked == 0)
+        if (a->marked == 1)
         {
-            freeArray(a);
+            markArray(a);
             arrayInstances[i] = arrayInstances.back();
             arrayInstances.pop();
+            freeArray(a);
         }
         else
         {
@@ -101,39 +170,47 @@ void Interpreter::sweepArrays()
             ++i;
         }
     }
+
+   // Info("Sweeping arrays (%zu)", arrayInstances.size());
 }
 
 void Interpreter::sweepStructs()
 {
-
-    for (size_t i = 0; i < structInstances.size();)
+    //Info("Sweeping structs (%zu)", structInstances.size());
+    size_t i = 0;
+    while (i < structInstances.size())
     {
         StructInstance *s = structInstances[i];
-        if (s->marked == 0)
+        if (s->marked == 1)
         {
-            freeStruct(s);
+     //                   Info("Sweeping  Struct address: %p", (void*)s);
+            markStruct(s);
             structInstances[i] = structInstances.back();
             structInstances.pop();
+            freeStruct(s);
         }
         else
         {
-            s->marked = 0;
-            ++i;
+            i++;
         }
     }
+
+   // Info("Sweeping structs (%zu)", structInstances.size());
 }
 
 void Interpreter::sweepClasses()
 {
 
-    for (size_t i = 0; i < classInstances.size();)
+    size_t i = 0;
+    while (i < classInstances.size())
     {
         ClassInstance *c = classInstances[i];
-        if (c->marked == 0)
+        if (c->marked == 1)
         {
-            freeClass(c);
+            markClass(c);
             classInstances[i] = classInstances.back();
             classInstances.pop();
+            freeClass(c);
         }
         else
         {
@@ -145,18 +222,19 @@ void Interpreter::sweepClasses()
 void Interpreter::sweepMaps()
 {
 
-    for (size_t i = 0; i < mapInstances.size();)
+    size_t i = 0;
+    while (i < mapInstances.size())
     {
         MapInstance *m = mapInstances[i];
-        if (m->marked == 0)
+        if (m->marked == 1)
         {
-            freeMap(m);
+            markMap(m);
             mapInstances[i] = mapInstances.back();
             mapInstances.pop();
+            freeMap(m);
         }
         else
         {
-            m->marked = 0;
             ++i;
         }
     }
@@ -164,15 +242,17 @@ void Interpreter::sweepMaps()
 
 void Interpreter::sweepNativeClasses()
 {
-    for (size_t i = 0; i < nativeInstances.size();)
+
+    size_t i = 0;
+    while (i < nativeInstances.size())
     {
         NativeClassInstance *n = nativeInstances[i];
-
-        if (n->marked == 0)
+        if (n->marked == 1)
         {
-            freeNativeClass(n);
+            markNativeClass(n);
             nativeInstances[i] = nativeInstances.back();
             nativeInstances.pop();
+            freeNativeClass(n);
         }
         else
         {
@@ -183,39 +263,45 @@ void Interpreter::sweepNativeClasses()
 
 void Interpreter::sweepNativeStructs()
 {
-    for (size_t i = 0; i < nativeStructInstances.size();)
+
+   // Info("Sweeping native structs (%zu)", nativeStructInstances.size());
+    size_t i = 0;
+    while (i < nativeStructInstances.size())
     {
         NativeStructInstance *n = nativeStructInstances[i];
-
-        if (n->marked == 0)
+        if (n->marked == 1)
         {
-            freeNativeStruct(n);
+          //  Info("Sweeping native struct address: %p", (void*)n);
+            markNativeStruct(n);    
             nativeStructInstances[i] = nativeStructInstances.back();
             nativeStructInstances.pop();
+            freeNativeStruct(n);
         }
         else
         {
-            n->marked = 0;
             ++i;
         }
     }
+
+  //  Info("Sweeping native structs (%zu)", nativeStructInstances.size());
 }
 
 void Interpreter::sweepBuffers()
 {
 
-    for (size_t i = 0; i < bufferInstances.size();)
+    size_t i = 0;
+    while (i < bufferInstances.size())
     {
         BufferInstance *b = bufferInstances[i];
-        if (b->marked == 0)
+        if (b->marked == 1)
         {
-            freeBuffer(b);
+            markBuffer(b);
             bufferInstances[i] = bufferInstances.back();
             bufferInstances.pop();
+            freeBuffer(b);
         }
         else
         {
-            b->marked = 0;
             ++i;
         }
     }
@@ -227,8 +313,8 @@ void Interpreter::markValue(const Value &v)
         markClass(v.as.sClass);
     else if (v.isArray())
         markArray(v.as.array);
-    // else if (v.isStruct())
-    //     markStruct(v.as.sInstance);
+    else if (v.isStruct())
+        markStruct(v.as.sInstance);
     else if (v.isBuffer())
         markBuffer(v.as.buffer);
     else if (v.isMap())
@@ -241,8 +327,9 @@ void Interpreter::markValue(const Value &v)
 
 void Interpreter::checkGC()
 {
-    if(!enbaledGC) return;
-    
+    if (!enbaledGC)
+        return;
+
     if (totalAllocated > nextGC)
     {
         runGC();
@@ -253,46 +340,14 @@ void Interpreter::runGC()
 {
     gcInProgress = true;
 
-    if (totalAllocated<=nextGC) 
-    {
-        gcInProgress = false;
-        return;
-    }
+    // if (totalAllocated<=nextGC)
+    // {
+    //     gcInProgress = false;
+    //     return;
+    // }
 
     size_t before = totalAllocated;
 
-    for (size_t i = 0; i < arrayInstances.size(); ++i)
-    {
-        arrayInstances[i]->marked = 0;
-    }
-    for (size_t i = 0; i < structInstances.size(); ++i)
-    {
-        structInstances[i]->marked = 0;
-    }
-    for (size_t i = 0; i < classInstances.size(); ++i)
-    {
-        classInstances[i]->marked = 0;
-    }
-    for (size_t i = 0; i < mapInstances.size(); ++i)
-    {
-        mapInstances[i]->marked = 0;
-    }
-
-    for (size_t i = 0; i < bufferInstances.size(); ++i)
-    {
-        bufferInstances[i]->marked = 0;
-    }
-
-    for (size_t i = 0; i < nativeInstances.size(); ++i)
-    {
-        nativeInstances[i]->marked = 0;
-    }
-    for (size_t i = 0; i < nativeStructInstances.size(); ++i)
-    {
-        nativeStructInstances[i]->marked = 0;
-    }
-
-    markRoots();
     sweepArrays();
     sweepMaps();
     sweepBuffers();
@@ -305,6 +360,6 @@ void Interpreter::runGC()
     if (nextGC < 1024)
         nextGC = 1024; // Mínimo 1KB
 
-     Info("GC: %zu -> %zu bytes (next at %zu)", before, totalAllocated, nextGC);
-     gcInProgress = false;
+    //Info("GC: %zu -> %zu bytes (next at %zu)", before, totalAllocated, nextGC);
+    gcInProgress = false;
 }

@@ -138,10 +138,11 @@ void Compiler::initRules()
       nullptr,                 // INFIX
       PREC_NONE};
 
-  // rules[TOKEN_LPAREN] = {
-  //     &Compiler::bufferLiteral, // PREFIX
-  //     &Compiler::subscript,     // INFIX
-  //     PREC_CALL};
+  rules[TOKEN_FREE] = {
+        &Compiler::freeExpression,
+        nullptr,
+        PREC_NONE
+    };
 
   rules[TOKEN_LEN] = {
       &Compiler::lengthExpression, // PREFIX
@@ -642,4 +643,54 @@ void Compiler::resolveGosubs()
     patchJumpTo(j.jumpOffset, targetOffset); // signed int16
   }
   pendingGosubs.clear();
+}
+
+
+
+
+void Compiler::validateIdentifierName(const Token& nameToken)
+{
+    const std::string& name = nameToken.lexeme;
+
+      if (!lexer) return ;
+    
+    // 1. Verifica se é keyword
+    if (lexer->isKeyword(name))
+    {
+        fail("Cannot use keyword '%s' as identifier name", name.c_str());
+        return;
+    }
+    
+    // 2. Verifica se começa com número
+    if (!name.empty() && std::isdigit(name[0]))
+    {
+        fail("Identifier '%s' cannot start with a digit", name.c_str());
+        return;
+    }
+    
+    // 3. Verifica se contém caracteres inválidos
+    for (char c : name)
+    {
+        if (!std::isalnum(c) && c != '_')
+        {
+            fail("Identifier '%s' contains invalid character '%c'", 
+                 name.c_str(), c);
+            return;
+        }
+    }
+    
+    // 4. Verifica se é muito longo
+    if (name.length() >= MAX_IDENTIFIER_LENGTH)
+    {
+        fail("Identifier '%s' is too long (max %d characters)", 
+             name.c_str(), MAX_IDENTIFIER_LENGTH);
+        return;
+    }
+    
+ 
+    if (name.length() >= 2 && name[0] == '_' && name[1] == '_')
+    {
+        Warning("Identifier '%s' starts with '__' which is typically "
+                "reserved for internal use", name.c_str());
+    }
 }

@@ -874,13 +874,13 @@ FiberResult Interpreter::run_fiber(Fiber *fiber,Process *process)
 
                 if (argCount > def->argCount)
                 {
-                    runtimeError("Struct '%s' expects at most %zu arguments, got %d",
-                                 def->name->chars(), def->argCount, argCount);
+                    runtimeError("Struct '%s' expects at most %zu arguments, got %d",def->name->chars(), def->argCount, argCount);
                     return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
                 }
 
                 Value value = makeStructInstance();
                 StructInstance *instance = value.as.sInstance;
+                instance->marked = 0;
                 instance->def = def;
                 structInstances.push(instance);
                 instance->values.reserve(def->argCount);
@@ -1411,7 +1411,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber,Process *process)
             {
 
                 NativeStructInstance *inst = object.asNativeStructInstance();
-
+     
                 NativeStructDef *def = inst->def;
 
                 NativeFieldDef field;
@@ -4250,6 +4250,94 @@ FiberResult Interpreter::run_fiber(Fiber *fiber,Process *process)
                 THROW_RUNTIME_ERROR("Buffer size must be an integer or a string.");
             }
 
+            break;
+        }
+        case OP_FREE:
+        {
+            Value object = POP();
+            bool freed = false;
+        
+           // Info("Freeing %s", valueTypeToString(object.type));
+
+            if (object.isStructInstance())
+            {
+
+                StructInstance *instance = object.asStructInstance();
+                if (!instance)
+                {
+                    runtimeError("Struct is null");
+                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                }
+                //Info("Free  Struct address: %p", (void*)instance);
+                instance->marked =1;
+                freed=true;    
+                
+            } else if (object.isClassInstance())
+            {
+                ClassInstance *instance = object.asClassInstance();
+                if (!instance)
+                {
+                    runtimeError("Class instance is nil");
+                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                }
+                instance->marked =1;
+                freed=true;    
+            } else if (object.isNativeClassInstance())
+            {
+                NativeClassInstance *instance = object.asNativeClassInstance();
+                if (!instance)
+                {
+                    runtimeError("Native class instance is nil");
+                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                }
+                instance->marked =1;
+                freed=true;    
+            } else if (object.isNativeStructInstance())
+            {
+                NativeStructInstance *instance = object.asNativeStructInstance();
+                if (!instance)
+                {
+                    runtimeError("Native struct instance is nil");
+                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                }
+                //Info("Free  Native Struct address: %p", (void*)instance);
+                instance->marked =1;
+                freed=true;    
+            } else if (object.isBuffer())
+            {
+                BufferInstance *instance = object.asBuffer();
+                if (!instance)
+                {
+                    runtimeError("Buffer instance is nil");
+                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                }
+                instance->marked =1;
+                freed=true;    
+            } else if (object.isMap())
+            {
+                
+                MapInstance *instance = object.asMap();
+                if (!instance)
+                {
+                    runtimeError("Map instance is nil");
+                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                }
+                instance->marked =1;
+                freed=true;    
+            } else if (object.isArray())
+            {
+                ArrayInstance *instance = object.asArray();
+                if (!instance)
+                {
+                    runtimeError("Array instance is nil");
+                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                }
+                instance->marked =1;
+                freed=true;    
+            }
+
+           // Warning("Object not in category to be freed: %s", valueTypeToString(object.type));
+            PUSH(makeBool(freed));
             break;
         }
 

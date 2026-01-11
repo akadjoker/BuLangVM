@@ -70,6 +70,7 @@ void Lexer::initKeywords()
         {"process", TOKEN_PROCESS},
         {"frame", TOKEN_FRAME},
         {"len", TOKEN_LEN},
+        {"free", TOKEN_FREE},
         {"fiber", TOKEN_FIBER},
         {"yield", TOKEN_YIELD},
         {"exit", TOKEN_EXIT},
@@ -265,6 +266,11 @@ Token Lexer::makeToken(TokenType type, const std::string &lexeme)
 Token Lexer::errorToken(const std::string &message)
 {
     return Token(TOKEN_ERROR, message, line, tokenColumn);
+}
+
+bool Lexer::isKeyword(const std::string &name)
+{
+    return keywords.find(name) != keywords.end();
 }
 
 Token Lexer::number()
