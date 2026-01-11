@@ -268,6 +268,19 @@ int main()
         return 1;
     }
 
+    int maxFrames = 50000; // Safety limit
+    int frame = 0;
+
+    while (vm.getTotalAliveProcesses() && frame < maxFrames) 
+    {
+      vm.update(0.016f);
+      frame++;
+    }
+
+    if (frame >= maxFrames) {
+      printf("⚠️  Warning: Test hit frame limit (%d frames)\n", maxFrames);
+    }
+
  
     // if (vm.functionExists("update"))
     // {

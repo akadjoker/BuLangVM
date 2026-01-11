@@ -432,12 +432,15 @@ struct ProcessDef
   int index;
   Vector<uint8> argsNames;
   String *name{nullptr};
-  Fiber fibers[MAX_FIBERS];
-  Fiber *current;
+  Fiber* fibers; 
+  int fiberCount;  
   Value privates[MAX_PRIVATES];
   int nextFiberIndex;
   void finalize();
   void release();
+  ProcessDef();
+  ~ProcessDef();
+  
 };
 
 struct Process
@@ -449,11 +452,14 @@ struct Process
   FiberState state;        //  Estado do PROCESSO (frame)
   float resumeTime = 0.0f; // Quando acorda (frame)
 
-  Fiber fibers[MAX_FIBERS];
+  Fiber* fibers; 
+  int fiberCount;
+
   int nextFiberIndex{0};
   int currentFiberIndex{0};
   Fiber *current{nullptr};
-
+  Function* mainFunc;
+    
   Value privates[MAX_PRIVATES];
 
   int exitCode = 0;
@@ -732,7 +738,7 @@ public:
   void addStructField(NativeStructDef *def, const char *fieldName,
                       size_t offset, FieldType type, bool readOnly = false);
 
-  ProcessDef *addProcess(const char *name, Function *func);
+  ProcessDef *addProcess(const char *name );
   void destroyProcess(Process *proc);
   Process *spawnProcess(ProcessDef *proc);
 

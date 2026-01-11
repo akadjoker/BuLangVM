@@ -657,7 +657,7 @@ void ProcessPool::recycle(Process *proc)
 void ProcessPool::destroy(Process *proc)
 {
   //  Warning("Delteing process");
-
+    proc->reset();
     delete proc;
 }
 

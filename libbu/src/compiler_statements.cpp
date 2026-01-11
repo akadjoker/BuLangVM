@@ -152,7 +152,7 @@ void Compiler::statement()
 void Compiler::printStatement()
 {
     uint8_t argCount = 0;
-    
+
     // Se não tem parênteses, aceita sintaxe antiga: print x;
     if (!check(TOKEN_LPAREN))
     {
@@ -162,29 +162,28 @@ void Compiler::printStatement()
     else
     {
         consume(TOKEN_LPAREN, "Expect '('");
-      
+
         if (!check(TOKEN_RPAREN))
         {
             do
             {
                 expression();
                 argCount++;
-                
+
                 if (argCount > 255)
                 {
                     error("Cannot have more than 255 arguments");
                 }
             } while (match(TOKEN_COMMA));
         }
-        
+
         consume(TOKEN_RPAREN, "Expect ')' after arguments");
     }
-    
-    consume(TOKEN_SEMICOLON, "Expect ';'");
-    
-    emitBytes(OP_PRINT, argCount);  
-}
 
+    consume(TOKEN_SEMICOLON, "Expect ';'");
+
+    emitBytes(OP_PRINT, argCount);
+}
 
 // void Compiler::printStatement()
 // {
@@ -192,7 +191,7 @@ void Compiler::printStatement()
 //     consume(TOKEN_SEMICOLON, "Expect ';' after value");
 //     emitByte(OP_PRINT);
 // }
- 
+
 void Compiler::expressionStatement()
 {
 
@@ -1239,6 +1238,17 @@ void Compiler::processDeclaration()
 
     // Warning("Compiling process '%s'", nameToken.lexeme.c_str());
 
+// Cria blueprint (process não vai para globals como callable)
+    ProcessDef *proc = vm_->addProcess(nameToken.lexeme.c_str());
+    if (!proc)
+    {
+        error("Process already exists or invalid name");
+        return;
+    }
+    currentProcess = proc;
+
+
+
     // Cria função para o process
 
     Function *func = vm_->addFunction(nameToken.lexeme.c_str(), 0);
@@ -1252,8 +1262,21 @@ void Compiler::processDeclaration()
     // Compila processo
     compileFunction(func, true); // true = É PROCESS!
 
-    // Cria blueprint (process não vai para globals como callable)
-    ProcessDef *proc = vm_->addProcess(nameToken.lexeme.c_str(), func);
+    
+    // Info("Process '%s' needs %d fibers", 
+    //      nameToken.lexeme.c_str(), 
+    //      proc->fiberCount);
+
+    proc->fibers = (Fiber *)malloc(proc->fiberCount * sizeof(Fiber));
+    vm_->initFiber(&proc->fibers[0], func);
+    for (int i = 1; i < proc->fiberCount; i++)
+    {
+        proc->fibers[i].state = FiberState::DEAD;
+        proc->fibers[i].stackTop = proc->fibers[i].stack;
+        proc->fibers[i].frameCount = 0;
+        proc->fibers[i].ip = nullptr;
+        proc->fibers[i].resumeTime = 0;
+    }
 
     for (uint32 i = 0; i < argNames.size(); i++)
     {
@@ -1693,14 +1716,17 @@ void Compiler::fiberStatement()
     }
 
     consume(TOKEN_RPAREN, "Expect ')' after arguments");
-    //Warning("Compiling fiber call to '%s' with %d arguments", nameToken.lexeme.c_str(), argCount);
+    // Warning("Compiling fiber call to '%s' with %d arguments", nameToken.lexeme.c_str(), argCount);
 
     consume(TOKEN_SEMICOLON, "Expect ';' after fiber call.");
 
+    if (currentProcess)
+    {
+        currentProcess->fiberCount++;
+    }
+
     emitByte(OP_SPAWN);
     emitByte(argCount);
-
- 
 }
 
 void Compiler::dot(bool canAssign)
@@ -1899,11 +1925,11 @@ void Compiler::structDeclaration()
     while (!check(TOKEN_RBRACE) && !check(TOKEN_EOF))
     {
 
-        if (check(TOKEN_SEMICOLON)) 
+        if (check(TOKEN_SEMICOLON))
         {
             // Se encontrarmos um ; perdido, ignoramos e continuamos
-            advance(); 
-            continue; 
+            advance();
+            continue;
         }
         // 1. Opcional: pode ter 'var' ou não
         bool hasVar = match(TOKEN_VAR);
@@ -1929,14 +1955,14 @@ void Compiler::structDeclaration()
         {
             // Se não tinha 'var', o ';' é opcional, mas se estiver lá, TEMOS de o comer.
             // Caso contrário, ele bloqueia o loop seguinte.
-            match(TOKEN_SEMICOLON); 
+            match(TOKEN_SEMICOLON);
         }
     }
 
     consume(TOKEN_RBRACE, "Expect '}' after struct body");
-    
+
     // Opcional: permitir ou exigir ; no final da struct
-    match(TOKEN_SEMICOLON); 
+    match(TOKEN_SEMICOLON);
 
     emitConstant(vm_->makeStruct(structDef->index));
     defineVariable(nameConstant);

@@ -25,7 +25,7 @@ ParseRule Compiler::rules[TOKEN_COUNT];
 
 Compiler::Compiler(Interpreter *vm)
     : vm_(vm), lexer(nullptr), function(nullptr), currentChunk(nullptr),
-      currentFiber(nullptr), currentProcess(nullptr), hadError(false),
+      currentProcess(nullptr), hadError(false),
       panicMode(false), scopeDepth(0), localCount_(0), loopDepth_(0),
       isProcess_(false)
 {
@@ -135,7 +135,7 @@ void Compiler::initRules()
 
   rules[TOKEN_AT] = {
       &Compiler::bufferLiteral, // PREFIX
-      nullptr,                 // INFIX
+      nullptr,                  // INFIX
       PREC_NONE};
 
   // rules[TOKEN_LPAREN] = {
@@ -178,6 +178,12 @@ ProcessDef *Compiler::compile(const std::string &source)
     error("Empty source");
     return nullptr;
   }
+  currentProcess = vm_->addProcess("__main_process__");
+  if (!currentProcess)
+  {
+    error("Fail to create main process");
+    return nullptr;
+  }
 
   function = vm_->addFunction("__main__", 0);
   if (!function)
@@ -185,14 +191,8 @@ ProcessDef *Compiler::compile(const std::string &source)
     error("Fail to create main function");
     return nullptr;
   }
-  currentProcess = vm_->addProcess("__main_process__", function);
-  if (!currentProcess)
-  {
-    error("Fail to create main process");
-    return nullptr;
-  }
   currentChunk = function->chunk;
-  currentFiber = &currentProcess->fibers[0];
+
   currentFunctionType = FunctionType::TYPE_SCRIPT;
   currentClass = nullptr;
 
@@ -210,11 +210,25 @@ ProcessDef *Compiler::compile(const std::string &source)
     return nullptr;
   }
 
+  currentProcess->fibers = (Fiber *)malloc(currentProcess->fiberCount * sizeof(Fiber));
+  vm_->initFiber(&currentProcess->fibers[0], function);
+  for (int i = 1; i < currentProcess->fiberCount; i++)
+  {
+    currentProcess->fibers[i].state = FiberState::DEAD;
+    currentProcess->fibers[i].stackTop = currentProcess->fibers[i].stack;
+    currentProcess->fibers[i].frameCount = 0;
+    currentProcess->fibers[i].ip = nullptr;
+    currentProcess->fibers[i].resumeTime = 0;
+  }
+
+  Info("Main script allocated %d fibers (%zu bytes)",
+       currentProcess->fiberCount,
+       currentProcess->fiberCount * sizeof(Fiber));
+
   currentProcess->finalize();
 
   importedModules.clear();
   usingModules.clear();
-  ;
 
   return currentProcess;
 }
@@ -223,13 +237,10 @@ ProcessDef *Compiler::compileExpression(const std::string &source)
 {
 
   lexer = new Lexer(source);
-
   tokens = lexer->scanAll();
-
+  currentProcess = vm_->addProcess("__main__");
   function = vm_->addFunction("__expr__", 0);
-  currentProcess = vm_->addProcess("__main__", function);
   currentChunk = function->chunk;
-  currentFiber = &currentProcess->fibers[0];
   currentFunctionType = FunctionType::TYPE_SCRIPT;
   currentClass = nullptr;
 
@@ -251,6 +262,18 @@ ProcessDef *Compiler::compileExpression(const std::string &source)
   {
     return nullptr;
   }
+
+  currentProcess->fibers = (Fiber *)malloc(currentProcess->fiberCount * sizeof(Fiber));
+  vm_->initFiber(&currentProcess->fibers[0], function);
+
+  for (int i = 1; i < currentProcess->fiberCount; i++)
+  {
+    currentProcess->fibers[i].state = FiberState::DEAD;
+    currentProcess->fibers[i].stackTop = currentProcess->fibers[i].stack;
+    currentProcess->fibers[i].frameCount = 0;
+    currentProcess->fibers[i].ip = nullptr;
+    currentProcess->fibers[i].resumeTime = 0;
+  }
   currentProcess->finalize();
 
   importedModules.clear();
@@ -267,7 +290,7 @@ void Compiler::clear()
   lexer = nullptr;
   function = nullptr;
   currentChunk = nullptr;
-  currentFiber = nullptr;
+
   currentProcess = nullptr;
   currentClass = nullptr;
   hadError = false;
