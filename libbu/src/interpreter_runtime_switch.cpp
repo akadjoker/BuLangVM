@@ -3338,15 +3338,16 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
 
             if (container.isArray())
             {
-                if (!index.isInt())
+                if (!index.isNumber())
                 {
-                    runtimeError("Array index must be integer");
+
+                    runtimeError("Array index must be an number");
                     PUSH(value);
                     break;
                 }
 
                 ArrayInstance *arr = container.asArray();
-                int i = index.asInt();
+                int i = (int)index.asNumber();
                 uint32 size = arr->values.size();
 
                 // Negative index
@@ -3486,15 +3487,15 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
             // === ARRAY ===
             if (container.isArray())
             {
-                if (!index.isInt())
+                if (!index.isNumber())
                 {
-                    runtimeError("Array index must be integer");
+                    runtimeError("Array index must be a number");
                     PUSH(makeNil());
                     break;
                 }
 
                 ArrayInstance *arr = container.asArray();
-                int i = index.asInt();
+                int i = (int)index.asNumber();
                 uint32 size = arr->values.size();
 
                 //  Negative index (Python-style)

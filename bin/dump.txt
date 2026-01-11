@@ -12,12 +12,12 @@ GLOBAL FUNCTIONS
     Has return: no
     Index: 0
 
-  Constants (85):
+  Constants (49):
     [0] = "gravity"
     [1] = 0.50
     [2] = "Sprite"
-    [3] = <value type 21>
-    [4] = <value type 25>
+    [3] = <value type 22>
+    [4] = <value type 26>
     [5] = 800
     [6] = 450
     [7] = "BuLang with Raylib"
@@ -25,82 +25,46 @@ GLOBAL FUNCTIONS
     [9] = "Color"
     [10] = 255
     [11] = 0
-    [12] = 0
-    [13] = 255
-    [14] = "BLACK"
-    [15] = "Color"
-    [16] = 0
-    [17] = 0
-    [18] = 0
-    [19] = 255
-    [20] = "WHITE"
-    [21] = "Color"
-    [22] = 255
-    [23] = 255
-    [24] = 255
-    [25] = 255
-    [26] = "LIGHTGRAY"
-    [27] = "Color"
-    [28] = 200
-    [29] = 200
-    [30] = 200
-    [31] = 255
-    [32] = "tex"
-    [33] = <value type 25>
-    [34] = "assets/wabbit_alpha.png"
-    [35] = <value type 25>
-    [36] = 60
-    [37] = "lista"
-    [38] = <value type 25>
-    [39] = <value type 25>
-    [40] = <value type 25>
-    [41] = "BLACK"
-    [42] = <value type 25>
-    [43] = "tex"
-    [44] = <value type 25>
-    [45] = <value type 25>
-    [46] = "WHITE"
-    [47] = <value type 25>
-    [48] = 0
-    [49] = "i"
-    [50] = 0
-    [51] = 500
-    [52] = 1
-    [53] = "vx"
-    [54] = <value type 25>
-    [55] = "vy"
-    [56] = <value type 25>
-    [57] = "lista"
-    [58] = "push"
-    [59] = "Sprite"
-    [60] = "lista"
-    [61] = 0
-    [62] = "i"
-    [63] = 0
-    [64] = "lista"
-    [65] = 1
-    [66] = "sprite"
-    [67] = "lista"
-    [68] = "move"
-    [69] = "tex"
-    [70] = <value type 25>
-    [71] = "format"
-    [72] = "count {}"
-    [73] = "lista"
-    [74] = 10
-    [75] = 30
-    [76] = 20
-    [77] = "LIGHTGRAY"
-    [78] = <value type 25>
-    [79] = 10
-    [80] = 10
-    [81] = <value type 25>
-    [82] = <value type 25>
-    [83] = "tex"
-    [84] = <value type 25>
+    [12] = "BLACK"
+    [13] = "WHITE"
+    [14] = "LIGHTGRAY"
+    [15] = 200
+    [16] = "tex"
+    [17] = <value type 26>
+    [18] = "assets/wabbit_alpha.png"
+    [19] = <value type 26>
+    [20] = 60
+    [21] = "lista"
+    [22] = <value type 26>
+    [23] = <value type 26>
+    [24] = <value type 26>
+    [25] = <value type 26>
+    [26] = <value type 26>
+    [27] = <value type 26>
+    [28] = <value type 26>
+    [29] = "i"
+    [30] = 500
+    [31] = 1
+    [32] = "vx"
+    [33] = <value type 26>
+    [34] = "vy"
+    [35] = <value type 26>
+    [36] = "push"
+    [37] = "sprite"
+    [38] = "move"
+    [39] = <value type 26>
+    [40] = "format"
+    [41] = "count {}"
+    [42] = 10
+    [43] = 30
+    [44] = 20
+    [45] = <value type 26>
+    [46] = <value type 26>
+    [47] = <value type 26>
+    [48] = <value type 26>
 
   Bytecode:
-    0000    5 OP_CONSTANT         1 '0.500000.4f'
+    0000    5 OP_CONSTANT         1 '0.5000'
     0002    | OP_DEFINE_GLOBAL    0 'gravity'
     0004    7 OP_CONSTANT         3 '<class 0>'
     0006    | OP_DEFINE_GLOBAL    2 'Sprite'
@@ -113,93 +77,93 @@ GLOBAL FUNCTIONS
     0019   46 OP_GET_GLOBAL       9 'Color'
     0021    | OP_CONSTANT        10 '255'
     0023    | OP_CONSTANT        11 '0'
-    0025    | OP_CONSTANT        12 '0'
-    0027    | OP_CONSTANT        13 '255'
+    0025    | OP_CONSTANT        11 '0'
+    0027    | OP_CONSTANT        10 '255'
     0029    | OP_CALL             4
     0031    | OP_DEFINE_GLOBAL    8 'RED'
-    0033   47 OP_GET_GLOBAL      15 'Color'
-    0035    | OP_CONSTANT        16 '0'
-    0037    | OP_CONSTANT        17 '0'
-    0039    | OP_CONSTANT        18 '0'
-    0041    | OP_CONSTANT        19 '255'
+    0033   47 OP_GET_GLOBAL       9 'Color'
+    0035    | OP_CONSTANT        11 '0'
+    0037    | OP_CONSTANT        11 '0'
+    0039    | OP_CONSTANT        11 '0'
+    0041    | OP_CONSTANT        10 '255'
     0043    | OP_CALL             4
-    0045    | OP_DEFINE_GLOBAL   14 'BLACK'
-    0047   48 OP_GET_GLOBAL      21 'Color'
-    0049    | OP_CONSTANT        22 '255'
-    0051    | OP_CONSTANT        23 '255'
-    0053    | OP_CONSTANT        24 '255'
-    0055    | OP_CONSTANT        25 '255'
+    0045    | OP_DEFINE_GLOBAL   12 'BLACK'
+    0047   48 OP_GET_GLOBAL       9 'Color'
+    0049    | OP_CONSTANT        10 '255'
+    0051    | OP_CONSTANT        10 '255'
+    0053    | OP_CONSTANT        10 '255'
+    0055    | OP_CONSTANT        10 '255'
     0057    | OP_CALL             4
-    0059    | OP_DEFINE_GLOBAL   20 'WHITE'
-    0061   49 OP_GET_GLOBAL      27 'Color'
-    0063    | OP_CONSTANT        28 '200'
-    0065    | OP_CONSTANT        29 '200'
-    0067    | OP_CONSTANT        30 '200'
-    0069    | OP_CONSTANT        31 '255'
+    0059    | OP_DEFINE_GLOBAL   13 'WHITE'
+    0061   49 OP_GET_GLOBAL       9 'Color'
+    0063    | OP_CONSTANT        15 '200'
+    0065    | OP_CONSTANT        15 '200'
+    0067    | OP_CONSTANT        15 '200'
+    0069    | OP_CONSTANT        10 '255'
     0071    | OP_CALL             4
-    0073    | OP_DEFINE_GLOBAL   26 'LIGHTGRAY'
-    0075   50 OP_CONSTANT        33 '<module_reference 0 16 17>'
-    0077    | OP_CONSTANT        34 'assets/wabbit_alpha.png'
+    0073    | OP_DEFINE_GLOBAL   14 'LIGHTGRAY'
+    0075   50 OP_CONSTANT        17 '<module_reference 0 16 17>'
+    0077    | OP_CONSTANT        18 'assets/wabbit_alpha.png'
     0079    | OP_CALL             1
-    0081    | OP_DEFINE_GLOBAL   32 'tex'
-    0083   52 OP_CONSTANT        35 '<module_reference 0 16 3>'
-    0085    | OP_CONSTANT        36 '60'
+    0081    | OP_DEFINE_GLOBAL   16 'tex'
+    0083   52 OP_CONSTANT        19 '<module_reference 0 16 3>'
+    0085    | OP_CONSTANT        20 '60'
     0087    | OP_CALL             1
     0089    | OP_POP
     0090   53 OP_DEFINE_ARRAY     0
-    0092    | OP_SET_GLOBAL      37 'lista'
+    0092    | OP_SET_GLOBAL      21 'lista'
     0094    | OP_POP
-    0095   57 OP_CONSTANT        38 '<module_reference 0 16 2>'
+    0095   57 OP_CONSTANT        22 '<module_reference 0 16 2>'
     0097    | OP_CALL             0
     0099    | OP_NOT
     0100    | OP_JUMP_IF_FALSE  100 -> 305
     0103    | OP_POP
-    0104   60 OP_CONSTANT        39 '<module_reference 0 16 6>'
+    0104   60 OP_CONSTANT        23 '<module_reference 0 16 6>'
     0106    | OP_CALL             0
     0108    | OP_POP
-    0109   62 OP_CONSTANT        40 '<module_reference 0 16 8>'
-    0111    | OP_GET_GLOBAL      41 'BLACK'
+    0109   62 OP_CONSTANT        24 '<module_reference 0 16 8>'
+    0111    | OP_GET_GLOBAL      12 'BLACK'
     0113    | OP_CALL             1
     0115    | OP_POP
-    0116   66 OP_CONSTANT        42 '<module_reference 0 16 16>'
-    0118    | OP_GET_GLOBAL      43 'tex'
-    0120    | OP_CONSTANT        44 '<module_reference 0 16 23>'
+    0116   66 OP_CONSTANT        25 '<module_reference 0 16 16>'
+    0118    | OP_GET_GLOBAL      16 'tex'
+    0120    | OP_CONSTANT        26 '<module_reference 0 16 23>'
     0122    | OP_CALL             0
-    0124    | OP_CONSTANT        45 '<module_reference 0 16 24>'
+    0124    | OP_CONSTANT        27 '<module_reference 0 16 24>'
     0126    | OP_CALL             0
-    0128    | OP_GET_GLOBAL      46 'WHITE'
+    0128    | OP_GET_GLOBAL      13 'WHITE'
     0130    | OP_CALL             4
     0132    | OP_POP
-    0133   68 OP_CONSTANT        47 '<module_reference 0 16 20>'
-    0135    | OP_CONSTANT        48 '0'
+    0133   68 OP_CONSTANT        28 '<module_reference 0 16 20>'
+    0135    | OP_CONSTANT        11 '0'
     0137    | OP_CALL             1
     0139    | OP_JUMP_IF_FALSE  139 -> 203
     0142    | OP_POP
-    0143   70 OP_CONSTANT        50 '0'
+    0143   70 OP_CONSTANT        11 '0'
     0145    | OP_GET_LOCAL        0
-    0147    | OP_CONSTANT        51 '500'
+    0147    | OP_CONSTANT        30 '500'
     0149    | OP_LESS
     0150    | OP_JUMP_IF_FALSE  150 -> 198
     0153    | OP_POP
     0154    | OP_JUMP           154 -> 171
     0157    | OP_GET_LOCAL        0
     0159    | OP_GET_LOCAL        0
-    0161    | OP_CONSTANT        52 '1'
+    0161    | OP_CONSTANT        31 '1'
     0163    | OP_ADD
     0164    | OP_SET_LOCAL        0
     0166    | OP_POP
     0167    | OP_POP
     0168    | OP_LOOP           168 -> 145
-    0171   72 OP_CONSTANT        54 '<module_reference 0 16 23>'
+    0171   72 OP_CONSTANT        33 '<module_reference 0 16 23>'
     0173    | OP_CALL             0
-    0175   73 OP_CONSTANT        56 '<module_reference 0 16 24>'
+    0175   73 OP_CONSTANT        35 '<module_reference 0 16 24>'
     0177    | OP_CALL             0
-    0179   74 OP_GET_GLOBAL      57 'lista'
-    0181    | OP_GET_GLOBAL      59 'Sprite'
+    0179   74 OP_GET_GLOBAL      21 'lista'
+    0181    | OP_GET_GLOBAL       2 'Sprite'
     0183    | OP_GET_LOCAL        1
     0185    | OP_GET_LOCAL        2
     0187    | OP_CALL             2
-    0189    | OP_INVOKE          58 'push' (1 args)
+    0189    | OP_INVOKE          36 'push' (1 args)
     0192    | OP_POP
     0193   75 OP_POP
     0194    | OP_POP
@@ -208,15 +172,15 @@ GLOBAL FUNCTIONS
     0199    | OP_POP
     0200   76 OP_JUMP           200 -> 204
     0203    | OP_POP
-    0204   78 OP_GET_GLOBAL      60 'lista'
+    0204   78 OP_GET_GLOBAL      21 'lista'
     0206    | OP_LEN
-    0207    | OP_CONSTANT        61 '0'
+    0207    | OP_CONSTANT        11 '0'
     0209    | OP_GREATER
     0210    | OP_JUMP_IF_FALSE  210 -> 265
     0213    | OP_POP
-    0214   80 OP_CONSTANT        63 '0'
+    0214   80 OP_CONSTANT        11 '0'
     0216    | OP_GET_LOCAL        0
-    0218    | OP_GET_GLOBAL      64 'lista'
+    0218    | OP_GET_GLOBAL      21 'lista'
     0220    | OP_LEN
     0221    | OP_LESS
     0222    | OP_JUMP_IF_FALSE  222 -> 260
@@ -224,18 +188,18 @@ GLOBAL FUNCTIONS
     0226    | OP_JUMP           226 -> 243
     0229    | OP_GET_LOCAL        0
     0231    | OP_GET_LOCAL        0
-    0233    | OP_CONSTANT        65 '1'
+    0233    | OP_CONSTANT        31 '1'
     0235    | OP_ADD
     0236    | OP_SET_LOCAL        0
     0238    | OP_POP
     0239    | OP_POP
     0240    | OP_LOOP           240 -> 216
-    0243   82 OP_GET_GLOBAL      67 'lista'
+    0243   82 OP_GET_GLOBAL      21 'lista'
     0245    | OP_GET_LOCAL        0
     0247    | OP_GET_INDEX
     0248   83 OP_GET_LOCAL        1
-    0250    | OP_GET_GLOBAL      69 'tex'
-    0252    | OP_INVOKE          68 'move' (1 args)
+    0250    | OP_GET_GLOBAL      16 'tex'
+    0252    | OP_INVOKE          38 'move' (1 args)
     0255    | OP_POP
     0256   85 OP_POP
     0257    | OP_LOOP           257 -> 229
@@ -243,33 +207,33 @@ GLOBAL FUNCTIONS
     0261    | OP_POP
     0262   87 OP_JUMP           262 -> 266
     0265    | OP_POP
-    0266   89 OP_CONSTANT        70 '<module_reference 0 16 11>'
-    0268    | OP_GET_GLOBAL      71 'format'
-    0270    | OP_CONSTANT        72 'count {}'
-    0272    | OP_GET_GLOBAL      73 'lista'
+    0266   89 OP_CONSTANT        39 '<module_reference 0 16 11>'
+    0268    | OP_GET_GLOBAL      40 'format'
+    0270    | OP_CONSTANT        41 'count {}'
+    0272    | OP_GET_GLOBAL      21 'lista'
     0274    | OP_LEN
     0275    | OP_CALL             2
-    0277    | OP_CONSTANT        74 '10'
-    0279    | OP_CONSTANT        75 '30'
-    0281    | OP_CONSTANT        76 '20'
-    0283    | OP_GET_GLOBAL      77 'LIGHTGRAY'
+    0277    | OP_CONSTANT        42 '10'
+    0279    | OP_CONSTANT        43 '30'
+    0281    | OP_CONSTANT        44 '20'
+    0283    | OP_GET_GLOBAL      14 'LIGHTGRAY'
     0285    | OP_CALL             5
     0287    | OP_POP
-    0288   90 OP_CONSTANT        78 '<module_reference 0 16 9>'
-    0290    | OP_CONSTANT        79 '10'
-    0292    | OP_CONSTANT        80 '10'
+    0288   90 OP_CONSTANT        45 '<module_reference 0 16 9>'
+    0290    | OP_CONSTANT        42 '10'
+    0292    | OP_CONSTANT        42 '10'
     0294    | OP_CALL             2
     0296    | OP_POP
-    0297   92 OP_CONSTANT        81 '<module_reference 0 16 7>'
+    0297   92 OP_CONSTANT        46 '<module_reference 0 16 7>'
     0299    | OP_CALL             0
     0301    | OP_POP
     0302   96 OP_LOOP           302 -> 95
     0305    | OP_POP
-    0306  100 OP_CONSTANT        82 '<module_reference 0 16 18>'
-    0308    | OP_GET_GLOBAL      83 'tex'
+    0306  100 OP_CONSTANT        47 '<module_reference 0 16 18>'
+    0308    | OP_GET_GLOBAL      16 'tex'
     0310    | OP_CALL             1
     0312    | OP_POP
-    0313  101 OP_CONSTANT        84 '<module_reference 0 16 1>'
+    0313  101 OP_CONSTANT        48 '<module_reference 0 16 1>'
     0315    | OP_CALL             0
     0317    | OP_POP
     0318  189 OP_NIL
@@ -295,7 +259,7 @@ CLASSES
     >>> Constructor (init)
         Arity: 2
 
-      Constants (12):
+      Constants (8):
         [0] = "x"
         [1] = "y"
         [2] = "vx"
@@ -304,10 +268,6 @@ CLASSES
         [5] = 100
         [6] = 10.00
         [7] = "vy"
-        [8] = "rand"
-        [9] = 200
-        [10] = 100
-        [11] = 10.00
 
       Bytecode:
         0000   13 OP_GET_LOCAL        0
@@ -324,17 +284,17 @@ CLASSES
         0020    | OP_CALL             1
         0022    | OP_CONSTANT         5 '100'
         0024    | OP_SUBTRACT
-        0025    | OP_CONSTANT         6 '10.000000.4f'
+        0025    | OP_CONSTANT         6 '10.0000'
         0027    | OP_DIVIDE
         0028    | OP_SET_PROPERTY     2 'vx'
         0030    | OP_POP
         0031   16 OP_GET_LOCAL        0
-        0033    | OP_GET_GLOBAL       8 'rand'
-        0035    | OP_CONSTANT         9 '200'
+        0033    | OP_GET_GLOBAL       3 'rand'
+        0035    | OP_CONSTANT         4 '200'
         0037    | OP_CALL             1
-        0039    | OP_CONSTANT        10 '100'
+        0039    | OP_CONSTANT         5 '100'
         0041    | OP_SUBTRACT
-        0042    | OP_CONSTANT        11 '10.000000.4f'
+        0042    | OP_CONSTANT         6 '10.0000'
         0044    | OP_DIVIDE
         0045    | OP_SET_PROPERTY     7 'vy'
         0047    | OP_POP
@@ -350,7 +310,7 @@ CLASSES
         Arity: 2
         Has return: yes
 
-      Constants (12):
+      Constants (8):
         [0] = "x"
         [1] = "y"
         [2] = "vx"
@@ -359,10 +319,6 @@ CLASSES
         [5] = 100
         [6] = 10.00
         [7] = "vy"
-        [8] = "rand"
-        [9] = 200
-        [10] = 100
-        [11] = 10.00
 
       Bytecode:
         0000   13 OP_GET_LOCAL        0
@@ -379,17 +335,17 @@ CLASSES
         0020    | OP_CALL             1
         0022    | OP_CONSTANT         5 '100'
         0024    | OP_SUBTRACT
-        0025    | OP_CONSTANT         6 '10.000000.4f'
+        0025    | OP_CONSTANT         6 '10.0000'
         0027    | OP_DIVIDE
         0028    | OP_SET_PROPERTY     2 'vx'
         0030    | OP_POP
         0031   16 OP_GET_LOCAL        0
-        0033    | OP_GET_GLOBAL       8 'rand'
-        0035    | OP_CONSTANT         9 '200'
+        0033    | OP_GET_GLOBAL       3 'rand'
+        0035    | OP_CONSTANT         4 '200'
         0037    | OP_CALL             1
-        0039    | OP_CONSTANT        10 '100'
+        0039    | OP_CONSTANT         5 '100'
         0041    | OP_SUBTRACT
-        0042    | OP_CONSTANT        11 '10.000000.4f'
+        0042    | OP_CONSTANT         6 '10.0000'
         0044    | OP_DIVIDE
         0045    | OP_SET_PROPERTY     7 'vy'
         0047    | OP_POP
@@ -404,32 +360,19 @@ CLASSES
         Arity: 1
         Has return: yes
 
-      Constants (25):
+      Constants (12):
         [0] = "x"
         [1] = "vx"
         [2] = "y"
         [3] = "vy"
-        [4] = "vy"
-        [5] = "vy"
-        [6] = 0.50
-        [7] = "y"
-        [8] = 400
-        [9] = "y"
-        [10] = 400
-        [11] = "vy"
-        [12] = "vy"
-        [13] = 0.85
-        [14] = "x"
-        [15] = 0
-        [16] = "x"
-        [17] = 800
-        [18] = "vx"
-        [19] = "vx"
-        [20] = 1.00
-        [21] = <value>
-        [22] = "x"
-        [23] = "y"
-        [24] = "WHITE"
+        [4] = 0.50
+        [5] = 400
+        [6] = 0.85
+        [7] = 0
+        [8] = 800
+        [9] = 1.00
+        [10] = <value>
+        [11] = "WHITE"
 
       Bytecode:
         0000   24 OP_GET_LOCAL        0
@@ -450,61 +393,61 @@ CLASSES
         0025    | OP_POP
         0026   27 OP_GET_LOCAL        0
         0028    | OP_GET_LOCAL        0
-        0030    | OP_GET_PROPERTY     5 'vy'
-        0032    | OP_CONSTANT         6 '0.500000.4f'
+        0030    | OP_GET_PROPERTY     3 'vy'
+        0032    | OP_CONSTANT         4 '0.5000'
         0034    | OP_ADD
-        0035    | OP_SET_PROPERTY     4 'vy'
+        0035    | OP_SET_PROPERTY     3 'vy'
         0037    | OP_POP
         0038   29 OP_GET_LOCAL        0
-        0040    | OP_GET_PROPERTY     7 'y'
-        0042    | OP_CONSTANT         8 '400'
+        0040    | OP_GET_PROPERTY     2 'y'
+        0042    | OP_CONSTANT         5 '400'
         0044    | OP_GREATER
         0045    | OP_JUMP_IF_FALSE   45 -> 72
         0048    | OP_POP
         0049   31 OP_GET_LOCAL        0
-        0051    | OP_CONSTANT        10 '400'
-        0053    | OP_SET_PROPERTY     9 'y'
+        0051    | OP_CONSTANT         5 '400'
+        0053    | OP_SET_PROPERTY     2 'y'
         0055    | OP_POP
         0056   32 OP_GET_LOCAL        0
         0058    | OP_GET_LOCAL        0
-        0060    | OP_GET_PROPERTY    12 'vy'
-        0062    | OP_CONSTANT        13 '0.850000.4f'
+        0060    | OP_GET_PROPERTY     3 'vy'
+        0062    | OP_CONSTANT         6 '0.8500'
         0064    | OP_NEGATE
         0065    | OP_MULTIPLY
-        0066    | OP_SET_PROPERTY    11 'vy'
+        0066    | OP_SET_PROPERTY     3 'vy'
         0068    | OP_POP
         0069   33 OP_JUMP            69 -> 73
         0072    | OP_POP
         0073   35 OP_GET_LOCAL        0
-        0075    | OP_GET_PROPERTY    14 'x'
-        0077    | OP_CONSTANT        15 '0'
+        0075    | OP_GET_PROPERTY     0 'x'
+        0077    | OP_CONSTANT         7 '0'
         0079    | OP_LESS
         0080    | OP_JUMP_IF_FALSE   80 -> 86
         0083    | OP_JUMP            83 -> 94
         0086    | OP_POP
         0087    | OP_GET_LOCAL        0
-        0089    | OP_GET_PROPERTY    16 'x'
-        0091    | OP_CONSTANT        17 '800'
+        0089    | OP_GET_PROPERTY     0 'x'
+        0091    | OP_CONSTANT         8 '800'
         0093    | OP_GREATER
         0094    | OP_JUMP_IF_FALSE   94 -> 114
         0097    | OP_POP
         0098   37 OP_GET_LOCAL        0
         0100    | OP_GET_LOCAL        0
-        0102    | OP_GET_PROPERTY    19 'vx'
-        0104    | OP_CONSTANT        20 '1.000000.4f'
+        0102    | OP_GET_PROPERTY     1 'vx'
+        0104    | OP_CONSTANT         9 '1.0000'
         0106    | OP_NEGATE
         0107    | OP_MULTIPLY
-        0108    | OP_SET_PROPERTY    18 'vx'
+        0108    | OP_SET_PROPERTY     1 'vx'
         0110    | OP_POP
         0111   38 OP_JUMP           111 -> 115
         0114    | OP_POP
-        0115   39 OP_CONSTANT        21 '<module_reference 0 16 16>'
+        0115   39 OP_CONSTANT        10 '<module_reference 0 16 16>'
         0117    | OP_GET_LOCAL        1
         0119    | OP_GET_LOCAL        0
-        0121    | OP_GET_PROPERTY    22 'x'
+        0121    | OP_GET_PROPERTY     0 'x'
         0123    | OP_GET_LOCAL        0
-        0125    | OP_GET_PROPERTY    23 'y'
-        0127    | OP_GET_GLOBAL      24 'WHITE'
+        0125    | OP_GET_PROPERTY     2 'y'
+        0127    | OP_GET_GLOBAL      11 'WHITE'
         0129    | OP_CALL             4
         0131    | OP_POP
         0132   41 OP_GET_LOCAL        0

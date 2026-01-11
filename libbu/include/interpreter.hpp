@@ -487,9 +487,9 @@ class Interpreter
   // gc begin
 
   size_t totalAllocated = 0;
-  size_t nextGC = 1024;
+  size_t nextGC = 1024 *4;
   bool gcInProgress = false;
-  bool enbaledGC = false;
+  bool enbaledGC = true;
 
   Vector<ClassInstance *> classInstances;
   Vector<StructInstance *> structInstances;

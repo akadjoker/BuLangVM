@@ -227,9 +227,8 @@ void Interpreter::markValue(const Value &v)
         markClass(v.as.sClass);
     else if (v.isArray())
         markArray(v.as.array);
-    else if (v.isStruct())
-
-        markStruct(v.as.sInstance);
+    // else if (v.isStruct())
+    //     markStruct(v.as.sInstance);
     else if (v.isBuffer())
         markBuffer(v.as.buffer);
     else if (v.isMap())

@@ -1,3 +1,4 @@
+import math;
 import raylib;
 using raylib;
 
@@ -12,8 +13,8 @@ class Sprite
     {
         self.x =  x;
         self.y =  y;
-        self.vx =  (rand(200) - 100) / 10.0;
-        self.vy =  (rand(200) - 100) / 10.0;
+        self.vx =  (math.rand(200) - 100) / 10.0;
+        self.vy =  (math.rand(200) - 100) / 10.0;
    
  
 

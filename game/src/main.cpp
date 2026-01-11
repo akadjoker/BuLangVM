@@ -119,33 +119,7 @@ Value native_write(Interpreter *vm, int argCount, Value *args)
     return vm->makeNil();
 }
 
-Value native_sqrt(Interpreter *vm, int argCount, Value *args)
-{
-    if (argCount != 1)
-    {
-        vm->runtimeError("sqrt expects 1 argument");
-        return vm->makeNil();
-    }
-
-    double value;
-    if (args[0].isInt())
-        value = (double)args[0].asInt();
-    else if (args[0].isDouble())
-        value = args[0].asDouble();
-    else
-    {
-        vm->runtimeError("sqrt expects a number");
-        return vm->makeNil();
-    }
-
-    if (value < 0)
-    {
-        vm->runtimeError("sqrt of negative number");
-        return vm->makeNil();
-    }
-
-    return vm->makeDouble(std::sqrt(value));
-}
+ 
 
 
 Value native_gc(Interpreter *vm, int argCount, Value *args)
@@ -154,55 +128,7 @@ Value native_gc(Interpreter *vm, int argCount, Value *args)
     return vm->makeNil();
 }
 
-
-Value native_sin(Interpreter *vm, int argCount, Value *args)
-{
-    double x = args[0].isInt() ? (double)args[0].asInt() : args[0].asDouble();
-    return vm->makeDouble(std::sin(x));
-}
-
-Value native_cos(Interpreter *vm, int argCount, Value *args)
-{
-    double x = args[0].isInt() ? (double)args[0].asInt() : args[0].asDouble();
-    return vm->makeDouble(std::cos(x));
-}
-
-Value native_abs(Interpreter *vm, int argCount, Value *args)
-{
-    if (args[0].isInt())
-        return vm->makeInt(std::abs(args[0].asInt()));
-    else
-        return vm->makeDouble(std::fabs(args[0].asDouble()));
-}
-
-Value native_clock(Interpreter *vm, int argCount, Value *args)
-{
-    return vm->makeDouble(static_cast<double>(clock()) / CLOCKS_PER_SEC);
-}
-
-Value native_length(Interpreter *vm, int argCount, Value *args)
-{
-    if (argCount != 1)
-    {
-        vm->runtimeError("len expects 1 argument");
-        return vm->makeNil();
-    }
-
-    if (args[0].type == ValueType::STRING)
-    {
-        return vm->makeInt(args[0].as.string->length());
-    }
-    else if (args[0].type == ValueType::ARRAY)
-    {
-        return vm->makeInt(args[0].as.array->values.size());
-    }
-    else if (args[0].type == ValueType::MAP)
-    {
-        return vm->makeInt(args[0].as.map->table.count);
-    }
-    vm->runtimeError("len expects a string, array or map");
-    return vm->makeNil();
-}
+ 
 
 Value native_rand(Interpreter *vm, int argCount, Value *args)
 {
@@ -310,18 +236,13 @@ int main()
         .addDouble("E", 2.71828182845905)
         .addFloat("SQRT2", 1.41421356f)
         .addInt("MAX_INT", 2147483647)
-        .addFunction("sin", native_sin, 1)
-        .addFunction("cos", native_cos, 1)
-        .addFunction("sqrt", native_sqrt, 1)
-        .addFunction("abs", native_abs, 1);
+        .addFunction("rand", native_rand, -1);
 
-    vm.registerNative("rand", native_rand, 1);
-    //vm.registerNative("len", native_length, 1);
     vm.registerNative("_gc", native_gc, 0);
 
     vm.registerNative("write", native_write, -1);
     vm.registerNative("format", native_format, -1);
-    vm.registerNative("clock", native_clock, 0);
+   
 
     bool useModule = true;
 
@@ -402,7 +323,7 @@ int main()
     ctx.pathCount = 3;
     vm.setFileLoader(multiPathFileLoader, &ctx);
 
-    std::ifstream file("bunny.bu");
+    std::ifstream file("game.bu");
     std::string code((std::istreambuf_iterator<char>(file)),
                      std::istreambuf_iterator<char>());
 
@@ -415,7 +336,7 @@ int main()
                         }
                         
                         
-                        vm.dumpToFile("dump.txt");
+         //               vm.dumpToFile("dump.txt");
 
     // for (int i = 0; i < 5; i++)
     // {

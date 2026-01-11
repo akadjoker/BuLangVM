@@ -3471,15 +3471,16 @@ op_set_index:
 
     if (container.isArray())
     {
-        if (!index.isInt())
+        if (!index.isNumber())
         {
-            runtimeError("Array index must be integer");
+            
+            runtimeError("Array index must be an number");
             PUSH(value);
             DISPATCH();
         }
 
         ArrayInstance *arr = container.asArray();
-        int i = index.asInt();
+        int i = (int)index.asNumber();
         uint32 size = arr->values.size();
 
         // Negative index
@@ -3609,15 +3610,15 @@ op_get_index:
     // === ARRAY ===
     if (container.isArray())
     {
-        if (!index.isInt())
+        if (!index.isNumber())
         {
-            runtimeError("Array index must be integer");
+            runtimeError("Array index must be a number");
             PUSH(makeNil());
             DISPATCH();
         }
 
         ArrayInstance *arr = container.asArray();
-        int i = index.asInt();
+        int i = (int)index.asNumber();
         uint32 size = arr->values.size();
 
         //  Negative index (Python-style)
