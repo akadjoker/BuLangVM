@@ -689,7 +689,7 @@ bool Interpreter::run(const char *source, bool _dump)
 
   //  Debug::disassembleChunk(*fiber->frames[0].func->chunk,"#main");
 
-  run_fiber(fiber);
+  run_fiber(fiber, mainProcess);
 
   return !hasFatalError_;
 }

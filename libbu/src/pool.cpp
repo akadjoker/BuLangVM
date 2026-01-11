@@ -2,13 +2,11 @@
 #include "value.hpp"
 #include "arena.hpp"
 #include "interpreter.hpp"
- 
+
 #include <ctype.h>
 #include <new>
 #include <stdarg.h>
 #include "string.hpp"
-
- 
 
 StringPool::StringPool()
 {
@@ -27,7 +25,6 @@ StringPool::StringPool()
 
 StringPool::~StringPool()
 {
-
 }
 
 // ============= STRING ALLOC =============
@@ -62,7 +59,7 @@ void StringPool::clear()
     for (size_t i = 0; i < map.size(); i++)
     {
         String *s = map[i];
-       
+
         deallocString(s);
     }
 
@@ -90,7 +87,6 @@ String *StringPool::create(const char *str, uint32 len)
 
     // New string
     String *s = allocString();
- 
 
     // Copy data
     if (len <= String::SMALL_THRESHOLD)
@@ -111,11 +107,10 @@ String *StringPool::create(const char *str, uint32 len)
     bytesAllocated += sizeof(String) + len;
     s->index = map.size();
 
-   // Info("Create string %s hash %d len %d", s->chars(), s->hash, s->length());
+    // Info("Create string %s hash %d len %d", s->chars(), s->hash, s->length());
     map.push(s);
     pool.set(s->chars(), map.size() - 1);
 
-   
     // Store in pool
 
     return s;
@@ -196,7 +191,7 @@ String *StringPool::lower(String *src)
 }
 
 // ========================================
-// SUBSTRING  
+// SUBSTRING
 // ========================================
 
 String *StringPool::substring(String *src, uint32 start, uint32 end)
@@ -225,7 +220,7 @@ String *StringPool::substring(String *src, uint32 start, uint32 end)
 }
 
 // ========================================
-// REPLACE -  
+// REPLACE -
 // ========================================
 
 String *StringPool::replace(String *src, const char *oldStr, const char *newStr)
@@ -345,7 +340,7 @@ bool StringPool::endsWith(String *str, String *suffix)
 }
 
 // ========================================
-// TRIM  
+// TRIM
 // ========================================
 
 String *StringPool::trim(String *str)
@@ -418,7 +413,7 @@ int StringPool::indexOf(String *str, const char *substr, int startIndex)
 }
 
 // ========================================
-// REPEAT 
+// REPEAT
 // ========================================
 
 String *StringPool::repeat(String *str, int count)
@@ -468,7 +463,7 @@ String *StringPool::repeat(String *str, int count)
 String *StringPool::toString(int value)
 {
     char buf[32];
- 
+
     snprintf(buf, sizeof(buf), "%d", value);
     return create(buf);
 }
@@ -622,13 +617,12 @@ ProcessPool::ProcessPool()
 
 ProcessPool::~ProcessPool()
 {
-    
 }
 
 Process *ProcessPool::create()
 {
     Process *proc = nullptr;
-    
+
     if (pool.size() == 0)
     {
         proc = new Process();
@@ -645,28 +639,55 @@ void ProcessPool::recycle(Process *proc)
 {
     proc->reset();
     pool.push(proc);
-    if (pool.size() > 1000)
-    {
-        clear();
-    }
 }
 
 void ProcessPool::destroy(Process *proc)
 {
-    proc->reset();
+    if (proc->fibers)
+    {
+        free(proc->fibers);
+        proc->fibers = nullptr;
+    }
     delete proc;
 }
 
 void ProcessPool::clear()
 {
-  //  Warning("Freeing %zu processes on pool", pool.size());
-    
+    //  Warning("Freeing %zu processes on pool", pool.size());
+
     for (size_t j = 0; j < pool.size(); j++)
     {
         Process *proc = pool[j];
-        proc->reset();
+        if (proc->fibers)
+        {
+            free(proc->fibers);
+            proc->fibers = nullptr;
+        }
         delete proc;
     }
     pool.clear();
- 
+}
+
+void ProcessPool::shrink()
+{
+    if (pool.size() <= MIN_POOL_SIZE)
+    {
+        return; // Já está pequeno
+    }
+
+
+    int targetSize = MIN_POOL_SIZE + (pool.size() - MIN_POOL_SIZE) / 2;
+
+    while (pool.size() > targetSize)
+    {
+        Process *proc = pool.back();
+        pool.pop();
+
+        if (proc->fibers)
+        {
+            free(proc->fibers);
+            proc->fibers = nullptr;
+        }
+        delete proc;
+    }
 }

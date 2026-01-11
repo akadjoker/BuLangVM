@@ -45,8 +45,15 @@ void Process::reset()
 
     if (fibers)
     {
-        free(fibers);
-        fibers = nullptr;
+        for (int i = 0; i < totalFibers; i++)
+        {
+            fibers[i].state = FiberState::DEAD;
+            fibers[i].stackTop = fibers[i].stack;
+            fibers[i].frameCount = 0;
+            fibers[i].ip = nullptr;
+            fibers[i].resumeTime = 0;
+            fibers[i].gosubTop = 0;
+        }
     }
     totalFibers = 0;
     name = nullptr;
@@ -125,8 +132,7 @@ ProcessDef *Interpreter::addProcess(const char *name, Function *func, int totalF
     proc->privates[8] = makeInt(-1);   // father
     proc->totalFibers = totalFibers;
 
-    
-    proc->fibers = (Fiber*)calloc(proc->totalFibers, sizeof(Fiber));
+    proc->fibers = (Fiber *)calloc(proc->totalFibers, sizeof(Fiber));
 
     if (proc->fibers == nullptr)
     {
@@ -134,11 +140,11 @@ ProcessDef *Interpreter::addProcess(const char *name, Function *func, int totalF
         return nullptr;
     }
 
-     for (int i = 0; i < proc->totalFibers; i++)
+    for (int i = 0; i < proc->totalFibers; i++)
     {
         proc->fibers[i].state = FiberState::DEAD;
         proc->fibers[i].resumeTime = 0;
-        proc->fibers[i].stackTop = proc->fibers[i].stack;   
+        proc->fibers[i].stackTop = proc->fibers[i].stack;
         proc->fibers[i].frameCount = 0;
         proc->fibers[i].ip = nullptr;
         proc->fibers[i].gosubTop = 0;
@@ -150,11 +156,10 @@ ProcessDef *Interpreter::addProcess(const char *name, Function *func, int totalF
     processes.push(proc);
     return proc;
 }
- 
 
-Process* Interpreter::spawnProcess(ProcessDef* blueprint)
+Process *Interpreter::spawnProcess(ProcessDef *blueprint)
 {
-    Process* instance = ProcessPool::instance().create();
+    Process *instance = ProcessPool::instance().create();
 
     if (instance == nullptr)
     {
@@ -171,24 +176,27 @@ Process* Interpreter::spawnProcess(ProcessDef* blueprint)
     instance->current = nullptr;
     instance->initialized = false;
     instance->exitCode = 0;
-    instance->totalFibers = blueprint->totalFibers;
+  
 
-
-    if (instance->fibers != nullptr)
+    if (instance->fibers == nullptr || instance->totalFibers != blueprint->totalFibers)
     {
-        Warning("Process from pool had fibers not cleaned!");
-        free(instance->fibers);
-        instance->fibers = nullptr;
+        if (instance->fibers) 
+        {
+            free(instance->fibers);
+        }
+        instance->totalFibers = blueprint->totalFibers;
+        instance->fibers = (Fiber*)calloc(instance->totalFibers, sizeof(Fiber));        
+        if (!instance->fibers)
+        {
+            runtimeError("Failed to allocate fibers!");
+            ProcessPool::instance().recycle(instance);
+            return nullptr;
+        }
     }
-
-
-    instance->fibers = (Fiber*)calloc(instance->totalFibers, sizeof(Fiber));
-    
-    if (!instance->fibers)
+    else
     {
-        runtimeError("Failed to allocate fibers!");
-        ProcessPool::instance().recycle(instance);
-        return nullptr;
+        // REUTILIZA! 
+        // Fibers já estão null por reset()
     }
 
     // Clona privates
@@ -197,22 +205,20 @@ Process* Interpreter::spawnProcess(ProcessDef* blueprint)
         instance->privates[i] = blueprint->privates[i];
     }
 
-    
     for (int i = 0; i < blueprint->totalFibers; i++)
     {
-        Fiber* srcFiber = &blueprint->fibers[i];
-        Fiber* dstFiber = &instance->fibers[i];
+        Fiber *srcFiber = &blueprint->fibers[i];
+        Fiber *dstFiber = &instance->fibers[i];
 
-      
         if (srcFiber->state == FiberState::DEAD)
         {
             dstFiber->state = FiberState::DEAD;
-            dstFiber->stackTop = dstFiber->stack;  // tack no início
+            dstFiber->stackTop = dstFiber->stack; // tack no início
             dstFiber->frameCount = 0;
             dstFiber->ip = nullptr;
             dstFiber->resumeTime = 0;
             dstFiber->gosubTop = 0;
-            continue;  // lixo!
+            continue; // lixo!
         }
 
         // Copia estado
@@ -232,15 +238,15 @@ Process* Interpreter::spawnProcess(ProcessDef* blueprint)
         dstFiber->gosubTop = srcFiber->gosubTop;
         if (srcFiber->gosubTop > 0)
         {
-            memcpy(dstFiber->gosubStack, srcFiber->gosubStack, 
-                   srcFiber->gosubTop * sizeof(uint8*));
+            memcpy(dstFiber->gosubStack, srcFiber->gosubStack,
+                   srcFiber->gosubTop * sizeof(uint8 *));
         }
 
         // Copia frames
         for (int j = 0; j < srcFiber->frameCount; j++)
         {
             dstFiber->frames[j].func = srcFiber->frames[j].func;
-            
+
             // IP
             if (srcFiber->frames[j].ip != nullptr)
             {
@@ -292,6 +298,7 @@ void Interpreter::update(float deltaTime)
     //     return;
     currentTime += deltaTime;
     lastFrameTime = deltaTime;
+    frameCount++;
 
     size_t i = 0;
     while (i < aliveProcesses.size())
@@ -355,6 +362,17 @@ void Interpreter::update(float deltaTime)
         ProcessPool::instance().recycle(proc);
     }
     cleanProcesses.clear();
+
+    if (frameCount % 300 == 0)
+    {
+        size_t poolSize = ProcessPool::instance().size();
+        
+        if (poolSize > ProcessPool::MIN_POOL_SIZE * 2)
+        {
+            Info("Pool has %zu processes, shrinking...", poolSize);
+            ProcessPool::instance().shrink();
+        }
+    }
 }
 
 void Interpreter::run_process_step(Process *proc)
@@ -373,11 +391,16 @@ void Interpreter::run_process_step(Process *proc)
         return;
     }
 
+    currentProcess = proc;
+    currentFiber = fiber;
+
     proc->current = fiber;
-    FiberResult result = run_fiber(fiber);
+    FiberResult result = run_fiber(fiber, proc);
 
     // printf("  Executing Fiber %d\n", fiber - proc->fibers);
     //  Warning("  [run_process_step] result.reason=%d, instructions=%d",   (int)result.reason, result.instructionsRun);
+
+    currentFiber = nullptr;
 
     if (proc->state == FiberState::DEAD)
     {

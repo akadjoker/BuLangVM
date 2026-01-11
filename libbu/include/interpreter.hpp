@@ -494,6 +494,7 @@ class Interpreter
   size_t nextGC = 1024 *4;
   bool gcInProgress = false;
   bool enbaledGC = false;
+  int frameCount;
 
   Vector<ClassInstance *> classInstances;
   Vector<StructInstance *> structInstances;
@@ -769,7 +770,7 @@ public:
   int registerFunction(const char *name, Function *func);
 
   void run_process_step(Process *proc);
-  FiberResult run_fiber(Fiber *fiber);
+  FiberResult run_fiber(Fiber *fiber,Process *proc);
 
   float getCurrentTime() const;
 
