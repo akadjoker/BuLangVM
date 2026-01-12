@@ -17,7 +17,8 @@ void Compiler::lengthExpression(bool canAssign)
     consume(TOKEN_LPAREN, "Expect '(' after len");
 
     expression(); // empilha o valor (array, string, etc.)
-
+    if (hadError)
+        return;
     consume(TOKEN_RPAREN, "Expect ')' after expression");
 
     emitByte(OP_FUNC_LEN);
@@ -27,8 +28,9 @@ void Compiler::freeExpression(bool canAssign)
 {
     consume(TOKEN_LPAREN, "Expect '(' after 'free'");
 
-    expression();  
-
+    expression();
+    if (hadError)
+        return;
     consume(TOKEN_RPAREN, "Expect ')' after expression");
 
     emitByte(OP_FREE);
@@ -41,6 +43,8 @@ void Compiler::mathUnary(bool canAssign)
 
     consume(TOKEN_LPAREN, "Expect '('");
     expression();
+    if (hadError)
+        return;
     consume(TOKEN_RPAREN, "Expect ')'");
 
     switch (type)
@@ -93,8 +97,12 @@ void Compiler::mathBinary(bool canAssign)
 
     consume(TOKEN_LPAREN, "Expect '('");
     expression(); // Arg 1
+    if (hadError)
+        return;
     consume(TOKEN_COMMA, "Expect ','");
     expression(); // Arg 2
+    if (hadError)
+        return;
     consume(TOKEN_RPAREN, "Expect ')'");
 
     switch (type)
@@ -127,20 +135,56 @@ void Compiler::number(bool canAssign)
 
     if (previous.type == TOKEN_INT)
     {
-        // Usamos strtoll (64 bits) para detetar se o número é maior que um int32
+        errno = 0;
+        char *endptr = nullptr;
         long long value;
+
         if (str[0] == '0' && (str[1] == 'x' || str[1] == 'X'))
         {
-            value = std::strtoll(str, nullptr, 16);
+            value = std::strtoll(str, &endptr, 16);
         }
         else
         {
-            value = std::strtoll(str, nullptr, 10);
+            value = std::strtoll(str, &endptr, 10);
         }
 
-        // Se o valor for maior que o máximo de um int32 assinado,
-        // guardamos como DOUBLE para não virar negativo.
-        if (value > 2147483647LL || value < -2147483648LL)
+        // Verifica overflow
+        if (errno == ERANGE)
+        {
+            error("Integer literal out of range");
+            emitConstant(vm_->makeInt(0)); // Valor default
+            return;
+        }
+
+        // Verifica parse válido
+        if (endptr == str)
+        {
+            error("Invalid integer literal");
+            emitConstant(vm_->makeInt(0));
+            return;
+        }
+
+        // Verifica caracteres extras
+        if (*endptr != '\0')
+        {
+            error("Invalid characters in integer literal");
+            emitConstant(vm_->makeInt(0));
+            return;
+        }
+
+        // Verifica range específico se necessário
+        if (options.checkIntegerOverflow)
+        {
+            if (value > INT64_MAX || value < INT64_MIN)
+            {
+                error("Integer literal exceeds 64-bit range");
+                emitConstant(vm_->makeInt(0));
+                return;
+            }
+        }
+
+        // Emite valor apropriado
+        if (value > INT32_MAX || value < INT32_MIN)
         {
             emitConstant(vm_->makeUInt(value));
         }
@@ -149,9 +193,58 @@ void Compiler::number(bool canAssign)
             emitConstant(vm_->makeInt((int)value));
         }
     }
-    else
+    else // TOKEN_FLOAT
     {
-        double value = std::atof(str);
+        errno = 0;
+        char *endptr = nullptr;
+        double value = std::strtod(str, &endptr);
+
+        // Verifica overflow/underflow
+        if (errno == ERANGE)
+        {
+            if (value == HUGE_VAL || value == -HUGE_VAL)
+            {
+                error("Float literal overflow");
+            }
+            else
+            {
+                error("Float literal underflow");
+            }
+            emitConstant(vm_->makeDouble(0.0));
+            return;
+        }
+
+        // Verifica parse válido
+        if (endptr == str)
+        {
+            error("Invalid float literal");
+            emitConstant(vm_->makeDouble(0.0));
+            return;
+        }
+
+        // Verifica caracteres extras
+        if (*endptr != '\0')
+        {
+            error("Invalid characters in float literal");
+            emitConstant(vm_->makeDouble(0.0));
+            return;
+        }
+
+        // Verifica NaN/Inf
+        if (std::isnan(value))
+        {
+            error("Float literal is NaN");
+            emitConstant(vm_->makeDouble(0.0));
+            return;
+        }
+
+        if (std::isinf(value))
+        {
+            error("Float literal is infinite");
+            emitConstant(vm_->makeDouble(0.0));
+            return;
+        }
+
         emitConstant(vm_->makeDouble(value));
     }
 }
@@ -185,6 +278,8 @@ void Compiler::grouping(bool canAssign)
 {
     (void)canAssign;
     expression();
+    if (hadError)
+        return;
     consume(TOKEN_RPAREN, "Expect ')' after expression");
 }
 
@@ -286,14 +381,16 @@ void Compiler::bufferLiteral(bool canAssign)
     // Parse da expressão de tamanho (SIZE)
     // Pode ser: 4, x+2, getSize(), etc.
     expression();
-
+    if (hadError)
+        return;
     // Espera vírgula
     consume(TOKEN_COMMA, "Expect ',' in buffer literal");
 
     // Parse da expressão de tipo (TYPE)
     // Pode ser: TYPE_UINT8, getType(), etc.
     expression();
-
+    if (hadError)
+        return;
     // Espera ')' de fechamento
     consume(TOKEN_RPAREN, "Expect ')' after buffer literal");
 
@@ -304,21 +401,35 @@ void Compiler::bufferLiteral(bool canAssign)
 void Compiler::arrayLiteral(bool canAssign)
 {
     (void)canAssign;
-    // var arr = [1, 2, 3];
 
     int count = 0;
 
-    // Array vazio?
     if (!check(TOKEN_RBRACKET))
     {
         do
         {
-            expression(); // Empilha elemento
+            expression();
+            if (hadError)
+                return;
             count++;
 
             if (count > 255)
             {
                 error("Cannot have more than 255 array elements on initialize.");
+
+                while (!check(TOKEN_RBRACKET) && !check(TOKEN_EOF))
+                {
+                    if (match(TOKEN_COMMA))
+                    {
+                        expression();
+                        if (hadError)
+                            return;
+                    }
+                    else
+                    {
+                        advance();
+                    }
+                }
                 break;
             }
         } while (match(TOKEN_COMMA));
@@ -326,46 +437,39 @@ void Compiler::arrayLiteral(bool canAssign)
 
     consume(TOKEN_RBRACKET, "Expect ']' after array elements");
 
-    emitBytes(OP_DEFINE_ARRAY, count);
+    if (!hadError)
+    {
+        emitBytes(OP_DEFINE_ARRAY, count);
+    }
 }
 
 void Compiler::mapLiteral(bool canAssign)
 {
     (void)canAssign;
-    // var m = {name: "Luis", age: 30};
 
     int count = 0;
 
-    // Map vazio?
     if (!check(TOKEN_RBRACE))
     {
         do
         {
-            // KEY
             if (match(TOKEN_IDENTIFIER))
             {
-                // Identifier como key: {name: "Luis"}
                 Token key = previous;
-
-                // String literal da key
                 emitConstant(vm_->makeString(key.lexeme.c_str()));
-
                 consume(TOKEN_COLON, "Expect ':' after map key");
-
-                // VALUE
                 expression();
+                if (hadError)
+                    return;
             }
             else if (match(TOKEN_STRING))
             {
-                // String key: {"my-key": value}
                 Token key = previous;
-
                 emitConstant(vm_->makeString(key.lexeme.c_str()));
-
                 consume(TOKEN_COLON, "Expect ':' after map key");
-
-                // VALUE
                 expression();
+                if (hadError)
+                    return;
             }
             else
             {
@@ -378,6 +482,24 @@ void Compiler::mapLiteral(bool canAssign)
             if (count > 255)
             {
                 error("Cannot have more than 255 map entries");
+
+                while (!check(TOKEN_RBRACE) && !check(TOKEN_EOF))
+                {
+                    if (match(TOKEN_COMMA))
+                    {
+                        if (match(TOKEN_IDENTIFIER) || match(TOKEN_STRING))
+                        {
+                            consume(TOKEN_COLON, "Expect ':'");
+                            expression();
+                            if (hadError)
+                                return;
+                        }
+                    }
+                    else
+                    {
+                        advance();
+                    }
+                }
                 break;
             }
 
@@ -386,5 +508,8 @@ void Compiler::mapLiteral(bool canAssign)
 
     consume(TOKEN_RBRACE, "Expect '}' after map elements");
 
-    emitBytes(OP_DEFINE_MAP, count);
+    if (!hadError)
+    {
+        emitBytes(OP_DEFINE_MAP, count);
+    }
 }

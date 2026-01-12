@@ -203,13 +203,13 @@ Interpreter::~Interpreter()
 
   Info("VM shutdown");
   Info("Memory allocated : %s", formatBytes(totalAllocated));
-  Info("Classes          : %zu", getTotalClasses());
-  Info("Structs          : %zu", getTotalStructs());
-  Info("Arrays           : %zu", getTotalArrays());
-  Info("Maps             : %zu", getTotalMaps());
-  Info("Native classes   : %zu", getTotalNativeClasses());
-  Info("Native structs   : %zu", getTotalNativeStructs());
-  Info("Processes        : %zu", aliveProcesses.size());
+  // Info("Classes          : %zu", getTotalClasses());
+  // Info("Structs          : %zu", getTotalStructs());
+  // Info("Arrays           : %zu", getTotalArrays());
+  // Info("Maps             : %zu", getTotalMaps());
+  // Info("Native classes   : %zu", getTotalNativeClasses());
+  // Info("Native structs   : %zu", getTotalNativeStructs());
+  // Info("Processes        : %zu", aliveProcesses.size());
 
   for (size_t i = 0; i < modules.size(); i++)
   {
@@ -228,10 +228,10 @@ Interpreter::~Interpreter()
   globals.destroy();
   clearAllGCObjects();
 
-  Info("Heap stats:");
-  arena.Stats();
+  //Info("Heap stats:");
+  //arena.Stats();
   arena.Clear();
-  Info("String Heap stats:");
+  //Info("String Heap stats:");
   stringPool.clear();
 }
 

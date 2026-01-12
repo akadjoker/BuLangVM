@@ -24,6 +24,8 @@ add_subdirectory(main)
 add_subdirectory(game)
 add_subdirectory(engine)
 add_subdirectory(tests)
+add_subdirectory(testParser)
+add_subdirectory(compilerTest)
 add_subdirectory(divgraphics)
 
 

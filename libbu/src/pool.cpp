@@ -1,12 +1,13 @@
+#include "string.hpp"
 #include "pool.hpp"
 #include "value.hpp"
 #include "arena.hpp"
 #include "interpreter.hpp"
+#include "utils.hpp"
 
 #include <ctype.h>
 #include <new>
 #include <stdarg.h>
-#include "string.hpp"
 
 StringPool::StringPool()
 {
@@ -53,8 +54,8 @@ void StringPool::deallocString(String *s)
 
 void StringPool::clear()
 {
-    Info("String pool clear %d strings", map.size());
-    Info("Allocated %d bytes", bytesAllocated);
+   // Info("String pool clear %d strings", map.size());
+    Info("String Pool cllocated %s bytes", formatBytes(bytesAllocated));
 
     for (size_t i = 0; i < map.size(); i++)
     {
@@ -66,7 +67,7 @@ void StringPool::clear()
     dummyString->~String();
     allocator.Free(dummyString, sizeof(String));
 
-    allocator.Stats();
+   // allocator.Stats();
     allocator.Clear();
 
     map.clear();
