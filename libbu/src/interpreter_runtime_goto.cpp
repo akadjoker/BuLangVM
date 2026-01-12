@@ -26,7 +26,7 @@ bool toNumberPair(const Value &a, const Value &b, double &da, double &db)
     return true;
 }
 
-FiberResult Interpreter::run_fiber(Fiber *fiber,Process *process)
+FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 {
 
     currentFiber = fiber;
@@ -201,6 +201,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber,Process *process)
         // --- UTILS ---
         &&op_clock,      // 81
         &&op_new_buffer, // 82
+        &&op_free,       // 83
     };
 
 #define DISPATCH()                         \
@@ -995,7 +996,7 @@ op_call:
         Value value = makeStructInstance();
         StructInstance *instance = value.as.sInstance;
         instance->def = def;
-        structInstances.push(instance);
+
         instance->values.reserve(def->argCount);
         Value *args = fiber->stackTop - argCount;
         for (int i = 0; i < argCount; i++)
@@ -1126,7 +1127,7 @@ op_call:
 
         Value literal = makeNativeStructInstance();
         NativeStructInstance *instance = literal.as.sNativeStruct;
-        nativeStructInstances.push(instance);
+
         instance->def = def;
         instance->data = data;
 
@@ -1286,7 +1287,8 @@ op_exit:
     process->state = FiberState::DEAD;
 
     // Mata todas as fibers (incluindo a atual)
-    for (int i = 0; i < MAX_FIBERS; i++)
+
+    for (int i = 0; i < process->totalFibers; i++)
     {
         Fiber *f = &process->fibers[i];
         f->state = FiberState::DEAD;
@@ -1313,13 +1315,11 @@ op_spawn:
         runtimeError("No current process for spawn");
         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
     }
-
-    if (process->nextFiberIndex >= MAX_FIBERS)
+    if (process->nextFiberIndex >= process->totalFibers)
     {
-        runtimeError("Too many fibers in process (max %d)", MAX_FIBERS);
+        runtimeError("Too many fibers in process (max %d)", process->totalFibers);
         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
     }
-
     if (!callee.isFunction())
     {
         runtimeError("fiber expects a function");
@@ -1328,13 +1328,11 @@ op_spawn:
 
     int funcIndex = callee.asFunctionId();
     Function *func = functions[funcIndex];
-
     if (!func)
     {
         runtimeError("Invalid function");
         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
     }
-
     if (argCount != func->arity)
     {
         runtimeError("Expected %d arguments but got %d", func->arity, argCount);
@@ -1348,23 +1346,22 @@ op_spawn:
     newFiber->resumeTime = 0;
     newFiber->stackTop = newFiber->stack;
     newFiber->frameCount = 0;
-    newFiber->stack[0] = callee;
+
+    newFiber->stack[0] = callee; // Slot 0 = Função
 
     for (int i = 0; i < argCount; i++)
     {
-        newFiber->stack[i + 1] = fiber->stackTop[-(argCount - i)]; // fix
+        newFiber->stack[i + 1] = fiber->stackTop[-(argCount - i)];
     }
-    newFiber->stackTop = newFiber->stack + argCount + 1; // fix
+    newFiber->stackTop = newFiber->stack + argCount + 1;
 
     CallFrame *frame = &newFiber->frames[newFiber->frameCount++];
     frame->func = func;
     frame->ip = func->chunk->code;
-    frame->slots = newFiber->stack; // Argumentos começam aqui
+    frame->slots = newFiber->stack;
 
     fiber->stackTop -= (argCount + 1);
-
     PUSH(makeInt(fiberIdx));
-
     DISPATCH();
 }
 
@@ -3473,7 +3470,7 @@ op_set_index:
     {
         if (!index.isNumber())
         {
-            
+
             runtimeError("Array index must be an number");
             PUSH(value);
             DISPATCH();
@@ -4399,6 +4396,99 @@ op_new_buffer:
         THROW_RUNTIME_ERROR("Buffer size must be an integer or a string.");
     }
 
+    DISPATCH();
+}
+op_free:
+{
+    Value object = POP();
+    bool freed = false;
+
+    // Info("Freeing %s", valueTypeToString(object.type));
+
+    if (object.isStructInstance())
+    {
+
+        StructInstance *instance = object.asStructInstance();
+        if (!instance)
+        {
+            runtimeError("Struct is null");
+            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+        }
+        // Info("Free  Struct address: %p", (void*)instance);
+        instance->marked = 1;
+        freed = true;
+    }
+    else if (object.isClassInstance())
+    {
+        ClassInstance *instance = object.asClassInstance();
+        if (!instance)
+        {
+            runtimeError("Class instance is nil");
+            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+        }
+        instance->marked = 1;
+        freed = true;
+    }
+    else if (object.isNativeClassInstance())
+    {
+        NativeClassInstance *instance = object.asNativeClassInstance();
+        if (!instance)
+        {
+            runtimeError("Native class instance is nil");
+            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+        }
+        instance->marked = 1;
+        freed = true;
+    }
+    else if (object.isNativeStructInstance())
+    {
+        NativeStructInstance *instance = object.asNativeStructInstance();
+        if (!instance)
+        {
+            runtimeError("Native struct instance is nil");
+            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+        }
+        // Info("Free  Native Struct address: %p", (void*)instance);
+        instance->marked = 1;
+        freed = true;
+    }
+    else if (object.isBuffer())
+    {
+        BufferInstance *instance = object.asBuffer();
+        if (!instance)
+        {
+            runtimeError("Buffer instance is nil");
+            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+        }
+        instance->marked = 1;
+        freed = true;
+    }
+    else if (object.isMap())
+    {
+
+        MapInstance *instance = object.asMap();
+        if (!instance)
+        {
+            runtimeError("Map instance is nil");
+            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+        }
+        instance->marked = 1;
+        freed = true;
+    }
+    else if (object.isArray())
+    {
+        ArrayInstance *instance = object.asArray();
+        if (!instance)
+        {
+            runtimeError("Array instance is nil");
+            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+        }
+        instance->marked = 1;
+        freed = true;
+    }
+
+    // Warning("Object not in category to be freed: %s", valueTypeToString(object.type));
+    PUSH(makeBool(freed));
     DISPATCH();
 }
 

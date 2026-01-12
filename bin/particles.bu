@@ -566,7 +566,7 @@ while (!WindowShouldClose())
     }
     
     // UI
-    DrawText("🎆 Click to launch fireworks!", 10, 10, 24, WHITE);
+    DrawText("Click to launch fireworks!", 10, 10, 24, WHITE);
     DrawText(format("Rockets: {}", len(rockets)), 10, 40, 18, LIGHTGRAY);
     DrawText(format("Particles: {}", len(particles)), 10, 60, 18, LIGHTGRAY);
     DrawText(format("Sparkles: {}", len(sparkles)), 10, 80, 18, LIGHTGRAY);

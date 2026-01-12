@@ -1,21 +1,6 @@
 //include "bunny.bu";
 //include "fireworks.bu";
-//include "particles.bu";
+include "particles.bu";
 
 
-struct Point
-{
-  var x,y;
-}
-
-var a = 2;
-print(a);
-
-var point = Point();
-point.x=2;
-
-print(point);
-
-a=2;
-
-print(b);
+ 

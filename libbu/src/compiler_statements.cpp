@@ -1079,9 +1079,7 @@ void Compiler::forStatement()
         int bodyJump = emitJump(OP_JUMP);
 
         int incrementStart = currentChunk->count;
-        expression(); // i = i + 1
-        if (hadError)
-            return;
+        expression();     // i = i + 1
         emitByte(OP_POP); // Pop do resultado
         consume(TOKEN_RPAREN, "Expect ')' after for clauses");
 
@@ -1104,8 +1102,6 @@ void Compiler::forStatement()
 
     // BODY
     statement();
-    if (hadError)
-        return;
 
     // Volta para o increment (ou condition se não houver increment)
     emitLoop(loopStart);
@@ -1129,8 +1125,6 @@ void Compiler::foreachStatement()
     consume(TOKEN_IN, "Expect 'in'");
 
     expression();
-    if (hadError)
-        return;
     consume(TOKEN_RPAREN, "Expect ')'");
 
     Token tmp;
@@ -1162,8 +1156,6 @@ void Compiler::foreachStatement()
     addLocal(itemName);
     markInitialized();
     statement();
-    if (hadError)
-        return;
 
     endScope(); // Remove item (slot 2), faz POP
 
@@ -1176,6 +1168,77 @@ void Compiler::foreachStatement()
 
     endLoop();
 }
+
+// void Compiler::foreachStatement()
+// {
+//     consume(TOKEN_LPAREN, "Expect '(' after 'foreach'");
+//     consume(TOKEN_IDENTIFIER, "Expect variable name");
+//     Token itemName = previous;
+//     consume(TOKEN_IN, "Expect 'in'");
+
+//     expression();
+//     consume(TOKEN_RPAREN, "Expect ')'");
+
+//     beginScope();
+
+//     Token tmp;
+//     tmp.lexeme = "__seq___";
+//     tmp.type = TOKEN_IDENTIFIER;
+//     tmp.column = previous.column;
+
+//     addLocal(tmp);
+//     markInitialized();
+//     uint8_t seqSlot = localCount_ - 1;
+//     emitByte(OP_SET_LOCAL);
+//     emitByte(seqSlot);
+
+//     // var __iter = nil
+//     emitByte(OP_NIL);
+//     tmp.lexeme = "__ite___";
+//     addLocal(tmp);
+//     markInitialized();
+//     uint8_t iterSlot = localCount_ - 1;
+//     emitByte(OP_SET_LOCAL);
+//     emitByte(iterSlot);
+
+//     int loopStart = currentChunk->count;
+//     beginLoop(loopStart);
+
+//     emitByte(OP_GET_LOCAL);
+//     emitByte(seqSlot);
+//     emitByte(OP_GET_LOCAL);
+//     emitByte(iterSlot);
+//     emitByte(OP_ITER_NEXT);
+
+//     int exitJump = emitJump(OP_JUMP_IF_FALSE);
+//     emitByte(OP_POP);  //   POP (bool)
+
+//     emitByte(OP_SET_LOCAL);
+//     emitByte(iterSlot);
+
+//     emitByte(OP_GET_LOCAL);
+//     emitByte(seqSlot);
+//     emitByte(OP_GET_LOCAL);
+//     emitByte(iterSlot);
+//     emitByte(OP_ITER_VALUE);
+
+//     beginScope();
+//     addLocal(itemName);
+//     markInitialized();
+//     uint8_t itemSlot = localCount_ - 1;
+//     emitByte(OP_SET_LOCAL);
+//     emitByte(itemSlot);
+
+//     statement();
+//     endScope();
+
+//     emitLoop(loopStart);
+
+//     patchJump(exitJump);
+
+//     endLoop();
+//     endScope();
+// }
 
 void Compiler::returnStatement()
 {
