@@ -118,15 +118,11 @@ Try these fully playable games built with BuLang directly in your browser:
 Classic arcade action! Control your spaceship, dodge enemies, and rack up points.
 - WASD or Arrow Keys to move
 - SPACE to shoot
-- 60 FPS performance
-- Wave-based enemies
 
 ### [🏃 Platformer](https://bulang.netlify.app/demos.html#platformer)
 Jump, collect coins, and reach the goal! Navigate challenging platforms with precise timing.
 - Arrow Keys or WASD to move
 - SPACE to jump
-- Collect power-ups
-- Multiple levels
 
 ---
 
