@@ -1566,40 +1566,40 @@ op_get_property:
         Value result;
         switch (field.type)
         {
-        case FieldType::BYTE:
-        {
-            result = makeByte(*(uint8 *)ptr);
-            DISPATCH();
-        }
-        case FieldType::INT:
-            result = makeInt(*(int *)ptr);
-            DISPATCH();
+            case FieldType::BYTE:
+            {
+                result = makeByte(*(uint8 *)ptr);
+                break;
+            }
+            case FieldType::INT:
+                result = makeInt(*(int *)ptr);
+                break;
 
-        case FieldType::UINT:
-            result = makeUInt(*(uint32 *)ptr);
-            DISPATCH();
+            case FieldType::UINT:
+                result = makeUInt(*(uint32 *)ptr);
+                break;
 
-        case FieldType::FLOAT:
-            result = makeFloat(*(float *)ptr);
-            DISPATCH();
-        case FieldType::DOUBLE:
-            result = makeDouble(*(double *)ptr);
-            DISPATCH();
+            case FieldType::FLOAT:
+                result = makeFloat(*(float *)ptr);
+                break;
+            case FieldType::DOUBLE:
+                result = makeDouble(*(double *)ptr);
+                break;
 
-        case FieldType::BOOL:
-            result = makeBool(*(bool *)ptr);
-            DISPATCH();
+            case FieldType::BOOL:
+                result = makeBool(*(bool *)ptr);
+                break;
 
-        case FieldType::POINTER:
-            result = makePointer(*(void **)ptr);
-            DISPATCH();
+            case FieldType::POINTER:
+                result = makePointer(*(void **)ptr);
+                break;
 
-        case FieldType::STRING:
-        {
-            String *str = *(String **)ptr;
-            result = str ? makeString(str) : makeNil();
-            DISPATCH();
-        }
+            case FieldType::STRING:
+            {
+                String *str = *(String **)ptr;
+                result = str ? makeString(str) : makeNil();
+                break;
+            }
         }
 
         DROP(); // Remove object
@@ -1782,7 +1782,7 @@ op_set_property:
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
             *(uint8 *)ptr = (uint8)value.asByte();
-            DISPATCH();
+            break;
         }
 
         case FieldType::INT:
@@ -1793,7 +1793,7 @@ op_set_property:
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
             *(int *)ptr = value.asInt();
-            DISPATCH();
+            break;
         case FieldType::UINT:
             if (!value.isUInt())
             {
@@ -1802,7 +1802,7 @@ op_set_property:
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
             *(uint32 *)ptr = value.asUInt();
-            DISPATCH();
+            break;
         case FieldType::FLOAT:
         {
             if (!value.isFloat())
@@ -1812,7 +1812,7 @@ op_set_property:
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
             *(float *)ptr = value.asFloat();
-            DISPATCH();
+            break;
         }
         case FieldType::DOUBLE:
             if (!value.isDouble())
@@ -1822,7 +1822,7 @@ op_set_property:
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
             *(double *)ptr = value.asDouble();
-            DISPATCH();
+            break;
 
         case FieldType::BOOL:
             if (!value.isBool())
@@ -1832,7 +1832,7 @@ op_set_property:
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
             *(bool *)ptr = value.asBool();
-            DISPATCH();
+            break;
 
         case FieldType::POINTER:
             if (!value.isPointer())
@@ -1842,7 +1842,7 @@ op_set_property:
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
             *(void **)ptr = value.asPointer();
-            DISPATCH();
+            break;
 
         case FieldType::STRING:
         {
@@ -1854,7 +1854,7 @@ op_set_property:
             }
             String **fieldPtr = (String **)ptr;
             *fieldPtr = value.asString();
-            DISPATCH();
+            break;
         }
         }
 
