@@ -69,7 +69,7 @@ const uint8 STATIC_INDEXOF = 19;
 const uint8 STATIC_REPEAT = 20;
 const uint8 STATIC_INIT = 21;
 
-//buffer
+// buffer
 
 const uint8 STATIC_FILL = 22;
 const uint8 STATIC_COPY = 23;
@@ -97,7 +97,6 @@ const uint8 STATIC_TELL = 43;
 const uint8 STATIC_REWIND = 44;
 const uint8 STATIC_SKIP = 45;
 const uint8 STATIC_REMAINING = 46;
-
 
 const uint8 STATIC_COUNT = 47;
 
@@ -250,26 +249,46 @@ public:
   ModuleBuilder &addString(const char *name, const char *value);
 };
 
-struct StructInstance
+enum class GCObjectType : uint8
 {
-  uint8 marked;
-  StructDef *def;
-  Vector<Value> values;
-  StructInstance();
+  STRUCT,
+  CLASS,
+  ARRAY,
+  MAP,
+  BUFFER,
+  NATIVE_CLASS,
+  NATIVE_STRUCT
 };
 
-struct ClassInstance
+struct GCObject
 {
+  GCObjectType type;
   uint8 marked;
+  GCObject *next;
+
+  GCObject(GCObjectType t) : type(t), marked(0), next(nullptr) {}
+};
+
+struct StructInstance : GCObject
+{
+  StructDef *def;
+  Vector<Value> values;
+
+  StructInstance() : GCObject(GCObjectType::STRUCT) {}
+};
+
+struct ClassInstance : GCObject
+{
   ClassDef *klass;
   Vector<Value> fields;
-  ClassInstance();
-  ~ClassInstance();
+
+  ClassInstance() : GCObject(GCObjectType::CLASS) {}
+
+  ~ClassInstance() {}
 
   FORCE_INLINE bool getMethod(String *name, Function **out)
   {
     ClassDef *current = klass;
-
     while (current)
     {
       if (current->methods.get(name, out))
@@ -278,63 +297,61 @@ struct ClassInstance
       }
       current = current->superclass;
     }
-
     return false;
   }
 };
 
-struct ArrayInstance
+struct ArrayInstance : GCObject
 {
-  uint8 marked;
   Vector<Value> values;
-  ArrayInstance();
+
+  ArrayInstance() : GCObject(GCObjectType::ARRAY) {}
 };
 
 enum class BufferType : uint8
 {
-  UINT8, // 0: Byte  
-  INT16, // 1: Short  
+  UINT8,  // 0: Byte
+  INT16,  // 1: Short
   UINT16, // 2: UShort
-  INT32, // 3: Int 
+  INT32,  // 3: Int
   UINT32, // 4: UInt
-  FLOAT, // 5: Float  
-  DOUBLE, // 6: Double 
+  FLOAT,  // 5: Float
+  DOUBLE, // 6: Double
   COUNT
 };
 
-struct BufferInstance
+struct BufferInstance : GCObject
 {
-  uint8 marked;    // Para o Garbage Collector
-  BufferType type;  
+
+  BufferType type;
   int count;       // Quantos elementos tem
   int elementSize; // Tamanho em bytes de 1 elemento (cache)
-  int cursor; 
-  uint8*data;    
+  int cursor;
+  uint8 *data;
   BufferInstance(int count, BufferType type);
   ~BufferInstance();
 };
 
-struct MapInstance
+struct MapInstance : GCObject
 {
-  uint8 marked;
   HashMap<String *, Value, StringHasher, StringEq> table;
-  MapInstance();
-};
 
-struct NativeClassInstance
+  MapInstance() : GCObject(GCObjectType::MAP) {}
+};
+struct NativeClassInstance : GCObject
 {
-  uint8 marked;
   NativeClassDef *klass;
-  void *userData; //  Ponteiro para struct C++
-  NativeClassInstance();
+  void *userData;
+
+  NativeClassInstance() : GCObject(GCObjectType::NATIVE_CLASS) {}
 };
 
-struct NativeStructInstance
+struct NativeStructInstance : GCObject
 {
-  uint8 marked;
   NativeStructDef *def;
-  void *data; // Malloc'd block (structSize bytes)
-  NativeStructInstance();
+  void *data;
+
+  NativeStructInstance() : GCObject(GCObjectType::NATIVE_STRUCT) {}
 };
 
 struct CallFrame
@@ -432,9 +449,9 @@ struct ProcessDef
   int index;
   Vector<uint8> argsNames;
   String *name{nullptr};
-  Fiber fibers[MAX_FIBERS];
-  Fiber *current;
+  Fiber *fibers{nullptr};
   Value privates[MAX_PRIVATES];
+  int totalFibers;
   int nextFiberIndex;
   void finalize();
   void release();
@@ -449,7 +466,8 @@ struct Process
   FiberState state;        //  Estado do PROCESSO (frame)
   float resumeTime = 0.0f; // Quando acorda (frame)
 
-  Fiber fibers[MAX_FIBERS];
+  Fiber *fibers{nullptr};
+  int totalFibers{0};
   int nextFiberIndex{0};
   int currentFiberIndex{0};
   Fiber *current{nullptr};
@@ -461,7 +479,7 @@ struct Process
   bool initialized = false;
 
   void release();
-  void finalize();
+
   void reset();
 };
 
@@ -487,17 +505,22 @@ class Interpreter
   // gc begin
 
   size_t totalAllocated = 0;
-  size_t nextGC = 1024 *4;
+  size_t totalStructs = 0;
+  size_t totalClasses = 0;
+  size_t totalMaps = 0;
+  size_t totalArrays = 0;
+  size_t totalBuffers = 0;
+  size_t totalNativeStructs = 0;
+  size_t totalNativeClasses = 0;
+  size_t nextGC = 1024 * 1024;
+  static constexpr size_t MIN_GC_THRESHOLD = 512 * 1024;        // 256 KB
+  static constexpr size_t MAX_GC_THRESHOLD = 512 * 1024 * 1024; // 128 MB
+  static constexpr double GC_GROWTH_FACTOR = 2.0;
   bool gcInProgress = false;
   bool enbaledGC = true;
-
-  Vector<ClassInstance *> classInstances;
-  Vector<StructInstance *> structInstances;
-  Vector<ArrayInstance *> arrayInstances;
-  Vector<BufferInstance *> bufferInstances;
-  Vector<NativeClassInstance *> nativeInstances;
-  Vector<NativeStructInstance *> nativeStructInstances;
-  Vector<MapInstance *> mapInstances;
+  GCObject *gcObjects;
+  int frameCount;
+  Vector<GCObject *> grayStack;
 
   // gc end
 
@@ -511,7 +534,6 @@ class Interpreter
   HeapAllocator arena;
 
   StringPool stringPool;
-  bool asEnded = false;
 
   float currentTime;
   float lastFrameTime;
@@ -531,8 +553,11 @@ class Interpreter
 
   void freeInstances();
   void freeBlueprints();
-
+  void freeFunctions();
+  void freeRunningProcesses();
   void checkGC();
+  void blackenObject(GCObject *obj);
+  void traceReferences();
 
   Fiber *get_ready_fiber(Process *proc);
   void resetFiber();
@@ -549,6 +574,9 @@ class Interpreter
   void dumpAllFunctions(FILE *f);
   void dumpAllClasses(FILE *f);
 
+  size_t countObjects() const;
+  void clearAllGCObjects();
+
   FORCE_INLINE ClassInstance *creatClass()
   {
 
@@ -556,8 +584,11 @@ class Interpreter
     size_t size = sizeof(ClassInstance);
     void *mem = (MapInstance *)arena.Allocate(size); // 40kb
     ClassInstance *instance = new (mem) ClassInstance();
-    instance->marked = 0;
-    classInstances.push(instance);
+
+    totalClasses++;
+    instance->next = gcObjects;
+    gcObjects = instance;
+
     totalAllocated += size;
 
     return instance;
@@ -571,6 +602,7 @@ class Interpreter
     c->~ClassInstance();
     arena.Free(c, size);
     totalAllocated -= size;
+    totalClasses--;
   }
 
   FORCE_INLINE StructInstance *createStruct()
@@ -581,6 +613,10 @@ class Interpreter
     StructInstance *instance = new (mem) StructInstance();
     instance->marked = 0;
     totalAllocated += size;
+    totalStructs++;
+
+    instance->next = gcObjects;
+    gcObjects = instance;
 
     return instance;
   }
@@ -590,6 +626,7 @@ class Interpreter
     size_t size = sizeof(StructInstance);
     s->values.destroy();
     s->~StructInstance();
+    totalStructs--;
     arena.Free(s, size);
     totalAllocated -= size;
   }
@@ -599,12 +636,18 @@ class Interpreter
     size_t size = sizeof(ArrayInstance);
     void *mem = (ArrayInstance *)arena.Allocate(size); // 32kb
     ArrayInstance *instance = new (mem) ArrayInstance();
-    arrayInstances.push(instance);
+
+    instance->next = gcObjects;
+    gcObjects = instance;
+    totalArrays++;
+
     instance->marked = 0;
     totalAllocated += size;
 
     return instance;
   }
+
+  void markForFree(const Value &v);
 
   FORCE_INLINE void freeArray(ArrayInstance *a)
   {
@@ -614,6 +657,7 @@ class Interpreter
     a->~ArrayInstance();
     arena.Free(a, size);
     totalAllocated -= size;
+    totalArrays--;
   }
 
   BufferInstance *createBuffer(int count, int typeRaw);
@@ -626,7 +670,10 @@ class Interpreter
     void *mem = (MapInstance *)arena.Allocate(size); // 40kb
     MapInstance *instance = new (mem) MapInstance();
     instance->marked = 0;
-    mapInstances.push(instance);
+
+    instance->next = gcObjects;
+    gcObjects = instance;
+    totalMaps++;
     totalAllocated += size;
 
     return instance;
@@ -637,6 +684,8 @@ class Interpreter
     size_t size = sizeof(MapInstance);
     // size += m->table.capacity * sizeof(Value);
     totalAllocated -= size;
+    totalMaps--;
+
     m->table.destroy();
     m->~MapInstance();
     arena.Free(m, size);
@@ -649,7 +698,9 @@ class Interpreter
     size_t size = sizeof(NativeClassInstance);
     void *mem = (NativeClassInstance *)arena.Allocate(size); // 32kb
     NativeClassInstance *instance = new (mem) NativeClassInstance();
-    nativeInstances.push(instance);
+    instance->next = gcObjects;
+    gcObjects = instance;
+    totalNativeClasses++;
     totalAllocated += size;
 
     return instance;
@@ -661,6 +712,7 @@ class Interpreter
     totalAllocated -= size;
     n->~NativeClassInstance();
     arena.Free(n, size);
+    totalNativeClasses--;
   }
 
   FORCE_INLINE NativeStructInstance *createNativeStruct()
@@ -670,7 +722,9 @@ class Interpreter
     void *mem = (NativeStructInstance *)arena.Allocate(size); // 32kb
     NativeStructInstance *instance = new (mem) NativeStructInstance();
     totalAllocated += size;
-
+    instance->next = gcObjects;
+    gcObjects = instance;
+    totalNativeStructs++;
     return instance;
   }
 
@@ -678,13 +732,16 @@ class Interpreter
   {
     size_t size = sizeof(NativeStructInstance);
     totalAllocated -= size;
-
     n->~NativeStructInstance();
     arena.Free(n, size);
+    totalNativeStructs--;
   }
 
   FORCE_INLINE void markRoots();
   FORCE_INLINE void markValue(const Value &v);
+  void markObject(GCObject *obj);
+  void sweep();
+  void freeObject(GCObject *obj);
 
   FORCE_INLINE void markArray(ArrayInstance *a);
   FORCE_INLINE void markStruct(StructInstance *s);
@@ -732,7 +789,7 @@ public:
   void addStructField(NativeStructDef *def, const char *fieldName,
                       size_t offset, FieldType type, bool readOnly = false);
 
-  ProcessDef *addProcess(const char *name, Function *func);
+  ProcessDef *addProcess(const char *name, Function *func, int totalFibers);
   void destroyProcess(Process *proc);
   Process *spawnProcess(ProcessDef *proc);
 
@@ -764,7 +821,7 @@ public:
   int registerFunction(const char *name, Function *func);
 
   void run_process_step(Process *proc);
-  FiberResult run_fiber(Fiber *fiber);
+  FiberResult run_fiber(Fiber *fiber, Process *proc);
 
   float getCurrentTime() const;
 
@@ -789,12 +846,12 @@ public:
   void render();
 
   size_t getTotalAlocated() { return totalAllocated; }
-  size_t getTotalClasses() { return classInstances.size(); }
-  size_t getTotalStructs() { return structInstances.size(); }
-  size_t getTotalArrays() { return arrayInstances.size(); }
-  size_t getTotalMaps() { return mapInstances.size(); }
-  size_t getTotalNativeClasses() { return nativeInstances.size(); }
-  size_t getTotalNativeStructs() { return nativeStructInstances.size(); }
+  size_t getTotalClasses() { return totalClasses; }
+  size_t getTotalStructs() { return totalStructs; }
+  size_t getTotalArrays() { return totalArrays; }
+  size_t getTotalMaps() { return totalMaps; }
+  size_t getTotalNativeClasses() { return totalNativeClasses; }
+  size_t getTotalNativeStructs() { return totalNativeStructs; }
 
   uint16 defineModule(const char *name);
   ModuleBuilder addModule(const char *name);
@@ -883,8 +940,6 @@ public:
     v.as.buffer = createBuffer(count, typeRaw);
     return v;
   }
-  
-  
 
   FORCE_INLINE Value makeMap()
   {
@@ -946,8 +1001,6 @@ public:
     v.as.unsignedInteger = i;
     return v;
   }
-
-
 
   FORCE_INLINE Value makeDouble(double d)
   {
@@ -1036,8 +1089,6 @@ public:
     v.as.byte = idx;
     return v;
   }
-
- 
 
   FORCE_INLINE Value makeFloat(float idx)
   {

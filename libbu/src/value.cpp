@@ -250,7 +250,17 @@ void printValue(const Value &value)
         OsPrintf("<module_reference %d %d %d>", value.as.unsignedInteger >> 24, (value.as.unsignedInteger >> 12) & 0xFFF, value.as.unsignedInteger & 0xFFF);
         break;
     }
-
+    case ValueType::NATIVESTRUCT:
+    {
+        OsPrintf("<native_struct>");
+        break;
+    }
+    case ValueType::NATIVECLASS:
+    {
+        OsPrintf("<native_class>");
+        break;
+    }
+ 
     default:
     {
         const char* str = valueTypeToString(value.type);
@@ -300,6 +310,24 @@ void valueToBuffer(const Value &v, char *out, size_t size)
     case ValueType::MAP:
         snprintf(out, size, "{map}");
         break;
+    case ValueType::STRUCT:
+        snprintf(out, size, "<struct>");
+    case ValueType::STRUCTINSTANCE:
+        snprintf(out, size, "<struct_instance>");
+    case ValueType::CLASS:
+        snprintf(out, size, "<class>");
+    case ValueType::CLASSINSTANCE:
+        snprintf(out, size, "<class_instance>");
+    case ValueType::NATIVECLASSINSTANCE:
+        snprintf(out, size, "<native_class_instance>");
+    case ValueType::NATIVESTRUCTINSTANCE:
+        snprintf(out, size, "<native_struct_instance>");
+    case ValueType::POINTER:
+        snprintf(out, size, "<pointer>");
+    case ValueType::MODULEREFERENCE:
+        snprintf(out, size, "<module_reference>");
+    case ValueType::NATIVESTRUCT:
+        snprintf(out, size, "<native_struct>");
     default:
         snprintf(out, size, "<object>");
     }

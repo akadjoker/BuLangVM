@@ -26,7 +26,7 @@ bool toNumberPair(const Value &a, const Value &b, double &da, double &db)
     return true;
 }
 
-FiberResult Interpreter::run_fiber(Fiber *fiber)
+FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 {
 
     currentFiber = fiber;
@@ -201,6 +201,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber)
         // --- UTILS ---
         &&op_clock,      // 81
         &&op_new_buffer, // 82
+        &&op_free,       // 83
     };
 
 #define DISPATCH()                         \
@@ -279,14 +280,14 @@ op_set_local:
 op_get_private:
 {
     uint8 index = READ_BYTE();
-    PUSH(currentProcess->privates[index]);
+    PUSH(process->privates[index]);
     DISPATCH();
 }
 
 op_set_private:
 {
     uint8 index = READ_BYTE();
-    currentProcess->privates[index] = PEEK();
+    process->privates[index] = PEEK();
     DISPATCH();
 }
 
@@ -963,7 +964,7 @@ op_call:
         fiber->stackTop -= (argCount + 1);
 
         instance->privates[(int)PrivateIndex::ID] = makeInt(instance->id);
-        instance->privates[(int)PrivateIndex::FATHER] = makeProcess(currentProcess->id);
+        instance->privates[(int)PrivateIndex::FATHER] = makeProcess(process->id);
 
         if (hooks.onStart)
         {
@@ -995,7 +996,7 @@ op_call:
         Value value = makeStructInstance();
         StructInstance *instance = value.as.sInstance;
         instance->def = def;
-        structInstances.push(instance);
+
         instance->values.reserve(def->argCount);
         Value *args = fiber->stackTop - argCount;
         for (int i = 0; i < argCount; i++)
@@ -1126,7 +1127,7 @@ op_call:
 
         Value literal = makeNativeStructInstance();
         NativeStructInstance *instance = literal.as.sNativeStruct;
-        nativeStructInstances.push(instance);
+
         instance->def = def;
         instance->data = data;
 
@@ -1233,13 +1234,13 @@ op_return:
 
         fiber->state = FiberState::DEAD;
 
-        if (fiber == &currentProcess->fibers[0])
+        if (fiber == &process->fibers[0])
         {
-            for (int i = 0; i < currentProcess->nextFiberIndex; i++)
+            for (int i = 0; i < process->nextFiberIndex; i++)
             {
-                currentProcess->fibers[i].state = FiberState::DEAD;
+                process->fibers[i].state = FiberState::DEAD;
             }
-            currentProcess->state = FiberState::DEAD;
+            process->state = FiberState::DEAD;
         }
 
         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
@@ -1280,15 +1281,16 @@ op_exit:
     Value exitCode = POP();
 
     // Define exit code (int ou 0)
-    currentProcess->exitCode = exitCode.isInt() ? exitCode.asInt() : 0;
+    process->exitCode = exitCode.isInt() ? exitCode.asInt() : 0;
 
     // Mata o processo
-    currentProcess->state = FiberState::DEAD;
+    process->state = FiberState::DEAD;
 
     // Mata todas as fibers (incluindo a atual)
-    for (int i = 0; i < MAX_FIBERS; i++)
+
+    for (int i = 0; i < process->totalFibers; i++)
     {
-        Fiber *f = &currentProcess->fibers[i];
+        Fiber *f = &process->fibers[i];
         f->state = FiberState::DEAD;
         f->frameCount = 0;
         f->ip = nullptr;
@@ -1308,18 +1310,16 @@ op_spawn:
     uint8 argCount = READ_BYTE();
     Value callee = NPEEK(argCount);
 
-    if (!currentProcess)
+    if (!process)
     {
         runtimeError("No current process for spawn");
         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
     }
-
-    if (currentProcess->nextFiberIndex >= MAX_FIBERS)
+    if (process->nextFiberIndex >= process->totalFibers)
     {
-        runtimeError("Too many fibers in process (max %d)", MAX_FIBERS);
+        runtimeError("Too many fibers in process (max %d)", process->totalFibers);
         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
     }
-
     if (!callee.isFunction())
     {
         runtimeError("fiber expects a function");
@@ -1328,43 +1328,40 @@ op_spawn:
 
     int funcIndex = callee.asFunctionId();
     Function *func = functions[funcIndex];
-
     if (!func)
     {
         runtimeError("Invalid function");
         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
     }
-
     if (argCount != func->arity)
     {
         runtimeError("Expected %d arguments but got %d", func->arity, argCount);
         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
     }
 
-    int fiberIdx = currentProcess->nextFiberIndex++;
-    Fiber *newFiber = &currentProcess->fibers[fiberIdx];
+    int fiberIdx = process->nextFiberIndex++;
+    Fiber *newFiber = &process->fibers[fiberIdx];
 
     newFiber->state = FiberState::RUNNING;
     newFiber->resumeTime = 0;
     newFiber->stackTop = newFiber->stack;
     newFiber->frameCount = 0;
-    newFiber->stack[0] = callee;
+
+    newFiber->stack[0] = callee; // Slot 0 = Função
 
     for (int i = 0; i < argCount; i++)
     {
-        newFiber->stack[i + 1] = fiber->stackTop[-(argCount - i)]; // fix
+        newFiber->stack[i + 1] = fiber->stackTop[-(argCount - i)];
     }
-    newFiber->stackTop = newFiber->stack + argCount + 1; // fix
+    newFiber->stackTop = newFiber->stack + argCount + 1;
 
     CallFrame *frame = &newFiber->frames[newFiber->frameCount++];
     frame->func = func;
     frame->ip = func->chunk->code;
-    frame->slots = newFiber->stack; // Argumentos começam aqui
+    frame->slots = newFiber->stack;
 
     fiber->stackTop -= (argCount + 1);
-
     PUSH(makeInt(fiberIdx));
-
     DISPATCH();
 }
 
@@ -1569,40 +1566,40 @@ op_get_property:
         Value result;
         switch (field.type)
         {
-        case FieldType::BYTE:
-        {
-            result = makeByte(*(uint8 *)ptr);
-            DISPATCH();
-        }
-        case FieldType::INT:
-            result = makeInt(*(int *)ptr);
-            DISPATCH();
+            case FieldType::BYTE:
+            {
+                result = makeByte(*(uint8 *)ptr);
+                break;
+            }
+            case FieldType::INT:
+                result = makeInt(*(int *)ptr);
+                break;
 
-        case FieldType::UINT:
-            result = makeUInt(*(uint32 *)ptr);
-            DISPATCH();
+            case FieldType::UINT:
+                result = makeUInt(*(uint32 *)ptr);
+                break;
 
-        case FieldType::FLOAT:
-            result = makeFloat(*(float *)ptr);
-            DISPATCH();
-        case FieldType::DOUBLE:
-            result = makeDouble(*(double *)ptr);
-            DISPATCH();
+            case FieldType::FLOAT:
+                result = makeFloat(*(float *)ptr);
+                break;
+            case FieldType::DOUBLE:
+                result = makeDouble(*(double *)ptr);
+                break;
 
-        case FieldType::BOOL:
-            result = makeBool(*(bool *)ptr);
-            DISPATCH();
+            case FieldType::BOOL:
+                result = makeBool(*(bool *)ptr);
+                break;
 
-        case FieldType::POINTER:
-            result = makePointer(*(void **)ptr);
-            DISPATCH();
+            case FieldType::POINTER:
+                result = makePointer(*(void **)ptr);
+                break;
 
-        case FieldType::STRING:
-        {
-            String *str = *(String **)ptr;
-            result = str ? makeString(str) : makeNil();
-            DISPATCH();
-        }
+            case FieldType::STRING:
+            {
+                String *str = *(String **)ptr;
+                result = str ? makeString(str) : makeNil();
+                break;
+            }
         }
 
         DROP(); // Remove object
@@ -1785,7 +1782,7 @@ op_set_property:
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
             *(uint8 *)ptr = (uint8)value.asByte();
-            DISPATCH();
+            break;
         }
 
         case FieldType::INT:
@@ -1796,7 +1793,7 @@ op_set_property:
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
             *(int *)ptr = value.asInt();
-            DISPATCH();
+            break;
         case FieldType::UINT:
             if (!value.isUInt())
             {
@@ -1805,7 +1802,7 @@ op_set_property:
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
             *(uint32 *)ptr = value.asUInt();
-            DISPATCH();
+            break;
         case FieldType::FLOAT:
         {
             if (!value.isFloat())
@@ -1815,7 +1812,7 @@ op_set_property:
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
             *(float *)ptr = value.asFloat();
-            DISPATCH();
+            break;
         }
         case FieldType::DOUBLE:
             if (!value.isDouble())
@@ -1825,7 +1822,7 @@ op_set_property:
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
             *(double *)ptr = value.asDouble();
-            DISPATCH();
+            break;
 
         case FieldType::BOOL:
             if (!value.isBool())
@@ -1835,7 +1832,7 @@ op_set_property:
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
             *(bool *)ptr = value.asBool();
-            DISPATCH();
+            break;
 
         case FieldType::POINTER:
             if (!value.isPointer())
@@ -1845,7 +1842,7 @@ op_set_property:
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
             *(void **)ptr = value.asPointer();
-            DISPATCH();
+            break;
 
         case FieldType::STRING:
         {
@@ -1857,7 +1854,7 @@ op_set_property:
             }
             String **fieldPtr = (String **)ptr;
             *fieldPtr = value.asString();
-            DISPATCH();
+            break;
         }
         }
 
@@ -3473,7 +3470,7 @@ op_set_index:
     {
         if (!index.isNumber())
         {
-            
+
             runtimeError("Array index must be an number");
             PUSH(value);
             DISPATCH();
@@ -3998,13 +3995,13 @@ op_exit_finally:
                     *fiber->stackTop++ = returnValue;
                     fiber->state = FiberState::DEAD;
 
-                    if (fiber == &currentProcess->fibers[0])
+                    if (fiber == &process->fibers[0])
                     {
-                        for (int i = 0; i < currentProcess->nextFiberIndex; i++)
+                        for (int i = 0; i < process->nextFiberIndex; i++)
                         {
-                            currentProcess->fibers[i].state = FiberState::DEAD;
+                            process->fibers[i].state = FiberState::DEAD;
                         }
-                        currentProcess->state = FiberState::DEAD;
+                        process->state = FiberState::DEAD;
                     }
 
                     STORE_FRAME();
@@ -4399,6 +4396,99 @@ op_new_buffer:
         THROW_RUNTIME_ERROR("Buffer size must be an integer or a string.");
     }
 
+    DISPATCH();
+}
+op_free:
+{
+    Value object = POP();
+    bool freed = false;
+
+    // Info("Freeing %s", valueTypeToString(object.type));
+
+    if (object.isStructInstance())
+    {
+
+        StructInstance *instance = object.asStructInstance();
+        if (!instance)
+        {
+            runtimeError("Struct is null");
+            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+        }
+        // Info("Free  Struct address: %p", (void*)instance);
+        instance->marked = 1;
+        freed = true;
+    }
+    else if (object.isClassInstance())
+    {
+        ClassInstance *instance = object.asClassInstance();
+        if (!instance)
+        {
+            runtimeError("Class instance is nil");
+            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+        }
+        instance->marked = 1;
+        freed = true;
+    }
+    else if (object.isNativeClassInstance())
+    {
+        NativeClassInstance *instance = object.asNativeClassInstance();
+        if (!instance)
+        {
+            runtimeError("Native class instance is nil");
+            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+        }
+        instance->marked = 1;
+        freed = true;
+    }
+    else if (object.isNativeStructInstance())
+    {
+        NativeStructInstance *instance = object.asNativeStructInstance();
+        if (!instance)
+        {
+            runtimeError("Native struct instance is nil");
+            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+        }
+        // Info("Free  Native Struct address: %p", (void*)instance);
+        instance->marked = 1;
+        freed = true;
+    }
+    else if (object.isBuffer())
+    {
+        BufferInstance *instance = object.asBuffer();
+        if (!instance)
+        {
+            runtimeError("Buffer instance is nil");
+            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+        }
+        instance->marked = 1;
+        freed = true;
+    }
+    else if (object.isMap())
+    {
+
+        MapInstance *instance = object.asMap();
+        if (!instance)
+        {
+            runtimeError("Map instance is nil");
+            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+        }
+        instance->marked = 1;
+        freed = true;
+    }
+    else if (object.isArray())
+    {
+        ArrayInstance *instance = object.asArray();
+        if (!instance)
+        {
+            runtimeError("Array instance is nil");
+            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+        }
+        instance->marked = 1;
+        freed = true;
+    }
+
+    // Warning("Object not in category to be freed: %s", valueTypeToString(object.type));
+    PUSH(makeBool(freed));
     DISPATCH();
 }
 

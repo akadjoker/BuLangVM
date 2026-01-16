@@ -116,6 +116,7 @@ enum Opcode : uint8
 
     OP_CLOCK = 81,
     //new type buffer
-    OP_NEW_BUFFER = 82
+    OP_NEW_BUFFER = 82,
+    OP_FREE = 83
 
 };

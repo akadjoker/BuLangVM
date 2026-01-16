@@ -39,6 +39,8 @@ class Rocket
     var color;
     var trail;
     var exploded;
+    var trailIndex;      
+    var trailSize;       
     
     def init(x, y, targetY)
     {
@@ -51,6 +53,7 @@ class Rocket
         self.color = colors[math.rand(len(colors))];
         self.trail = [];
         self.exploded = 0;
+        
     }
     
     def update()
@@ -65,18 +68,25 @@ class Rocket
         self.y = self.y + self.vy;
         self.vy = self.vy + gravity * 0.5;  // Gravity slows it down
         
-        // Trail effect
+ 
         self.trail.push(Point(self.x, self.y));
+     
         if (len(self.trail) > 15)
         {
+            
             // Remove oldest trail point
             var newTrail = [];
             for (var i = 1; i < len(self.trail); i = i + 1)
             {
                 newTrail.push(self.trail[i]);
             }
+            
+           // free(self.trail);
+            
             self.trail = newTrail;
         }
+
+        
         
         // Check if reached peak or target height
         if (self.vy > 0 || self.y < self.targetY)
@@ -118,18 +128,20 @@ class Rocket
         {
             var point = self.trail[i];
             var alpha = (i / len(self.trail)) * 255;
-            // var trailColor = Color(
-            //     255,
-            //     255,
-            //     255,
-            //     255
-            // );
-            // DrawCircle(point.x, point.y, 3, trailColor);
+            var trailColor = Color(
+                self.color.r,
+                self.color.g,
+                self.color.b,
+                alpha
+            );
+             //DrawCircle(point.x, point.y, 3, trailColor);
+             DrawTextureRotate(tex, point.x, point.y, 0,1.0,trailColor);
+       
         }
         
         // Draw rocket head (bright)
-        DrawCircle(self.x, self.y, 5, WHITE);
-        DrawCircle(self.x, self.y, 4, self.color);
+        //DrawCircle(self.x, self.y, 5, WHITE);
+        DrawTextureRotate(tex, self.x,self.y, 0,1.0,self.color);
     }
 }
 
@@ -180,15 +192,16 @@ class Particle
     def draw()
     {
         var alpha = (self.life / self.maxLife) * 255;
-        // var c = Color(
-        //     self.color.r,
-        //     self.color.g,
-        //     self.color.b,
-        //     255
-        // );
+        var c = Color(
+            self.color.r,
+            self.color.g,
+            self.color.b,
+            255
+        );
         
         var size = (self.life / self.maxLife) * 3 + 1;
-        DrawCircle(self.x, self.y, size, WHITE);
+        DrawTextureRotate(tex, self.x,self.y, 0,size * 0.5,c);
+ 
 
     }
 }
@@ -207,6 +220,11 @@ var WHITE = Color(255, 255, 255, 255);
 var LIGHTGRAY = Color(200, 200, 200, 255);
 
 var cooldown = 0;
+var aliveRockets = [];
+var aliveParticles = [];
+var frameCount=0;
+
+var tex = LoadTexture("assets/texture.png"); 
 
 while (!WindowShouldClose())
 {
@@ -214,7 +232,7 @@ while (!WindowShouldClose())
     ClearBackground(BLACK);
     
     // Launch rocket on click or space
-    if (IsMouseButtonPressed(0) )
+    if (IsMouseButtonDown(0) )
     {
         var targetY = 100 + math.rand(150);  // Random height
         var r = Rocket(GetMouseX(), 600, targetY);
@@ -222,39 +240,52 @@ while (!WindowShouldClose())
     }
     
     // // Auto-launch rockets
-    // cooldown = cooldown - 1;
-    // if (cooldown <= 0)
-    // {
-    //     var x = 100 + math.rand(600);
-    //     var targetY = 100 + math.rand(150);
-    //     var r = Rocket(x, 600, targetY);
-    //     rockets.push(r);
-    //     cooldown = 30 + math.rand(30);  // 0.5-1 second
-    // }
+    cooldown = cooldown - 1;
+    if (cooldown <= 0)
+    {
+        var x = 100 + math.rand(600);
+        var targetY = 100 + math.rand(150);
+        var r = Rocket(x, 600, targetY);
+        rockets.push(r);
+        cooldown = 30 + math.rand(30);  // 0.5-1 second
+    }
     
+ 
     // Update rockets
-    var aliveRockets = [];
-    for (var i = 0; i < len(rockets); i = i + 1)
+    var i=0;
+    while(i< len(rockets))
     {
         var r = rockets[i];
-        if (r.update() == 1)
+        if (r.update() == 0)
         {
-            aliveRockets.push(r);
+            rockets[i] = rockets.back();
+            rockets.pop();
+   
+        } else
+        {
+        i=i+1;
         }
     }
-    rockets = aliveRockets;
+ 
     
     // Update particles
-    var aliveParticles = [];
-    for (var i = 0; i < len(particles); i = i + 1)
+    i=0;
+    while(i < len(particles))
     {
         var p = particles[i];
-        if (p.update() == 1)
+        if (p.update() == 0)
         {
-            aliveParticles.push(p);
+         
+           particles[i]=particles.back();
+           particles.pop();
+       
+           
+        }else
+        {
+            i++;
         }
     }
-    particles = aliveParticles;
+ 
     
     // Draw particles
     for (var i = 0; i < len(particles); i = i + 1)
@@ -272,9 +303,69 @@ while (!WindowShouldClose())
     DrawText("Click or SPACE to launch firework", 10, 10, 20, LIGHTGRAY);
     DrawText(format("Rockets: {}", len(rockets)), 10, 35, 20, LIGHTGRAY);
     DrawText(format("Particles: {}", len(particles)), 10, 60, 20, LIGHTGRAY);
+    DrawStats(800-350,20);
     DrawFPS(10, 550);
     
     EndDrawing();
+
+
+    i=0;
+  
+
+
+    frameCount=frameCount+1;
+    if(frameCount % 100 ==0)
+    {
+
+       _gc();
+    }
+
 }
 
+UnloadTexture(tex);
+
 CloseWindow();
+
+
+// struct RGBA 
+// {
+//     r,g,b,a;
+// };
+ 
+
+
+
+//  var i=0;
+//  var colors =[];
+
+
+// while(i<50)
+// {
+//     var color =  RGBA(255, 50, 50, 255);
+//     colors.push(color);
+//     var c = Color(1,1,2,3);
+//     free(c);
+//     i++;
+    
+// }
+
+// colors.pop();
+// colors.pop();
+ 
+
+// free(colors);
+
+// print("First gc");
+// _gc();
+
+
+// print("second gc");
+// _gc();
+
+
+
+
+
+
+// print("byby");
+

@@ -22,7 +22,7 @@
 #define OS_MAC
 #endif
 
-
+ 
 
 
 #if defined(__GNUC__) || defined(__clang__)
@@ -35,7 +35,7 @@
   #define LIKELY(x)    (x)
 #endif
 
-//#define USE_COMPUTED_GOTO 
+#define USE_COMPUTED_GOTO 
  
 typedef signed char int8;
 typedef signed short int16;

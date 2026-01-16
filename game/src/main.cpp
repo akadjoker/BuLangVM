@@ -226,6 +226,9 @@ const char *multiPathFileLoader(const char *filename, size_t *outSize, void *use
     return nullptr;
 }
 
+
+
+
 int main()
 {
 
@@ -259,13 +262,15 @@ int main()
             .addFunction("EndDrawing", RaylibBindings::native_EndDrawing, 0)
             .addFunction("ClearBackground", RaylibBindings::native_ClearBackground, 1)
             .addFunction("DrawFPS", RaylibBindings::native_DrawFps, 2)
+            .addFunction("DrawStats", RaylibBindings::native_DrawStats, 2)
             .addFunction("DrawPixel", RaylibBindings::native_DrawPixel, 3)
             .addFunction("DrawText", RaylibBindings::native_DrawText, 5)
-            .addFunction("DrawLine", RaylibBindings::native_DrawLine, 4)
+            .addFunction("DrawLine", RaylibBindings::native_DrawLine, 5)
             .addFunction("DrawCircle", RaylibBindings::native_DrawCircle, 4)
             .addFunction("DrawRectangle", RaylibBindings::native_DrawRectangle, 5)
             .addFunction("DrawRectangleRec", RaylibBindings::native_DrawRectangleRec, 2)
             .addFunction("DrawTexture", RaylibBindings::native_DrawTexture, 4)
+            .addFunction("DrawTextureRotate", RaylibBindings::native_DrawTextureRotateScale, 6)
             .addFunction("LoadTexture", RaylibBindings::native_LoadTexture, 1)
             .addFunction("UnloadTexture", RaylibBindings::native_UnloadTexture, 1)
             .addFunction("GetMousePosition", RaylibBindings::native_GetMousePosition, 0)

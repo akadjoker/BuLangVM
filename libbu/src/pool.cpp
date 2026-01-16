@@ -1,14 +1,13 @@
+#include "string.hpp"
 #include "pool.hpp"
 #include "value.hpp"
 #include "arena.hpp"
 #include "interpreter.hpp"
- 
+#include "utils.hpp"
+
 #include <ctype.h>
 #include <new>
 #include <stdarg.h>
-#include "string.hpp"
-
- 
 
 StringPool::StringPool()
 {
@@ -27,7 +26,6 @@ StringPool::StringPool()
 
 StringPool::~StringPool()
 {
-
 }
 
 // ============= STRING ALLOC =============
@@ -57,19 +55,19 @@ void StringPool::deallocString(String *s)
 void StringPool::clear()
 {
     Info("String pool clear %d strings", map.size());
-    Info("Allocated %d bytes", bytesAllocated);
+    Info("String Pool cllocated %s bytes", formatBytes(bytesAllocated));
 
     for (size_t i = 0; i < map.size(); i++)
     {
         String *s = map[i];
-       
+
         deallocString(s);
     }
 
     dummyString->~String();
     allocator.Free(dummyString, sizeof(String));
 
-    allocator.Stats();
+   // allocator.Stats();
     allocator.Clear();
 
     map.clear();
@@ -90,7 +88,6 @@ String *StringPool::create(const char *str, uint32 len)
 
     // New string
     String *s = allocString();
- 
 
     // Copy data
     if (len <= String::SMALL_THRESHOLD)
@@ -111,11 +108,10 @@ String *StringPool::create(const char *str, uint32 len)
     bytesAllocated += sizeof(String) + len;
     s->index = map.size();
 
-   // Info("Create string %s hash %d len %d", s->chars(), s->hash, s->length());
+    // Info("Create string %s hash %d len %d", s->chars(), s->hash, s->length());
     map.push(s);
     pool.set(s->chars(), map.size() - 1);
 
-   
     // Store in pool
 
     return s;
@@ -196,7 +192,7 @@ String *StringPool::lower(String *src)
 }
 
 // ========================================
-// SUBSTRING  
+// SUBSTRING
 // ========================================
 
 String *StringPool::substring(String *src, uint32 start, uint32 end)
@@ -225,7 +221,7 @@ String *StringPool::substring(String *src, uint32 start, uint32 end)
 }
 
 // ========================================
-// REPLACE -  
+// REPLACE -
 // ========================================
 
 String *StringPool::replace(String *src, const char *oldStr, const char *newStr)
@@ -345,7 +341,7 @@ bool StringPool::endsWith(String *str, String *suffix)
 }
 
 // ========================================
-// TRIM  
+// TRIM
 // ========================================
 
 String *StringPool::trim(String *str)
@@ -418,7 +414,7 @@ int StringPool::indexOf(String *str, const char *substr, int startIndex)
 }
 
 // ========================================
-// REPEAT 
+// REPEAT
 // ========================================
 
 String *StringPool::repeat(String *str, int count)
@@ -468,7 +464,7 @@ String *StringPool::repeat(String *str, int count)
 String *StringPool::toString(int value)
 {
     char buf[32];
- 
+
     snprintf(buf, sizeof(buf), "%d", value);
     return create(buf);
 }
@@ -617,64 +613,82 @@ String *StringPool::getString(int index)
 
 ProcessPool::ProcessPool()
 {
-    pool.reserve(512);
+    pool.reserve(1000);
 }
 
 ProcessPool::~ProcessPool()
 {
-    
 }
 
 Process *ProcessPool::create()
 {
     Process *proc = nullptr;
-    
+
     if (pool.size() == 0)
     {
-         proc = new Process();
+        proc = new Process();
     }
     else
     {
         proc = pool.back();
         pool.pop();
-        proc->reset();   
     }
     return proc;
 }
 
 void ProcessPool::recycle(Process *proc)
 {
-    if(proc->id ==3200171524)
-    {
-        Warning("Bad process");
-        return;
-    }
-  //  Warning("Recycling process");
     proc->reset();
     pool.push(proc);
 }
 
 void ProcessPool::destroy(Process *proc)
 {
-  //  Warning("Delteing process");
-
+    if (proc->fibers)
+    {
+        free(proc->fibers);
+        proc->fibers = nullptr;
+    }
     delete proc;
 }
 
 void ProcessPool::clear()
 {
-  //  Warning("Freeing %zu processes", pool.size());
-    
+    //  Warning("Freeing %zu processes on pool", pool.size());
+
     for (size_t j = 0; j < pool.size(); j++)
     {
         Process *proc = pool[j];
-        if(!proc || proc->id == 3200171524)
+        if (proc->fibers)
         {
-            Warning("Bad process");
-            continue;
+            free(proc->fibers);
+            proc->fibers = nullptr;
         }
         delete proc;
     }
     pool.clear();
- 
+}
+
+void ProcessPool::shrink()
+{
+    if (pool.size() <= MIN_POOL_SIZE)
+    {
+        return; // Já está pequeno
+    }
+
+
+    int targetSize = MIN_POOL_SIZE + (pool.size() - MIN_POOL_SIZE) / 2;
+
+    while (pool.size() > targetSize)
+    {
+        Process *proc = pool.back();
+        pool.pop();
+
+        if (proc->fibers)
+        {
+            free(proc->fibers);
+            proc->fibers = nullptr;
+        }
+        delete proc;
+    }
 }

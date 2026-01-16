@@ -10,6 +10,8 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <memory>
+#include <chrono>
 
 class Code;
 struct Value;
@@ -51,41 +53,47 @@ struct ParseRule
   Precedence prec;
 };
 
-#define MAX_IDENTIFIER_LENGTH 32
+// ============================================
+// LIMITES DE SEGURANÇA UNIFICADOS
+// ============================================
+
+#define MAX_IDENTIFIER_LENGTH 255  // Alinhado com lexer
+
+
+#define MAX_EXPRESSION_DEPTH 200   // Prevenir stack overflow em expressões
+#define MAX_DECLARATION_DEPTH 100  // Prevenir recursão infinita
+#define MAX_CALL_DEPTH 100         // Limitar calls aninhados
+#define MAX_SCOPE_DEPTH 256        // Limitar scopes aninhados
+#define MAX_TRY_DEPTH 64           // Limitar try/catch aninhados
+
+
+#define MAX_LABELS 32
+#define MAX_GOTOS 32
+#define MAX_GOSUBS 32
+
 #define MAX_LOCALS 256
+#define MAX_LOOP_DEPTH 32
+#define MAX_BREAKS_PER_LOOP 256
+
 
 struct Local
 {
-  char name[MAX_IDENTIFIER_LENGTH];
-  uint8 length;
+  std::string name;  
   int depth;
   bool usedInitLocal;
 
-  Local() : length(0), depth(-1), usedInitLocal(false) { name[0] = '\0'; }
+  Local() : depth(-1), usedInitLocal(false) {}
 
   bool equals(const std::string &str) const
   {
-
-    if (length != str.length())
-    {
-      return false;
-    }
-
-    return std::memcmp(name, str.c_str(), length) == 0;
+    return name == str;
   }
 
   bool equals(const char *str, size_t len) const
   {
-    if (length != len)
-    {
-      return false;
-    }
-    return std::memcmp(name, str, length) == 0;
+    return name.length() == len && std::memcmp(name.c_str(), str, len) == 0;
   }
 };
-
-#define MAX_LOOP_DEPTH 32
-#define MAX_BREAKS_PER_LOOP 256
 
 struct LoopContext
 {
@@ -95,13 +103,12 @@ struct LoopContext
   int scopeDepth;
   bool isForeach;
 
-  LoopContext() : loopStart(0), breakCount(0), scopeDepth(0) {}
+  LoopContext() : loopStart(0), breakCount(0), scopeDepth(0), isForeach(false) {}
 
   bool addBreak(int jump)
   {
     if (breakCount >= MAX_BREAKS_PER_LOOP)
     {
-
       return false;
     }
     breakJumps[breakCount++] = jump;
@@ -121,7 +128,33 @@ struct GotoJump
   int jumpOffset;
 };
 
-#define MAX_LOCALS 256
+// ============================================
+// OPÇÕES DE COMPILAÇÃO
+// ============================================
+
+struct CompilerOptions
+{
+  bool strictMode = true;
+  bool allowUnsafeCode = false;
+  
+  // Limites de tamanho
+  size_t maxSourceSize = 1024 * 1024;  // 1MB
+  size_t maxTokens = 100000;
+  size_t maxFunctions = 10000;
+  size_t maxConstants = 65535;
+  
+  // Timeouts
+  std::chrono::milliseconds compileTimeout{5000};
+  
+  // Validação
+  bool validateUnicode = true;
+  bool checkIntegerOverflow = true;
+};
+
+// ============================================
+// COMPILER CLASS (HARDENED)
+// ============================================
+
 class Compiler
 {
 public:
@@ -129,15 +162,27 @@ public:
   ~Compiler();
 
   void setFileLoader(FileLoaderCallback loader, void *userdata = nullptr);
+  void setOptions(const CompilerOptions& opts) { options = opts; }
 
   ProcessDef *compile(const std::string &source);
   ProcessDef *compileExpression(const std::string &source);
 
   void clear();
 
+  // Estatísticas para debugging
+  struct Stats {
+    size_t maxExpressionDepth = 0;
+    size_t maxScopeDepth = 0;
+    size_t totalErrors = 0;
+    size_t totalWarnings = 0;
+    std::chrono::milliseconds compileTime{0};
+  };
+  
+  Stats getStats() const { return stats; }
+
 private:
   Interpreter *vm_;
-  Lexer *lexer;
+  Lexer* lexer; 
   Token current;
   Token previous;
   Token next;
@@ -147,7 +192,7 @@ private:
   FunctionType currentFunctionType;
   Function *function;
   Code *currentChunk;
-  Fiber *currentFiber;
+ 
   ClassDef *currentClass;
   ProcessDef *currentProcess;
   Vector<String *> argNames;
@@ -155,18 +200,34 @@ private:
 
   bool hadError;
   bool panicMode;
-  int tryDepth;  
+  
+
+  int expressionDepth;     
+  int declarationDepth;     
+  int callDepth;           
   int scopeDepth;
+  int tryDepth;
+  int loopDepth_;
+  
   Local locals_[MAX_LOCALS];
   int localCount_;
 
   LoopContext loopContexts_[MAX_LOOP_DEPTH];
-  int loopDepth_;
   bool isProcess_;
+  int numFibers_;
 
   std::vector<Label> labels;
   std::vector<GotoJump> pendingGotos;
   std::vector<GotoJump> pendingGosubs;
+
+ 
+  CompilerOptions options;
+  Stats stats;
+  std::chrono::steady_clock::time_point compileStartTime;
+
+ 
+  std::vector<std::string> errors;
+  std::vector<std::string> warnings;
 
   // Token management
   void advance();
@@ -178,7 +239,7 @@ private:
   bool match(TokenType type);
   void consume(TokenType type, const char *message);
 
-  void beginLoop(int loopStart,bool isForeach = false);
+  void beginLoop(int loopStart, bool isForeach = false);
   void endLoop();
   void emitBreak();
   void pushScope();
@@ -188,12 +249,26 @@ private:
   void breakStatement();
   void continueStatement();
 
-  // Error handling
+ 
   void error(const char *message);
   void errorAt(Token &token, const char *message);
   void errorAtCurrent(const char *message);
   void fail(const char *format, ...);
   void synchronize();
+  
+ 
+  void warning(const char *message);
+  void warningAt(Token &token, const char *message);
+
+ 
+  bool checkExpressionDepth();
+  bool checkDeclarationDepth();
+  bool checkCallDepth();
+  bool checkScopeDepth();
+  bool checkTryDepth();
+  bool checkLabelCount();
+  bool checkGotoCount();
+  bool checkCompileTimeout();
 
   // Bytecode emission
   void emitByte(uint8 byte);
@@ -213,6 +288,8 @@ private:
   void parsePrecedence(Precedence precedence);
   ParseRule *getRule(TokenType type);
 
+  void validateIdentifierName(const Token& nameToken);
+
   // Parse functions (prefix)
   void number(bool canAssign);
   void string(bool canAssign);
@@ -221,6 +298,7 @@ private:
   void unary(bool canAssign);
   void variable(bool canAssign);
   void lengthExpression(bool canAssign);
+  void freeExpression(bool canAssign); 
   void mathUnary(bool canAssign);
   void mathBinary(bool canAssign);
   void expressionClock(bool canAssign);
@@ -303,7 +381,6 @@ private:
   bool inProcessFunction() const;
 
   void initRules();
-  
 
   void frameStatement();
   void exitStatement();
@@ -315,11 +392,92 @@ private:
   FileLoaderCallback fileLoader = nullptr;
   void *fileLoaderUserdata = nullptr;
   std::set<std::string> includedFiles;
-      std::set<std::string> importedModules;
-    std::set<std::string> usingModules;
-
-  // HashSet<String *, StringHasher, StringEq> importedModules;
-  // HashSet<String *, StringHasher, StringEq> usingModules;
+  std::set<std::string> importedModules;
+  std::set<std::string> usingModules;
 
   static ParseRule rules[TOKEN_COUNT];
 };
+
+ 
+inline bool Compiler::checkExpressionDepth()
+{
+  if (expressionDepth >= MAX_EXPRESSION_DEPTH)
+  {
+    error("Expression nested too deeply");
+    return false;
+  }
+  return true;
+}
+
+inline bool Compiler::checkDeclarationDepth()
+{
+  if (declarationDepth >= MAX_DECLARATION_DEPTH)
+  {
+    error("Declarations nested too deeply");
+    return false;
+  }
+  return true;
+}
+
+inline bool Compiler::checkCallDepth()
+{
+  if (callDepth >= MAX_CALL_DEPTH)
+  {
+    error("Function calls nested too deeply");
+    return false;
+  }
+  return true;
+}
+
+inline bool Compiler::checkScopeDepth()
+{
+  if (scopeDepth >= MAX_SCOPE_DEPTH)
+  {
+    error("Scopes nested too deeply");
+    return false;
+  }
+  return true;
+}
+
+inline bool Compiler::checkTryDepth()
+{
+  if (tryDepth >= MAX_TRY_DEPTH)
+  {
+    error("Try blocks nested too deeply");
+    return false;
+  }
+  return true;
+}
+
+inline bool Compiler::checkLabelCount()
+{
+  if (labels.size() >= MAX_LABELS)
+  {
+    error("Too many labels in function");
+    return false;
+  }
+  return true;
+}
+
+inline bool Compiler::checkGotoCount()
+{
+  if (pendingGotos.size() >= MAX_GOTOS)
+  {
+    error("Too many goto statements");
+    return false;
+  }
+  return true;
+}
+
+inline bool Compiler::checkCompileTimeout()
+{
+  auto now = std::chrono::steady_clock::now();
+  auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - compileStartTime);
+  
+  if (elapsed > options.compileTimeout)
+  {
+    error("Compilation timeout exceeded");
+    return false;
+  }
+  return true;
+}

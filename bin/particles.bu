@@ -1,0 +1,588 @@
+import math;
+import raylib;
+using raylib;
+
+// ==========================================
+// PARTICLE SYSTEM - FIREWORKS ENHANCED
+// ==========================================
+
+struct Point
+{
+    var x, y;
+};
+
+var gravity = 0.2;  // Reduzido para partículas ficarem mais tempo no ar
+var particles = [];
+var rockets = [];
+var sparkles = [];  
+
+// Expanded color palette
+var colors = [
+    Color(255, 50, 50, 255),    // Red
+    Color(50, 255, 50, 255),    // Green
+    Color(50, 150, 255, 255),   // Blue
+    Color(255, 220, 50, 255),   // Yellow/Gold
+    Color(255, 50, 255, 255),   // Magenta
+    Color(50, 255, 255, 255),   // Cyan
+    Color(255, 150, 50, 255),   // Orange
+    Color(255, 255, 255, 255),  // White
+    Color(255, 100, 200, 255),  // Pink
+    Color(150, 50, 255, 255)    // Purple
+];
+
+// Explosion types
+var EXPLOSION_NORMAL = 0.0;
+var EXPLOSION_RING = 1.0;
+var EXPLOSION_HEART = 2.0;
+var EXPLOSION_DOUBLE = 3.0;
+var EXPLOSION_WILLOW = 4.0;
+// ==========================================
+// SPARKLE - Pequenas faíscas que brilham
+// ==========================================
+
+class Sparkle
+{
+    var x, y;
+    var life;
+    var color;
+    var size;
+    
+    def init(x, y, color)
+    {
+        self.x = x;
+        self.y = y;
+        self.life = 30 + math.rand(20);
+        self.color = color;
+        self.size = 2.0 + math.rand(10) / 10.0;
+    }
+    
+    def update()
+    {
+        self.life = self.life - 1;
+        return self.life > 0;
+    }
+    
+    def draw()
+    {
+         if (self.life<0)
+            self.life=0;
+        self.color.a=(self.life / 50.0) * 255; 
+        
+        // Desenhar cruz brilhante
+        DrawCircle(self.x, self.y, self.size, self.color);
+        DrawLine(self.x - self.size * 2, self.y, self.x + self.size * 2, self.y,  self.color);
+        DrawLine(self.x, self.y - self.size * 2, self.x, self.y + self.size * 2,  self.color);
+    }
+}
+
+// ==========================================
+// ROCKET - Enhanced
+// ==========================================
+
+
+class Rocket
+{
+    var x, y, vx, vy;
+    var targetY;
+    var color;
+    var trail;
+    var exploded;
+    var explosionType;
+    
+    def init(x, y, targetY)
+    {
+        self.x = x;
+        self.y = y;
+        self.vx = (math.rand(40) - 20) / 10.0;
+        self.vy = -12.0 - math.rand(40) / 10.0;
+        self.targetY = targetY;
+        self.color = colors[math.rand(len(colors))];
+        self.trail = [];
+        self.exploded = 0;
+        self.explosionType = floor(math.rand(5));  // Random explosion type
+    }
+    
+    def update()
+    {
+        if (self.exploded == 1)
+        {
+            return 0;
+        }
+        
+        self.x = self.x + self.vx;
+        self.y = self.y + self.vy;
+        self.vy = self.vy + gravity * 0.4;
+        
+        // Trail com sparkles
+        self.trail.push(Point(self.x, self.y));
+        
+        // Adicionar sparkle ao trail
+        if (math.rand(100) < 30)
+        {
+            var s = Sparkle(self.x, self.y, self.color);
+            sparkles.push(s);
+        }
+        
+        if (len(self.trail) > 20)
+        {
+            var newTrail = [];
+            for (var i = 1; i < len(self.trail); i = i + 1)
+            {
+                newTrail.push(self.trail[i]);
+            }
+            free(self.trail);
+            self.trail = newTrail;
+        }
+        
+        if (self.vy > 0 || self.y < self.targetY)
+        {
+            self.explode();
+            return 0;
+        }
+        
+        return 1;
+    }
+    
+    def explode()
+    {
+        self.exploded = 1;
+
+
+        
+        // Escolher tipo de explosão
+        if (self.explosionType == EXPLOSION_NORMAL)
+        {
+            self.explodeNormal();
+        }
+        else if (self.explosionType == EXPLOSION_RING)
+        {
+            self.explodeRing();
+        }
+        else if (self.explosionType == EXPLOSION_HEART)
+        {
+             self.explodeHeart();
+        }
+        else if (self.explosionType == EXPLOSION_DOUBLE)
+        {
+            self.explodeDouble();
+        }
+        else
+        {
+            self.explodeWillow();
+        }
+        
+        // Adicionar brilho no centro
+        for (var i = 0; i < 10; i = i + 1)
+        {
+            var s = Sparkle(self.x, self.y, WHITE);
+            sparkles.push(s);
+        }
+    }
+    
+    def explodeNormal()
+    {
+        var particleCount = 100 + math.rand(50);
+        
+        for (var i = 0; i < particleCount; i = i + 1)
+        {
+            var angle = (i / particleCount) * 6.28318;
+            var speed = 2.5 + math.rand(40) / 10.0;
+            
+            var p = Particle(
+                self.x, self.y,
+                cos(angle) * speed,
+                sin(angle) * speed,
+                self.color,
+                0  // Normal particle
+            );
+            particles.push(p);
+        }
+    }
+    
+    def explodeRing()
+    {
+        // Dois anéis de velocidades diferentes
+        for (var ring = 0; ring < 2; ring = ring + 1)
+        {
+            var particleCount = 60;
+            var speed = 3.0 + ring * 2.0;
+            
+            for (var i = 0; i < particleCount; i = i + 1)
+            {
+                var angle = (i / particleCount) * 6.28318;
+                
+                var p = Particle(
+                    self.x, self.y,
+                    cos(angle) * speed,
+                    sin(angle) * speed,
+                    self.color,
+                    0
+                );
+                particles.push(p);
+            }
+        }
+    }
+    
+    def explodeHeart()
+    {
+        var particleCount = 100;
+        
+        for (var i = 0; i < particleCount; i = i + 1)
+        {
+            var t = (i / particleCount) * 6.28318;
+            
+            // Heart shape equation
+            var hx = 16 * sin(t) * sin(t) * sin(t);
+            var hy = -(13 * cos(t) - 5 * cos(2*t) - 2 * cos(3*t) - cos(4*t));
+            
+            var scale = 0.3;
+            var p = Particle(
+                self.x, self.y,
+                hx * scale,
+                hy * scale,
+                Color(255, 100, 150, 255),  // Rosa
+                0
+            );
+            particles.push(p);
+        }
+    }
+    
+    def explodeDouble()
+    {
+        // Explosão dupla - duas cores
+        var color2 = colors[math.rand(len(colors))];
+        
+        var particleCount = 80;
+        for (var i = 0; i < particleCount; i = i + 1)
+        {
+            var angle = (i / particleCount) * 6.28318;
+            var speed = 3.0 + math.rand(30) / 10.0;
+            
+            var useColor = self.color;
+            if (i % 2 == 0)
+            {
+                useColor = color2;
+            }
+            
+            var p = Particle(
+                self.x, self.y,
+                cos(angle) * speed,
+                sin(angle) * speed,
+                useColor,
+                0
+            );
+            particles.push(p);
+        }
+    }
+    
+    def explodeWillow()
+    {
+        // Willow effect - cai como salgueiro
+        var particleCount = 120;
+        
+        for (var i = 0; i < particleCount; i = i + 1)
+        {
+            var angle = (i / particleCount) * 6.28318;
+            var speed = 2.0 + math.rand(20) / 10.0;
+            
+            var p = Particle(
+                self.x, self.y,
+                cos(angle) * speed,
+                sin(angle) * speed * 0.5,  // Menos velocidade vertical
+                self.color,
+                1  // Willow type
+            );
+            particles.push(p);
+        }
+    }
+    
+    def draw()
+    {
+        // Trail com glow
+        for (var i = 0; i < len(self.trail); i = i + 1)
+        {
+            var point = self.trail[i];
+            var alpha = (i / len(self.trail)) * 255;
+            var size = (i / len(self.trail)) * 3 + 1;
+            
+            var trailColor = Color(
+                self.color.r,
+                self.color.g,
+                self.color.b,
+                alpha
+            );
+            
+            //Glow effect
+            DrawTextureRotate(tex, point.x, point.y, 0, size * 0.5, Color(255, 255, 255, 255));
+            DrawTextureRotate(tex, point.x, point.y, 0, size * 0.5, trailColor);
+        }
+        
+        // Rocket head com glow
+         DrawTextureRotate(tex, self.x+20, self.y, 0, 0.5, WHITE);
+         DrawTextureRotate(tex, self.x, self.y, 0, 0.5, self.color);
+    }
+}
+
+class Sparkle
+{
+    var x, y;
+    var life;
+    var color;
+    var size;
+    
+    def init(x, y, color)
+    {
+        self.x = x;
+        self.y = y;
+        self.life = 30 + math.rand(20);
+        self.color = color;
+        self.size = 2.0 + math.rand(10) / 10.0;
+    }
+    
+    def update()
+    {
+        self.life = self.life - 1;
+        return self.life ;
+    }
+    
+    def draw()
+    {
+        if (self.life<0)
+            self.life=0;
+        var alpha = (self.life / 50.0) * 255;
+        var c = Color(255, 255, 255, alpha);
+        
+        // Desenhar cruz brilhante
+        DrawCircle(self.x, self.y, self.size, c);
+        DrawLine(self.x - self.size * 2, self.y, self.x + self.size * 2, self.y,  c);
+        DrawLine(self.x, self.y - self.size * 2, self.x, self.y + self.size * 2,  c);
+    }
+}
+
+
+// ==========================================
+// PARTICLE - Enhanced
+// ==========================================
+
+
+class Particle
+{
+    var x, y, vx, vy;
+    var life;
+    var maxLife;
+    var color;
+    var pType;  // 0=normal, 1=willow
+    var twinkle;
+    
+    def init(x, y, vx, vy, color, t)
+    {
+        self.x = x;
+        self.y = y;
+        self.vx = vx;
+        self.vy = vy;
+        self.life = 255;
+        self.maxLife = 255;
+        self.color = color;
+        self.pType = t;
+        self.twinkle = math.rand(100);
+    }
+    
+    def update()
+    {
+        self.x = self.x + self.vx;
+        self.y = self.y + self.vy;
+        
+        if (self.pType == 1)
+        {
+            // Willow - mais gravidade
+            self.vy = self.vy + gravity * 1.5;
+        }
+        else
+        {
+            self.vy = self.vy + gravity;
+        }
+        
+        // Air resistance
+        self.vx = self.vx * 0.99;
+        self.vy = self.vy * 0.99;
+        
+        // Fade out
+        self.life = self.life - 2;
+        
+        //Criar sparkles ocasionalmente
+        self.twinkle = self.twinkle + 1;
+        if (self.twinkle % 15 == 0 && self.life > 100)
+        {
+            var s = Sparkle(self.x, self.y, self.color);
+            sparkles.push(s);
+        }
+        
+        return self.life ;
+    }
+    
+    def draw()
+    {
+        if(self.life<0)
+           self.life=0.0;
+        
+        var alpha = (self.life / self.maxLife);
+        var size = alpha * 4 + 1;
+        
+        var c = Color(
+            self.color.r,
+            self.color.g,
+            self.color.b,
+            alpha * 255
+        );
+        
+        // Glow halo
+        var glowSize = size * 2.0;
+        var glowColor = Color(
+            self.color.r,
+            self.color.g,
+            self.color.b,
+            alpha * 100
+        );
+       // DrawTextureRotate(tex, self.x, self.y, 0, glowSize * 0.5, glowColor);
+        
+        // Main particle
+        DrawTextureRotate(tex, self.x-20, self.y, 0, size * 0.5, c);
+        
+        // Bright center
+        if (alpha > 0.7)
+        {
+          //  DrawTextureRotate(tex, self.x, self.y, 0, size * 0.5, WHITE);
+        }
+    }
+}
+
+// ==========================================
+// MAIN
+// ==========================================
+
+InitWindow(800, 600, "BuLang Fireworks 🎆✨");
+SetTargetFPS(60);
+
+var BLACK = Color(0, 0, 0, 255);
+var WHITE = Color(255, 255, 255, 255);
+var LIGHTGRAY = Color(200, 200, 200, 255);
+var DARKBLUE = Color(5, 5, 20, 255);  // Night sky
+var RED = Color(255,0,0,255);
+
+var cooldown = 0;
+var frameCount = 0;
+
+var tex = LoadTexture("assets/texture.png");
+
+while (!WindowShouldClose())
+{
+    BeginDrawing();
+    
+    // Night sky gradient (simples fade)
+    ClearBackground(DARKBLUE);
+    
+    // Launch rocket on click
+    if (IsMouseButtonDown(0))
+    {
+        var targetY = 80 + math.rand(120);
+        var r = Rocket(GetMouseX(), 600, targetY);
+        rockets.push(r);
+    }
+    
+    // // Auto-launch
+    // cooldown = cooldown - 1;
+    // if (cooldown <= 0)
+    // {
+    //     var x = 100 + math.rand(600);
+    //     var targetY = 80 + math.rand(120);
+    //     var r = Rocket(x, 600, targetY);
+    //     rockets.push(r);
+    //     cooldown = 20 + math.rand(40);
+    // }
+    
+    // Update rockets
+    var i = 0;
+    while (i < len(rockets))
+    {
+        if (rockets[i].update() <= 0)
+        {
+            rockets[i] = rockets.back();
+            rockets.pop();
+        }
+        else
+        {
+            i = i + 1;
+        }
+    }
+    
+    // Update particles
+    i = 0;
+    while (i < len(particles))
+    {
+        if (particles[i].update() <= 0)
+        {
+            particles[i] = particles.back();
+            particles.pop();
+        }
+        else
+        {
+            i = i + 1;
+        }
+    }
+    
+    // Update sparkles
+    i = 0;
+    while (i < len(sparkles))
+    {
+        if (sparkles[i].update() <= 0)
+        {
+            sparkles[i] = sparkles.back();
+            sparkles.pop();
+        }
+        else
+        {
+            i = i + 1;
+        }
+    }
+    
+    // Draw ordem correta (back to front)
+    
+    // 1. Sparkles (atrás)
+    for (i = 0; i < len(sparkles); i = i + 1)
+    {
+        sparkles[i].draw();
+    }
+    
+    // 2. Particles
+    for (i = 0; i < len(particles); i = i + 1)
+    {
+        particles[i].draw();
+    }
+    
+    // 3. Rockets (frente)
+    for (i = 0; i < len(rockets); i = i + 1)
+    {
+        rockets[i].draw();
+    }
+    
+    // UI
+    DrawText("Click to launch fireworks!", 10, 10, 24, WHITE);
+    DrawText(format("Rockets: {}", len(rockets)), 10, 40, 18, LIGHTGRAY);
+    DrawText(format("Particles: {}", len(particles)), 10, 60, 18, LIGHTGRAY);
+    DrawText(format("Sparkles: {}", len(sparkles)), 10, 80, 18, LIGHTGRAY);
+    
+    DrawStats(800 - 350, 20);
+    DrawFPS(10, 550);
+    
+    EndDrawing();
+     frameCount = frameCount + 1;
+    if (frameCount % 100 == 0)
+    {
+        _gc();
+    }
+    
+   
+}
+
+UnloadTexture(tex);
+CloseWindow();

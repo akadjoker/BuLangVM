@@ -70,6 +70,7 @@ void Lexer::initKeywords()
         {"process", TOKEN_PROCESS},
         {"frame", TOKEN_FRAME},
         {"len", TOKEN_LEN},
+        {"free", TOKEN_FREE},
         {"fiber", TOKEN_FIBER},
         {"yield", TOKEN_YIELD},
         {"exit", TOKEN_EXIT},
@@ -267,6 +268,11 @@ Token Lexer::errorToken(const std::string &message)
     return Token(TOKEN_ERROR, message, line, tokenColumn);
 }
 
+bool Lexer::isKeyword(const std::string &name)
+{
+    return keywords.find(name) != keywords.end();
+}
+
 Token Lexer::number()
 {
     // Hex? Verifica no INÍCIO do número
@@ -303,6 +309,36 @@ Token Lexer::number()
     std::string numStr = source.substr(start, current - start);
     return makeToken(type, numStr);
 }
+ 
+
+Token Lexer::identifier()
+{
+    const size_t MAX_IDENTIFIER_LENGTH = 255;
+    size_t startPos = current - 1;
+
+    while (isalnum(peek()) || peek() == '_')
+    {
+        advance();
+
+        if (current - startPos > MAX_IDENTIFIER_LENGTH)
+        {
+            return errorToken("Identifier too long (max 255 chars)");
+        }
+    }
+
+    std::string text = source.substr(start, current - start);
+
+    auto it = keywords.find(text);
+    if (it != keywords.end())
+    {
+        return makeToken(it->second, text);
+    }
+
+ 
+
+    return makeToken(TOKEN_IDENTIFIER, text);
+}
+
 
 Token Lexer::string()
 {
@@ -393,9 +429,35 @@ Token Lexer::string()
                     advance();
                     codepoint = (codepoint << 4) | hex;
                 }
+ 
+                
+                // Verifica range máximo
+                if (codepoint > 0x10FFFF)
+                {
+                    return errorToken("Unicode codepoint out of range (max U+10FFFF)");
+                }
+
+                // Verifica surrogates (inválidos em UTF-8)
+                if (codepoint >= 0xD800 && codepoint <= 0xDFFF)
+                {
+                    return errorToken("Invalid unicode surrogate pair");
+                }
+
+                // Verifica noncharacters
+                if ((codepoint >= 0xFDD0 && codepoint <= 0xFDEF) ||
+                    (codepoint & 0xFFFE) == 0xFFFE)
+                {
+                    return errorToken("Unicode noncharacter not allowed");
+                }
 
                 uint8_t bytes[4];
                 int numBytes = Utf8Encode(codepoint, bytes);
+                
+                if (numBytes <= 0)
+                {
+                    return errorToken("Invalid unicode encoding");
+                }
+
                 for (int i = 0; i < numBytes; i++)
                 {
                     value += (char)bytes[i];
@@ -416,8 +478,35 @@ Token Lexer::string()
                     codepoint = (codepoint << 4) | hex;
                 }
 
+           
+                
+                // Verifica range máximo
+                if (codepoint > 0x10FFFF)
+                {
+                    return errorToken("Unicode codepoint out of range (max U+10FFFF)");
+                }
+
+                // Verifica surrogates (inválidos em UTF-8)
+                if (codepoint >= 0xD800 && codepoint <= 0xDFFF)
+                {
+                    return errorToken("Invalid unicode surrogate pair");
+                }
+
+                // Verifica noncharacters
+                if ((codepoint >= 0xFDD0 && codepoint <= 0xFDEF) ||
+                    (codepoint & 0xFFFE) == 0xFFFE)
+                {
+                    return errorToken("Unicode noncharacter not allowed");
+                }
+
                 uint8_t bytes[4];
                 int numBytes = Utf8Encode(codepoint, bytes);
+                
+                if (numBytes <= 0)
+                {
+                    return errorToken("Invalid unicode encoding");
+                }
+
                 for (int i = 0; i < numBytes; i++)
                 {
                     value += (char)bytes[i];
@@ -445,39 +534,6 @@ Token Lexer::string()
     advance(); // fecha "
     return makeToken(TOKEN_STRING, value);
 }
-
-Token Lexer::identifier()
-{
-    const size_t MAX_IDENTIFIER_LENGTH = 255;
-    size_t startPos = current - 1;
-
-    while (isalnum(peek()) || peek() == '_')
-    {
-        advance();
-
-        if (current - startPos > MAX_IDENTIFIER_LENGTH)
-        {
-            return errorToken("Identifier too long (max 255 chars)");
-        }
-    }
-
-    std::string text = source.substr(start, current - start);
-
-    auto it = keywords.find(text);
-    if (it != keywords.end())
-    {
-        return makeToken(it->second, text);
-    }
-
-    // if (peek() == ':')
-    // {
-    //     printf("label\n");
-    // 	return makeToken(TOKEN_LABEL,text);
-    // }
-
-    return makeToken(TOKEN_IDENTIFIER, text);
-}
-
 // ============================================
 // MAIN API: scanToken()
 // ============================================
