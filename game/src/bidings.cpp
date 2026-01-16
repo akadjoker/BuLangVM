@@ -92,10 +92,10 @@ static  const char* formatBytes(size_t bytes)
     void color_ctor(Interpreter *vm, void *buffer, int argc, Value *args)
     {
         Color *v = (Color *)buffer;
-        v->r = args[0].asByte();
-        v->g = args[1].asByte();
-        v->b = args[2].asByte();
-        v->a = args[3].asByte();
+        v->r =(uint8) args[0].asNumber();
+        v->g =(uint8) args[1].asNumber();
+        v->b =(uint8) args[2].asNumber();
+        v->a =(uint8) args[3].asNumber();
         // Info("Color(%d, %d, %d, %d)", v->r, v->g, v->b, v->a);
     }
 
@@ -467,6 +467,45 @@ static  const char* formatBytes(size_t bytes)
         return vm->makeNil();
     }
 
+
+    Value native_DrawTextureRotateScale(Interpreter *vm, int argc, Value *args)
+    {
+
+         if (argc != 6)
+        {
+            Error("DrawTexture expects 6 arguments");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("DrawTexture expects Texture2D");
+            return vm->makeNil();
+        }
+        if (!args[5].isNativeStructInstance())
+        {
+            Error("DrawTexture expects Color");
+            return vm->makeNil();
+        }
+        Texture2D *tex = (Texture2D *)args[0].asPointer();
+        int x =(int) args[1].asNumber();
+        int y =(int) args[2].asNumber();
+        double rotation = args[3].asNumber();
+        double scale = args[4].asNumber();
+        Vector2 position;
+        position.x = x;
+        position.y = y;
+
+        auto *colorInst = args[5].asNativeStructInstance();
+        Color *tint = (Color *)colorInst->data;
+
+        DrawTextureEx(*tex, position, rotation, scale, *tint);
+        return vm->makeNil();
+
+
+        //void DrawTextureEx(Texture2D texture, Vector2 position, float rotation, float scale, Color tint)
+        
+    }
+
     Value native_DrawTextureV(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 3)
@@ -512,18 +551,37 @@ static  const char* formatBytes(size_t bytes)
         int x = args[0].asInt();
         int y = args[1].asInt();
 
-        
-      //  DrawRectangle(0, 0, 300, 114, Fade(BLACK, 0.5f));
+         
         DrawFPS(x, y);
-        //DrawRectangleLines(x, y, 200, 64, WHITE);
-        // DrawText(TextFormat("RAM: %s", formatBytes(vm->getTotalAlocated())), 10, y + 16, 20, WHITE);
-        // DrawText(TextFormat("Classes %d, Structs %d", vm->getTotalClasses(), vm->getTotalStructs()), 10, y + 32, 20, WHITE);
-        // DrawText(TextFormat("Arrays %d Maps  %d", vm->getTotalArrays(), vm->getTotalMaps()), 10, y + 48, 20, WHITE);
-        // DrawText(TextFormat("Native Classes %d, Structs %d", vm->getTotalNativeClasses(), vm->getTotalNativeStructs()), 10, y + 64, 20, WHITE);
+         
 
 
         return vm->makeNil();
     }
+
+       Value native_DrawStats(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 2)
+        {
+            Error("DrawStats expects 2 arguments");
+            return vm->makeNil();
+        }
+        int x = args[0].asInt();
+        int y = args[1].asInt();
+
+        
+        DrawRectangle(x-2, y-2, 300, 104, Fade(BLACK, 0.5f));
+        
+        DrawRectangleLines(x-2, y-2, 300, 104, WHITE);
+        DrawText(TextFormat("RAM: %s", formatBytes(vm->getTotalAlocated())), x, y + 16, 20, WHITE);
+        DrawText(TextFormat("Classes %d, Structs %d", vm->getTotalClasses(), vm->getTotalStructs()), x, y + 32, 20, WHITE);
+        DrawText(TextFormat("Arrays %d Maps  %d", vm->getTotalArrays(), vm->getTotalMaps()), x, y + 48, 20, WHITE);
+        DrawText(TextFormat("Native Classes %d, Structs %d", vm->getTotalNativeClasses(), vm->getTotalNativeStructs()), x, y + 64, 20, WHITE);
+
+
+        return vm->makeNil();
+    }
+
 
     Value native_IsMouseButtonDown(Interpreter *vm, int argc, Value *args)
     {

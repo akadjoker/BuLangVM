@@ -24,22 +24,21 @@ ParseRule Compiler::rules[TOKEN_COUNT];
 // ============================================
 
 Compiler::Compiler(Interpreter *vm)
-    : vm_(vm), lexer(nullptr), function(nullptr), currentChunk(nullptr),
-      currentFiber(nullptr), currentProcess(nullptr), hadError(false),
+    : vm_(vm), lexer(nullptr),  
+      function(nullptr), currentChunk(nullptr),
+      currentProcess(nullptr), hadError(false),
       panicMode(false), scopeDepth(0), localCount_(0), loopDepth_(0),
-      isProcess_(false)
+      isProcess_(false), tryDepth(0),
+      expressionDepth(0), declarationDepth(0), callDepth(0)
 {
-
-  initRules();
-  cursor = 0;
-  tryDepth = 0;
+    initRules();
+    cursor = 0;
 }
+ 
 Compiler::~Compiler()
 {
-
-  delete lexer;
+    delete lexer;   
 }
-
 // ============================================
 // INICIALIZAÇÃO DA TABELA
 // ============================================
@@ -135,13 +134,13 @@ void Compiler::initRules()
 
   rules[TOKEN_AT] = {
       &Compiler::bufferLiteral, // PREFIX
-      nullptr,                 // INFIX
+      nullptr,                  // INFIX
       PREC_NONE};
 
-  // rules[TOKEN_LPAREN] = {
-  //     &Compiler::bufferLiteral, // PREFIX
-  //     &Compiler::subscript,     // INFIX
-  //     PREC_CALL};
+  rules[TOKEN_FREE] = {
+      &Compiler::freeExpression,
+      nullptr,
+      PREC_NONE};
 
   rules[TOKEN_LEN] = {
       &Compiler::lengthExpression, // PREFIX
@@ -169,13 +168,21 @@ void Compiler::setFileLoader(FileLoaderCallback loader, void *userdata)
 
 ProcessDef *Compiler::compile(const std::string &source)
 {
+  delete lexer;
+  lexer = new Lexer(source); 
+  stats.maxExpressionDepth=0;
+  stats.maxScopeDepth=0;
+  stats.totalErrors==0;
+  stats.totalWarnings=0;
 
-  lexer = new Lexer(source);
+  compileStartTime = std::chrono::steady_clock::now();
+
   tokens = lexer->scanAll();
-  if (!tokens.size())
-  {
 
+  if (tokens.empty())
+  {
     error("Empty source");
+
     return nullptr;
   }
 
@@ -185,22 +192,25 @@ ProcessDef *Compiler::compile(const std::string &source)
     error("Fail to create main function");
     return nullptr;
   }
-  currentProcess = vm_->addProcess("__main_process__", function);
-  if (!currentProcess)
-  {
-    error("Fail to create main process");
-    return nullptr;
-  }
+
   currentChunk = function->chunk;
-  currentFiber = &currentProcess->fibers[0];
   currentFunctionType = FunctionType::TYPE_SCRIPT;
   currentClass = nullptr;
 
   advance();
+  numFibers_ = 1;
 
   while (!match(TOKEN_EOF) && !hadError)
   {
     declaration();
+  }
+
+  currentProcess = vm_->addProcess("__main_process__", function, numFibers_);
+
+  if (!currentProcess)
+  {
+    error("Fail to create main process");
+    return nullptr;
   }
 
   emitReturn();
@@ -214,22 +224,38 @@ ProcessDef *Compiler::compile(const std::string &source)
 
   importedModules.clear();
   usingModules.clear();
-  ;
+
+  auto endTime = std::chrono::steady_clock::now();
+  stats.compileTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - compileStartTime);
+
+
+// Info("Compilation Statistics:");
+// Info("  Max Expression Depth: %zu", stats.maxExpressionDepth);
+// Info("  Max Scope Depth: %zu", stats.maxScopeDepth);
+// Info("  Total Errors: %zu", stats.totalErrors);
+// Info("  Total Warnings: %zu", stats.totalWarnings);
+// Info("  Compile Time: %lld ms", stats.compileTime.count());
 
   return currentProcess;
 }
 
 ProcessDef *Compiler::compileExpression(const std::string &source)
 {
+  numFibers_ = 1;
+  delete lexer;
+  stats.maxExpressionDepth=0;
+  stats.maxScopeDepth=0;
+  stats.totalErrors==0;
+  stats.totalWarnings=0;
+  lexer = new Lexer(source); 
 
-  lexer = new Lexer(source);
-
+  compileStartTime = std::chrono::steady_clock::now();
   tokens = lexer->scanAll();
 
   function = vm_->addFunction("__expr__", 0);
-  currentProcess = vm_->addProcess("__main__", function);
   currentChunk = function->chunk;
-  currentFiber = &currentProcess->fibers[0];
+
+  currentProcess = vm_->addProcess("__main__", function, 1);
   currentFunctionType = FunctionType::TYPE_SCRIPT;
   currentClass = nullptr;
 
@@ -251,23 +277,28 @@ ProcessDef *Compiler::compileExpression(const std::string &source)
   {
     return nullptr;
   }
+
+  //   currentProcess->totalFibers = numFibers_;
+  // currentProcess->fibers =      (Fiber *)malloc(numFibers_ * sizeof(Fiber));
   currentProcess->finalize();
 
   importedModules.clear();
   usingModules.clear();
+  auto endTime = std::chrono::steady_clock::now();
+  stats.compileTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - compileStartTime);
 
   return currentProcess;
 }
 
 void Compiler::clear()
 {
-  delete lexer;
-  tokens.clear();
 
+  tokens.clear();
+  delete lexer;
   lexer = nullptr;
   function = nullptr;
   currentChunk = nullptr;
-  currentFiber = nullptr;
+
   currentProcess = nullptr;
   currentClass = nullptr;
   hadError = false;
@@ -280,6 +311,28 @@ void Compiler::clear()
   loopDepth_ = 0;
   cursor = 0;
   currentFunctionType = FunctionType::TYPE_SCRIPT;
+}
+
+void Compiler::warning(const char *message)
+{
+  warningAt(previous, message);
+}
+
+void Compiler::warningAt(Token &token, const char *message)
+{
+  OsPrintf("[line %d] Warning", token.line);
+
+  if (token.type == TOKEN_EOF)
+  {
+    OsPrintf(" at end");
+  }
+  else if (token.type != TOKEN_ERROR)
+  {
+    OsPrintf(" at '%s'", token.lexeme.c_str());
+  }
+
+  OsPrintf(": %s\n", message);
+  stats.totalWarnings++;
 }
 
 // ============================================
@@ -301,12 +354,21 @@ void Compiler::advance()
 
 Token Compiler::peek(int offset)
 {
-  size_t index = cursor + offset;
-  if (index >= tokens.size())
-  {
-    return tokens.back(); // EOF
-  }
-  return tokens[index];
+    if (tokens.empty())
+    {
+        Token eof;
+        eof.type = TOKEN_EOF;
+        eof.lexeme = "";
+        eof.line = 1;
+        return eof;
+    }
+
+    size_t index = cursor + offset;
+    if (index >= tokens.size())
+    {
+        return tokens.back();
+    }
+    return tokens[index];
 }
 
 bool Compiler::checkNext(TokenType t) { return peek(0).type == t; }
@@ -372,6 +434,7 @@ void Compiler::errorAt(Token &token, const char *message)
 
   OsPrintf(": %s\n", message);
   hadError = true;
+   stats.totalErrors++; 
 }
 
 void Compiler::errorAtCurrent(const char *message)
@@ -457,23 +520,28 @@ void Compiler::emitReturn()
   emitByte(OP_RETURN);
 }
 
-void Compiler::emitConstant(Value value)
-{
-  emitBytes(OP_CONSTANT, makeConstant(value));
-}
-
 uint8 Compiler::makeConstant(Value value)
 {
+    if (hadError) return 0;
 
-  int constant = currentChunk->addConstant(value);
-  if (constant > UINT8_MAX)
-  {
-    error("Too many constants in one chunk");
-    return 0;
-  }
+    int constant = currentChunk->addConstant(value);
+    if (constant > UINT8_MAX)
+    {
+        error("Too many constants in one chunk");
+        hadError = true;
+        return 0;
+    }
 
-  return (uint8)constant;
+    return (uint8)constant;
 }
+
+void Compiler::emitConstant(Value value)
+{
+    uint8 constant = makeConstant(value);
+    if (hadError) return;
+    emitBytes(OP_CONSTANT, constant);
+}
+
 
 // ============================================
 // JUMPS
@@ -552,6 +620,20 @@ void Compiler::emitGosubTo(int targetOffset)
 
 void Compiler::parsePrecedence(Precedence precedence)
 {
+  // ===== PROTEÇÃO CONTRA STACK OVERFLOW =====
+  if (++expressionDepth > MAX_EXPRESSION_DEPTH)
+  {
+    error("Expression nested too deeply");
+    --expressionDepth;
+    return;
+  }
+
+  // Atualiza estatísticas
+  if (expressionDepth > stats.maxExpressionDepth)
+  {
+    stats.maxExpressionDepth = expressionDepth;
+  }
+
   advance();
 
   ParseFn prefixRule = getRule(previous.type)->prefix;
@@ -559,11 +641,19 @@ void Compiler::parsePrecedence(Precedence precedence)
   if (prefixRule == nullptr)
   {
     error("Expect expression");
+    --expressionDepth;
     return;
   }
 
   bool canAssign = (precedence <= PREC_ASSIGNMENT);
   (this->*prefixRule)(canAssign);
+
+  // Verifica se houve erro
+  if (hadError)
+  {
+    --expressionDepth;
+    return;
+  }
 
   while (precedence <= getRule(current.type)->prec)
   {
@@ -574,14 +664,25 @@ void Compiler::parsePrecedence(Precedence precedence)
     {
       break;
     }
+
     (this->*infixRule)(canAssign);
+
+    // Verifica se houve erro
+    if (hadError)
+    {
+      --expressionDepth;
+      return;
+    }
   }
 
   if (canAssign && match(TOKEN_EQUAL))
   {
     error("Invalid assignment target");
   }
+
+  --expressionDepth;
 }
+
 ParseRule *Compiler::getRule(TokenType type) { return &rules[type]; }
 
 void Compiler::resolveGotos()
@@ -632,4 +733,52 @@ void Compiler::resolveGosubs()
     patchJumpTo(j.jumpOffset, targetOffset); // signed int16
   }
   pendingGosubs.clear();
+}
+
+void Compiler::validateIdentifierName(const Token &nameToken)
+{
+  const std::string &name = nameToken.lexeme;
+
+  if (!lexer)
+    return;
+
+  // 1. Verifica se é keyword
+  if (lexer->isKeyword(name))
+  {
+    fail("Cannot use keyword '%s' as identifier name", name.c_str());
+    return;
+  }
+
+  // 2. Verifica se começa com número
+  if (!name.empty() && std::isdigit(name[0]))
+  {
+    fail("Identifier '%s' cannot start with a digit", name.c_str());
+    return;
+  }
+
+  // 3. Verifica se contém caracteres inválidos
+  for (char c : name)
+  {
+    if (!std::isalnum(c) && c != '_')
+    {
+      fail("Identifier '%s' contains invalid character '%c'",
+           name.c_str(), c);
+      return;
+    }
+  }
+
+  // 4. Verifica se é muito longo
+  if (name.length() >= MAX_IDENTIFIER_LENGTH)
+  {
+    fail("Identifier '%s' is too long (max %d characters)",
+         name.c_str(), MAX_IDENTIFIER_LENGTH);
+    return;
+  }
+
+  if (name.length() >= 2 && name[0] == '_' && name[1] == '_')
+  {
+    Warning("Identifier '%s' starts with '__' which is typically "
+            "reserved for internal use",
+            name.c_str());
+  }
 }

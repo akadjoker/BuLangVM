@@ -11,6 +11,13 @@
 
 void Compiler::declaration()
 {
+    if (++declarationDepth > MAX_DECLARATION_DEPTH)
+    {
+        error("Declarations nested too deeply");
+        --declarationDepth;
+        synchronize();
+        return;
+    }
 
     if (match(TOKEN_DEF))
     {
@@ -45,10 +52,18 @@ void Compiler::declaration()
     {
         synchronize();
     }
+
+    --declarationDepth;
 }
 
 void Compiler::statement()
 {
+    // Verifica timeout periodicamente
+    if (!checkCompileTimeout())
+    {
+        return;
+    }
+
     if (check(TOKEN_IDENTIFIER) && peek(0).type == TOKEN_COLON)
     {
         labelStatement();
@@ -135,6 +150,23 @@ void Compiler::statement()
     }
     else if (match(TOKEN_LBRACE))
     {
+        // ===== VALIDAÇÃO ANTES DE CRIAR SCOPE =====
+        if (!checkScopeDepth())
+        {
+            // Consome até } mas não cria scope
+            int depth = 1;
+            while (depth > 0 && !check(TOKEN_EOF))
+            {
+                if (match(TOKEN_LBRACE))
+                    depth++;
+                else if (match(TOKEN_RBRACE))
+                    depth--;
+                else
+                    advance();
+            }
+            return;
+        }
+
         beginScope();
         block();
         endScope();
@@ -152,39 +184,42 @@ void Compiler::statement()
 void Compiler::printStatement()
 {
     uint8_t argCount = 0;
-    
+
     // Se não tem parênteses, aceita sintaxe antiga: print x;
     if (!check(TOKEN_LPAREN))
     {
         expression();
+        if (hadError)
+            return;
         argCount = 1;
     }
     else
     {
         consume(TOKEN_LPAREN, "Expect '('");
-      
+
         if (!check(TOKEN_RPAREN))
         {
             do
             {
                 expression();
+                if (hadError)
+                    return;
                 argCount++;
-                
+
                 if (argCount > 255)
                 {
                     error("Cannot have more than 255 arguments");
                 }
             } while (match(TOKEN_COMMA));
         }
-        
+
         consume(TOKEN_RPAREN, "Expect ')' after arguments");
     }
-    
-    consume(TOKEN_SEMICOLON, "Expect ';'");
-    
-    emitBytes(OP_PRINT, argCount);  
-}
 
+    consume(TOKEN_SEMICOLON, "Expect ';'");
+
+    emitBytes(OP_PRINT, argCount);
+}
 
 // void Compiler::printStatement()
 // {
@@ -192,12 +227,14 @@ void Compiler::printStatement()
 //     consume(TOKEN_SEMICOLON, "Expect ';' after value");
 //     emitByte(OP_PRINT);
 // }
- 
+
 void Compiler::expressionStatement()
 {
 
     // Expressão normal
     expression();
+    if (hadError)
+        return;
     consume(TOKEN_SEMICOLON, "Expresion statemnt Expect ';'");
     emitByte(OP_POP);
 }
@@ -218,6 +255,11 @@ void Compiler::varDeclaration()
         if (scopeDepth > 0)
         {
             declareVariable();
+            validateIdentifierName(nameToken);
+            if (hadError)
+            {
+                return;
+            }
 
             if (currentClass != nullptr && loopDepth_ > 1 && scopeDepth > 1)
             {
@@ -229,6 +271,8 @@ void Compiler::varDeclaration()
         if (match(TOKEN_EQUAL) && !check(TOKEN_COMMA))
         {
             expression();
+            if (hadError)
+                return;
         }
         else
         {
@@ -236,6 +280,8 @@ void Compiler::varDeclaration()
             if (match(TOKEN_EQUAL))
             {
                 expression(); // Compila mas descarta
+                if (hadError)
+                    return;
                 emitByte(OP_POP);
             }
             emitByte(OP_NIL);
@@ -514,6 +560,20 @@ void Compiler::namedVariable(Token &name, bool canAssign)
     getOp = OP_GET_GLOBAL;
     setOp = OP_SET_GLOBAL;
 
+    // if (canAssign && (check(TOKEN_EQUAL) ||
+    //                   check(TOKEN_PLUS_EQUAL) ||
+    //                   check(TOKEN_MINUS_EQUAL) ||
+    //                   check(TOKEN_STAR_EQUAL) ||
+    //                   check(TOKEN_SLASH_EQUAL) ||
+    //                   check(TOKEN_PERCENT_EQUAL) ||
+    //                   check(TOKEN_PLUS_PLUS) ||
+    //                   check(TOKEN_MINUS_MINUS)))
+    // {
+    //     fail("Variable '%s' not declared. Use 'var %s = ...'",
+    //          name.lexeme.c_str(), name.lexeme.c_str());
+    //     return;
+    // }
+
     handle_assignment(getOp, setOp, arg, canAssign);
 }
 
@@ -545,13 +605,14 @@ void Compiler::declareVariable()
             break;
         }
 
-        if (local.equals(name.lexeme))
+        if (local.name == name.lexeme)
         {
-            error("Variable with this name already declared in this scope");
+            fail("Variable '%s' already declared in this scope", name.lexeme.c_str());
+            return;
         }
     }
 
-    addLocal(name);
+    addLocal(previous);
 }
 
 void Compiler::addLocal(Token &name)
@@ -563,18 +624,15 @@ void Compiler::addLocal(Token &name)
     }
 
     size_t len = name.lexeme.length();
-
     if (len >= MAX_IDENTIFIER_LENGTH)
     {
-        error("Identifier name too long (max 31 characters)");
+        fail("Identifier name too long (max %d characters)", MAX_IDENTIFIER_LENGTH - 1);
         return;
     }
 
-    // Copia string
-    std::memcpy(locals_[localCount_].name, name.lexeme.c_str(), len);
-    locals_[localCount_].name[len] = '\0';
-    locals_[localCount_].length = (uint8)len;
+    locals_[localCount_].name = name.lexeme;
     locals_[localCount_].depth = -1;
+    locals_[localCount_].usedInitLocal = false;
 
     localCount_++;
 }
@@ -584,17 +642,26 @@ void Compiler::markInitialized()
     if (scopeDepth == 0)
         return;
 
-    if (localCount_ == 0)
+    if (localCount_ > 0)
     {
-        error("Internal error: marking uninitialized with no locals");
-        return;
+        locals_[localCount_ - 1].depth = scopeDepth;
+        locals_[localCount_ - 1].usedInitLocal = true;
     }
-    locals_[localCount_ - 1].depth = scopeDepth;
 }
 
 void Compiler::beginScope()
 {
+    if (scopeDepth >= MAX_SCOPE_DEPTH)
+    {
+        error("Scopes nested too deeply");
+        return;
+    }
     scopeDepth++;
+
+    if (scopeDepth > (int)stats.maxScopeDepth)
+    {
+        stats.maxScopeDepth = scopeDepth;
+    }
 }
 
 void Compiler::endScope()
@@ -609,18 +676,15 @@ int Compiler::resolveLocal(Token &name)
 {
     for (int i = localCount_ - 1; i >= 0; i--)
     {
-        Local &local = locals_[i];
-
-        if (local.equals(name.lexeme))
+        if (locals_[i].name == name.lexeme)
         {
-            if (local.depth == -1)
+            if (locals_[i].depth == -1)
             {
-                error("Can't read local variable in its own initializer");
+                error("Cannot read local variable in its own initializer");
             }
             return i;
         }
     }
-
     return -1;
 }
 
@@ -628,6 +692,8 @@ void Compiler::block()
 {
     while (!check(TOKEN_RBRACE) && !check(TOKEN_EOF))
     {
+        if (hadError)
+            break;
         declaration();
     }
     consume(TOKEN_RBRACE, "Expect '}' after block");
@@ -638,6 +704,8 @@ void Compiler::ifStatement()
     // if (condition)
     consume(TOKEN_LPAREN, "Expect '(' after 'if'");
     expression();
+    if (hadError)
+        return;
     consume(TOKEN_RPAREN, "Expect ')' after condition");
 
     // Jump para próximo bloco se condição for falsa
@@ -646,6 +714,8 @@ void Compiler::ifStatement()
 
     // Then branch
     statement();
+    if (hadError)
+        return;
 
     // Lista de jumps para o final (depois de cada then/elif executar)
     std::vector<int> endJumps;
@@ -661,6 +731,8 @@ void Compiler::ifStatement()
         // elif (condition)
         consume(TOKEN_LPAREN, "Expect '(' after 'elif'");
         expression();
+        if (hadError)
+            return;
         consume(TOKEN_RPAREN, "Expect ')' after elif condition");
 
         // Jump para próximo bloco se condição for falsa
@@ -669,7 +741,8 @@ void Compiler::ifStatement()
 
         // Elif body
         statement();
-
+        if (hadError)
+            return;
         // Jump para o final após executar elif
         endJumps.push_back(emitJump(OP_JUMP));
 
@@ -682,6 +755,8 @@ void Compiler::ifStatement()
     if (match(TOKEN_ELSE))
     {
         statement();
+        if (hadError)
+            return;
     }
 
     // Patch todos os jumps para apontarem para o final
@@ -786,6 +861,8 @@ void Compiler::whileStatement()
 
     consume(TOKEN_LPAREN, "Expect '(' after 'while'");
     expression();
+    if (hadError)
+        return;
     consume(TOKEN_RPAREN, "Expect ')' after condition");
 
     int exitJump = emitJump(OP_JUMP_IF_FALSE);
@@ -794,6 +871,12 @@ void Compiler::whileStatement()
     beginLoop(loopStart); // Guarda loopStart SEM scope
 
     statement(); // Se for {}, o bloco cria o próprio scope
+
+    if (hadError)
+    {
+        endLoop();
+        return;
+    }
 
     emitLoop(loopStart);
 
@@ -820,6 +903,8 @@ void Compiler::doWhileStatement()
     consume(TOKEN_WHILE, "Expect 'while' after do body");
     consume(TOKEN_LPAREN, "Expect '(' after 'while'");
     expression(); // Condição
+    if (hadError)
+        return;
     consume(TOKEN_RPAREN, "Expect ')' after condition");
     consume(TOKEN_SEMICOLON, "Expect ';' after do-while");
 
@@ -859,6 +944,8 @@ void Compiler::switchStatement()
 {
     consume(TOKEN_LPAREN, "Expect '(' after 'switch'");
     expression(); // [value]
+    if (hadError)
+        return;
     consume(TOKEN_RPAREN, "Expect ')' after switch expression");
     consume(TOKEN_LBRACE, "Expect '{' before switch body");
 
@@ -870,6 +957,8 @@ void Compiler::switchStatement()
     {
         emitByte(OP_DUP); // [value, value]
         expression();     // [value, value, case_val]
+        if (hadError)
+            return;
         consume(TOKEN_COLON, "Expect ':' after case value");
         emitByte(OP_EQUAL); // [value, bool]
 
@@ -883,6 +972,8 @@ void Compiler::switchStatement()
                !check(TOKEN_RBRACE) && !check(TOKEN_EOF))
         {
             statement();
+            if (hadError)
+                return;
         }
 
         endJumps.push_back(emitJump(OP_JUMP));
@@ -901,6 +992,8 @@ void Compiler::switchStatement()
         while (!check(TOKEN_CASE) && !check(TOKEN_RBRACE) && !check(TOKEN_EOF))
         {
             statement();
+            if (hadError)
+                return;
         }
     }
     else
@@ -946,10 +1039,14 @@ void Compiler::forStatement()
     else if (match(TOKEN_VAR))
     {
         varDeclaration(); // var i = 0;
+        if (hadError)
+            return;
     }
     else
     {
         expressionStatement(); // i = 0;
+        if (hadError)
+            return;
     }
 
     // Marca onde o loop começa (para continue e para o loop)
@@ -960,6 +1057,8 @@ void Compiler::forStatement()
     if (!check(TOKEN_SEMICOLON))
     {
         expression(); // i < 10
+        if (hadError)
+            return;
         consume(TOKEN_SEMICOLON, "Expect ';' after loop condition");
 
         // salta para fora se condição for falsa
@@ -1170,6 +1269,8 @@ void Compiler::returnStatement()
         }
         // return <expr>;
         expression();
+        if (hadError)
+            return;
         consume(TOKEN_SEMICOLON, "Expect ';' after return value");
         emitByte(OP_RETURN);
     }
@@ -1185,6 +1286,8 @@ uint8 Compiler::argumentList()
     {
         do
         {
+            if (hadError)
+                break;
             expression();
 
             if (argCount == 255)
@@ -1202,15 +1305,44 @@ uint8 Compiler::argumentList()
 void Compiler::call(bool canAssign)
 {
     (void)canAssign;
+
+    if (callDepth >= MAX_CALL_DEPTH)
+    {
+        error("Function calls nested too deeply");
+
+        uint8 argCount = 0;
+        if (!check(TOKEN_RPAREN))
+        {
+            do
+            {
+                expression();
+                argCount++;
+                if (argCount > 255)
+                {
+                    error("Can't have more than 255 arguments");
+                    break;
+                }
+            } while (match(TOKEN_COMMA));
+        }
+        consume(TOKEN_RPAREN, "Expect ')' after arguments");
+        return;
+    }
+
+    callDepth++;
     uint8 argCount = argumentList();
-    emitByte(OP_CALL);
-    emitByte(argCount);
+    emitBytes(OP_CALL, argCount);
+    callDepth--;
 }
 
 void Compiler::funDeclaration()
 {
     consume(TOKEN_IDENTIFIER, "Expect function name");
     Token nameToken = previous;
+    validateIdentifierName(nameToken);
+    if (hadError)
+    {
+        return;
+    }
 
     Function *func = vm_->addFunction(nameToken.lexeme.c_str(), 0);
 
@@ -1237,6 +1369,12 @@ void Compiler::processDeclaration()
     isProcess_ = true;
     argNames.clear();
 
+    validateIdentifierName(nameToken);
+    if (hadError)
+    {
+        return;
+    }
+
     // Warning("Compiling process '%s'", nameToken.lexeme.c_str());
 
     // Cria função para o process
@@ -1250,10 +1388,12 @@ void Compiler::processDeclaration()
     }
 
     // Compila processo
+    numFibers_ = 1;
     compileFunction(func, true); // true = É PROCESS!
 
     // Cria blueprint (process não vai para globals como callable)
-    ProcessDef *proc = vm_->addProcess(nameToken.lexeme.c_str(), func);
+    ProcessDef *proc = vm_->addProcess(nameToken.lexeme.c_str(), func, numFibers_);
+    currentProcess = proc;
 
     for (uint32 i = 0; i < argNames.size(); i++)
     {
@@ -1282,7 +1422,7 @@ void Compiler::processDeclaration()
     }
     argNames.clear();
 
-    // Warning("Process '%s' registered with index %d", nameToken.lexeme.c_str(), index);
+    Warning("Process '%s' registered with index %d and %d fibers", nameToken.lexeme.c_str(), proc->index, numFibers_);
 
     emitConstant(vm_->makeProcess(proc->index));
     uint8 nameConstant = identifierConstant(nameToken);
@@ -1693,14 +1833,13 @@ void Compiler::fiberStatement()
     }
 
     consume(TOKEN_RPAREN, "Expect ')' after arguments");
-    //Warning("Compiling fiber call to '%s' with %d arguments", nameToken.lexeme.c_str(), argCount);
+    // Warning("Compiling fiber call to '%s' with %d arguments", nameToken.lexeme.c_str(), argCount);
 
     consume(TOKEN_SEMICOLON, "Expect ';' after fiber call.");
 
     emitByte(OP_SPAWN);
     emitByte(argCount);
-
- 
+    numFibers_ += 1;
 }
 
 void Compiler::dot(bool canAssign)
@@ -1815,74 +1954,97 @@ void Compiler::subscript(bool canAssign)
 
 void Compiler::labelStatement()
 {
-    consume(TOKEN_IDENTIFIER, "Expect label");
-    Token name = previous;
+    if (labels.size() >= MAX_LABELS)
+    {
+        error("Too many labels in function");
+        advance();
+        consume(TOKEN_COLON, "Expect ':'");
+        return;
+    }
+
+    Token labelName = current;
+    advance();
     consume(TOKEN_COLON, "Expect ':'");
 
-    Label label;
-    label.name = name.lexeme;
-    label.offset = currentChunk->count;
-    for (auto &l : labels)
-    {
-        if (l.name == name.lexeme)
-        {
-            fail("Duplicate '%s' label", name.lexeme.c_str());
-        }
-    }
-    labels.push_back(label);
-}
-
-void Compiler::gotoStatement()
-{
-    consume(TOKEN_IDENTIFIER, "Expect label");
-    Token target = previous;
-    consume(TOKEN_SEMICOLON, "Expect ';'");
-
-    // Backward
     for (const Label &l : labels)
     {
-        if (l.name == target.lexeme)
+        if (l.name == labelName.lexeme)
         {
-            emitLoop(l.offset);
+            fail("Label '%s' already defined", labelName.lexeme.c_str());
             return;
         }
     }
 
-    // Forward
+    Label newLabel;
+    newLabel.name = labelName.lexeme;
+    newLabel.offset = currentChunk->count;
+
+    labels.push_back(newLabel);
+}
+
+void Compiler::gotoStatement()
+{
+    if (pendingGotos.size() >= MAX_GOTOS)
+    {
+        error("Too many goto statements");
+        consume(TOKEN_IDENTIFIER, "Expect label name");
+        consume(TOKEN_SEMICOLON, "Expect ';'");
+        return;
+    }
+
+    consume(TOKEN_IDENTIFIER, "Expect label name");
+    Token target = previous;
+    consume(TOKEN_SEMICOLON, "Expect ';'");
+
+    emitByte(OP_JUMP);
+
     GotoJump jump;
     jump.target = target.lexeme;
-    jump.jumpOffset = emitJump(OP_JUMP);
+    jump.jumpOffset = currentChunk->count;
+
+    emitByte(0xFF);
+    emitByte(0xFF);
+
     pendingGotos.push_back(jump);
 }
 
 void Compiler::gosubStatement()
 {
-    consume(TOKEN_IDENTIFIER, "Expect label");
+    if (pendingGosubs.size() >= MAX_GOSUBS)
+    {
+        error("Too many gosub statements");
+        consume(TOKEN_IDENTIFIER, "Expect label name");
+        consume(TOKEN_SEMICOLON, "Expect ';'");
+        return;
+    }
+
+    consume(TOKEN_IDENTIFIER, "Expect label name");
     Token target = previous;
     consume(TOKEN_SEMICOLON, "Expect ';'");
 
-    // se já existe label (pode ser backward)
-    for (const Label &l : labels)
-    {
-        if (l.name == target.lexeme)
-        {
-            emitGosubTo(l.offset);
-            return;
-        }
-    }
+    emitByte(OP_GOSUB);
 
-    // forward: placeholder
-    GotoJump j;
-    j.target = target.lexeme;
-    j.jumpOffset = emitJump(OP_GOSUB); // devolve offset do OPERANDO
-    pendingGosubs.push_back(j);
+    GotoJump jump;
+    jump.target = target.lexeme;
+    jump.jumpOffset = currentChunk->count;
+
+    emitByte(0xFF);
+    emitByte(0xFF);
+
+    pendingGosubs.push_back(jump);
 }
+
 void Compiler::structDeclaration()
 {
     consume(TOKEN_IDENTIFIER, "Expect struct name");
     Token structName = previous;
     uint8_t nameConstant = identifierConstant(structName);
 
+    validateIdentifierName(structName);
+    if (hadError)
+    {
+        return;
+    }
     consume(TOKEN_LBRACE, "Expect '{' before struct body");
 
     StructDef *structDef = vm_->registerStruct(vm_->createString(structName.lexeme.c_str()));
@@ -1899,11 +2061,11 @@ void Compiler::structDeclaration()
     while (!check(TOKEN_RBRACE) && !check(TOKEN_EOF))
     {
 
-        if (check(TOKEN_SEMICOLON)) 
+        if (check(TOKEN_SEMICOLON))
         {
             // Se encontrarmos um ; perdido, ignoramos e continuamos
-            advance(); 
-            continue; 
+            advance();
+            continue;
         }
         // 1. Opcional: pode ter 'var' ou não
         bool hasVar = match(TOKEN_VAR);
@@ -1914,7 +2076,17 @@ void Compiler::structDeclaration()
             consume(TOKEN_IDENTIFIER, "Expect field name");
 
             String *fieldName = vm_->createString(previous.lexeme.c_str());
-            structDef->names.set(fieldName, structDef->argCount);
+            validateIdentifierName(previous);
+            if (hadError)
+            {
+                return;
+            }
+            bool wasReplaced = structDef->names.set(fieldName, structDef->argCount);
+            if (!wasReplaced)
+            {
+                Warning("Field '%s' redefined in struct '%s' (previous value replaced)",
+                        fieldName->chars(), structName.lexeme.c_str());
+            }
             structDef->argCount++;
 
         } while (match(TOKEN_COMMA));
@@ -1929,14 +2101,14 @@ void Compiler::structDeclaration()
         {
             // Se não tinha 'var', o ';' é opcional, mas se estiver lá, TEMOS de o comer.
             // Caso contrário, ele bloqueia o loop seguinte.
-            match(TOKEN_SEMICOLON); 
+            match(TOKEN_SEMICOLON);
         }
     }
 
     consume(TOKEN_RBRACE, "Expect '}' after struct body");
-    
+
     // Opcional: permitir ou exigir ; no final da struct
-    match(TOKEN_SEMICOLON); 
+    match(TOKEN_SEMICOLON);
 
     emitConstant(vm_->makeStruct(structDef->index));
     defineVariable(nameConstant);
@@ -2002,6 +2174,11 @@ void Compiler::classDeclaration()
     Token className = previous;
     uint8_t nameConstant = identifierConstant(className);
 
+    validateIdentifierName(className);
+    if (hadError)
+    {
+        return;
+    }
     //  Regista class blueprint na VM
 
     ClassDef *classDef = vm_->registerClass(
@@ -2057,9 +2234,22 @@ void Compiler::classDeclaration()
         {
             consume(TOKEN_IDENTIFIER, "Expect field name");
             Token fieldName = previous;
-
+            validateIdentifierName(fieldName);
+            if (hadError)
+            {
+                return;
+            }
             String *name = vm_->createString(fieldName.lexeme.c_str());
-            classDef->fieldNames.set(name, classDef->fieldCount);
+            //classDef->fieldNames.set(name, classDef->fieldCount);
+
+            bool wasReplaced =   classDef->fieldNames.set(name, classDef->fieldCount);
+            if (!wasReplaced)
+            {
+                Warning("Field '%s' redefined in class '%s' (previous value replaced)",
+                        fieldName.lexeme.c_str(), className.lexeme.c_str());
+            }
+
+
             classDef->fieldCount++;
 
             // Ignora inicialização (vai no init)
@@ -2204,6 +2394,23 @@ void Compiler::method(ClassDef *classDef)
 void Compiler::tryStatement()
 {
     consume(TOKEN_LBRACE, "Expect '{' after 'try'");
+
+    if (tryDepth >= MAX_TRY_DEPTH)
+    {
+        error("Try blocks nested too deeply");
+        int depth = 1;
+        while (depth > 0 && !check(TOKEN_EOF))
+        {
+            if (match(TOKEN_LBRACE))
+                depth++;
+            else if (match(TOKEN_RBRACE))
+                depth--;
+            else
+                advance();
+        }
+        return;
+    }
+
     tryDepth++;
 
     emitByte(OP_TRY);
@@ -2216,7 +2423,6 @@ void Compiler::tryStatement()
     emitByte(0xFF);
     emitByte(0xFF);
 
-    // TRY BLOCK
     beginScope();
     block();
     endScope();
@@ -2224,7 +2430,6 @@ void Compiler::tryStatement()
     emitByte(OP_POP_TRY);
     int tryExitJump = emitJump(OP_JUMP);
 
-    // CATCH BLOCK
     int catchStart = -1;
     int catchExitJump = -1;
 
@@ -2248,19 +2453,16 @@ void Compiler::tryStatement()
         endScope();
 
         emitByte(OP_POP_TRY);
-        catchExitJump = emitJump(OP_JUMP); // ← CRÍTICO! Catch também pula para finally
+        catchExitJump = emitJump(OP_JUMP);
     }
 
-    // FINALLY BLOCK
     int finallyStart = -1;
     if (match(TOKEN_FINALLY))
     {
         finallyStart = currentChunk->count;
 
-        // Patch tryExitJump para ir ao finally
         patchJump(tryExitJump);
 
-        // Patch catchExitJump para ir ao finally (se houver catch)
         if (catchExitJump != -1)
         {
             patchJump(catchExitJump);
@@ -2278,7 +2480,6 @@ void Compiler::tryStatement()
     }
     else
     {
-        // Sem finally
         patchJump(tryExitJump);
         if (catchExitJump != -1)
         {
@@ -2286,13 +2487,11 @@ void Compiler::tryStatement()
         }
     }
 
-    // Valida
     if (catchStart == -1 && finallyStart == -1)
     {
         error("Try must have catch or finally block");
     }
 
-    // Patch endereços absolutos
     if (catchStart != -1)
     {
         currentChunk->code[catchAddrOffset] = (catchStart >> 8) & 0xFF;
@@ -2304,6 +2503,7 @@ void Compiler::tryStatement()
         currentChunk->code[finallyAddrOffset] = (finallyStart >> 8) & 0xFF;
         currentChunk->code[finallyAddrOffset + 1] = finallyStart & 0xFF;
     }
+
     tryDepth--;
 }
 

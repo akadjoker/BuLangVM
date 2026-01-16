@@ -8,7 +8,7 @@
 Interpreter::Interpreter()
 {
   compiler = new Compiler(this);
-  asEnded = false;
+ 
   setPrivateTable();
   staticNames[STATIC_PUSH] = createString("push");
   staticNames[STATIC_POP] = createString("pop");
@@ -40,138 +40,146 @@ Interpreter::Interpreter()
   staticNames[STATIC_SLICE] = createString("slice");
   staticNames[STATIC_SAVE] = createString("save");
 
- 
+  staticNames[STATIC_WRITE_BYTE] = createString("writeByte");
+  staticNames[STATIC_READ_BYTE] = createString("readByte");
+  staticNames[STATIC_WRITE_SHORT] = createString("writeShort");
+  staticNames[STATIC_READ_SHORT] = createString("readShort");
+  staticNames[STATIC_WRITE_INT] = createString("writeInt");
+  staticNames[STATIC_READ_INT] = createString("readInt");
+  staticNames[STATIC_WRITE_FLOAT] = createString("writeFloat");
+  staticNames[STATIC_READ_FLOAT] = createString("readFloat");
+  staticNames[STATIC_WRITE_DOUBLE] = createString("writeDouble");
+  staticNames[STATIC_READ_DOUBLE] = createString("readDouble");
+  staticNames[STATIC_WRITE_USHORT] = createString("writeUShort");
+  staticNames[STATIC_READ_USHORT] = createString("readUShort");
+  staticNames[STATIC_WRITE_UINT] = createString("writeUInt");
+  staticNames[STATIC_READ_UINT] = createString("readUInt");
+  staticNames[STATIC_WRITE_STRING] = createString("writeString");
+  staticNames[STATIC_READ_STRING] = createString("readString");
+  staticNames[STATIC_SEEK] = createString("seek");
+  staticNames[STATIC_TELL] = createString("tell");
+  staticNames[STATIC_REWIND] = createString("rewind");
+  staticNames[STATIC_SKIP] = createString("skip");
+  staticNames[STATIC_REMAINING] = createString("remaining");
 
-staticNames[STATIC_WRITE_BYTE] = createString("writeByte");
-staticNames[STATIC_READ_BYTE] = createString("readByte");
-staticNames[STATIC_WRITE_SHORT] = createString("writeShort");
-staticNames[STATIC_READ_SHORT] = createString("readShort");
-staticNames[STATIC_WRITE_INT] = createString("writeInt");
-staticNames[STATIC_READ_INT] = createString("readInt");
-staticNames[STATIC_WRITE_FLOAT] = createString("writeFloat");
-staticNames[STATIC_READ_FLOAT] = createString("readFloat");
-staticNames[STATIC_WRITE_DOUBLE] = createString("writeDouble");
-staticNames[STATIC_READ_DOUBLE] = createString("readDouble");
-staticNames[STATIC_WRITE_USHORT] = createString("writeUShort");
-staticNames[STATIC_READ_USHORT] = createString("readUShort");
-staticNames[STATIC_WRITE_UINT] = createString("writeUInt");
-staticNames[STATIC_READ_UINT] = createString("readUInt");
-staticNames[STATIC_WRITE_STRING] = createString("writeString");
-staticNames[STATIC_READ_STRING] = createString("readString");
-staticNames[STATIC_SEEK] = createString("seek");
-staticNames[STATIC_TELL] = createString("tell");
-staticNames[STATIC_REWIND] = createString("rewind");
-staticNames[STATIC_SKIP] = createString("skip");
-staticNames[STATIC_REMAINING] = createString("remaining");
-
- 
- 
-  globals.set(createString("TYPE_UINT8"),  makeInt(0));
-  globals.set(createString("TYPE_INT16"),  makeInt(1));
+  globals.set(createString("TYPE_UINT8"), makeInt(0));
+  globals.set(createString("TYPE_INT16"), makeInt(1));
   globals.set(createString("TYPE_UINT16"), makeInt(2));
-  globals.set(createString("TYPE_INT32"),  makeInt(3));
+  globals.set(createString("TYPE_INT32"), makeInt(3));
   globals.set(createString("TYPE_UINT32"), makeInt(4));
-  globals.set(createString("TYPE_FLOAT"),  makeInt(5));
+  globals.set(createString("TYPE_FLOAT"), makeInt(5));
   globals.set(createString("TYPE_DOUBLE"), makeInt(6));
-
- 
 }
 
 void Interpreter::freeInstances()
 {
-  for (size_t i = 0; i < nativeInstances.size(); i++)
-  {
-    NativeClassInstance *a = nativeInstances[i];
-    a->klass->destructor(this, a->userData); // so depois apagamos as def
-    freeNativeClass(a);
-  }
-  nativeInstances.clear();
+  
+}
 
-  for (size_t i = 0; i < structInstances.size(); i++)
+void Interpreter::freeFunctions()
+{
+  for (size_t i = 0; i < functions.size(); i++)
   {
-    StructInstance *a = structInstances[i];
-    freeStruct(a);
+    delete functions[i];
   }
-  structInstances.clear();
+  functions.clear();
+  for (size_t i = 0; i < functionsClass.size(); i++)
+  {
+    delete functionsClass[i];
+  }
+  functionsClass.clear();
+  functionsMap.destroy();
+}
 
-  for (size_t i = 0; i < classInstances.size(); i++)
+void Interpreter::freeRunningProcesses()
+{
+  for (size_t j = 0; j < cleanProcesses.size(); j++)
   {
-    ClassInstance *a = classInstances[i];
-    freeClass(a);
+    ProcessPool::instance().destroy(cleanProcesses[j]);
   }
-  classInstances.clear();
-
-  for (size_t i = 0; i < bufferInstances.size(); i++)
+  cleanProcesses.clear();
+  for (size_t i = 0; i < aliveProcesses.size(); i++)
   {
-    BufferInstance *a = bufferInstances[i];
-    freeBuffer(a);
+    ProcessPool::instance().destroy(aliveProcesses[i]);
   }
-  bufferInstances.clear();
-
-  for (size_t i = 0; i < mapInstances.size(); i++)
-  {
-    MapInstance *a = mapInstances[i];
-    freeMap(a);
-  }
-  mapInstances.clear();
-
-  for (size_t i = 0; i < arrayInstances.size(); i++)
-  {
-    ArrayInstance *a = arrayInstances[i];
-    freeArray(a);
-  }
-  arrayInstances.clear();
-
-  for (size_t i = 0; i < nativeStructInstances.size(); i++)
-  {
-    NativeStructInstance *a = nativeStructInstances[i];
-    if (a->def->destructor)
-    {
-      a->def->destructor(this, a->data);
-      arena.Free(a->data, a->def->structSize);
-    }
-    freeNativeStruct(a);
-  }
-  nativeStructInstances.clear();
+  aliveProcesses.clear();
+  ProcessPool::instance().clear();
+  processesMap.destroy();
 }
 
 void Interpreter::freeBlueprints()
 {
-
+  // Classes
   for (size_t j = 0; j < classes.size(); j++)
   {
-    ClassDef *proc = classes[j];
-    delete proc;
+    delete classes[j];
   }
   classes.clear();
 
+  // Native Structs
   for (size_t i = 0; i < nativeStructs.size(); i++)
   {
-    NativeStructDef *a = nativeStructs[i];
-    delete a;
+    delete nativeStructs[i];
   }
   nativeStructs.clear();
 
-  for (size_t i = 0; i < natives.size(); i++)
-  {
-    NativeDef &native = natives[i];
-  }
   natives.clear();
 
+  // Structs
   for (size_t i = 0; i < structs.size(); i++)
   {
-    StructDef *a = structs[i];
-    a->names.destroy();
-    delete a;
+    structs[i]->names.destroy();
+    delete structs[i];
   }
   structs.clear();
+
+  // Native Classes
   for (size_t j = 0; j < nativeClasses.size(); j++)
   {
-    NativeClassDef *proc = nativeClasses[j];
-    delete proc;
+    delete nativeClasses[j];
   }
   nativeClasses.clear();
 
+  // Process Definitions (Blueprints)
+  for (size_t j = 0; j < processes.size(); j++)
+  {
+    processes[j]->release();
+    delete processes[j];
+  }
+  processes.clear();
+
+  // === LIMPEZA DE MAPAS ===
+  structsMap.destroy();
+  classesMap.destroy();
+  globals.destroy();
+}
+void Interpreter::reset()
+{
+  // 1. Limpa processos em execução (RAM e Fibers)
+  freeRunningProcesses();
+
+  // 2. Limpa código compilado (Bytecode das funções)
+  freeFunctions();
+
+  clearAllGCObjects();
+
+
+  gcObjects = nullptr;
+  totalAllocated = 0;
+  totalArrays = 0;
+  totalStructs = 0;
+  totalClasses = 0;
+  totalMaps = 0;
+  totalNativeClasses = 0;
+  totalNativeStructs = 0;
+  nextGC = 1024 * 4;
+  gcInProgress = false;
+ 
+  frameCount = 0;
+
+  // 3. Limpa blueprints de processos (gerados pelo script anterior)
+  // Nota: Mantivemos este loop aqui pois reset() pode não querer limpar
+  // todas as Classes/Structs se forem partilhadas, mas os ProcessDefs do script sim.
   for (size_t j = 0; j < processes.size(); j++)
   {
     ProcessDef *proc = processes[j];
@@ -179,6 +187,15 @@ void Interpreter::freeBlueprints()
     delete proc;
   }
   processes.clear();
+
+  // 4. Reset de variáveis de estado
+  currentFiber = nullptr;
+  currentProcess = nullptr;
+  currentTime = 0.0f;
+  hasFatalError_ = false;
+ 
+
+  compiler->clear();
 }
 
 Interpreter::~Interpreter()
@@ -186,13 +203,13 @@ Interpreter::~Interpreter()
 
   Info("VM shutdown");
   Info("Memory allocated : %s", formatBytes(totalAllocated));
-  Info("Classes          : %zu", getTotalClasses());
-  Info("Structs          : %zu", getTotalStructs());
-  Info("Arrays           : %zu", getTotalArrays());
-  Info("Maps             : %zu", getTotalMaps());
-  Info("Native classes   : %zu", getTotalNativeClasses());
-  Info("Native structs   : %zu", getTotalNativeStructs());
-  Info("Processes        : %zu", aliveProcesses.size());
+  // Info("Classes          : %zu", getTotalClasses());
+  // Info("Structs          : %zu", getTotalStructs());
+  // Info("Arrays           : %zu", getTotalArrays());
+  // Info("Maps             : %zu", getTotalMaps());
+  // Info("Native classes   : %zu", getTotalNativeClasses());
+  // Info("Native structs   : %zu", getTotalNativeStructs());
+  // Info("Processes        : %zu", aliveProcesses.size());
 
   for (size_t i = 0; i < modules.size(); i++)
   {
@@ -205,79 +222,51 @@ Interpreter::~Interpreter()
   delete compiler;
 
   freeInstances();
+  freeRunningProcesses();
+  freeFunctions();
   freeBlueprints();
-
-  // runGC();
-
-  for (size_t i = 0; i < functions.size(); i++)
-  {
-    Function *func = functions[i];
-    delete func;
-  }
-  functions.clear();
-
-  for (size_t i = 0; i < functionsClass.size(); i++)
-  {
-    Function *func = functionsClass[i];
-    delete func;
-  }
-  functionsClass.clear();
-
-  
-  for (size_t j = 0; j < cleanProcesses.size(); j++)
-  {
-    Process *proc = cleanProcesses[j];
-    ProcessPool::instance().destroy(proc);
-  }
-  cleanProcesses.clear();
-  
-  for (size_t i = 0; i < aliveProcesses.size(); i++)
-  {
-    ProcessPool::instance().destroy(aliveProcesses[i]);
-  }
-  aliveProcesses.clear();
-  
-  ProcessPool::instance().clear();
-  functionsMap.destroy();
-  processesMap.destroy();
-  structsMap.destroy();
-  classesMap.destroy();
   globals.destroy();
+  clearAllGCObjects();
 
-  Info("Heap stats:");
-  arena.Stats();
+  //Info("Heap stats:");
+  //arena.Stats();
   arena.Clear();
-  Info("String Heap stats:");
+  //Info("String Heap stats:");
   stringPool.clear();
 }
 
 
+
 BufferInstance *Interpreter::createBuffer(int count, int typeRaw)
 {
-    checkGC();
-    size_t size = sizeof(BufferInstance);
-    void *mem = (BufferInstance *)arena.Allocate(size);
-    
-    BufferInstance *instance = new (mem) BufferInstance(count, (BufferType)typeRaw);
-    instance->marked = 0;
-    
-    bufferInstances.push(instance);
-    totalAllocated += size;
-    totalAllocated += (count * instance->elementSize); // Conta também os dados crus!
+  checkGC();
+  size_t size = sizeof(BufferInstance);
+  void *mem = (BufferInstance *)arena.Allocate(size);
 
-    return instance;
-  }
+  BufferInstance *instance = new (mem) BufferInstance(count, (BufferType)typeRaw);
+  instance->marked = 0;
+
+  instance->next = gcObjects;
+  gcObjects = instance;
+  totalBuffers++;
+ 
+  totalAllocated += size;
+  totalAllocated += (count * instance->elementSize); // Conta também os dados raw!
+
+  return instance;
+}
 
 void Interpreter::freeBuffer(BufferInstance *b)
 {
-    size_t size = sizeof(BufferInstance);
-    size_t dataSize = b->count * b->elementSize;
-    
-    b->~BufferInstance();  
-    arena.Free(b, size);  
+  size_t size = sizeof(BufferInstance);
+  size_t dataSize = b->count * b->elementSize;
 
-    
-    totalAllocated -= (size + dataSize);
+  b->~BufferInstance();
+  arena.Free(b, size);
+
+  totalBuffers--;
+
+  totalAllocated -= (size + dataSize);
 }
 
 void Interpreter::setFileLoader(FileLoaderCallback loader, void *userdata)
@@ -297,7 +286,7 @@ NativeClassDef *Interpreter::registerNativeClass(const char *name,
   klass->destructor = dtor;
   klass->argCount = argCount;
 
-  nativeClasses.push(klass);
+ 
 
   // Define global
   globals.set(klass->name, makeNativeClass(id));
@@ -501,57 +490,43 @@ int Interpreter::addGlobal(const char *name, Value value)
 
 void Interpreter::print(Value value) { printValue(value); }
 
-Fiber *Interpreter::get_ready_fiber(Process *proc)
+
+Fiber* Interpreter::get_ready_fiber(Process* proc)
 {
-  int checked = 0;
-  int totalFibers = proc->nextFiberIndex;
+    if (!proc || !proc->fibers)
+        return nullptr;
 
-  if (totalFibers == 0)
+    //  Verifica fiber[0] primeiro (main)
+    Fiber* mainFiber = &proc->fibers[0];
+    
+    if (mainFiber->state == FiberState::RUNNING)
+    {
+        if (mainFiber->ip == nullptr && mainFiber->frameCount > 0)
+        {
+            Warning("Main fiber has null IP but has frames!");
+            return nullptr;
+        }
+        return mainFiber;
+    }
+
+    // Procura outras fibers
+    for (int i = 1; i < proc->totalFibers; i++)
+    {
+        Fiber* fiber = &proc->fibers[i];
+        
+        if (fiber->state == FiberState::RUNNING)
+        {
+           
+            if (fiber->ip == nullptr && fiber->frameCount > 0)
+            {
+                Warning("Fiber %d has null IP but has frames!", i);
+                continue;
+            }
+            return fiber;
+        }
+    }
+
     return nullptr;
-
-  // printf("[get_ready_fiber] Checking %d fibers, time=%.3f\n", totalFibers,
-  // currentTime);
-
-  while (checked < totalFibers)
-  {
-    int idx = proc->currentFiberIndex;
-    proc->currentFiberIndex = (proc->currentFiberIndex + 1) % totalFibers;
-
-    Fiber *f = &proc->fibers[idx];
-
-    // printf("  Fiber %d: state=%d, resumeTime=%.3f\n", idx, (int)f->state,
-    // f->resumeTime);
-
-    checked++;
-
-    if (f->state == FiberState::DEAD)
-    {
-      //  printf("  -> DEAD, skip\n");
-      continue;
-    }
-
-    if (f->state == FiberState::SUSPENDED)
-    {
-      if (currentTime >= f->resumeTime)
-      {
-        // printf("  -> RESUMING (%.3f >= %.3f)\n", currentTime, f->resumeTime);
-        f->state = FiberState::RUNNING;
-        return f;
-      }
-      // printf("  -> Still suspended (wait %.3fms)\n", (f->resumeTime -
-      // currentTime) * 1000);
-      continue;
-    }
-
-    if (f->state == FiberState::RUNNING)
-    {
-      //  printf("  -> RUNNING, execute\n");
-      return f;
-    }
-  }
-
-  //  printf("  -> No ready fiber\n");
-  return nullptr;
 }
 
 float Interpreter::getCurrentTime() const { return currentTime; }
@@ -669,10 +644,7 @@ bool Interpreter::run(const char *source, bool _dump)
   {
     return false;
   }
-
-  // functionsMap.destroy();
-  // processesMap.destroy();
-  // nativesMap.destroy();
+ 
 
   if (_dump)
   {
@@ -688,7 +660,7 @@ bool Interpreter::run(const char *source, bool _dump)
 
   //  Debug::disassembleChunk(*fiber->frames[0].func->chunk,"#main");
 
-  run_fiber(fiber);
+  run_fiber(fiber, mainProcess);
 
   return !hasFatalError_;
 }
@@ -711,59 +683,7 @@ bool Interpreter::compile(const char *source, bool dump)
 
   return !hasFatalError_;
 }
-void Interpreter::reset()
-{
 
-  functionsMap.destroy();
-  processesMap.destroy();
-
-  for (size_t i = 0; i < functions.size(); i++)
-  {
-    Function *func = functions[i];
-    delete func;
-  }
-  functions.clear();
-
-  for (size_t i = 0; i < functionsClass.size(); i++)
-  {
-    Function *func = functionsClass[i];
-    delete func;
-  }
-  functionsClass.clear();
-
-  for (size_t j = 0; j < processes.size(); j++)
-  {
-    ProcessDef *proc = processes[j];
-    proc->release();
-    delete proc;
-  }
-
-  processes.clear();
-  ProcessPool::instance().clear();
-
-  // for (size_t j = 0; j < cleanProcesses.size(); j++)
-  // {
-  //   Process *proc = cleanProcesses[j];
-  //   ProcessPool::instance().destroy(proc);
-  // }
-  cleanProcesses.clear();
-
-  // for (size_t i = 0; i < aliveProcesses.size(); i++)
-  // {
-  //   Process *process = aliveProcesses[i];
-  //   ProcessPool::instance().destroy(process);
-  // }
-
-  aliveProcesses.clear();
-
-  currentFiber = nullptr;
-  currentProcess = nullptr;
-  currentTime = 0.0f;
-  hasFatalError_ = false;
-  asEnded = false;
-
-  compiler->clear();
-}
 void Interpreter::setHooks(const VMHooks &h) { hooks = h; }
 
 void Interpreter::initFiber(Fiber *fiber, Function *func)
@@ -880,7 +800,7 @@ bool Interpreter::tryGetClassDefenition(const char *name, ClassDef **out)
 
 void Interpreter::addFiber(Process *proc, Function *func)
 {
-  if (proc->nextFiberIndex >= MAX_FIBERS)
+  if (proc->nextFiberIndex >= proc->totalFibers)
   {
     runtimeError("Too many fibers in process");
     return;
@@ -932,24 +852,14 @@ bool Interpreter::findAndJumpToHandler(Value error, uint8 *&ip, Fiber *fiber)
   return false;
 }
 
-StructInstance::StructInstance() : marked(0), def(nullptr) {}
+ 
 
-ArrayInstance::ArrayInstance() : marked(0) {}
-
-MapInstance::MapInstance() : marked(0) {}
-
-ClassInstance::ClassInstance() : marked(0) {}
-
-ClassInstance::~ClassInstance()
-{
-}
-
-BufferInstance::BufferInstance(int count, BufferType type)
+BufferInstance::BufferInstance(int count, BufferType type):GCObject(GCObjectType::BUFFER)
 {
   this->count = count;
   this->type = type;
   this->cursor = 0;
- 
+
   switch (type)
   {
   case BufferType::UINT8:
@@ -958,7 +868,7 @@ BufferInstance::BufferInstance(int count, BufferType type)
   case BufferType::INT16:
   case BufferType::UINT16:
     this->elementSize = 2;
-    break;  
+    break;
   case BufferType::INT32:
   case BufferType::UINT32:
   case BufferType::FLOAT:
@@ -972,35 +882,28 @@ BufferInstance::BufferInstance(int count, BufferType type)
     break;
   }
 
-   size_t byteSize = count * this->elementSize;
- 
-  //this->data = (uint8 *)calloc(count, this->elementSize * count);
-  this->data = (uint8 *)malloc( byteSize );
+  size_t byteSize = count * this->elementSize;
+
+  // this->data = (uint8 *)calloc(count, this->elementSize * count);
+  this->data = (uint8 *)malloc(byteSize);
   if (!this->data)
   {
     Error("Failed to allocate buffer");
     return;
   }
-    memset(data, 0, byteSize);
+  memset(data, 0, byteSize);
 }
 
 BufferInstance::~BufferInstance()
 {
   if (this->data)
   {
-    free(this->data); 
+    free(this->data);
     this->data = nullptr;
   }
 }
+
  
-
-NativeClassInstance::NativeClassInstance() : marked(0), klass(nullptr), userData(nullptr)
-{
-}
-
-NativeStructInstance::NativeStructInstance() : marked(0), def(nullptr), data(nullptr)
-{
-}
 
 // bool ClassInstance::getMethod(String *name, Function **out)
 // {
@@ -1261,16 +1164,16 @@ void Interpreter::dumpAllClasses(FILE *f)
 
 // enum class BufferType : uint8
 // {
-//   UINT8, // 0: Byte  
-//   INT16, // 1: Short  
+//   UINT8, // 0: Byte
+//   INT16, // 1: Short
 //   UINT16, // 2: UShort
-//   INT32, // 3: Int 
+//   INT32, // 3: Int
 //   UINT32, // 4: UInt
-//   FLOAT, // 5: Float  
-//   DOUBLE // 6: Double 
+//   FLOAT, // 5: Float
+//   DOUBLE // 6: Double
 // };
 
-size_t get_type_size(BufferType type) 
+size_t get_type_size(BufferType type)
 {
   switch (type)
   {
@@ -1288,5 +1191,4 @@ size_t get_type_size(BufferType type)
   default:
     return 1;
   }
-   
-} 
+}

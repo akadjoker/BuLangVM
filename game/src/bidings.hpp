@@ -42,6 +42,8 @@ namespace RaylibBindings
     Value native_DrawRectangle(Interpreter *vm, int argc, Value *args);
     Value native_DrawRectangleRec(Interpreter *vm, int argc, Value *args);
 
+    
+
     // ========================================
     // TEXTURES
     // ========================================
@@ -51,13 +53,18 @@ namespace RaylibBindings
     Value native_DrawTexture(Interpreter *vm, int argc, Value *args);
     Value native_DrawTextureV(Interpreter *vm, int argc, Value *args);
     Value native_DrawTextureEx(Interpreter *vm, int argc, Value *args);
+    Value native_DrawTextureRotateScale(Interpreter *vm, int argc, Value *args);
+ 
 
+
+    
     // ========================================
     // TEXT
     // ========================================
 
     Value native_DrawText(Interpreter *vm, int argc, Value *args);
     Value native_DrawFps(Interpreter *vm, int argc, Value *args);
+    Value native_DrawStats(Interpreter *vm, int argc, Value *args);
     Value native_MeasureText(Interpreter *vm, int argc, Value *args);
     Value native_LoadFont(Interpreter *vm, int argc, Value *args);
     Value native_UnloadFont(Interpreter *vm, int argc, Value *args);
@@ -107,12 +114,7 @@ namespace RaylibBindings
 
     Value native_GetTime(Interpreter *vm, int argc, Value *args);
 
-    // ========================================
-    // MATH
-    // ========================================
-
-    Value native_Clamp(Interpreter *vm, int argc, Value *args);
-    Value native_Lerp(Interpreter *vm, int argc, Value *args);
+ 
 
     // ========================================
     // REGISTRATION

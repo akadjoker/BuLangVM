@@ -22,7 +22,10 @@ add_subdirectory(libbu)
 add_subdirectory(external/raylib)
 add_subdirectory(main)
 add_subdirectory(game)
+add_subdirectory(engine)
 add_subdirectory(tests)
+add_subdirectory(testParser)
+add_subdirectory(compilerTest)
 add_subdirectory(divgraphics)
 
 

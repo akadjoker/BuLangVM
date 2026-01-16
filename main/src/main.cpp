@@ -190,7 +190,7 @@ const char *multiPathFileLoader(const char *filename, size_t *outSize, void *use
             continue; // Tenta próximo path
         }
 
-        if (size >= sizeof(ctx->buffer))
+        if (size >= (long)sizeof(ctx->buffer))
         {
             fprintf(stderr, "File too large: %s (%ld bytes, max %zu)\n",
                     ctx->fullPath, size, sizeof(ctx->buffer));
@@ -266,6 +266,19 @@ int main()
     {
         std::cerr << "Error running code.\n";
         return 1;
+    }
+
+    int maxFrames = 50000; // Safety limit
+    int frame = 0;
+
+    while (vm.getTotalAliveProcesses() && frame < maxFrames) 
+    {
+      vm.update(0.016f);
+      frame++;
+    }
+
+    if (frame >= maxFrames) {
+      printf("⚠️  Warning: Test hit frame limit (%d frames)\n", maxFrames);
     }
 
  

@@ -97,6 +97,7 @@ enum TokenType
     TOKEN_FIBER,
     TOKEN_YIELD,
     TOKEN_LEN,
+    TOKEN_FREE,
 
     TOKEN_STRUCT,
     TOKEN_ENUM,

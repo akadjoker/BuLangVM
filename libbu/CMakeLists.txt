@@ -34,7 +34,7 @@ if(CMAKE_BUILD_TYPE MATCHES Debug)
     # target_compile_options(libbu PRIVATE
     #     # Sanitizers
     #     -fsanitize=address
-    #     -fsanitize=undefined
+    #     -fsanitize=undefined,integer,float-divide-by-zero,unsigned-integer-overflow
     #     -fsanitize=leak
         
     #     # Debug info
@@ -53,7 +53,7 @@ if(CMAKE_BUILD_TYPE MATCHES Debug)
     
     # target_link_options(libbu PRIVATE
     #     -fsanitize=address
-    #     -fsanitize=undefined
+    #     -fsanitize=undefined,integer,float-divide-by-zero,unsigned-integer-overflow
     #     -fsanitize=leak
     # )
  

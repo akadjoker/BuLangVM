@@ -2,13 +2,12 @@
 #include "config.hpp"
 #include "string.hpp"
 #include "vector.hpp"
-#include "map.hpp"  
-#include "types.hpp"  
+#include "map.hpp"
+#include "types.hpp"
 
 struct Value;
 struct Process;
 
- 
 struct CStringHash
 {
     size_t operator()(const char *str) const
@@ -33,40 +32,34 @@ struct CStringEq
     }
 };
 
-
 class StringPool
 {
 private:
     HeapAllocator allocator;
-   
+
     HashMap<const char *, int, CStringHash, CStringEq> pool;
     size_t bytesAllocated = 0;
     friend class Interpreter;
-    String * dummyString = nullptr;
+    String *dummyString = nullptr;
 
     Vector<String *> map;
     String *allocString();
     void deallocString(String *s);
 
-    public:
+public:
     StringPool();
     ~StringPool();
 
     size_t getBytesAllocated() { return bytesAllocated; }
-    
 
-
-
-    String *create(const char *str, uint32 len );
+    String *create(const char *str, uint32 len);
     void destroy(String *s);
 
     String *create(const char *str);
 
-    String *format(const char *fmt, ...);  
+    String *format(const char *fmt, ...);
 
-
-    String* getString(int index);
-
+    String *getString(int index);
 
     int indexOf(String *str, String *substr, int startIndex = 0);
     int indexOf(String *str, const char *substr, int startIndex = 0);
@@ -91,22 +84,19 @@ private:
     String *toString(double value);
 
     void clear();
- 
-    
-
-
-    
 };
 
-
-class ProcessPool 
+class ProcessPool
 {
 
-    Vector<Process*> pool;
- 
+    Vector<Process *> pool;
+
 public:
     ProcessPool();
     ~ProcessPool();
+    static const int MAX_POOL_SIZE = 128;     // Máximo no pool
+    static const int MIN_POOL_SIZE = 32;      // Mínimo a manter
+    static const int CLEANUP_THRESHOLD = 256; // Trigger cleanup
 
     static ProcessPool &instance()
     {
@@ -114,20 +104,20 @@ public:
         return pool;
     }
 
-    Process* create();
+    Process *create();
     void destroy(Process *proc);
     void recycle(Process *proc);
     void clear();
-
+    void shrink();
+    size_t size() const { return pool.size(); }
 };
-
 
 inline bool compareString(String *a, String *b)
 {
     if (a == nullptr || b == nullptr)
         return false;
 
-  //  Info("Compare string %s %s hash %d %d len %d %d", a->chars(), b->chars(), a->hash, b->hash, a->length(), b->length());
+    //  Info("Compare string %s %s hash %d %d len %d %d", a->chars(), b->chars(), a->hash, b->hash, a->length(), b->length());
 
     if (a->hash != b->hash)
         return false;
@@ -137,10 +127,3 @@ inline bool compareString(String *a, String *b)
         return false;
     return memcmp(a->chars(), b->chars(), a->length()) == 0;
 }
-
-
-
- 
- 
-
- 

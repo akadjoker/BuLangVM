@@ -1,310 +1,394 @@
 #include "interpreter.hpp"
 
-
-FORCE_INLINE void Interpreter::markRoots()
+void Interpreter::markRoots()
 {
-    // stack da VM
 
-    Fiber *fiber = currentFiber;
-    if (fiber)
+    if (globals.count)
     {
-        for (Value *v = fiber->stack; v < fiber->stackTop; v++)
-        {
-            markValue(*v);
-        }
+        globals.forEach([this](String *key, Value val)
+                        { 
+            if(val.isObject())
+            {
+                //printValueNl(val);
+                markValue(val); 
+            } });
     }
 
-    globals.forEach([this](String *key, Value val)
-                    { markValue(val); });
+    for (size_t i = 0; i < aliveProcesses.size(); i++)
+    {
+        Process *proc = aliveProcesses[i];
+
+        // Marca privates
+        for (int j = 0; j < MAX_PRIVATES; j++)
+        {
+            if (!proc->privates[j].isObject())
+                continue;
+            markValue(proc->privates[j]);
+        }
+
+        // Marca todas as fibers
+        if (proc->fibers)
+        {
+            for (int f = 0; f < proc->totalFibers; f++)
+            {
+                Fiber *fiber = &proc->fibers[f];
+                if (fiber->state != FiberState::DEAD)
+                {
+                    for (Value *v = fiber->stack; v < fiber->stackTop; v++)
+                    {
+                        if (!v->isObject())
+                            continue;
+                        markValue(*v);
+                    }
+                }
+            }
+        }
+    }
 }
 
-void Interpreter::markArray(ArrayInstance *a)
+// void Interpreter::markObject(GCObject *obj)
+// {
+//     if (!obj || obj->marked)
+//         return;
+
+//     obj->marked = 1;
+
+//     // Info("Marking %d", (int) obj->type);
+
+//     switch (obj->type)
+//     {
+//     case GCObjectType::STRUCT:
+//     {
+//         StructInstance *s = static_cast<StructInstance *>(obj);
+//         for (size_t i = 0; i < s->values.size(); i++)
+//         {
+//             markValue(s->values[i]);
+//         }
+//         break;
+//     }
+
+//     case GCObjectType::CLASS:
+//     {
+//         ClassInstance *c = static_cast<ClassInstance *>(obj);
+//         for (size_t i = 0; i < c->fields.size(); i++)
+//         {
+//             markValue(c->fields[i]);
+//         }
+//         break;
+//     }
+
+//     case GCObjectType::ARRAY:
+//     {
+//         ArrayInstance *a = static_cast<ArrayInstance *>(obj);
+//         for (size_t i = 0; i < a->values.size(); i++)
+//         {
+//             markValue(a->values[i]);
+//         }
+//         break;
+//     }
+
+//     case GCObjectType::MAP:
+//     {
+//         MapInstance *m = static_cast<MapInstance *>(obj);
+//         m->table.forEach([this](String *key, Value val)
+//                          { markValue(val); });
+//         break;
+//     }
+
+//     case GCObjectType::BUFFER:
+//     case GCObjectType::NATIVE_CLASS:
+//     case GCObjectType::NATIVE_STRUCT:
+//         //  Sem conteúdo para marcar ???
+//         break;
+//     }
+// }
+
+void Interpreter::markObject(GCObject *obj)
 {
-    if (!a || a->marked)
+    if (obj == nullptr || obj->marked)
         return;
-    a->marked = 1;
-    for (size_t i = 0; i < a->values.size(); i++)
-    {
-        markValue(a->values[i]);
-    }
-}
-
-void Interpreter::markClass(ClassInstance *c)
-{
-    if (!c || c->marked)
-        return;
-
-    c->marked = 1;
-    for (size_t i = 0; i < c->fields.size(); i++)
-    {
-        markValue(c->fields[i]);
-    }
-}
-
-void Interpreter::markStruct(StructInstance *s)
-{
-    if (!s || s->marked)
-        return;
-    s->marked = 1;
-    for (size_t i = 0; i < s->values.size(); i++)
-    {
-        markValue(s->values[i]);
-    }
-}
-
-void Interpreter::markMap(MapInstance *m)
-{
-    if (!m || m->marked)
-        return;
-    m->marked = 1;
-
-    m->table.forEach([this](String *key, Value val)
-                     { markValue(val); });
-}
-
-void Interpreter::markNativeClass(NativeClassInstance *n)
-{
-    if (!n || n->marked)
-        return;
-    n->marked = 1;
-}
-
-void Interpreter::markNativeStruct(NativeStructInstance *n)
-{
-    if (!n || n->marked)
-        return;
-    n->marked = 1;
-}
-
-void Interpreter::markBuffer(BufferInstance *b)
-{
-    if (!b || b->marked)
-        return;
-    b->marked = 1;
-}
-
-void Interpreter::sweepArrays()
-{
-
-    for (size_t i = 0; i < arrayInstances.size();)
-    {
-        ArrayInstance *a = arrayInstances[i];
-        if (a->marked == 0)
-        {
-            freeArray(a);
-            arrayInstances[i] = arrayInstances.back();
-            arrayInstances.pop();
-        }
-        else
-        {
-            a->marked = 0;
-            ++i;
-        }
-    }
-}
-
-void Interpreter::sweepStructs()
-{
-
-    for (size_t i = 0; i < structInstances.size();)
-    {
-        StructInstance *s = structInstances[i];
-        if (s->marked == 0)
-        {
-            freeStruct(s);
-            structInstances[i] = structInstances.back();
-            structInstances.pop();
-        }
-        else
-        {
-            s->marked = 0;
-            ++i;
-        }
-    }
-}
-
-void Interpreter::sweepClasses()
-{
-
-    for (size_t i = 0; i < classInstances.size();)
-    {
-        ClassInstance *c = classInstances[i];
-        if (c->marked == 0)
-        {
-            freeClass(c);
-            classInstances[i] = classInstances.back();
-            classInstances.pop();
-        }
-        else
-        {
-            ++i;
-        }
-    }
-}
-
-void Interpreter::sweepMaps()
-{
-
-    for (size_t i = 0; i < mapInstances.size();)
-    {
-        MapInstance *m = mapInstances[i];
-        if (m->marked == 0)
-        {
-            freeMap(m);
-            mapInstances[i] = mapInstances.back();
-            mapInstances.pop();
-        }
-        else
-        {
-            m->marked = 0;
-            ++i;
-        }
-    }
-}
-
-void Interpreter::sweepNativeClasses()
-{
-    for (size_t i = 0; i < nativeInstances.size();)
-    {
-        NativeClassInstance *n = nativeInstances[i];
-
-        if (n->marked == 0)
-        {
-            freeNativeClass(n);
-            nativeInstances[i] = nativeInstances.back();
-            nativeInstances.pop();
-        }
-        else
-        {
-            ++i;
-        }
-    }
-}
-
-void Interpreter::sweepNativeStructs()
-{
-    for (size_t i = 0; i < nativeStructInstances.size();)
-    {
-        NativeStructInstance *n = nativeStructInstances[i];
-
-        if (n->marked == 0)
-        {
-            freeNativeStruct(n);
-            nativeStructInstances[i] = nativeStructInstances.back();
-            nativeStructInstances.pop();
-        }
-        else
-        {
-            n->marked = 0;
-            ++i;
-        }
-    }
-}
-
-void Interpreter::sweepBuffers()
-{
-
-    for (size_t i = 0; i < bufferInstances.size();)
-    {
-        BufferInstance *b = bufferInstances[i];
-        if (b->marked == 0)
-        {
-            freeBuffer(b);
-            bufferInstances[i] = bufferInstances.back();
-            bufferInstances.pop();
-        }
-        else
-        {
-            b->marked = 0;
-            ++i;
-        }
-    }
+    obj->marked = 1;
+    grayStack.push(obj);
 }
 
 void Interpreter::markValue(const Value &v)
 {
-    if (v.isClassInstance())
-        markClass(v.as.sClass);
+    if (v.isStructInstance())
+    {
+        // printValueNl(v);
+        markObject(v.as.sInstance);
+    }
+    else if (v.isClassInstance())
+    {
+        markObject(v.as.sClass);
+    }
     else if (v.isArray())
-        markArray(v.as.array);
-    // else if (v.isStruct())
-    //     markStruct(v.as.sInstance);
-    else if (v.isBuffer())
-        markBuffer(v.as.buffer);
+    {
+        // printValueNl(v);
+        markObject(v.as.array);
+    }
     else if (v.isMap())
-        markMap(v.as.map);
-    else if (v.isNativeClass())
-        markNativeClass(v.as.sClassInstance);
+    {
+        markObject(v.as.map);
+    }
+    else if (v.isBuffer())
+    {
+        markObject(v.as.buffer);
+    }
+    else if (v.isNativeClassInstance())
+    {
+        markObject(v.as.sClassInstance);
+    }
     else if (v.isNativeStructInstance())
-        markNativeStruct(v.as.sNativeStruct);
+    {
+        markObject(v.as.sNativeStruct);
+    }
+}
+
+void Interpreter::sweep()
+{
+    //  Info("GC Sweep start");
+
+    GCObject **obj = &gcObjects;
+    size_t freed = 0;
+
+    while (*obj)
+    {
+        if ((*obj)->marked == 0)
+        {
+            GCObject *unreached = *obj;
+            *obj = unreached->next;
+            freeObject(unreached);
+            freed++;
+        }
+        else
+        {
+            //  Desmarca para próximo ciclo
+            (*obj)->marked = 0;
+            obj = &(*obj)->next;
+        }
+    }
+
+    //   Info("GC Sweep freed %zu objects", freed);
+}
+
+void Interpreter::freeObject(GCObject *obj)
+{
+    switch (obj->type)
+    {
+    case GCObjectType::STRUCT:
+    {
+        StructInstance *s = static_cast<StructInstance *>(obj);
+        freeStruct(s);
+        break;
+    }
+
+    case GCObjectType::CLASS:
+    {
+        ClassInstance *c = static_cast<ClassInstance *>(obj);
+        freeClass(c);
+        break;
+    }
+
+    case GCObjectType::ARRAY:
+    {
+        ArrayInstance *a = static_cast<ArrayInstance *>(obj);
+        freeArray(a);
+        break;
+    }
+
+    case GCObjectType::MAP:
+    {
+        MapInstance *m = static_cast<MapInstance *>(obj);
+
+        freeMap(m);
+        break;
+    }
+
+    case GCObjectType::BUFFER:
+    {
+        BufferInstance *b = static_cast<BufferInstance *>(obj);
+        freeBuffer(b);
+        break;
+    }
+
+    case GCObjectType::NATIVE_CLASS:
+    {
+        NativeClassInstance *n = static_cast<NativeClassInstance *>(obj);
+        freeNativeClass(n);
+        break;
+    }
+
+    case GCObjectType::NATIVE_STRUCT:
+    {
+        NativeStructInstance *n = static_cast<NativeStructInstance *>(obj);
+
+        freeNativeStruct(n);
+        break;
+    }
+    }
 }
 
 void Interpreter::checkGC()
 {
-    if(!enbaledGC) return;
-    
+    if (!enbaledGC)
+        return;
+
     if (totalAllocated > nextGC)
     {
         runGC();
     }
 }
 
+void Interpreter::blackenObject(GCObject *obj)
+{
+    switch (obj->type)
+    {
+    case GCObjectType::STRUCT:
+    {
+        StructInstance *s = static_cast<StructInstance *>(obj);
+        for (size_t i = 0; i < s->values.size(); i++)
+        {
+            if (!s->values[i].isObject())
+                continue;
+            markValue(s->values[i]);
+        }
+        break;
+    }
+
+    case GCObjectType::CLASS:
+    {
+        ClassInstance *c = static_cast<ClassInstance *>(obj);
+        for (size_t i = 0; i < c->fields.size(); i++)
+        {
+            if (!c->fields[i].isObject())
+                continue;
+            markValue(c->fields[i]);
+        }
+        break;
+    }
+
+    case GCObjectType::ARRAY:
+    {
+        ArrayInstance *a = static_cast<ArrayInstance *>(obj);
+        for (size_t i = 0; i < a->values.size(); i++)
+        {
+            if (!a->values[i].isObject())
+                continue;
+            markValue(a->values[i]);
+        }
+        break;
+    }
+
+    case GCObjectType::MAP:
+    {
+        MapInstance *m = static_cast<MapInstance *>(obj);
+        // Marcamos apenas os VALORES. As chaves (Strings) são ignoradas como pediste.
+        m->table.forEach([this](String *key, Value val)
+                         { 
+                            if(val.isObject())
+                                markValue(val); 
+                        });
+        break;
+    }
+
+    // Estes objetos não têm filhos (referências internas), ficam logo Black
+    case GCObjectType::BUFFER:
+    case GCObjectType::NATIVE_CLASS:
+    case GCObjectType::NATIVE_STRUCT:
+        break;
+    }
+
+ 
+}
+
+void Interpreter::traceReferences()
+{
+    // Enquanto houver objetos na lista Gray...
+    while (!grayStack.empty())
+    {
+        // 1. Tira o último objeto da pilha
+        GCObject* obj = grayStack.back();
+        grayStack.pop();
+        // 2. Processa-o (transforma-o em BLACK)
+        blackenObject(obj);
+    }
+}
+
 void Interpreter::runGC()
 {
+    if (gcInProgress)
+        return;
     gcInProgress = true;
 
-    if (totalAllocated<=nextGC) 
-    {
-        gcInProgress = false;
-        return;
-    }
+    size_t bytesBefore = totalAllocated;
+    size_t objectsBefore = totalArrays + totalClasses + totalStructs + totalMaps + totalBuffers + totalNativeClasses + totalNativeStructs;
 
-    size_t before = totalAllocated;
-
-    for (size_t i = 0; i < arrayInstances.size(); ++i)
-    {
-        arrayInstances[i]->marked = 0;
-    }
-    for (size_t i = 0; i < structInstances.size(); ++i)
-    {
-        structInstances[i]->marked = 0;
-    }
-    for (size_t i = 0; i < classInstances.size(); ++i)
-    {
-        classInstances[i]->marked = 0;
-    }
-    for (size_t i = 0; i < mapInstances.size(); ++i)
-    {
-        mapInstances[i]->marked = 0;
-    }
-
-    for (size_t i = 0; i < bufferInstances.size(); ++i)
-    {
-        bufferInstances[i]->marked = 0;
-    }
-
-    for (size_t i = 0; i < nativeInstances.size(); ++i)
-    {
-        nativeInstances[i]->marked = 0;
-    }
-    for (size_t i = 0; i < nativeStructInstances.size(); ++i)
-    {
-        nativeStructInstances[i]->marked = 0;
-    }
+    grayStack.clear();
 
     markRoots();
-    sweepArrays();
-    sweepMaps();
-    sweepBuffers();
-    sweepStructs();
-    sweepClasses();
-    sweepNativeClasses();
-    sweepNativeStructs();
 
-    nextGC = totalAllocated * 2;
-    if (nextGC < 1024)
-        nextGC = 1024; // Mínimo 1KB
 
-     Info("GC: %zu -> %zu bytes (next at %zu)", before, totalAllocated, nextGC);
-     gcInProgress = false;
+    traceReferences();
+
+    sweep();
+
+    size_t objectCount = totalArrays + totalClasses + totalStructs + totalMaps + totalBuffers + totalNativeClasses + totalNativeStructs;
+
+    size_t bytesFreed = bytesBefore - totalAllocated;
+    size_t objectsFreed = objectsBefore - objectCount;
+
+    nextGC = static_cast<size_t>(totalAllocated * GC_GROWTH_FACTOR);
+    if (nextGC < MIN_GC_THRESHOLD)
+    {
+        nextGC = MIN_GC_THRESHOLD;
+    }
+    if (nextGC > MAX_GC_THRESHOLD)
+    {
+        nextGC = MAX_GC_THRESHOLD;
+    }
+
+    // Info("GC: End - Freed %zu objects (%.2f KB). Remaining: %zu objects (%.2f KB). Next GC: %.2f KB",
+    //          objectsFreed, bytesFreed / 1024.0,
+    //          objectCount, totalAllocated / 1024.0,
+    //          nextGC / 1024.0);
+
+    gcInProgress = false;
+
+    // gcInProgress = false;
+}
+
+size_t Interpreter::countObjects() const
+{
+    size_t count = 0;
+    GCObject *obj = gcObjects;
+    while (obj)
+    {
+        count++;
+        obj = obj->next;
+    }
+    return count;
+}
+
+void Interpreter::clearAllGCObjects()
+{
+    Info("Arena cleared");
+
+    if (!gcObjects)
+        return;
+
+    GCObject **obj = &gcObjects;
+    size_t freed = 0;
+
+    while (*obj)
+    {
+
+        GCObject *toFree = *obj;
+        *obj = toFree->next;
+
+        freeObject(toFree);
+        freed++;
+    }
+
+    Info("Arena cleared (%zu objects freed)", freed);
 }
