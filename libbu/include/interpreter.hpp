@@ -3,6 +3,8 @@
 #include "code.hpp"
 #include "config.hpp"
 #include "map.hpp"
+#include "list.hpp"
+#include "ordermap.hpp"
 #include "pool.hpp"
 #include "string.hpp"
 #include "types.hpp"
@@ -143,7 +145,8 @@ struct StructDef
 {
   int index;
   String *name;
-  HashMap<String *, uint8, StringHasher, StringEq> names;
+  //HashMap<String *, uint8, StringHasher, StringEq> names;
+  List<String*, uint8> names; 
   uint8 argCount;
   ~StructDef();
 };
@@ -158,8 +161,12 @@ struct ClassDef
   Function *constructor{nullptr}; // existe na tabela
   ClassDef *superclass;           // 1 nível herança
 
-  HashMap<String *, Function *, StringHasher, StringEq> methods;
-  HashMap<String *, uint8_t, StringHasher, StringEq> fieldNames; // field name → index
+  //HashMap<String *, Function *, StringHasher, StringEq> methods;
+  //HashMap<String *, uint8_t, StringHasher, StringEq> fieldNames; // field name → index
+
+  List<String*, Function*> methods;
+  List<String*, uint8> fieldNames;
+
   Function *canRegisterFunction(String *pName);
   ~ClassDef();
 };
@@ -171,8 +178,11 @@ struct NativeClassDef
   NativeConstructor constructor;
   NativeDestructor destructor;
 
-  HashMap<String *, NativeMethod, StringHasher, StringEq> methods;
-  HashMap<String *, NativeProperty, StringHasher, StringEq> properties;
+  //HashMap<String *, NativeMethod, StringHasher, StringEq> methods;
+  //HashMap<String *, NativeProperty, StringHasher, StringEq> properties;
+
+  List<String*, NativeMethod> methods;
+  List<String*, NativeProperty> properties;
 
   ~NativeClassDef();
 
@@ -191,7 +201,8 @@ struct NativeStructDef
   int id;
   String *name;
   size_t structSize;
-  HashMap<String *, NativeFieldDef, StringHasher, StringEq> fields;
+  //HashMap<String *, NativeFieldDef, StringHasher, StringEq> fields;
+  List<String*, NativeFieldDef> fields;
   NativeStructCtor constructor; // nullable
   NativeStructDtor destructor;  // nullable
 };
@@ -338,6 +349,7 @@ struct BufferInstance : GCObject
 struct MapInstance : GCObject
 {
   HashMap<String *, Value, StringHasher, StringEq> table;
+  
 
   MapInstance() : GCObject(GCObjectType::MAP) {}
 };
@@ -552,7 +564,7 @@ class Interpreter
   HashMap<String *, uint16, StringHasher, StringEq> moduleNames; // Nome  ID
   Vector<ModuleDef *> modules;                                   // Array de módulos!
   HashMap<String *, Value, StringHasher, StringEq> globals;
-
+  
   Vector<Process *> aliveProcesses;
   Vector<Process *> cleanProcesses;
 

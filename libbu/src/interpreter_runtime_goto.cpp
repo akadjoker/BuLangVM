@@ -31,6 +31,8 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 
     currentFiber = fiber;
 
+ 
+
     CallFrame *frame;
     Value *stackStart;
     uint8 *ip;
@@ -202,6 +204,10 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
         &&op_clock,      // 81
         &&op_new_buffer, // 82
         &&op_free,       // 83
+        &&op_closure,
+        &&op_get_upvalue,
+        &&op_set_upvalue,
+        &&op_close_upvalue,
     };
 
 #define DISPATCH()                         \
@@ -848,7 +854,7 @@ op_call:
 {
     uint8 argCount = READ_BYTE();
 
-    //  SALVA IP ATUAL!
+    
     STORE_FRAME();
 
     Value callee = NPEEK(argCount);
@@ -1053,6 +1059,7 @@ op_call:
 
             CallFrame *newFrame = &currentFiber->frames[currentFiber->frameCount++];
             newFrame->func = klass->constructor;
+            newFrame->closure = nullptr;
             newFrame->ip = klass->constructor->chunk->code;
             newFrame->slots = currentFiber->stackTop - argCount - 1;
 
@@ -1216,7 +1223,7 @@ op_call:
         newFrame->slots = fiber->stackTop - argCount - 1;
 
         LOAD_FRAME();
-        DISPATCH();
+        DISPATCH();    
     }
 
     // ========================================
@@ -1230,6 +1237,8 @@ op_call:
         printf("\n");
         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
     }
+    
+    LOAD_FRAME();
 }
 
 op_return:
@@ -2431,6 +2440,7 @@ op_invoke:
 
             CallFrame *newFrame = &currentFiber->frames[currentFiber->frameCount];
             newFrame->func = method;
+            newFrame->closure = nullptr;
             newFrame->ip = method->chunk->code;
             newFrame->slots = currentFiber->stackTop - argCount - 1;
 
@@ -3438,6 +3448,7 @@ op_super_invoke:
 
     CallFrame *newFrame = &fiber->frames[fiber->frameCount];
     newFrame->func = method;
+    newFrame->closure = nullptr;
     newFrame->ip = method->chunk->code;
     newFrame->slots = fiber->stackTop - argCount - 1;
     fiber->frameCount++;
@@ -4420,7 +4431,7 @@ op_new_buffer:
         size_t elementSize = get_type_size((BufferType)t);
         if (fileSize % elementSize != 0)
         {
-            THROW_RUNTIME_ERROR("File size %d is not a multiple of element size %zu (type %d)",
+            THROW_RUNTIME_ERROR("File size %d is not a multiple of element size %zu (type %ld)",
                                 fileSize, elementSize, type);
         }
 
@@ -4430,13 +4441,13 @@ op_new_buffer:
         Value bufferVal = makeBuffer(count, t);
         if (bufferVal.asBuffer()->data == nullptr)
         {
-            THROW_RUNTIME_ERROR("Failed to allocate buffer of %d elements (type %d)", count, type);
+            THROW_RUNTIME_ERROR("Failed to allocate buffer of %d elements (type %ld)", count, type);
         }
         BufferInstance *buf = bufferVal.asBuffer();
         int bytesRead = OsFileRead(filename, buf->data, fileSize);
         if (bytesRead < 0 || bytesRead != fileSize)
         {
-            THROW_RUNTIME_ERROR("Failed to read data from '%s' (%d bytes read, expected %d)",
+            THROW_RUNTIME_ERROR("Failed to read data from '%s' (%d bytes read, expected %ld)",
                                 filename, bytesRead, fileSize);
         }
 

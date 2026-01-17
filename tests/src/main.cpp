@@ -297,6 +297,14 @@ Value native_write(Interpreter *vm, int argCount, Value *args)
   printf("%s", result.c_str());
   return vm->makeNil();
 }
+
+Value native_gc(Interpreter *vm, int argCount, Value *args)
+{
+    vm->runGC();
+    return vm->makeNil();
+}
+
+
 int main(int argc, char **argv)
 {
   Interpreter vm;
@@ -312,6 +320,8 @@ int main(int argc, char **argv)
   vm.registerNative("format", native_format, -1);
   vm.registerNative("write", native_write, -1);
   vm.registerNative("print_stack", native_print_stack, -1);
+
+  vm.registerNative("_gc", native_gc, 0);
 
   int totalPassed = 0;
   int totalFailed = 0;

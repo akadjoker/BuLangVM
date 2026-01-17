@@ -505,25 +505,195 @@
 
 
 
-var successPath = false;
-var catchPath = false;
-var errorMsg = "";
+// var successPath = false;
+// var catchPath = false;
+// var errorMsg = "";
 
-try 
-{
+// try 
+// {
    
-    var a = 10;
-    var b = 0;
-    var c = a / b; // error
+//     var a = 10;
+//     var b = 0;
+//     var c = a / b; // error
     
-    successPath = true;  
-} catch (err) 
+//     successPath = true;  
+// } catch (err) 
+// {
+//     catchPath = true;
+//     errorMsg = err; 
+//     print("   -> Errr captured: " + err);
+// }
+
+
+// ===== TESTE 1: Acesso a fields (simula HashMap vs RBTree) =====
+
+struct Entity 
 {
-    catchPath = true;
-    errorMsg = err; 
-    print("   -> Errr captured: " + err);
+    var a, b, c, d, e, f, g, h, i, j;  // 10 fields
+};
+
+print("=== BENCHMARK: Field Access ===\n");
+
+// Warm-up
+var dummy = Entity(1,2,3,4,5,6,7,8,9,10);
+dummy.e = 100;
+
+// TESTE: 1 milhão de acessos a fields
+var start = clock();
+
+for(var i = 0; i < 1000000; i++)
+{
+    var data = Entity(1,2,3,4,5,6,7,8,9,10);
+    
+    // Acessa vários fields (força lookup interno)
+    data.a = i;
+    data.e = i * 2;
+    data.j = i * 3;
+    
+    var x = data.a;
+    var y = data.e;
+    var z = data.j;
 }
 
-print("Program continues!");
-print("Sucess: ",successPath);
-print("Catch: ",catchPath);
+var end = clock();
+print("Tempo (1M iterações): " + (end - start) + "s\n");
+
+// ===== TESTE 2: Muitos fields (pior caso) =====
+
+struct BigEntity
+{
+    var f1, f2, f3, f4, f5, f6, f7, f8, f9, f10,
+        f11, f12, f13, f14, f15, f16, f17, f18, f19, f20;  // 20 fields
+};
+
+print("\n=== BENCHMARK: 20 Fields (worst case) ===\n");
+
+start = clock();
+
+for(var i = 0; i < 500000; i++)
+{
+    var big = BigEntity(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20);
+    
+    // Acessa último field (pior caso para HashMap com colisões)
+    big.f20 = i;
+    var val = big.f20;
+    
+    // Acessa primeiro field
+    big.f1 = i;
+    val = big.f1;
+}
+
+end = clock();
+print("Tempo (500K iterações): " + (end - start) + "s\n");
+
+// ===== TESTE 3: Field lookup intensivo =====
+
+print("\n=== BENCHMARK: Lookup Intensivo ===\n");
+
+struct Player
+{
+    var name, health, mana, x, y, z, speed, damage;
+};
+
+start = clock();
+
+for(var i = 0; i < 1000000; i++)
+{
+    var p = Player("Hero", 100, 50, 0, 0, 0, 5, 10);
+    
+    // Simula acesso random a fields
+    if (i % 3 == 0) p.health = 90;
+    if (i % 5 == 0) p.x = i;
+    if (i % 7 == 0) p.damage = 15;
+    
+    var h = p.health;
+    var pos = p.x;
+    var dmg = p.damage;
+}
+
+end = clock();
+print("Tempo (1M random access): " + (end - start) + "s\n");
+
+
+ var p = Player("Hero", 100, 50, 0, 0, 0, 5, 10);
+ print(p);
+
+
+ 
+
+print("=== BENCHMARK: Global Variables   ===\n");
+
+// Criar MUITAS variáveis globais (simula tabela de símbolos)
+var g1 = 1, g2 = 2, g3 = 3, g4 = 4, g5 = 5;
+var g6 = 6, g7 = 7, g8 = 8, g9 = 9, g10 = 10;
+var g11 = 11, g12 = 12, g13 = 13, g14 = 14, g15 = 15;
+var g16 = 16, g17 = 17, g18 = 18, g19 = 19, g20 = 20;
+var g21 = 21, g22 = 22, g23 = 23, g24 = 24, g25 = 25;
+var g26 = 26, g27 = 27, g28 = 28, g29 = 29, g30 = 30;
+
+print("Criadas 30 variáveis globais\n");
+
+// Teste 1: Acesso sequencial
+print("\n--- Teste 1: Acesso sequencial ---");
+var start = clock();
+
+for(var i = 0; i < 500000; i++)
+{
+    var x1 = g1;
+    var x2 = g5;
+    var x3 = g10;
+    var x4 = g15;
+    var x5 = g20;
+    var x6 = g25;
+    var x7 = g30;
+}
+
+var end = clock();
+print("Tempo (500K acessos): " + (end - start) + "s\n");
+
+// Teste 2: Escrita em globais
+print("\n--- Teste 2: Escrita em globais ---");
+start = clock();
+
+for(var i = 0; i < 500000; i++)
+{
+    g1 = i;
+    g10 = i * 2;
+    g20 = i * 3;
+    g30 = i * 4;
+}
+
+end = clock();
+print("Tempo (500K escritas): " + (end - start) + "s\n");
+
+// Teste 3: Acesso worst-case (último elemento)
+print("\n--- Teste 3: Acesso último elemento ---");
+start = clock();
+
+for(var i = 0; i < 1000000; i++)
+{
+    var x = g30;  // Último = pior caso para linear search
+    g30 = i;
+}
+
+end = clock();
+print("Tempo (1M último elemento): " + (end - start) + "s\n");
+
+// Teste 4: Mix read/write
+print("\n--- Teste 4: Mix read/write ---");
+start = clock();
+
+for(var i = 0; i < 500000; i++)
+{
+    if (i % 2 == 0) {
+        g5 = g10 + g15;
+        g20 = g25 - g1;
+    } else {
+        g15 = g20 * 2;
+        g30 = g1 + g5;
+    }
+}
+
+end = clock();
+print("Tempo (500K mix): " + (end - start) + "s\n");
+ 

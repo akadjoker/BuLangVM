@@ -1361,7 +1361,24 @@ void Compiler::funDeclaration()
         return;
     }
 
-    Function *func = vm_->addFunction(nameToken.lexeme.c_str(), 0);
+     
+    std::string actualName;
+
+      if (function != nullptr) 
+      {
+          // Nested function: adiciona prefixo da função pai
+          actualName = function->name->chars();
+          
+        actualName += "$";
+        actualName += nameToken.lexeme;
+    } else 
+    {
+        // Top-level function: nome normal
+        actualName = nameToken.lexeme;
+    }
+
+
+    Function *func = vm_->addFunction(actualName.c_str(), 0);
 
     if (!func)
     {

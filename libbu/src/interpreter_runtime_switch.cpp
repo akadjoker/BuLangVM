@@ -931,6 +931,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 
                     CallFrame *newFrame = &currentFiber->frames[currentFiber->frameCount];
                     newFrame->func = klass->constructor;
+                    newFrame->closure = nullptr;
                     newFrame->ip = klass->constructor->chunk->code;
                     newFrame->slots = currentFiber->stackTop - argCount - 1;
 
@@ -2289,6 +2290,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                     newFrame->func = method;
                     newFrame->ip = method->chunk->code;
                     newFrame->slots = currentFiber->stackTop - argCount - 1;
+                    newFrame->closure = nullptr;
 
                     currentFiber->frameCount++;
 
@@ -3298,6 +3300,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
             CallFrame *newFrame = &fiber->frames[fiber->frameCount];
             newFrame->func = method;
             newFrame->ip = method->chunk->code;
+            newFrame->closure = nullptr;
             newFrame->slots = fiber->stackTop - argCount - 1;
             fiber->frameCount++;
 

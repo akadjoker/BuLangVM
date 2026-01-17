@@ -769,7 +769,30 @@ void Compiler::resolveGotos()
       continue;
     }
 
-    patchJumpTo(jump.jumpOffset, targetOffset);
+    // Opcode está 1 byte ANTES de jumpOffset (não 3!)
+    int opcodePos = jump.jumpOffset - 1;
+    
+    if (targetOffset < jump.jumpOffset)
+    {
+      // Backward jump: usa OP_LOOP
+      currentChunk->code[opcodePos] = OP_LOOP;
+      
+      // Offset backward = distância para trás
+      int offset = jump.jumpOffset - targetOffset + 2;
+      if (offset > UINT16_MAX)
+      {
+        error("Goto distance too large");
+        continue;
+      }
+      
+      currentChunk->code[jump.jumpOffset] = (offset >> 8) & 0xff;
+      currentChunk->code[jump.jumpOffset + 1] = offset & 0xff;
+    }
+    else
+    {
+      // Forward jump
+      patchJumpTo(jump.jumpOffset, targetOffset);
+    }
   }
 
   pendingGotos.clear();

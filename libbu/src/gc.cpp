@@ -32,7 +32,7 @@ void Interpreter::markRoots()
             for (int f = 0; f < proc->totalFibers; f++)
             {
                 Fiber *fiber = &proc->fibers[f];
-                
+
                 if (fiber->state != FiberState::DEAD)
                 {
                     // Stack
@@ -43,7 +43,6 @@ void Interpreter::markRoots()
                         markValue(*v);
                     }
 
-                    
                     for (int i = 0; i < fiber->frameCount; i++)
                     {
                         CallFrame *frame = &fiber->frames[i];
@@ -52,6 +51,7 @@ void Interpreter::markRoots()
                             markObject((GCObject *)frame->closure);
                         }
                     }
+                   
                 }
             }
         }
