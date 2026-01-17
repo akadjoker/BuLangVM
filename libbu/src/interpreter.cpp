@@ -489,32 +489,17 @@ Fiber *Interpreter::get_ready_fiber(Process *proc)
   if (!proc || !proc->fibers)
     return nullptr;
 
-  //  Verifica fiber[0] primeiro (main)
-  Fiber *mainFiber = &proc->fibers[0];
+  // ✅ Procura a partir da última fiber executada
+  int start = proc->currentFiberIndex;
 
-  if (mainFiber->state == FiberState::RUNNING)
+  for (int i = 0; i < proc->nextFiberIndex; i++)
   {
-    if (mainFiber->ip == nullptr && mainFiber->frameCount > 0)
-    {
-      Warning("Main fiber has null IP but has frames!");
-      return nullptr;
-    }
-    return mainFiber;
-  }
-
-  // Procura outras fibers
-  for (int i = 1; i < proc->totalFibers; i++)
-  {
-    Fiber *fiber = &proc->fibers[i];
+    int idx = (start + i) % proc->nextFiberIndex;
+    Fiber *fiber = &proc->fibers[idx];
 
     if (fiber->state == FiberState::RUNNING)
     {
-
-      if (fiber->ip == nullptr && fiber->frameCount > 0)
-      {
-        Warning("Fiber %d has null IP but has frames!", i);
-        continue;
-      }
+      proc->currentFiberIndex = (idx + 1) % proc->nextFiberIndex; // ✅ Próxima vez começa na seguinte
       return fiber;
     }
   }
