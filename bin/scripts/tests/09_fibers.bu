@@ -27,7 +27,10 @@ test_spawn();
 
 print("--- TESTE: Logic & Yield ---");
 
-struct State { x, y };
+struct State 
+{ 
+  var   x, y ;
+};
 
 def worker(st)
 {

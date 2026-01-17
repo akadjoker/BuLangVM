@@ -57,15 +57,13 @@ struct ParseRule
 // LIMITES DE SEGURANÇA UNIFICADOS
 // ============================================
 
-#define MAX_IDENTIFIER_LENGTH 255  // Alinhado com lexer
+#define MAX_IDENTIFIER_LENGTH 255 // Alinhado com lexer
 
-
-#define MAX_EXPRESSION_DEPTH 200   // Prevenir stack overflow em expressões
-#define MAX_DECLARATION_DEPTH 100  // Prevenir recursão infinita
-#define MAX_CALL_DEPTH 100         // Limitar calls aninhados
-#define MAX_SCOPE_DEPTH 256        // Limitar scopes aninhados
-#define MAX_TRY_DEPTH 64           // Limitar try/catch aninhados
-
+#define MAX_EXPRESSION_DEPTH 200  // Prevenir stack overflow em expressões
+#define MAX_DECLARATION_DEPTH 100 // Prevenir recursão infinita
+#define MAX_CALL_DEPTH 100        // Limitar calls aninhados
+#define MAX_SCOPE_DEPTH 256       // Limitar scopes aninhados
+#define MAX_TRY_DEPTH 64          // Limitar try/catch aninhados
 
 #define MAX_LABELS 32
 #define MAX_GOTOS 32
@@ -75,14 +73,14 @@ struct ParseRule
 #define MAX_LOOP_DEPTH 32
 #define MAX_BREAKS_PER_LOOP 256
 
-
 struct Local
 {
-  std::string name;  
+  std::string name;
   int depth;
   bool usedInitLocal;
+  bool isCaptured;
 
-  Local() : depth(-1), usedInitLocal(false) {}
+  Local() : depth(-1), usedInitLocal(false), isCaptured(false) {}
 
   bool equals(const std::string &str) const
   {
@@ -93,6 +91,12 @@ struct Local
   {
     return name.length() == len && std::memcmp(name.c_str(), str, len) == 0;
   }
+};
+
+struct UpvalueInfo
+{
+  uint8 index;
+  bool isLocal;
 };
 
 struct LoopContext
@@ -136,16 +140,16 @@ struct CompilerOptions
 {
   bool strictMode = true;
   bool allowUnsafeCode = false;
-  
+
   // Limites de tamanho
-  size_t maxSourceSize = 1024 * 1024;  // 1MB
+  size_t maxSourceSize = 1024 * 1024; // 1MB
   size_t maxTokens = 100000;
   size_t maxFunctions = 10000;
   size_t maxConstants = 65535;
-  
+
   // Timeouts
   std::chrono::milliseconds compileTimeout{5000};
-  
+
   // Validação
   bool validateUnicode = true;
   bool checkIntegerOverflow = true;
@@ -162,7 +166,7 @@ public:
   ~Compiler();
 
   void setFileLoader(FileLoaderCallback loader, void *userdata = nullptr);
-  void setOptions(const CompilerOptions& opts) { options = opts; }
+  void setOptions(const CompilerOptions &opts) { options = opts; }
 
   ProcessDef *compile(const std::string &source);
   ProcessDef *compileExpression(const std::string &source);
@@ -170,19 +174,20 @@ public:
   void clear();
 
   // Estatísticas para debugging
-  struct Stats {
+  struct Stats
+  {
     size_t maxExpressionDepth = 0;
     size_t maxScopeDepth = 0;
     size_t totalErrors = 0;
     size_t totalWarnings = 0;
     std::chrono::milliseconds compileTime{0};
   };
-  
+
   Stats getStats() const { return stats; }
 
 private:
   Interpreter *vm_;
-  Lexer* lexer; 
+  Lexer *lexer;
   Token current;
   Token previous;
   Token next;
@@ -192,7 +197,7 @@ private:
   FunctionType currentFunctionType;
   Function *function;
   Code *currentChunk;
- 
+
   ClassDef *currentClass;
   ProcessDef *currentProcess;
   Vector<String *> argNames;
@@ -200,15 +205,14 @@ private:
 
   bool hadError;
   bool panicMode;
-  
 
-  int expressionDepth;     
-  int declarationDepth;     
-  int callDepth;           
+  int expressionDepth;
+  int declarationDepth;
+  int callDepth;
   int scopeDepth;
   int tryDepth;
   int loopDepth_;
-  
+
   Local locals_[MAX_LOCALS];
   int localCount_;
 
@@ -216,16 +220,27 @@ private:
   bool isProcess_;
   int numFibers_;
 
+  struct EnclosingContext
+  {
+    Function *function;
+    std::vector<Local> locals;
+  };
+
+  std::vector<EnclosingContext> enclosingStack_;
+  int upvalueCount_;
+  UpvalueInfo upvalues_[MAX_LOCALS];
+
+  int resolveUpvalue(Token &name);
+  int addUpvalue(uint8 index, bool isLocal);
+
   std::vector<Label> labels;
   std::vector<GotoJump> pendingGotos;
   std::vector<GotoJump> pendingGosubs;
 
- 
   CompilerOptions options;
   Stats stats;
   std::chrono::steady_clock::time_point compileStartTime;
 
- 
   std::vector<std::string> errors;
   std::vector<std::string> warnings;
 
@@ -249,18 +264,15 @@ private:
   void breakStatement();
   void continueStatement();
 
- 
   void error(const char *message);
   void errorAt(Token &token, const char *message);
   void errorAtCurrent(const char *message);
   void fail(const char *format, ...);
   void synchronize();
-  
- 
+
   void warning(const char *message);
   void warningAt(Token &token, const char *message);
 
- 
   bool checkExpressionDepth();
   bool checkDeclarationDepth();
   bool checkCallDepth();
@@ -288,7 +300,7 @@ private:
   void parsePrecedence(Precedence precedence);
   ParseRule *getRule(TokenType type);
 
-  void validateIdentifierName(const Token& nameToken);
+  void validateIdentifierName(const Token &nameToken);
 
   // Parse functions (prefix)
   void number(bool canAssign);
@@ -298,7 +310,7 @@ private:
   void unary(bool canAssign);
   void variable(bool canAssign);
   void lengthExpression(bool canAssign);
-  void freeExpression(bool canAssign); 
+  void freeExpression(bool canAssign);
   void mathUnary(bool canAssign);
   void mathBinary(bool canAssign);
   void expressionClock(bool canAssign);
@@ -398,7 +410,6 @@ private:
   static ParseRule rules[TOKEN_COUNT];
 };
 
- 
 inline bool Compiler::checkExpressionDepth()
 {
   if (expressionDepth >= MAX_EXPRESSION_DEPTH)
@@ -473,7 +484,7 @@ inline bool Compiler::checkCompileTimeout()
 {
   auto now = std::chrono::steady_clock::now();
   auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - compileStartTime);
-  
+
   if (elapsed > options.compileTimeout)
   {
     error("Compilation timeout exceeded");

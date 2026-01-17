@@ -25,7 +25,7 @@ bool toNumberPair(const Value &a, const Value &b, double &da, double &db)
     return true;
 }
 
-FiberResult Interpreter::run_fiber(Fiber *fiber,Process *process)
+FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 {
 
     currentFiber = fiber;
@@ -44,8 +44,6 @@ FiberResult Interpreter::run_fiber(Fiber *fiber,Process *process)
 #define POP() (*(--fiber->stackTop))
 #define PUSH(value) (*fiber->stackTop++ = value)
 #define NPEEK(n) (fiber->stackTop[-1 - (n)])
-
-  
 
 #define READ_BYTE() (*ip++)
 #define READ_SHORT() (ip += 2, (uint16)((ip[-2] << 8) | ip[-1]))
@@ -874,7 +872,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber,Process *process)
 
                 if (argCount > def->argCount)
                 {
-                    runtimeError("Struct '%s' expects at most %zu arguments, got %d",def->name->chars(), def->argCount, argCount);
+                    runtimeError("Struct '%s' expects at most %zu arguments, got %d", def->name->chars(), def->argCount, argCount);
                     return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
                 }
 
@@ -882,7 +880,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber,Process *process)
                 StructInstance *instance = value.as.sInstance;
                 instance->marked = 0;
                 instance->def = def;
-      
+
                 instance->values.reserve(def->argCount);
                 Value *args = fiber->stackTop - argCount;
                 for (int i = 0; i < argCount; i++)
@@ -997,7 +995,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber,Process *process)
                 Value literal = makeNativeStructInstance();
                 // Cria instance wrapper
                 NativeStructInstance *instance = literal.as.sNativeStruct;
-          
+
                 instance->def = def;
                 instance->data = data;
 
@@ -1039,6 +1037,38 @@ FiberResult Interpreter::run_fiber(Fiber *fiber,Process *process)
                 PUSH(result);
                 break;
             }
+            else if (callee.isClosure())
+            {
+                Closure *closure = callee.asClosure();
+                Function *targetFunc = functions[closure->functionId];
+
+                if (!targetFunc)
+                {
+                    runtimeError("Invalid closure");
+                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                }
+
+                if (argCount != targetFunc->arity)
+                {
+                    runtimeError("Closure expected %d arguments but got %d",
+                                 targetFunc->arity, argCount);
+                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                }
+
+                if (fiber->frameCount >= FRAMES_MAX)
+                {
+                    runtimeError("Stack overflow");
+                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                }
+
+                CallFrame *newFrame = &fiber->frames[fiber->frameCount++];
+                newFrame->func = targetFunc;
+                newFrame->closure = closure;
+                newFrame->ip = targetFunc->chunk->code;
+                newFrame->slots = fiber->stackTop - argCount - 1;
+
+                LOAD_FRAME();
+            }
             else
             {
 
@@ -1057,6 +1087,20 @@ FiberResult Interpreter::run_fiber(Fiber *fiber,Process *process)
         {
 
             Value result = POP();
+
+            if (fiber->frameCount > 0)
+            {
+                CallFrame *returningFrame = &fiber->frames[fiber->frameCount - 1];
+                Value *frameStart = returningFrame->slots;
+                // Fecha todos os upvalues >= frameStart
+                while (openUpvalues != nullptr && openUpvalues->location >= frameStart)
+                {
+                    Upvalue *upvalue = openUpvalues;
+                    upvalue->closed = *upvalue->location;
+                    upvalue->location = &upvalue->closed;
+                    openUpvalues = upvalue->nextOpen; 
+                }
+            }
 
             bool hasFinally = false;
             if (fiber->tryDepth > 0)
@@ -1411,7 +1455,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber,Process *process)
             {
 
                 NativeStructInstance *inst = object.asNativeStructInstance();
-     
+
                 NativeStructDef *def = inst->def;
 
                 NativeFieldDef field;
@@ -4184,7 +4228,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber,Process *process)
             int t = type.asInt();
             if (t < 0 || t >= (int)BufferType::COUNT)
             {
-                THROW_RUNTIME_ERROR("Invalid buffer type: %d", type);
+                THROW_RUNTIME_ERROR("Invalid buffer type");
             }
 
             if (size.isNumber())
@@ -4256,8 +4300,8 @@ FiberResult Interpreter::run_fiber(Fiber *fiber,Process *process)
         {
             Value object = POP();
             bool freed = false;
-        
-           // Info("Freeing %s", valueTypeToString(object.type));
+
+            // Info("Freeing %s", valueTypeToString(object.type));
 
             if (object.isStructInstance())
             {
@@ -4268,11 +4312,11 @@ FiberResult Interpreter::run_fiber(Fiber *fiber,Process *process)
                     runtimeError("Struct is null");
                     return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
                 }
-                //Info("Free  Struct address: %p", (void*)instance);
-                instance->marked =1;
-                freed=true;    
-                
-            } else if (object.isClassInstance())
+                // Info("Free  Struct address: %p", (void*)instance);
+                instance->marked = 1;
+                freed = true;
+            }
+            else if (object.isClassInstance())
             {
                 ClassInstance *instance = object.asClassInstance();
                 if (!instance)
@@ -4280,9 +4324,10 @@ FiberResult Interpreter::run_fiber(Fiber *fiber,Process *process)
                     runtimeError("Class instance is nil");
                     return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
                 }
-                instance->marked =1;
-                freed=true;    
-            } else if (object.isNativeClassInstance())
+                instance->marked = 1;
+                freed = true;
+            }
+            else if (object.isNativeClassInstance())
             {
                 NativeClassInstance *instance = object.asNativeClassInstance();
                 if (!instance)
@@ -4290,9 +4335,10 @@ FiberResult Interpreter::run_fiber(Fiber *fiber,Process *process)
                     runtimeError("Native class instance is nil");
                     return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
                 }
-                instance->marked =1;
-                freed=true;    
-            } else if (object.isNativeStructInstance())
+                instance->marked = 1;
+                freed = true;
+            }
+            else if (object.isNativeStructInstance())
             {
                 NativeStructInstance *instance = object.asNativeStructInstance();
                 if (!instance)
@@ -4300,10 +4346,11 @@ FiberResult Interpreter::run_fiber(Fiber *fiber,Process *process)
                     runtimeError("Native struct instance is nil");
                     return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
                 }
-                //Info("Free  Native Struct address: %p", (void*)instance);
-                instance->marked =1;
-                freed=true;    
-            } else if (object.isBuffer())
+                // Info("Free  Native Struct address: %p", (void*)instance);
+                instance->marked = 1;
+                freed = true;
+            }
+            else if (object.isBuffer())
             {
                 BufferInstance *instance = object.asBuffer();
                 if (!instance)
@@ -4311,20 +4358,22 @@ FiberResult Interpreter::run_fiber(Fiber *fiber,Process *process)
                     runtimeError("Buffer instance is nil");
                     return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
                 }
-                instance->marked =1;
-                freed=true;    
-            } else if (object.isMap())
+                instance->marked = 1;
+                freed = true;
+            }
+            else if (object.isMap())
             {
-                
+
                 MapInstance *instance = object.asMap();
                 if (!instance)
                 {
                     runtimeError("Map instance is nil");
                     return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
                 }
-                instance->marked =1;
-                freed=true;    
-            } else if (object.isArray())
+                instance->marked = 1;
+                freed = true;
+            }
+            else if (object.isArray())
             {
                 ArrayInstance *instance = object.asArray();
                 if (!instance)
@@ -4332,12 +4381,120 @@ FiberResult Interpreter::run_fiber(Fiber *fiber,Process *process)
                     runtimeError("Array instance is nil");
                     return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
                 }
-                instance->marked =1;
-                freed=true;    
+                instance->marked = 1;
+                freed = true;
             }
 
-           // Warning("Object not in category to be freed: %s", valueTypeToString(object.type));
+            // Warning("Object not in category to be freed: %s", valueTypeToString(object.type));
             PUSH(makeBool(freed));
+            break;
+        }
+        case OP_CLOSURE:
+        {
+            Value funcVal = READ_CONSTANT();
+            int funcID = funcVal.asFunctionId();
+            Function *function = functions[funcID];
+            Value closure = makeClosure();
+            Closure *closurePtr = closure.as.closure;
+            closurePtr->functionId = funcID;
+            closurePtr->upvalueCount = function->upvalueCount;
+
+            closurePtr->upvalues.clear();
+
+            for (int i = 0; i < function->upvalueCount; i++)
+            {
+                uint8 isLocal = READ_BYTE();
+                uint8 index = READ_BYTE();
+
+                if (isLocal)
+                {
+                    Value *local = &stackStart[index];
+
+                    // Procura na lista openUpvalues
+                    Upvalue *prev = nullptr;
+                    Upvalue *upvalue = openUpvalues;
+
+                    while (upvalue != nullptr && upvalue->location > local)
+                    {
+                        prev = upvalue;
+                        upvalue = upvalue->nextOpen;  
+                    }
+
+                    if (upvalue != nullptr && upvalue->location == local)
+                    {
+                        closurePtr->upvalues.push(upvalue);
+                    }
+                    else
+                    {
+                        Upvalue *created = createUpvalue(local);
+                        created->nextOpen = upvalue;  
+
+                        if (prev == nullptr)
+                        {
+                            openUpvalues = created;
+                        }
+                        else
+                        {
+                            prev->nextOpen = created;  
+                        }
+
+                        closurePtr->upvalues.push(created);
+                    }
+                }
+                else
+                {
+                    if (!frame->closure)
+                    {
+                        runtimeError("Cannot capture upvalue without enclosing closure");
+                        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                    }
+                    closurePtr->upvalues.push(frame->closure->upvalues[i]);
+                }
+            }
+
+            PUSH(closure);
+            break;
+        }
+
+        case OP_GET_UPVALUE:
+        {
+            uint8 slot = READ_BYTE();
+
+            if (!frame->closure)
+            {
+                runtimeError("Upvalue access outside closure");
+                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            }
+
+            PUSH(*frame->closure->upvalues[slot]->location);
+            break;
+        }
+
+        case OP_SET_UPVALUE:
+        {
+            uint8 slot = READ_BYTE();
+
+            if (!frame->closure)
+            {
+                runtimeError("Upvalue access outside closure");
+                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            }
+
+            *frame->closure->upvalues[slot]->location = PEEK();
+            break;
+        }
+
+        case OP_CLOSE_UPVALUE:
+        {
+            Value *last = fiber->stackTop - 1;
+            while (openUpvalues != nullptr && openUpvalues->location >= last)
+            {
+                Upvalue *upvalue = openUpvalues;
+                upvalue->closed = *upvalue->location;
+                upvalue->location = &upvalue->closed;
+                openUpvalues = upvalue->nextOpen;
+            }
+            DROP();
             break;
         }
 

@@ -127,6 +127,7 @@ struct Function
   Code *chunk{nullptr};
   String *name{nullptr};
   bool hasReturn{false};
+  int upvalueCount{0};
   ~Function();
 };
 
@@ -257,7 +258,9 @@ enum class GCObjectType : uint8
   MAP,
   BUFFER,
   NATIVE_CLASS,
-  NATIVE_STRUCT
+  NATIVE_STRUCT,
+  CLOSURE,
+  UPVALUE
 };
 
 struct GCObject
@@ -354,11 +357,31 @@ struct NativeStructInstance : GCObject
   NativeStructInstance() : GCObject(GCObjectType::NATIVE_STRUCT) {}
 };
 
+struct Upvalue : GCObject
+{
+  Value *location;
+  Value closed;
+  Upvalue *nextOpen;
+
+  Upvalue(Value *loc);
+};
+struct Closure : GCObject
+{
+  int functionId;
+  int upvalueCount;
+  Vector<Upvalue *> upvalues;
+
+  Closure();
+
+  ~Closure();
+};
+
 struct CallFrame
 {
   Function *func{nullptr};
   uint8 *ip{nullptr};
   Value *slots{nullptr};
+  Closure *closure{nullptr};
 };
 
 struct VMHooks
@@ -507,6 +530,8 @@ class Interpreter
   size_t totalAllocated = 0;
   size_t totalStructs = 0;
   size_t totalClasses = 0;
+  size_t totalClosures = 0;
+  size_t totalUpvalues = 0;
   size_t totalMaps = 0;
   size_t totalArrays = 0;
   size_t totalBuffers = 0;
@@ -546,6 +571,7 @@ class Interpreter
   bool hasFatalError_;
 
   Compiler *compiler;
+  Upvalue *openUpvalues;
 
   VMHooks hooks;
 
@@ -592,6 +618,60 @@ class Interpreter
     totalAllocated += size;
 
     return instance;
+  }
+
+  FORCE_INLINE Upvalue *createUpvalue(Value *loc)
+  {
+    checkGC();
+    size_t size = sizeof(Upvalue);
+    void *mem = arena.Allocate(size);
+    Upvalue *upvalue = new (mem) Upvalue(loc);
+
+    upvalue->next = (Upvalue *)gcObjects;
+    gcObjects = upvalue;
+
+    totalAllocated += size;
+    totalUpvalues++;
+
+    
+
+    return upvalue;
+  }
+
+  FORCE_INLINE void freeUpvalue(Upvalue *upvalue)
+  {
+    size_t size = sizeof(Upvalue);
+    upvalue->~Upvalue();
+    arena.Free(upvalue, size);
+    totalAllocated -= size;
+    totalUpvalues--;
+  }
+
+  FORCE_INLINE Closure *createClosure()
+  {
+    checkGC();
+    size_t size = sizeof(Closure);
+    void *mem = arena.Allocate(size);
+    Closure *closure = new (mem) Closure();
+    closure->type = GCObjectType::CLOSURE;
+    closure->marked = 0;
+
+    
+
+    closure->next = gcObjects;
+    gcObjects = closure;
+
+    totalAllocated += size;
+    return closure;
+  }
+
+  FORCE_INLINE void freeClosure(Closure *c)
+  {
+    
+    size_t size = sizeof(Closure);
+    c->~Closure();
+    arena.Free(c, size);
+    totalAllocated -= size;
   }
 
   FORCE_INLINE void freeClass(ClassInstance *c)
@@ -909,6 +989,13 @@ public:
   bool isNil(int index);
 
   // ====== VALUE ====
+  Value makeClosure()
+  {
+    Value v;
+    v.type = ValueType::CLOSURE;
+    v.as.closure = createClosure();
+    return v;
+  }
 
   FORCE_INLINE Value makeClassInstance()
   {

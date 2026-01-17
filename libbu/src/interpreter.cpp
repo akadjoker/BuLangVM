@@ -8,7 +8,7 @@
 Interpreter::Interpreter()
 {
   compiler = new Compiler(this);
- 
+
   setPrivateTable();
   staticNames[STATIC_PUSH] = createString("push");
   staticNames[STATIC_POP] = createString("pop");
@@ -73,7 +73,6 @@ Interpreter::Interpreter()
 
 void Interpreter::freeInstances()
 {
-  
 }
 
 void Interpreter::freeFunctions()
@@ -155,6 +154,7 @@ void Interpreter::freeBlueprints()
 }
 void Interpreter::reset()
 {
+  openUpvalues = nullptr;
   // 1. Limpa processos em execução (RAM e Fibers)
   freeRunningProcesses();
 
@@ -162,7 +162,6 @@ void Interpreter::reset()
   freeFunctions();
 
   clearAllGCObjects();
-
 
   gcObjects = nullptr;
   totalAllocated = 0;
@@ -174,7 +173,7 @@ void Interpreter::reset()
   totalNativeStructs = 0;
   nextGC = 1024 * 4;
   gcInProgress = false;
- 
+
   frameCount = 0;
 
   // 3. Limpa blueprints de processos (gerados pelo script anterior)
@@ -193,7 +192,6 @@ void Interpreter::reset()
   currentProcess = nullptr;
   currentTime = 0.0f;
   hasFatalError_ = false;
- 
 
   compiler->clear();
 }
@@ -218,7 +216,6 @@ Interpreter::~Interpreter()
   }
 
   modules.clear();
-
   delete compiler;
 
   freeInstances();
@@ -228,14 +225,13 @@ Interpreter::~Interpreter()
   globals.destroy();
   clearAllGCObjects();
 
-  //Info("Heap stats:");
-  //arena.Stats();
+  openUpvalues = nullptr;
+  // Info("Heap stats:");
+  // arena.Stats();
   arena.Clear();
-  //Info("String Heap stats:");
+  // Info("String Heap stats:");
   stringPool.clear();
 }
-
-
 
 BufferInstance *Interpreter::createBuffer(int count, int typeRaw)
 {
@@ -249,7 +245,7 @@ BufferInstance *Interpreter::createBuffer(int count, int typeRaw)
   instance->next = gcObjects;
   gcObjects = instance;
   totalBuffers++;
- 
+
   totalAllocated += size;
   totalAllocated += (count * instance->elementSize); // Conta também os dados raw!
 
@@ -285,8 +281,6 @@ NativeClassDef *Interpreter::registerNativeClass(const char *name,
   klass->constructor = ctor;
   klass->destructor = dtor;
   klass->argCount = argCount;
-
- 
 
   // Define global
   globals.set(klass->name, makeNativeClass(id));
@@ -490,43 +484,42 @@ int Interpreter::addGlobal(const char *name, Value value)
 
 void Interpreter::print(Value value) { printValue(value); }
 
-
-Fiber* Interpreter::get_ready_fiber(Process* proc)
+Fiber *Interpreter::get_ready_fiber(Process *proc)
 {
-    if (!proc || !proc->fibers)
-        return nullptr;
-
-    //  Verifica fiber[0] primeiro (main)
-    Fiber* mainFiber = &proc->fibers[0];
-    
-    if (mainFiber->state == FiberState::RUNNING)
-    {
-        if (mainFiber->ip == nullptr && mainFiber->frameCount > 0)
-        {
-            Warning("Main fiber has null IP but has frames!");
-            return nullptr;
-        }
-        return mainFiber;
-    }
-
-    // Procura outras fibers
-    for (int i = 1; i < proc->totalFibers; i++)
-    {
-        Fiber* fiber = &proc->fibers[i];
-        
-        if (fiber->state == FiberState::RUNNING)
-        {
-           
-            if (fiber->ip == nullptr && fiber->frameCount > 0)
-            {
-                Warning("Fiber %d has null IP but has frames!", i);
-                continue;
-            }
-            return fiber;
-        }
-    }
-
+  if (!proc || !proc->fibers)
     return nullptr;
+
+  //  Verifica fiber[0] primeiro (main)
+  Fiber *mainFiber = &proc->fibers[0];
+
+  if (mainFiber->state == FiberState::RUNNING)
+  {
+    if (mainFiber->ip == nullptr && mainFiber->frameCount > 0)
+    {
+      Warning("Main fiber has null IP but has frames!");
+      return nullptr;
+    }
+    return mainFiber;
+  }
+
+  // Procura outras fibers
+  for (int i = 1; i < proc->totalFibers; i++)
+  {
+    Fiber *fiber = &proc->fibers[i];
+
+    if (fiber->state == FiberState::RUNNING)
+    {
+
+      if (fiber->ip == nullptr && fiber->frameCount > 0)
+      {
+        Warning("Fiber %d has null IP but has frames!", i);
+        continue;
+      }
+      return fiber;
+    }
+  }
+
+  return nullptr;
 }
 
 float Interpreter::getCurrentTime() const { return currentTime; }
@@ -644,7 +637,6 @@ bool Interpreter::run(const char *source, bool _dump)
   {
     return false;
   }
- 
 
   if (_dump)
   {
@@ -852,9 +844,7 @@ bool Interpreter::findAndJumpToHandler(Value error, uint8 *&ip, Fiber *fiber)
   return false;
 }
 
- 
-
-BufferInstance::BufferInstance(int count, BufferType type):GCObject(GCObjectType::BUFFER)
+BufferInstance::BufferInstance(int count, BufferType type) : GCObject(GCObjectType::BUFFER)
 {
   this->count = count;
   this->type = type;
@@ -902,8 +892,6 @@ BufferInstance::~BufferInstance()
     this->data = nullptr;
   }
 }
-
- 
 
 // bool ClassInstance::getMethod(String *name, Function **out)
 // {
@@ -1191,4 +1179,21 @@ size_t get_type_size(BufferType type)
   default:
     return 1;
   }
+}
+
+Closure::Closure() : GCObject(GCObjectType::CLOSURE),
+                     functionId(-1),
+                     upvalueCount(0) {}
+
+Closure::~Closure()
+{
+
+  upvalues.destroy();
+}
+
+Upvalue::Upvalue(Value *loc) : GCObject(GCObjectType::UPVALUE)
+{
+  location = loc;
+  nextOpen = nullptr;
+  closed.type = ValueType::NIL;
 }

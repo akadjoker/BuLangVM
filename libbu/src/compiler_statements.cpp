@@ -555,6 +555,15 @@ void Compiler::namedVariable(Token &name, bool canAssign)
         return;
     }
 
+    // === 2.5. Tenta UPVALUE ===
+    arg = resolveUpvalue(name);
+    if (arg != -1)
+    {
+        getOp = OP_GET_UPVALUE;
+        setOp = OP_SET_UPVALUE;
+        handle_assignment(getOp, setOp, arg, canAssign);
+        return;
+    }
     // === 3. É GLOBAL ===
     arg = identifierConstant(name);
     getOp = OP_GET_GLOBAL;
@@ -633,6 +642,7 @@ void Compiler::addLocal(Token &name)
     locals_[localCount_].name = name.lexeme;
     locals_[localCount_].depth = -1;
     locals_[localCount_].usedInitLocal = false;
+    locals_[localCount_].isCaptured = false;
 
     localCount_++;
 }
@@ -801,7 +811,14 @@ int Compiler::discardLocals(int depth)
     int local = localCount_ - 1;
     while (local >= 0 && locals_[local].depth >= depth)
     {
-        emitByte(OP_POP);
+        if (locals_[local].isCaptured)
+        {
+            emitByte(OP_CLOSE_UPVALUE); // Move para heap
+        }
+        else
+        {
+            emitByte(OP_POP); // Só remove da stack
+        }
         local--;
     }
     return localCount_ - local - 1;
@@ -1352,14 +1369,43 @@ void Compiler::funDeclaration()
         return;
     }
 
+    if (scopeDepth > 0)
+    {
+        declareVariable(); // Adiciona 'inner' como local de 'outer'
+    }
+
     // Compila função
     compileFunction(func, false); // false = não é process
 
-    // Emite constant com o index da função
-    emitConstant(vm_->makeFunction(func->index));
-    // Define como global
-    uint8 nameConstant = identifierConstant(nameToken);
-    defineVariable(nameConstant);
+    // Verifica se tem upvalues
+    if (func->upvalueCount > 0)
+    {
+        // É uma CLOSURE (captura variáveis)
+        uint8 constant = makeConstant(vm_->makeFunction(func->index));
+        emitBytes(OP_CLOSURE, constant);
+        // Emite info de cada upvalue (isLocal, index)
+        for (int i = 0; i < func->upvalueCount; i++)
+        {
+            emitByte(upvalues_[i].isLocal ? 1 : 0);
+            emitByte(upvalues_[i].index);
+        }
+    }
+    else
+    {
+        // É função NORMAL (sem upvalues)
+        emitConstant(vm_->makeFunction(func->index));
+    }
+
+    // Define como global ou local
+    if (scopeDepth > 0)
+    {
+        defineVariable(0); // Local (já foi declarado acima)
+    }
+    else
+    {
+        uint8 nameConstant = identifierConstant(nameToken);
+        defineVariable(nameConstant); // Global
+    }
 }
 
 void Compiler::processDeclaration()
@@ -1422,7 +1468,7 @@ void Compiler::processDeclaration()
     }
     argNames.clear();
 
-    Warning("Process '%s' registered with index %d and %d fibers", nameToken.lexeme.c_str(), proc->index, numFibers_);
+   //Warning("Process '%s' registered with index %d and %d fibers", nameToken.lexeme.c_str(), proc->index, numFibers_);
 
     emitConstant(vm_->makeProcess(proc->index));
     uint8 nameConstant = identifierConstant(nameToken);
@@ -1435,38 +1481,62 @@ void Compiler::processDeclaration()
 
 void Compiler::compileFunction(Function *func, bool isProcess)
 {
-    // Salva estado
+    // ========================================
+    // SALVA ESTADO
+    // ========================================
     Function *enclosing = this->function;
     Code *enclosingChunk = this->currentChunk;
     int enclosingScopeDepth = this->scopeDepth;
     int enclosingLocalCount = this->localCount_;
     bool wasInProcess = this->isProcess_;
+    int savedUpvalueCount = this->upvalueCount_;
 
-    // Troca contexto
+    // Guarda o tamanho da stack (para restaurar depois)
+    size_t savedStackSize = enclosingStack_.size();
+
+    // ========================================
+    // PUSH na stack de enclosing (se há pai)
+    // ========================================
+    if (enclosingLocalCount > 0)
+    {
+        EnclosingContext ctx;
+        ctx.function = enclosing;
+
+        // Copia locals atuais para o context
+        ctx.locals.reserve(enclosingLocalCount);
+        for (int i = 0; i < enclosingLocalCount; i++)
+        {
+            ctx.locals.push_back(this->locals_[i]);
+        }
+
+        enclosingStack_.push_back(ctx); // ✅ Push automático
+    }
+
+    // ========================================
+    // TROCA CONTEXTO
+    // ========================================
     this->function = func;
     this->currentChunk = func->chunk;
     this->scopeDepth = 0;
     this->localCount_ = 0;
+    this->upvalueCount_ = 0;
     this->isProcess_ = isProcess;
     labels.clear();
     pendingGotos.clear();
     pendingGosubs.clear();
 
-    if (!func)
+    if (!func || !func->chunk)
     {
-        Error("Error in funcion");
+        Error("Error in function");
         return;
     }
 
-    if (!func->chunk)
-    {
-        Error("Error in funcion code");
-        return;
-    }
-
-    // Parse parâmetros
+    // ========================================
+    // PARSE PARÂMETROS
+    // ========================================
     beginScope();
     consume(TOKEN_LPAREN, "Expect '(' after name");
+
     if (!isProcess)
     {
         Token dummyToken;
@@ -1499,7 +1569,9 @@ void Compiler::compileFunction(Function *func, bool isProcess)
 
     consume(TOKEN_RPAREN, "Expect ')' after parameters");
 
-    // Parse corpo
+    // ========================================
+    // PARSE CORPO
+    // ========================================
     consume(TOKEN_LBRACE, "Expect '{' before body");
     block();
     endScope();
@@ -1516,12 +1588,25 @@ void Compiler::compileFunction(Function *func, bool isProcess)
         emitReturn();
     }
 
-    // Restaura estado
+    // ========================================
+    // GUARDA UPVALUE COUNT
+    // ========================================
+    func->upvalueCount = this->upvalueCount_;
+
+    // ========================================
+    // RESTAURA ESTADO (POP da stack)
+    // ========================================
     this->function = enclosing;
     this->currentChunk = enclosingChunk;
     this->scopeDepth = enclosingScopeDepth;
     this->localCount_ = enclosingLocalCount;
     this->isProcess_ = wasInProcess;
+    this->upvalueCount_ = savedUpvalueCount;
+
+    while (enclosingStack_.size() > savedStackSize)
+    {
+        enclosingStack_.pop_back();
+    }
 }
 
 void Compiler::prefixIncrement(bool canAssign)
@@ -2240,15 +2325,14 @@ void Compiler::classDeclaration()
                 return;
             }
             String *name = vm_->createString(fieldName.lexeme.c_str());
-            //classDef->fieldNames.set(name, classDef->fieldCount);
+            // classDef->fieldNames.set(name, classDef->fieldCount);
 
-            bool wasReplaced =   classDef->fieldNames.set(name, classDef->fieldCount);
+            bool wasReplaced = classDef->fieldNames.set(name, classDef->fieldCount);
             if (!wasReplaced)
             {
                 Warning("Field '%s' redefined in class '%s' (previous value replaced)",
                         fieldName.lexeme.c_str(), className.lexeme.c_str());
             }
-
 
             classDef->fieldCount++;
 

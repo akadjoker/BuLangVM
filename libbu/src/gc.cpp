@@ -32,76 +32,37 @@ void Interpreter::markRoots()
             for (int f = 0; f < proc->totalFibers; f++)
             {
                 Fiber *fiber = &proc->fibers[f];
+                
                 if (fiber->state != FiberState::DEAD)
                 {
+                    // Stack
                     for (Value *v = fiber->stack; v < fiber->stackTop; v++)
                     {
                         if (!v->isObject())
                             continue;
                         markValue(*v);
                     }
+
+                    
+                    for (int i = 0; i < fiber->frameCount; i++)
+                    {
+                        CallFrame *frame = &fiber->frames[i];
+                        if (frame->closure)
+                        {
+                            markObject((GCObject *)frame->closure);
+                        }
+                    }
                 }
             }
         }
     }
+    Upvalue *upvalue = openUpvalues;
+    while (upvalue != nullptr)
+    {
+        markObject((GCObject *)upvalue);
+        upvalue = upvalue->nextOpen;
+    }
 }
-
-// void Interpreter::markObject(GCObject *obj)
-// {
-//     if (!obj || obj->marked)
-//         return;
-
-//     obj->marked = 1;
-
-//     // Info("Marking %d", (int) obj->type);
-
-//     switch (obj->type)
-//     {
-//     case GCObjectType::STRUCT:
-//     {
-//         StructInstance *s = static_cast<StructInstance *>(obj);
-//         for (size_t i = 0; i < s->values.size(); i++)
-//         {
-//             markValue(s->values[i]);
-//         }
-//         break;
-//     }
-
-//     case GCObjectType::CLASS:
-//     {
-//         ClassInstance *c = static_cast<ClassInstance *>(obj);
-//         for (size_t i = 0; i < c->fields.size(); i++)
-//         {
-//             markValue(c->fields[i]);
-//         }
-//         break;
-//     }
-
-//     case GCObjectType::ARRAY:
-//     {
-//         ArrayInstance *a = static_cast<ArrayInstance *>(obj);
-//         for (size_t i = 0; i < a->values.size(); i++)
-//         {
-//             markValue(a->values[i]);
-//         }
-//         break;
-//     }
-
-//     case GCObjectType::MAP:
-//     {
-//         MapInstance *m = static_cast<MapInstance *>(obj);
-//         m->table.forEach([this](String *key, Value val)
-//                          { markValue(val); });
-//         break;
-//     }
-
-//     case GCObjectType::BUFFER:
-//     case GCObjectType::NATIVE_CLASS:
-//     case GCObjectType::NATIVE_STRUCT:
-//         //  Sem conteúdo para marcar ???
-//         break;
-//     }
-// }
 
 void Interpreter::markObject(GCObject *obj)
 {
@@ -142,6 +103,10 @@ void Interpreter::markValue(const Value &v)
     else if (v.isNativeStructInstance())
     {
         markObject(v.as.sNativeStruct);
+    }
+    else if (v.isClosure())
+    {
+        markObject((GCObject *)v.as.closure);
     }
 }
 
@@ -226,6 +191,23 @@ void Interpreter::freeObject(GCObject *obj)
         freeNativeStruct(n);
         break;
     }
+
+    case GCObjectType::CLOSURE:
+    {
+
+        Closure *c = static_cast<Closure *>(obj);
+        freeClosure(c);
+        break;
+    }
+    case GCObjectType::UPVALUE:
+    {
+
+        Upvalue *u = static_cast<Upvalue *>(obj);
+        freeUpvalue(u);
+        break;
+    }
+    default:
+        break;
     }
 }
 
@@ -287,8 +269,28 @@ void Interpreter::blackenObject(GCObject *obj)
         m->table.forEach([this](String *key, Value val)
                          { 
                             if(val.isObject())
-                                markValue(val); 
-                        });
+                                markValue(val); });
+        break;
+    }
+
+    case GCObjectType::CLOSURE:
+    {
+
+        Closure *c = static_cast<Closure *>(obj);
+        for (size_t i = 0; i < c->upvalues.size(); i++)
+        {
+            markObject((GCObject *)c->upvalues[i]);
+        }
+        break;
+    }
+    case GCObjectType::UPVALUE:
+    {
+
+        Upvalue *u = static_cast<Upvalue *>(obj);
+        if (u->closed.isObject())
+        {
+            markValue(u->closed);
+        }
         break;
     }
 
@@ -298,8 +300,6 @@ void Interpreter::blackenObject(GCObject *obj)
     case GCObjectType::NATIVE_STRUCT:
         break;
     }
-
- 
 }
 
 void Interpreter::traceReferences()
@@ -308,7 +308,7 @@ void Interpreter::traceReferences()
     while (!grayStack.empty())
     {
         // 1. Tira o último objeto da pilha
-        GCObject* obj = grayStack.back();
+        GCObject *obj = grayStack.back();
         grayStack.pop();
         // 2. Processa-o (transforma-o em BLACK)
         blackenObject(obj);
@@ -322,18 +322,17 @@ void Interpreter::runGC()
     gcInProgress = true;
 
     size_t bytesBefore = totalAllocated;
-    size_t objectsBefore = totalArrays + totalClasses + totalStructs + totalMaps + totalBuffers + totalNativeClasses + totalNativeStructs;
+    size_t objectsBefore = totalArrays + totalClasses + totalStructs + totalMaps + totalBuffers + totalNativeClasses + totalNativeStructs + totalClosures + totalUpvalues;
 
     grayStack.clear();
 
     markRoots();
 
-
     traceReferences();
 
     sweep();
 
-    size_t objectCount = totalArrays + totalClasses + totalStructs + totalMaps + totalBuffers + totalNativeClasses + totalNativeStructs;
+    size_t objectCount = totalArrays + totalClasses + totalStructs + totalMaps + totalBuffers + totalNativeClasses + totalNativeStructs + totalClosures + totalUpvalues;
 
     size_t bytesFreed = bytesBefore - totalAllocated;
     size_t objectsFreed = objectsBefore - objectCount;
@@ -372,19 +371,16 @@ size_t Interpreter::countObjects() const
 
 void Interpreter::clearAllGCObjects()
 {
-    Info("Arena cleared");
 
     if (!gcObjects)
         return;
 
-    GCObject **obj = &gcObjects;
     size_t freed = 0;
 
-    while (*obj)
+    while (gcObjects)
     {
-
-        GCObject *toFree = *obj;
-        *obj = toFree->next;
+        GCObject *toFree = gcObjects;
+        gcObjects = gcObjects->next;
 
         freeObject(toFree);
         freed++;

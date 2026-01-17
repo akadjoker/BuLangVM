@@ -144,6 +144,50 @@ size_t Debug::disassembleInstruction(const Code &chunk, size_t offset)
     return byteInstruction("OP_CALL", chunk, offset);
   case OP_RETURN:
     return simpleInstruction("OP_RETURN", offset);
+
+  case OP_CLOSURE:
+  {
+    if (!hasBytes(chunk, offset, 1))
+    {
+      printf("OP_CLOSURE <truncated>\n");
+      return chunk.count;
+    }
+
+    offset++; // Avança para o byte do constant index
+    uint8 constant = chunk.code[offset++];
+    printf("%-20s %4d '", "OP_CLOSURE", constant);
+    printValue(chunk.constants[constant]);
+    printf("'\n");
+
+    // Lê upvalue info
+    // Value funcVal = chunk.constants[constant];
+    // if (funcVal.isFunction())
+    // {
+    //   Function *func = funcVal.asFunction();
+    //   for (int i = 0; i < func->upvalueCount; i++)
+    //   {
+    //     if (!hasBytes(chunk, offset, 2))
+    //     {
+    //       printf("                     <truncated upvalue info>\n");
+    //       return chunk.count;
+    //     }
+
+    //     bool isLocal = chunk.code[offset++];
+    //     uint8 index = chunk.code[offset++];
+    //     printf("%04zu      |                     %s %d\n",
+    //            offset - 2, isLocal ? "local" : "upvalue", index);
+    //   }
+    // }
+
+    return offset;
+  }
+
+  case OP_GET_UPVALUE:
+    return byteInstruction("OP_GET_UPVALUE", chunk, offset);
+  case OP_SET_UPVALUE:
+    return byteInstruction("OP_SET_UPVALUE", chunk, offset);
+  case OP_CLOSE_UPVALUE:
+    return simpleInstruction("OP_CLOSE_UPVALUE", offset);
   case OP_SPAWN:
     return byteInstruction("OP_SPAWN", chunk, offset);
   case OP_YIELD:
