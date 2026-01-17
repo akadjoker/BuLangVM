@@ -55,12 +55,12 @@ assertEq("Monster.f100 após loop", m.f100, 999);
 print("\n[TEST 3] Criar 10.000 structs\n");
 print("────────────────────────────────────────────────────────────────\n");
 
-struct Point { var x, y; };
+struct bPoint { var x, y; };
 
 var points = [];
 for(var i = 0; i < 10000; i++) 
 {
-    points.push(Point(i, i * 2));
+    points.push(bPoint(i, i * 2));
 }
 
 assertEq("points[0].x", points[0].x, 0);
@@ -73,11 +73,11 @@ assertEq("points[5000].y", points[5000].y, 10000);
 print("\n[TEST 4] Field collision entre structs\n");
 print("────────────────────────────────────────────────────────────────\n");
 
-struct Player { var name, health, mana; };
+struct aPlayer { var name, health, mana; };
 struct Enemy { var name, health, damage; };
 struct NPC { var name, health, dialog; };
 
-var p = Player("Hero", 100, 50);
+var p = aPlayer("Hero", 100, 50);
 var e = Enemy("Goblin", 30, 10);
 var n = NPC("Merchant", 50, "Hello!");
 
