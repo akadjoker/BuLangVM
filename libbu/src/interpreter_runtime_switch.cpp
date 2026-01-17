@@ -1098,7 +1098,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                     Upvalue *upvalue = openUpvalues;
                     upvalue->closed = *upvalue->location;
                     upvalue->location = &upvalue->closed;
-                    openUpvalues = upvalue->nextOpen; 
+                    openUpvalues = upvalue->nextOpen;
                 }
             }
 
@@ -1213,16 +1213,28 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
             uint8 argCount = READ_BYTE();
             Value callee = NPEEK(argCount);
 
+            Warning("SPAWN: fiber with %d args", argCount);
+            printValueNl(callee);
+
+            // Mostra argumentos
+            for (int i = 0; i < argCount; i++)
+            {
+                Warning("  arg[%d]: ", i);
+                printValueNl(NPEEK(argCount - 1 - i));
+            }
+
             if (!process)
             {
                 runtimeError("No current process for spawn");
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
+
             if (process->nextFiberIndex >= process->totalFibers)
             {
                 runtimeError("Too many fibers in process (max %d)", process->totalFibers);
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
+
             if (!callee.isFunction())
             {
                 runtimeError("fiber expects a function");
@@ -1231,11 +1243,13 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 
             int funcIndex = callee.asFunctionId();
             Function *func = functions[funcIndex];
+
             if (!func)
             {
                 runtimeError("Invalid function");
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
+
             if (argCount != func->arity)
             {
                 runtimeError("Expected %d arguments but got %d", func->arity, argCount);
@@ -1245,25 +1259,40 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
             int fiberIdx = process->nextFiberIndex++;
             Fiber *newFiber = &process->fibers[fiberIdx];
 
+            Warning("Creating fiber %d in process (next=%d, total=%d)",
+                    fiberIdx, process->nextFiberIndex, process->totalFibers);
+
             newFiber->state = FiberState::RUNNING;
             newFiber->resumeTime = 0;
             newFiber->stackTop = newFiber->stack;
             newFiber->frameCount = 0;
+            newFiber->ip = nullptr;
 
-            newFiber->stack[0] = callee; // Slot 0 = Função
-
+            // ✅ Copia argumentos para o novo fiber
             for (int i = 0; i < argCount; i++)
             {
-                newFiber->stack[i + 1] = fiber->stackTop[-(argCount - i)];
+                newFiber->stack[i] = fiber->stackTop[-argCount + i];
+                Warning("  newFiber->stack[%d] = ", i);
+                printValueNl(newFiber->stack[i]);
             }
-            newFiber->stackTop = newFiber->stack + argCount + 1;
 
+            newFiber->stackTop = newFiber->stack + argCount;
+
+            // ✅ Cria frame
             CallFrame *frame = &newFiber->frames[newFiber->frameCount++];
             frame->func = func;
             frame->ip = func->chunk->code;
             frame->slots = newFiber->stack;
+            frame->closure = nullptr;
 
+            newFiber->ip = func->chunk->code;
+
+            Warning("Fiber %d created: state=%d, frameCount=%d, ip=%p",
+                    fiberIdx, (int)newFiber->state, newFiber->frameCount, newFiber->ip);
+
+            // Remove args + callee
             fiber->stackTop -= (argCount + 1);
+
             PUSH(makeInt(fiberIdx));
 
             break;
@@ -4417,7 +4446,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                     while (upvalue != nullptr && upvalue->location > local)
                     {
                         prev = upvalue;
-                        upvalue = upvalue->nextOpen;  
+                        upvalue = upvalue->nextOpen;
                     }
 
                     if (upvalue != nullptr && upvalue->location == local)
@@ -4427,7 +4456,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                     else
                     {
                         Upvalue *created = createUpvalue(local);
-                        created->nextOpen = upvalue;  
+                        created->nextOpen = upvalue;
 
                         if (prev == nullptr)
                         {
@@ -4435,7 +4464,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                         }
                         else
                         {
-                            prev->nextOpen = created;  
+                            prev->nextOpen = created;
                         }
 
                         closurePtr->upvalues.push(created);

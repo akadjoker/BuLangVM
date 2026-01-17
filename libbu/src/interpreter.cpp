@@ -483,44 +483,47 @@ int Interpreter::addGlobal(const char *name, Value value)
 }
 
 void Interpreter::print(Value value) { printValue(value); }
-
-Fiber *Interpreter::get_ready_fiber(Process *proc)
+Fiber* Interpreter::get_ready_fiber(Process* proc)
 {
-  if (!proc || !proc->fibers)
+    if (!proc || !proc->fibers)
+        return nullptr;
+    
+    // Verifica fiber 0 primeiro (main)
+    Fiber* mainFiber = &proc->fibers[0];
+    if (mainFiber->state == FiberState::RUNNING)
+    {
+        if (mainFiber->ip == nullptr && mainFiber->frameCount > 0)
+        {
+            Warning("Main fiber has null IP but has frames!");
+            return nullptr;
+        }
+        Warning("Executing main fiber (state=%d)", (int)mainFiber->state);
+        return mainFiber;
+    }
+    
+    // Procura outras fibers
+    for (int i = 1; i < proc->nextFiberIndex; i++)  // ✅ Usa nextFiberIndex!
+    {
+        Fiber* fiber = &proc->fibers[i];
+        Warning("Checking fiber %d: state=%d, ip=%p, frameCount=%d", 
+                i, (int)fiber->state, fiber->ip, fiber->frameCount);
+        
+        if (fiber->state == FiberState::RUNNING)
+        {
+            if (fiber->ip == nullptr && fiber->frameCount > 0)
+            {
+                Warning("Fiber %d has null IP but has frames!", i);
+                continue;
+            }
+            Warning("Executing fiber %d", i);
+            return fiber;
+        }
+    }
+    
+    Warning("No ready fiber found (nextFiberIndex=%d)", proc->nextFiberIndex);
     return nullptr;
-
-  //  Verifica fiber[0] primeiro (main)
-  Fiber *mainFiber = &proc->fibers[0];
-
-  if (mainFiber->state == FiberState::RUNNING)
-  {
-    if (mainFiber->ip == nullptr && mainFiber->frameCount > 0)
-    {
-      Warning("Main fiber has null IP but has frames!");
-      return nullptr;
-    }
-    return mainFiber;
-  }
-
-  // Procura outras fibers
-  for (int i = 1; i < proc->totalFibers; i++)
-  {
-    Fiber *fiber = &proc->fibers[i];
-
-    if (fiber->state == FiberState::RUNNING)
-    {
-
-      if (fiber->ip == nullptr && fiber->frameCount > 0)
-      {
-        Warning("Fiber %d has null IP but has frames!", i);
-        continue;
-      }
-      return fiber;
-    }
-  }
-
-  return nullptr;
 }
+
 
 float Interpreter::getCurrentTime() const { return currentTime; }
 
