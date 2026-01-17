@@ -882,6 +882,7 @@ op_call:
 
         CallFrame *newFrame = &fiber->frames[fiber->frameCount++];
         newFrame->func = targetFunc;
+        newFrame->closure = nullptr;
         newFrame->ip = targetFunc->chunk->code;
         newFrame->slots = fiber->stackTop - argCount - 1;
 

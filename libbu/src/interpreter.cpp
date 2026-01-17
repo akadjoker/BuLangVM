@@ -484,27 +484,53 @@ int Interpreter::addGlobal(const char *name, Value value)
 
 void Interpreter::print(Value value) { printValue(value); }
 
-Fiber *Interpreter::get_ready_fiber(Process *proc)
+Fiber* Interpreter::get_ready_fiber(Process* proc)
 {
-  if (!proc || !proc->fibers)
-    return nullptr;
+    if (!proc || !proc->fibers)
+        return nullptr;
 
-  // ✅ Procura a partir da última fiber executada
-  int start = proc->currentFiberIndex;
-
-  for (int i = 0; i < proc->nextFiberIndex; i++)
-  {
-    int idx = (start + i) % proc->nextFiberIndex;
-    Fiber *fiber = &proc->fibers[idx];
-
-    if (fiber->state == FiberState::RUNNING)
+ 
+    // Acorda fibers suspended cujo tempo expirou
+    for (int i = 0; i < proc->totalFibers; i++)
     {
-      proc->currentFiberIndex = (idx + 1) % proc->nextFiberIndex; // ✅ Próxima vez começa na seguinte
-      return fiber;
+        Fiber* fiber = &proc->fibers[i];
+        if (fiber->state == FiberState::SUSPENDED && 
+            currentTime >= fiber->resumeTime)
+        {
+            fiber->state = FiberState::RUNNING;
+        }
     }
-  }
 
-  return nullptr;
+    //  Verifica fiber[0] primeiro (main)
+    Fiber* mainFiber = &proc->fibers[0];
+    
+    if (mainFiber->state == FiberState::RUNNING)
+    {
+        if (mainFiber->ip == nullptr && mainFiber->frameCount > 0)
+        {
+            Warning("Main fiber has null IP but has frames!");
+            return nullptr;
+        }
+        return mainFiber;
+    }
+
+    // Procura outras fibers
+    for (int i = 1; i < proc->totalFibers; i++)
+    {
+        Fiber* fiber = &proc->fibers[i];
+        
+        if (fiber->state == FiberState::RUNNING)
+        {
+            if (fiber->ip == nullptr && fiber->frameCount > 0)
+            {
+                Warning("Fiber %d has null IP but has frames!", i);
+                continue;
+            }
+            return fiber;
+        }
+    }
+
+    return nullptr;
 }
 
 float Interpreter::getCurrentTime() const { return currentTime; }
@@ -674,6 +700,7 @@ void Interpreter::initFiber(Fiber *fiber, Function *func)
 
   fiber->frameCount = 1;
   fiber->frames[0].func = func;
+  fiber->frames[0].closure = nullptr; 
   fiber->frames[0].ip = nullptr;
   fiber->frames[0].slots = fiber->stack; // Base da stack
 }

@@ -246,6 +246,7 @@ Process *Interpreter::spawnProcess(ProcessDef *blueprint)
         for (int j = 0; j < srcFiber->frameCount; j++)
         {
             dstFiber->frames[j].func = srcFiber->frames[j].func;
+            dstFiber->frames[j].closure = srcFiber->frames[j].closure;
 
             // IP
             if (srcFiber->frames[j].ip != nullptr)

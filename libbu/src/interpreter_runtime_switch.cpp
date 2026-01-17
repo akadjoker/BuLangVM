@@ -776,6 +776,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 
                 CallFrame *newFrame = &fiber->frames[fiber->frameCount++];
                 newFrame->func = func;
+                newFrame->closure = nullptr;
                 newFrame->ip = func->chunk->code;
                 newFrame->slots = fiber->stackTop - argCount - 1; // Argumentos começam aqui
             }
