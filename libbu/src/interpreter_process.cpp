@@ -401,7 +401,7 @@ void Interpreter::run_process_step(Process *proc)
     // printf("  Executing Fiber %d\n", fiber - proc->fibers);
     //  Warning("  [run_process_step] result.reason=%d, instructions=%d",   (int)result.reason, result.instructionsRun);
 
-    currentFiber = nullptr;
+   // currentFiber = nullptr;
 
     if (proc->state == FiberState::DEAD)
     {

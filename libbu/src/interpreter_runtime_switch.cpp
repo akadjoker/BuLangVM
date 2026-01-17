@@ -1263,6 +1263,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
             frame->func = func;
             frame->ip = func->chunk->code;
             frame->slots = newFiber->stack;
+            frame->closure = nullptr;
 
             fiber->stackTop -= (argCount + 1);
             PUSH(makeInt(fiberIdx));

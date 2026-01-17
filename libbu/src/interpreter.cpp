@@ -484,53 +484,60 @@ int Interpreter::addGlobal(const char *name, Value value)
 
 void Interpreter::print(Value value) { printValue(value); }
 
-Fiber* Interpreter::get_ready_fiber(Process* proc)
+Fiber *Interpreter::get_ready_fiber(Process *proc)
 {
-    if (!proc || !proc->fibers)
-        return nullptr;
-
- 
-    // Acorda fibers suspended cujo tempo expirou
-    for (int i = 0; i < proc->totalFibers; i++)
-    {
-        Fiber* fiber = &proc->fibers[i];
-        if (fiber->state == FiberState::SUSPENDED && 
-            currentTime >= fiber->resumeTime)
-        {
-            fiber->state = FiberState::RUNNING;
-        }
-    }
-
-    //  Verifica fiber[0] primeiro (main)
-    Fiber* mainFiber = &proc->fibers[0];
-    
-    if (mainFiber->state == FiberState::RUNNING)
-    {
-        if (mainFiber->ip == nullptr && mainFiber->frameCount > 0)
-        {
-            Warning("Main fiber has null IP but has frames!");
-            return nullptr;
-        }
-        return mainFiber;
-    }
-
-    // Procura outras fibers
-    for (int i = 1; i < proc->totalFibers; i++)
-    {
-        Fiber* fiber = &proc->fibers[i];
-        
-        if (fiber->state == FiberState::RUNNING)
-        {
-            if (fiber->ip == nullptr && fiber->frameCount > 0)
-            {
-                Warning("Fiber %d has null IP but has frames!", i);
-                continue;
-            }
-            return fiber;
-        }
-    }
-
+  if (!proc || !proc->fibers)
     return nullptr;
+
+  int checked = 0;
+  int totalFibers = proc->nextFiberIndex;
+
+  if (totalFibers == 0)
+    return nullptr;
+
+  // printf("[get_ready_fiber] Checking %d fibers, time=%.3f\n", totalFibers,
+  // currentTime);
+
+  while (checked < totalFibers)
+  {
+    int idx = proc->currentFiberIndex;
+    proc->currentFiberIndex = (proc->currentFiberIndex + 1) % totalFibers;
+
+    Fiber *f = &proc->fibers[idx];
+
+    // printf("  Fiber %d: state=%d, resumeTime=%.3f\n", idx, (int)f->state,
+    // f->resumeTime);
+
+    checked++;
+
+    if (f->state == FiberState::DEAD)
+    {
+      //  printf("  -> DEAD, skip\n");
+      continue;
+    }
+
+    if (f->state == FiberState::SUSPENDED)
+    {
+      if (currentTime >= f->resumeTime)
+      {
+        // printf("  -> RESUMING (%.3f >= %.3f)\n", currentTime, f->resumeTime);
+        f->state = FiberState::RUNNING;
+        return f;
+      }
+      // printf("  -> Still suspended (wait %.3fms)\n", (f->resumeTime -
+      // currentTime) * 1000);
+      continue;
+    }
+
+    if (f->state == FiberState::RUNNING)
+    {
+      //  printf("  -> RUNNING, execute\n");
+      return f;
+    }
+  }
+
+  //  printf("  -> No ready fiber\n");
+  return nullptr;
 }
 
 float Interpreter::getCurrentTime() const { return currentTime; }
@@ -700,7 +707,7 @@ void Interpreter::initFiber(Fiber *fiber, Function *func)
 
   fiber->frameCount = 1;
   fiber->frames[0].func = func;
-  fiber->frames[0].closure = nullptr; 
+  fiber->frames[0].closure = nullptr;
   fiber->frames[0].ip = nullptr;
   fiber->frames[0].slots = fiber->stack; // Base da stack
 }
