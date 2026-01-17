@@ -44,84 +44,100 @@ enum class FieldType : uint8_t
   STRING,  // String*
 };
 
-// array
-const uint8 STATIC_PUSH = 0;
-const uint8 STATIC_POP = 1;
-const uint8 STATIC_BACK = 2;
-const uint8 STATIC_LENGTH = 3;
-const uint8 STATIC_CLEAR = 4;
-// map
-const uint8 STATIC_HAS = 5;
-const uint8 STATIC_REMOVE = 6;
-const uint8 STATIC_KEYS = 7;
-const uint8 STATIC_VALUES = 8;
-// string
+enum class StaticNames : uint8 {
+    // === COMMON / ARRAY / LIST ===
+    PUSH = 0,
+    POP,
+    BACK,
+    LENGTH,
+    CLEAR,
+    
+    // === NOVOS (ARRAY/LIST) ===
+    INSERT,       // Novo
+    FIND,         // Novo (pode ser predicado ou valor)
+    REVERSE,      // Novo
+    JOIN,         // Novo
+    FIRST,        // Novo
+    LAST,         // Novo
+    COUNT,        // Novo (para contar ocorrências, ex: arr.count(10))
 
-const uint8 STATIC_UPPER = 9;
-const uint8 STATIC_LOWER = 10;
-const uint8 STATIC_CONCAT = 11;
-const uint8 STATIC_SUB = 12;
-const uint8 STATIC_REPLACE = 13;
-const uint8 STATIC_AT = 14;
-const uint8 STATIC_CONTAINS = 15;
-const uint8 STATIC_TRIM = 16;
-const uint8 STATIC_STARTWITH = 17;
-const uint8 STATIC_ENDWITH = 18;
-const uint8 STATIC_INDEXOF = 19;
-const uint8 STATIC_REPEAT = 20;
-const uint8 STATIC_INIT = 21;
+    // === MAP / SET ===
+    HAS,
+    REMOVE,       //  Map e Array)
+    KEYS,
+    VALUES,
 
-// buffer
+    // === STRING ===
+    UPPER,
+    LOWER,
+    CONCAT,       // Já existia (agora serve para String e Array)
+    SUB,
+    REPLACE,
+    AT,
+    CONTAINS,     //  String e Array)
+    TRIM,
+    STARTWITH,
+    ENDWITH,
+    INDEXOF,
+    REPEAT,
+    SPLIT,
+    INIT,         // Geralmente para Classes/Structs
 
-const uint8 STATIC_FILL = 22;
-const uint8 STATIC_COPY = 23;
-const uint8 STATIC_SLICE = 24;
-const uint8 STATIC_SAVE = 25;
+    // === BUFFER ===
+    FILL,         //   Buffer e Array)
+    COPY,
+    SLICE,        //   Buffer, String e Array)
+    SAVE,
 
-const uint8 STATIC_WRITE_BYTE = 26;
-const uint8 STATIC_WRITE_SHORT = 27;
-const uint8 STATIC_WRITE_USHORT = 28;
-const uint8 STATIC_WRITE_INT = 29;
-const uint8 STATIC_WRITE_UINT = 30;
-const uint8 STATIC_WRITE_FLOAT = 31;
-const uint8 STATIC_WRITE_DOUBLE = 32;
-const uint8 STATIC_READ_BYTE = 33;
-const uint8 STATIC_READ_SHORT = 34;
-const uint8 STATIC_READ_USHORT = 35;
-const uint8 STATIC_READ_INT = 36;
-const uint8 STATIC_READ_UINT = 37;
-const uint8 STATIC_READ_FLOAT = 38;
-const uint8 STATIC_READ_DOUBLE = 39;
-const uint8 STATIC_WRITE_STRING = 40;
-const uint8 STATIC_READ_STRING = 41;
-const uint8 STATIC_SEEK = 42;
-const uint8 STATIC_TELL = 43;
-const uint8 STATIC_REWIND = 44;
-const uint8 STATIC_SKIP = 45;
-const uint8 STATIC_REMAINING = 46;
+    // === BUFFER READ/WRITE OPERATIONS ===
+    WRITE_BYTE,
+    WRITE_SHORT,
+    WRITE_USHORT,
+    WRITE_INT,
+    WRITE_UINT,
+    WRITE_FLOAT,
+    WRITE_DOUBLE,
+    
+    READ_BYTE,
+    READ_SHORT,
+    READ_USHORT,
+    READ_INT,
+    READ_UINT,
+    READ_FLOAT,
+    READ_DOUBLE,
+    
+    WRITE_STRING,
+    READ_STRING,
+    
+    SEEK,
+    TELL,
+    REWIND,
+    SKIP,
+    REMAINING,
 
-const uint8 STATIC_COUNT = 47;
+    // === META ===
+    TOTAL_COUNT  
+};  
 
-// startsWith
-// endsWith
-// indexOf
+  // startsWith
+  // endsWith
+  // indexOf
 
-typedef Value (*NativeFunction)(Interpreter *vm, int argCount, Value *args);
-typedef Value (*NativeMethod)(Interpreter *vm, void *instance, int argCount,
-                              Value *args);
-typedef void *(*NativeConstructor)(Interpreter *vm, int argCount, Value *args);
-typedef void (*NativeDestructor)(Interpreter *vm, void *instance);
-typedef Value (*NativeGetter)(Interpreter *vm, void *instance);
-typedef void (*NativeSetter)(Interpreter *vm, void *instance, Value value);
-typedef void (*NativeStructCtor)(Interpreter *vm, void *buffer, int argc,
-                                 Value *args);
-typedef void (*NativeStructDtor)(Interpreter *vm, void *buffer);
+  typedef Value(*NativeFunction)(Interpreter * vm, int argCount, Value *args);
+  typedef Value(*NativeMethod)(Interpreter * vm, void *instance, int argCount,
+                               Value *args);
+  typedef void *(*NativeConstructor)(Interpreter * vm, int argCount, Value *args);
+  typedef void(*NativeDestructor)(Interpreter * vm, void *instance);
+  typedef Value(*NativeGetter)(Interpreter * vm, void *instance);
+  typedef void(*NativeSetter)(Interpreter * vm, void *instance, Value value);
+  typedef void(*NativeStructCtor)(Interpreter * vm, void *buffer, int argc,
+                                  Value *args);
+  typedef void(*NativeStructDtor)(Interpreter * vm, void *buffer);
 
-struct NativeProperty
-{
-  NativeGetter getter;
-  NativeSetter setter; // null = read-only
-};
+  struct NativeProperty{
+      NativeGetter getter;
+      NativeSetter setter; // null = read-only
+  };
 struct Function
 {
   int index;
@@ -145,8 +161,8 @@ struct StructDef
 {
   int index;
   String *name;
-  //HashMap<String *, uint8, StringHasher, StringEq> names;
-  List<String*, uint8> names; 
+  // HashMap<String *, uint8, StringHasher, StringEq> names;
+  List<String *, uint8> names;
   uint8 argCount;
   ~StructDef();
 };
@@ -161,11 +177,11 @@ struct ClassDef
   Function *constructor{nullptr}; // existe na tabela
   ClassDef *superclass;           // 1 nível herança
 
-  //HashMap<String *, Function *, StringHasher, StringEq> methods;
-  //HashMap<String *, uint8_t, StringHasher, StringEq> fieldNames; // field name → index
+  // HashMap<String *, Function *, StringHasher, StringEq> methods;
+  // HashMap<String *, uint8_t, StringHasher, StringEq> fieldNames; // field name → index
 
-  List<String*, Function*> methods;
-  List<String*, uint8> fieldNames;
+  List<String *, Function *> methods;
+  List<String *, uint8> fieldNames;
 
   Function *canRegisterFunction(String *pName);
   ~ClassDef();
@@ -178,11 +194,11 @@ struct NativeClassDef
   NativeConstructor constructor;
   NativeDestructor destructor;
 
-  //HashMap<String *, NativeMethod, StringHasher, StringEq> methods;
-  //HashMap<String *, NativeProperty, StringHasher, StringEq> properties;
+  // HashMap<String *, NativeMethod, StringHasher, StringEq> methods;
+  // HashMap<String *, NativeProperty, StringHasher, StringEq> properties;
 
-  List<String*, NativeMethod> methods;
-  List<String*, NativeProperty> properties;
+  List<String *, NativeMethod> methods;
+  List<String *, NativeProperty> properties;
 
   ~NativeClassDef();
 
@@ -201,8 +217,8 @@ struct NativeStructDef
   int id;
   String *name;
   size_t structSize;
-  //HashMap<String *, NativeFieldDef, StringHasher, StringEq> fields;
-  List<String*, NativeFieldDef> fields;
+  // HashMap<String *, NativeFieldDef, StringHasher, StringEq> fields;
+  List<String *, NativeFieldDef> fields;
   NativeStructCtor constructor; // nullable
   NativeStructDtor destructor;  // nullable
 };
@@ -330,8 +346,8 @@ enum class BufferType : uint8
   INT32,  // 3: Int
   UINT32, // 4: UInt
   FLOAT,  // 5: Float
-  DOUBLE, // 6: Double
-  COUNT
+  DOUBLE  // 6: Double
+
 };
 
 struct BufferInstance : GCObject
@@ -349,7 +365,6 @@ struct BufferInstance : GCObject
 struct MapInstance : GCObject
 {
   HashMap<String *, Value, StringHasher, StringEq> table;
-  
 
   MapInstance() : GCObject(GCObjectType::MAP) {}
 };
@@ -564,7 +579,7 @@ class Interpreter
   HashMap<String *, uint16, StringHasher, StringEq> moduleNames; // Nome  ID
   Vector<ModuleDef *> modules;                                   // Array de módulos!
   HashMap<String *, Value, StringHasher, StringEq> globals;
-  
+
   Vector<Process *> aliveProcesses;
   Vector<Process *> cleanProcesses;
 
@@ -587,7 +602,7 @@ class Interpreter
 
   VMHooks hooks;
 
-  String *staticNames[STATIC_COUNT];
+  Vector<String*> staticNames;
 
   void freeInstances();
   void freeBlueprints();
@@ -645,8 +660,6 @@ class Interpreter
     totalAllocated += size;
     totalUpvalues++;
 
-    
-
     return upvalue;
   }
 
@@ -668,8 +681,6 @@ class Interpreter
     closure->type = GCObjectType::CLOSURE;
     closure->marked = 0;
 
-    
-
     closure->next = gcObjects;
     gcObjects = closure;
 
@@ -679,7 +690,7 @@ class Interpreter
 
   FORCE_INLINE void freeClosure(Closure *c)
   {
-    
+
     size_t size = sizeof(Closure);
     c->~Closure();
     arena.Free(c, size);
@@ -906,6 +917,17 @@ public:
   int registerNative(const char *name, NativeFunction func, int arity);
 
   void print(Value value);
+
+  // modules
+  void registerBase();
+  void registerMath();
+  void registerOS();
+  void registerPath();
+  void registerFS();
+  void registerTime();
+  void registerFile();
+  void registerSocket();
+  void registerAll();
 
   Function *addFunction(const char *name, int arity = 0);
   Function *canRegisterFunction(const char *name, int arity, int *index);

@@ -1,0 +1,26 @@
+1. JSON  
+cpp// json.bu
+json.parse(string) -> map/array
+json.stringify(value) -> string
+2. HTTP Client  
+cpp// http.bu
+http.get(url) -> {status, body, headers}
+http.post(url, data) -> {status, body}
+http.request({method, url, headers, body})
+3. Time/Date
+cpp// time.bu
+time.now() -> timestamp
+time.format(timestamp, format)
+time.sleep(seconds)
+4. Encoding
+cpp// encoding.bu
+encoding.base64_encode(data)
+encoding.base64_decode(data)
+encoding.url_encode(str)
+encoding.url_decode(str)
+5. Crypto básico
+cpp// crypto.bu
+crypto.md5(data)
+crypto.sha256(data)
+ 
+ 

@@ -1,0 +1,80 @@
+print("--- A INICIAR TESTES DE SPLIT ---");
+
+// Função auxiliar para imprimir arrays bonito
+def dump(arr) {
+    var out = "[";
+    for (var i = 0; i < len(arr); i++) {
+        out = out + "'" + arr[i] + "'";
+        if (i < len(arr) - 1) {
+            out = out + ", ";
+        }
+    }
+    out = out + "]";
+    print(out);
+}
+
+// 1. TESTE BÁSICO (CSV Style)
+print("\n[1] Split Simples (,):");
+var texto = "banana,maca,pera,uva";
+var res = texto.split(",");
+print(res);
+dump(res);
+
+if (len(res) == 4 && res[1] == "maca") 
+{
+    print("✅ Sucesso");
+} else {
+    print("❌ Falha");
+}
+
+ // 2. TESTE SEPARADOR VAZIO (Explode String)
+print("\n[2] Split Vazio (chars):");
+var chars = "ABC".split("");
+dump(chars);
+
+if (len(chars) == 3 && chars[0] == "A") {
+    print("✅ Sucesso");
+} else {
+    print("❌ Falha");
+}
+
+// 3. TESTE MULTI-CHAR (Separador longo)
+print("\n[3] Separador Longo (||):");
+var slog = "Info||Warning||Error";
+var partes = slog.split("||");
+dump(partes);
+
+if (len(partes) == 3 && partes[2] == "Error") {
+    print("✅ Sucesso");
+} else {
+    print("❌ Falha");
+}
+
+// 4. TESTE EDGE CASES (Início e Fim)
+// "a,b," -> deve dar ["a", "b", ""]
+// ",a"   -> deve dar ["", "a"]
+print("\n[4] Edge Cases (Pontas vazias):");
+var sujo = ",a,,b,";
+var limpo = sujo.split(",");
+dump(limpo); 
+// Esperado: ['', 'a', '', 'b', ''] -> 5 elementos
+
+if (len(limpo) == 5) {
+    print("✅ Sucesso");
+} else {
+    print("❌ Falha: Tamanho incorreto (Deu " + en(limpo) + ", esperava 5)");
+}
+
+// 5. TESTE PRÁTICO (Parse de Config)
+print("\n[5] Teste Real (Config):");
+var config = "RESOLUCAO=1920x1080";
+var par = config.split("=");
+var key = par[0];
+var values = par[1].split("x");
+
+print("Key: " + key);
+print("W: " + values[0] + " H: " + values[1]);
+
+if (values[0] == "1920") {
+    print("✅ Parsing Completo");
+}

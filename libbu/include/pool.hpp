@@ -69,6 +69,7 @@ public:
     String *lower(String *src);
     String *substring(String *src, uint32 start, uint32 end);
     String *replace(String *src, const char *oldStr, const char *newStr);
+    
 
     String *to_string(Value v);
 

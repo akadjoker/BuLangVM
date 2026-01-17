@@ -166,4 +166,81 @@ public:
     T *end() { return data_ + size_; }
     const T *begin() const { return data_; }
     const T *end() const { return data_ + size_; }
+
+
+    void insert(size_t index, const T &value)
+    {
+        if (index > size_)
+            index = size_;
+        
+        if (size_ >= capacity_)
+        {
+            size_t newCap = CalculateCapacityGrow(capacity_, size_ + 1);
+            reserve(newCap);
+        }
+        
+        // Move elementos para frente
+        if (index < size_)
+        {
+            std::memmove(data_ + index + 1, data_ + index, (size_ - index) * sizeof(T));
+        }
+        
+        data_[index] = value;
+        size_++;
+    }
+    
+    // REMOVE - Remove por índice
+    void remove(size_t index)
+    {
+        if (index >= size_)
+            return;
+        
+        // Move elementos para trás
+        if (index < size_ - 1)
+        {
+            std::memmove(data_ + index, data_ + index + 1, (size_ - index - 1) * sizeof(T));
+        }
+        
+        size_--;
+    }
+    
+    // FIND - Retorna índice ou -1
+    int find(const T &value) const
+    {
+        for (size_t i = 0; i < size_; i++)
+        {
+            if (memcmp(&data_[i], &value, sizeof(T)) == 0)
+                return (int)i;
+        }
+        return -1;
+    }
+    
+ 
+    bool contains(const T &value) const
+    {
+        return find(value) != -1;
+    }
+    
+    // REVERSE - Inverte ordem
+    void reverse()
+    {
+        for (size_t i = 0; i < size_ / 2; i++)
+        {
+            T temp = data_[i];
+            data_[i] = data_[size_ - 1 - i];
+            data_[size_ - 1 - i] = temp;
+        }
+    }
+    
+    // SWAP - Troca dois elementos
+    void swap(size_t i, size_t j)
+    {
+        if (i >= size_ || j >= size_)
+            return;
+        
+        T temp = data_[i];
+        data_[i] = data_[j];
+        data_[j] = temp;
+    }
+
 };

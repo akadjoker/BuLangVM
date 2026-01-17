@@ -532,84 +532,65 @@ String *StringPool::getString(int index)
     return map[index];
 }
 
-//     // Split - divide string por separador
-//     Array* split(String* str, String* separator) {
-//         Array* result = new Array();
-//         result->capacity = 10;
-//         result->count = 0;
-//         result->elements = new Value[result->capacity];
+// ========================================
+// SPLIT
+// ========================================
+ 
 
-//         if (!str) return result;
+// bool StringPool::split(String* str, String* separator, ArrayInstance *result)
+// {
+//     Vector<String*> result;
 
-//         const char* strChars = str->chars();
-//         int strLen = str->length();
+//     if (!str) return result;
 
-//         // Se separador vazio, split cada char
-//         if (!separator || separator->length() == 0) {
-//             for (int i = 0; i < strLen; i++) {
-//                 char buf[2] = {strChars[i], '\0'};
+//     const char* strChars = str->chars();
+//     int strLen = str->length();
 
-//                 if (result->count >= result->capacity) {
-//                     result->capacity *= 2;
-//                     Value* newElements = new Value[result->capacity];
-//                     memcpy(newElements, result->elements,
-//                            result->count * sizeof(Value));
-//                     delete[] result->elements;
-//                     result->elements = newElements;
-//                 }
-
-//                 result->elements[result->count++] =
-//                     Value::makeString(create(buf, 1));
-//             }
-//             return result;
+//     // CASO 1: Separador Vazio ou Nulo ("")
+//     // Comportamento: Divide caractere a caractere ["a", "b", "c"]
+//     if (!separator || separator->length() == 0)
+//     {
+//         result->values.reserve(strLen); // Otimiza alocação
+//         for (int i = 0; i < strLen; i++)
+//         {
+//             // Cria string de 1 char 
+//             char buf[2] = {strChars[i], '\0'};
+//             result->values.push(create(buf, 1));
 //         }
-
-//         const char* sepChars = separator->chars();
-//         int sepLen = separator->length();
-
-//         int start = 0;
-//         for (int i = 0; i <= strLen - sepLen; i++) {
-//             if (strncmp(&strChars[i], sepChars, sepLen) == 0) {
-//                 // Found separator
-//                 int partLen = i - start;
-
-//                 if (result->count >= result->capacity) {
-//                     result->capacity *= 2;
-//                     Value* newElements = new Value[result->capacity];
-//                     memcpy(newElements, result->elements,
-//                            result->count * sizeof(Value));
-//                     delete[] result->elements;
-//                     result->elements = newElements;
-//                 }
-
-//                 result->elements[result->count++] =
-//                     Value::makeString(create(&strChars[start], partLen));
-
-//                 start = i + sepLen;
-//                 i += sepLen - 1;
-//             }
-//         }
-
-//         // Last part
-//         if (start <= strLen) {
-//             int partLen = strLen - start;
-
-//             if (result->count >= result->capacity) {
-//                 result->capacity *= 2;
-//                 Value* newElements = new Value[result->capacity];
-//                 memcpy(newElements, result->elements,
-//                        result->count * sizeof(Value));
-//                 delete[] result->elements;
-//                 result->elements = newElements;
-//             }
-
-//             result->elements[result->count++] =
-//                 Value::makeString(create(&strChars[start], partLen));
-//         }
-
 //         return result;
 //     }
-// };
+
+//     // CASO 2: Split Normal
+//     const char* sepChars = separator->chars();
+//     int sepLen = separator->length();
+
+//     const char* start = strChars;
+//     const char* end = strChars + strLen;
+//     const char* current = start;
+//     const char* found = nullptr;
+
+//     // Loop usando strstr (nativo do C, muito rápido)
+//     while ((found = strstr(current, sepChars)) != nullptr)
+//     {
+//         int partLen = found - current;
+        
+//         // create() já trata de alocar e internar a string
+//         result.push(create(current, partLen));
+        
+//         // Avança ponteiro
+//         current = found + sepLen;
+//     }
+
+//     // Adiciona o que sobrou da string (após o último separador)
+//     // Ex: "a,b,c" -> após o último "b," sobra "c"
+//     int remaining = end - current;
+//     if (remaining >= 0)
+//     {
+//         result.push(create(current, remaining));
+//     }
+
+//     return result;
+// }
 
 ProcessPool::ProcessPool()
 {

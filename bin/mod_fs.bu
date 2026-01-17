@@ -1,0 +1,101 @@
+import fs;
+
+ print("--- A INICIAR TESTES DE FILESYSTEM (FS) ---");
+
+def assert(cond, msg)
+{
+    if (cond)
+    {
+        print("✅ " + msg);
+    } else
+    {
+        print("❌ FALHA: " + msg);
+    
+    }
+}
+
+// Configuração do teste
+var TEST_DIR = "sandbox_test";
+var TEST_FILE = TEST_DIR + "/log.txt";
+var CONTENT_1 = "Ola Bulang!";
+var CONTENT_2 = " Append funciona.";
+
+// 1. LIMPEZA INICIAL (Caso tenha sobrado lixo de testes anteriores)
+if (fs.stat(TEST_FILE) != nil) fs.remove(TEST_FILE);
+if (fs.stat(TEST_DIR) != nil) fs.rmdir(TEST_DIR);
+
+// 2. TESTE MKDIR
+print("\n[1] A criar diretoria '" + TEST_DIR + "'...");
+var mk_res = fs.mkdir(TEST_DIR);
+assert(mk_res, "mkdir retornou true");
+
+var dir_stat = fs.stat(TEST_DIR);
+assert(dir_stat != nil, "stat da diretoria nao e nil");
+if (dir_stat)
+{
+    assert(dir_stat["isdir"] == true, "stat confirma que e diretoria");
+}
+
+// 3. TESTE WRITE
+print("\n[2] A escrever ficheiro '" + TEST_FILE + "'...");
+var w_res = fs.write(TEST_FILE, CONTENT_1);
+assert(w_res, "write retornou true");
+
+// 4. TESTE READ
+print("\n[3] A ler ficheiro...");
+var read_back = fs.read(TEST_FILE);
+print("   Lido: '" + read_back + "'");
+assert(read_back == CONTENT_1, "Conteudo lido igual ao escrito");
+
+// 5. TESTE APPEND
+print("\n[4] A fazer append...");
+var a_res = fs.append(TEST_FILE, CONTENT_2);
+assert(a_res, "append retornou true");
+
+var full_content = fs.read(TEST_FILE);
+print("   Total: '" + full_content + "'");
+assert(full_content == CONTENT_1 + CONTENT_2, "Conteudo total correto");
+
+// 6. TESTE STAT (Ficheiro)
+print("\n[5] A verificar metadados (stat)...");
+var f_stat = fs.stat(TEST_FILE);
+if (f_stat)
+{
+    print("   Size: " + f_stat["size"]);
+    assert(f_stat["isfile"] == true, "E um ficheiro");
+    assert(f_stat["size"] > 0, "Tamanho maior que 0");
+} else
+{
+    assert(false, "stat retornou nil para ficheiro existente");
+}
+
+// 7. TESTE LIST
+print("\n[6] A listar diretoria '" + TEST_DIR + "'...");
+var files = fs.list(TEST_DIR);
+var found = false;
+
+
+print("   Ficheiros encontrados: " + len(files));
+
+for (var i = 0; i < len(files); i = i + 1)
+{
+    print("   - " + files[i]);
+    if (files[i] == "log.txt") found = true;
+}
+assert(found, "Ficheiro 'log.txt' encontrado na lista");
+
+// 8. TESTE REMOVE & RMDIR
+print("\n[7] A limpar tudo...");
+var rm_res = fs.remove(TEST_FILE);
+assert(rm_res, "Remove ficheiro OK");
+
+// Verifica se sumiu
+assert(fs.stat(TEST_FILE) == nil, "Ficheiro ja nao existe");
+
+var rmdir_res = fs.rmdir(TEST_DIR);
+assert(rmdir_res, "Rmdir OK");
+
+// Verifica se diretoria sumiu
+assert(fs.stat(TEST_DIR) == nil, "Diretoria ja nao existe");
+
+print("\n--- TESTES CONCLUIDOS ---");

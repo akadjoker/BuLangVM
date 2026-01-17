@@ -7,65 +7,80 @@ GLOBAL FUNCTIONS
 ========================================
 
 
->>> Function: worker
+>>> Function: __main__$dump
     Arity: 1
     Has return: no
     Index: 1
 
-  Constants (9):
-    [0] = "steps"
-    [1] = 0
-    [2] = 3
-    [3] = "x"
+  Constants (8):
+    [0] = "out"
+    [1] = "["
+    [2] = "i"
+    [3] = 0
     [4] = 1
-    [5] = "Step "
-    [6] = ": x="
-    [7] = 1.00
-    [8] = "Worker Done"
+    [5] = "'"
+    [6] = ", "
+    [7] = "]"
 
   Bytecode:
-    0000    5 OP_CONSTANT         1 '0'
-    0002    6 OP_GET_LOCAL        2
-    0004    | OP_CONSTANT         2 '3'
-    0006    | OP_LESS
-    0007    | OP_JUMP_IF_FALSE    7 -> 55
-    0010    | OP_POP
-    0011    8 OP_GET_LOCAL        1
-    0013    | OP_GET_LOCAL        1
-    0015    | OP_GET_PROPERTY     3 'x'
-    0017    | OP_CONSTANT         4 '1'
-    0019    | OP_ADD
-    0020    | OP_SET_PROPERTY     3 'x'
-    0022    | OP_POP
-    0023    9 OP_CONSTANT         5 'Step '
-    0025    | OP_GET_LOCAL        2
-    0027    | OP_ADD
-    0028    | OP_CONSTANT         6 ': x='
-    0030    | OP_ADD
-    0031    | OP_GET_LOCAL        1
-    0033    | OP_GET_PROPERTY     3 'x'
-    0035    | OP_ADD
-    0036    | OP_PRINT
-    0037    | OP_NIL
-    0038   10 OP_CONSTANT         7 '1.0000'
-    0040    | OP_YIELD
-    0041   11 OP_GET_LOCAL        2
-    0043    | OP_GET_LOCAL        2
-    0045    | OP_CONSTANT         4 '1'
-    0047    | OP_ADD
-    0048    | OP_SET_LOCAL        2
-    0050    | OP_POP
-    0051    | OP_POP
-    0052   12 OP_LOOP            52 -> 2
-    0055    | OP_POP
-    0056   13 OP_CONSTANT         8 'Worker Done'
-    0058    | OP_PRINT
-    0059    | OP_NIL
-    0060   14 OP_POP
-    0061    | OP_POP
-    0062    | OP_POP
-    0063    | OP_NIL
-    0064    | OP_RETURN
+    0000  136 OP_CONSTANT             1 '['
+    0002  137 OP_CONSTANT             3 '0'
+    0004    | OP_GET_LOCAL            3
+    0006    | OP_GET_LOCAL            1
+    0008    | OP_FUNC_LEN         
+    0009    | OP_LESS             
+    0010    | OP_JUMP_IF_FALSE       10 -> 76
+    0013    | OP_POP              
+    0014    | OP_JUMP                14 -> 31
+    0017    | OP_GET_LOCAL            3
+    0019    | OP_GET_LOCAL            3
+    0021    | OP_CONSTANT             4 '1'
+    0023    | OP_ADD              
+    0024    | OP_SET_LOCAL            3
+    0026    | OP_POP              
+    0027    | OP_POP              
+    0028    | OP_LOOP                28 -> 4
+    0031  138 OP_GET_LOCAL            2
+    0033    | OP_CONSTANT             5 '''
+    0035    | OP_ADD              
+    0036    | OP_GET_LOCAL            1
+    0038    | OP_GET_LOCAL            3
+    0040    | OP_GET_INDEX        
+    0041    | OP_ADD              
+    0042    | OP_CONSTANT             5 '''
+    0044    | OP_ADD              
+    0045    | OP_SET_LOCAL            2
+    0047    | OP_POP              
+    0048  139 OP_GET_LOCAL            3
+    0050    | OP_GET_LOCAL            1
+    0052    | OP_FUNC_LEN         
+    0053    | OP_CONSTANT             4 '1'
+    0055    | OP_SUBTRACT         
+    0056    | OP_LESS             
+    0057    | OP_JUMP_IF_FALSE       57 -> 72
+    0060    | OP_POP              
+    0061  140 OP_GET_LOCAL            2
+    0063    | OP_CONSTANT             6 ', '
+    0065    | OP_ADD              
+    0066    | OP_SET_LOCAL            2
+    0068    | OP_POP              
+    0069  141 OP_JUMP                69 -> 73
+    0072    | OP_POP              
+    0073  142 OP_LOOP                73 -> 17
+    0076    | OP_POP              
+    0077    | OP_POP              
+    0078  143 OP_GET_LOCAL            2
+    0080    | OP_CONSTANT             7 ']'
+    0082    | OP_ADD              
+    0083    | OP_SET_LOCAL            2
+    0085    | OP_POP              
+    0086  144 OP_GET_LOCAL            2
+    0088    | OP_PRINT                1
+    0090  145 OP_POP              
+    0091    | OP_POP              
+    0092    | OP_POP              
+    0093    | OP_NIL              
+    0094    | OP_RETURN           
 
 
 >>> Function: __main__
@@ -73,92 +88,245 @@ GLOBAL FUNCTIONS
     Has return: no
     Index: 0
 
-  Constants (10):
-    [0] = "State"
-    [1] = <value type 14>
+  Constants (50):
+    [0] = "--- A INICIAR TESTES DE OS ---"
+    [1] = "--- A INICIAR TESTES DE SPLIT ---"
     [2] = <value type 16>
-    [3] = "worker"
-    [4] = <value type 24>
-    [5] = "enemy"
-    [6] = "s"
-    [7] = 0
-    [8] = 100
-    [9] = "State updated by main fiber"
+    [3] = "dump"
+    [4] = "
+[1] Split Simples (,):"
+    [5] = "texto"
+    [6] = "banana,maca,pera,uva"
+    [7] = "res"
+    [8] = "split"
+    [9] = ","
+    [10] = 4
+    [11] = 1
+    [12] = "maca"
+    [13] = "✅ Sucesso"
+    [14] = "❌ Falha"
+    [15] = "
+[2] Split Vazio (chars):"
+    [16] = "chars"
+    [17] = "ABC"
+    [18] = ""
+    [19] = 3
+    [20] = 0
+    [21] = "A"
+    [22] = "
+[3] Separador Longo (||):"
+    [23] = "slog"
+    [24] = "Info||Warning||Error"
+    [25] = "partes"
+    [26] = "||"
+    [27] = 2
+    [28] = "Error"
+    [29] = "
+[4] Edge Cases (Pontas vazias):"
+    [30] = "sujo"
+    [31] = ",a,,b,"
+    [32] = "limpo"
+    [33] = 5
+    [34] = "❌ Falha: Tamanho incorreto (Deu "
+    [35] = "en"
+    [36] = ", esperava 5)"
+    [37] = "
+[5] Teste Real (Config):"
+    [38] = "config"
+    [39] = "RESOLUCAO=1920x1080"
+    [40] = "par"
+    [41] = "="
+    [42] = "key"
+    [43] = "values"
+    [44] = "x"
+    [45] = "Key: "
+    [46] = "W: "
+    [47] = " H: "
+    [48] = "1920"
+    [49] = "✅ Parsing Completo"
 
   Bytecode:
-    0000    1 OP_CONSTANT         1 '<struct 0>'
-    0002    | OP_DEFINE_GLOBAL    0 'State'
-    0004   14 OP_CONSTANT         2 '<function 1>'
-    0006    | OP_DEFINE_GLOBAL    3 'worker'
-    0008   25 OP_CONSTANT         4 '<process>'
-    0010    | OP_DEFINE_GLOBAL    5 'enemy'
-    0012   27 OP_GET_GLOBAL       5 'enemy'
-    0014    | OP_CALL             0
-    0016    | OP_POP
-    0017   30 OP_GET_GLOBAL       0 'State'
-    0019    | OP_CONSTANT         7 '0'
-    0021    | OP_CONSTANT         7 '0'
-    0023    | OP_CALL             2
-    0025    | OP_DEFINE_GLOBAL    6 's'
-    0027   31 OP_GET_GLOBAL       3 'worker'
-    0029    | OP_GET_GLOBAL       6 's'
-    0031    | OP_SPAWN            1
-    0033   32 OP_GET_GLOBAL       3 'worker'
-    0035    | OP_GET_GLOBAL       6 's'
-    0037    | OP_SPAWN            1
-    0039   33 OP_GET_GLOBAL       3 'worker'
-    0041    | OP_GET_GLOBAL       6 's'
-    0043    | OP_SPAWN            1
-    0045   36 OP_CONSTANT         8 '100'
-    0047    | OP_FRAME
-    0048    | OP_CONSTANT         8 '100'
-    0050    | OP_FRAME
-    0051    | OP_CONSTANT         8 '100'
-    0053    | OP_FRAME
-    0054    | OP_CONSTANT         8 '100'
-    0056    | OP_FRAME
-    0057   38 OP_CONSTANT         9 'State updated by main fiber'
-    0059    | OP_PRINT
-    0060    | OP_NIL
-    0061    | OP_NIL
-    0062    | OP_RETURN
-
-
->>> Function: enemy
-    Arity: 0
-    Has return: no
-    Index: 2
-
-  Constants (6):
-    [0] = "s"
-    [1] = "State"
-    [2] = 0
-    [3] = "worker"
-    [4] = 100
-    [5] = "State updated by fiber"
-
-  Bytecode:
-    0000   18 OP_GET_GLOBAL       1 'State'
-    0002    | OP_CONSTANT         2 '0'
-    0004    | OP_CONSTANT         2 '0'
-    0006    | OP_CALL             2
-    0008   19 OP_GET_GLOBAL       3 'worker'
-    0010    | OP_GET_LOCAL        0
-    0012    | OP_SPAWN            1
-    0014   22 OP_CONSTANT         4 '100'
-    0016    | OP_FRAME
-    0017    | OP_CONSTANT         4 '100'
-    0019    | OP_FRAME
-    0020    | OP_CONSTANT         4 '100'
-    0022    | OP_FRAME
-    0023    | OP_CONSTANT         4 '100'
-    0025    | OP_FRAME
-    0026   24 OP_CONSTANT         5 'State updated by fiber'
-    0028    | OP_PRINT
-    0029    | OP_NIL
-    0030   25 OP_POP
-    0031    | OP_NIL
-    0032    | OP_RETURN
+    0000    3 OP_CONSTANT             0 '--- A INICIAR TESTES DE OS ---'
+    0002    | OP_PRINT                1
+    0004  132 OP_CONSTANT             1 '--- A INICIAR TESTES DE SPLIT ---'
+    0006    | OP_PRINT                1
+    0008  145 OP_CONSTANT             2 '<function 1>'
+    0010    | OP_DEFINE_GLOBAL        3 'dump'
+    0012  148 OP_CONSTANT             4 '
+[1] Split Simples (,):'
+    0014    | OP_PRINT                1
+    0016  149 OP_CONSTANT             6 'banana,maca,pera,uva'
+    0018    | OP_DEFINE_GLOBAL        5 'texto'
+    0020  150 OP_GET_GLOBAL           5 'texto'
+    0022    | OP_CONSTANT             9 ','
+    0024    | OP_INVOKE               8 'split' (1 args)
+    0027    | OP_DEFINE_GLOBAL        7 'res'
+    0029  151 OP_GET_GLOBAL           7 'res'
+    0031    | OP_PRINT                1
+    0033  152 OP_GET_GLOBAL           3 'dump'
+    0035    | OP_GET_GLOBAL           7 'res'
+    0037    | OP_CALL                 1
+    0039    | OP_POP              
+    0040  154 OP_GET_GLOBAL           7 'res'
+    0042    | OP_FUNC_LEN         
+    0043    | OP_CONSTANT            10 '4'
+    0045    | OP_EQUAL            
+    0046    | OP_JUMP_IF_FALSE       46 -> 58
+    0049    | OP_POP              
+    0050    | OP_GET_GLOBAL           7 'res'
+    0052    | OP_CONSTANT            11 '1'
+    0054    | OP_GET_INDEX        
+    0055    | OP_CONSTANT            12 'maca'
+    0057    | OP_EQUAL            
+    0058    | OP_JUMP_IF_FALSE       58 -> 69
+    0061    | OP_POP              
+    0062  156 OP_CONSTANT            13 '✅ Sucesso'
+    0064    | OP_PRINT                1
+    0066  157 OP_JUMP                66 -> 74
+    0069    | OP_POP              
+    0070  158 OP_CONSTANT            14 '❌ Falha'
+    0072    | OP_PRINT                1
+    0074  162 OP_CONSTANT            15 '
+[2] Split Vazio (chars):'
+    0076    | OP_PRINT                1
+    0078  163 OP_CONSTANT            17 'ABC'
+    0080    | OP_CONSTANT            18 ''
+    0082    | OP_INVOKE               8 'split' (1 args)
+    0085    | OP_DEFINE_GLOBAL       16 'chars'
+    0087  164 OP_GET_GLOBAL           3 'dump'
+    0089    | OP_GET_GLOBAL          16 'chars'
+    0091    | OP_CALL                 1
+    0093    | OP_POP              
+    0094  166 OP_GET_GLOBAL          16 'chars'
+    0096    | OP_FUNC_LEN         
+    0097    | OP_CONSTANT            19 '3'
+    0099    | OP_EQUAL            
+    0100    | OP_JUMP_IF_FALSE      100 -> 112
+    0103    | OP_POP              
+    0104    | OP_GET_GLOBAL          16 'chars'
+    0106    | OP_CONSTANT            20 '0'
+    0108    | OP_GET_INDEX        
+    0109    | OP_CONSTANT            21 'A'
+    0111    | OP_EQUAL            
+    0112    | OP_JUMP_IF_FALSE      112 -> 123
+    0115    | OP_POP              
+    0116  167 OP_CONSTANT            13 '✅ Sucesso'
+    0118    | OP_PRINT                1
+    0120  168 OP_JUMP               120 -> 128
+    0123    | OP_POP              
+    0124  169 OP_CONSTANT            14 '❌ Falha'
+    0126    | OP_PRINT                1
+    0128  173 OP_CONSTANT            22 '
+[3] Separador Longo (||):'
+    0130    | OP_PRINT                1
+    0132  174 OP_CONSTANT            24 'Info||Warning||Error'
+    0134    | OP_DEFINE_GLOBAL       23 'slog'
+    0136  175 OP_GET_GLOBAL          23 'slog'
+    0138    | OP_CONSTANT            26 '||'
+    0140    | OP_INVOKE               8 'split' (1 args)
+    0143    | OP_DEFINE_GLOBAL       25 'partes'
+    0145  176 OP_GET_GLOBAL           3 'dump'
+    0147    | OP_GET_GLOBAL          25 'partes'
+    0149    | OP_CALL                 1
+    0151    | OP_POP              
+    0152  178 OP_GET_GLOBAL          25 'partes'
+    0154    | OP_FUNC_LEN         
+    0155    | OP_CONSTANT            19 '3'
+    0157    | OP_EQUAL            
+    0158    | OP_JUMP_IF_FALSE      158 -> 170
+    0161    | OP_POP              
+    0162    | OP_GET_GLOBAL          25 'partes'
+    0164    | OP_CONSTANT            27 '2'
+    0166    | OP_GET_INDEX        
+    0167    | OP_CONSTANT            28 'Error'
+    0169    | OP_EQUAL            
+    0170    | OP_JUMP_IF_FALSE      170 -> 181
+    0173    | OP_POP              
+    0174  179 OP_CONSTANT            13 '✅ Sucesso'
+    0176    | OP_PRINT                1
+    0178  180 OP_JUMP               178 -> 186
+    0181    | OP_POP              
+    0182  181 OP_CONSTANT            14 '❌ Falha'
+    0184    | OP_PRINT                1
+    0186  187 OP_CONSTANT            29 '
+[4] Edge Cases (Pontas vazias):'
+    0188    | OP_PRINT                1
+    0190  188 OP_CONSTANT            31 ',a,,b,'
+    0192    | OP_DEFINE_GLOBAL       30 'sujo'
+    0194  189 OP_GET_GLOBAL          30 'sujo'
+    0196    | OP_CONSTANT             9 ','
+    0198    | OP_INVOKE               8 'split' (1 args)
+    0201    | OP_DEFINE_GLOBAL       32 'limpo'
+    0203  190 OP_GET_GLOBAL           3 'dump'
+    0205    | OP_GET_GLOBAL          32 'limpo'
+    0207    | OP_CALL                 1
+    0209    | OP_POP              
+    0210  193 OP_GET_GLOBAL          32 'limpo'
+    0212    | OP_FUNC_LEN         
+    0213    | OP_CONSTANT            33 '5'
+    0215    | OP_EQUAL            
+    0216    | OP_JUMP_IF_FALSE      216 -> 227
+    0219    | OP_POP              
+    0220  194 OP_CONSTANT            13 '✅ Sucesso'
+    0222    | OP_PRINT                1
+    0224  195 OP_JUMP               224 -> 242
+    0227    | OP_POP              
+    0228  196 OP_CONSTANT            34 '❌ Falha: Tamanho incorreto (Deu '
+    0230    | OP_GET_GLOBAL          35 'en'
+    0232    | OP_GET_GLOBAL          32 'limpo'
+    0234    | OP_CALL                 1
+    0236    | OP_ADD              
+    0237    | OP_CONSTANT            36 ', esperava 5)'
+    0239    | OP_ADD              
+    0240    | OP_PRINT                1
+    0242  200 OP_CONSTANT            37 '
+[5] Teste Real (Config):'
+    0244    | OP_PRINT                1
+    0246  201 OP_CONSTANT            39 'RESOLUCAO=1920x1080'
+    0248    | OP_DEFINE_GLOBAL       38 'config'
+    0250  202 OP_GET_GLOBAL          38 'config'
+    0252    | OP_CONSTANT            41 '='
+    0254    | OP_INVOKE               8 'split' (1 args)
+    0257    | OP_DEFINE_GLOBAL       40 'par'
+    0259  203 OP_GET_GLOBAL          40 'par'
+    0261    | OP_CONSTANT            20 '0'
+    0263    | OP_GET_INDEX        
+    0264    | OP_DEFINE_GLOBAL       42 'key'
+    0266  204 OP_GET_GLOBAL          40 'par'
+    0268    | OP_CONSTANT            11 '1'
+    0270    | OP_GET_INDEX        
+    0271    | OP_CONSTANT            44 'x'
+    0273    | OP_INVOKE               8 'split' (1 args)
+    0276    | OP_DEFINE_GLOBAL       43 'values'
+    0278  206 OP_CONSTANT            45 'Key: '
+    0280    | OP_GET_GLOBAL          42 'key'
+    0282    | OP_ADD              
+    0283    | OP_PRINT                1
+    0285  207 OP_CONSTANT            46 'W: '
+    0287    | OP_GET_GLOBAL          43 'values'
+    0289    | OP_CONSTANT            20 '0'
+    0291    | OP_GET_INDEX        
+    0292    | OP_ADD              
+    0293    | OP_CONSTANT            47 ' H: '
+    0295    | OP_ADD              
+    0296    | OP_GET_GLOBAL          43 'values'
+    0298    | OP_CONSTANT            11 '1'
+    0300    | OP_GET_INDEX        
+    0301    | OP_ADD              
+    0302    | OP_PRINT                1
+    0304  209 OP_GET_GLOBAL          43 'values'
+    0306    | OP_CONSTANT            20 '0'
+    0308    | OP_GET_INDEX        
+    0309    | OP_CONSTANT            48 '1920'
+    0311    | OP_EQUAL            
+    0312    | OP_JUMP_IF_FALSE      312 -> 323
+    0315    | OP_POP              
+    0316  210 OP_CONSTANT            49 '✅ Parsing Completo'
+    0318    | OP_PRINT                1
+    0320  211 OP_JUMP               320 -> 324
+    0323    | OP_POP              
+    0324    3 OP_NIL              
+    0325    | OP_RETURN           
 
 
 ========================================

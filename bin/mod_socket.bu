@@ -1,0 +1,48 @@
+import socket;
+
+socket.init();
+
+// TCP Server non-blocking
+var server = socket.tcp_listen(8080);
+socket.set_blocking(server, false);
+
+print(server);
+
+var clients = [];
+
+var quit =false;
+ 
+
+while (!quit)
+{
+    // Accept novos clientes
+    var client = socket.tcp_accept(server);
+    if (client != nil)
+    {
+        socket.set_blocking(client, false);
+        socket.set_nodelay(client, true);  // Disable Nagle
+        clients.push(client);
+        print(client);
+        print("Cliente conectado!");
+    }
+    
+    // Recebe de clientes
+    for (var i = 0; i < clients.length(); i++)
+    {
+        var data = socket.receive(clients[i]);
+        if (data != nil)
+        {
+            write("Recebido: {} \n", data);
+            socket.send(clients[i], "ACK\n");
+            if (data == ":quit" || data == ":quit\n")
+            {
+                quit=true;
+                break;
+            }
+        }
+    }
+    
+}
+
+print("Exit");
+socket.quit();
