@@ -1,6 +1,51 @@
 //include "bunny.bu";
-include "fireworks.bu";
+//include "fireworks.bu";
 //include "particles.bu";
 
 
- 
+ def outer() 
+ {
+    var x = 1;
+    print("outer");
+    def inner() 
+    {
+        x++;
+        print("Inter: ",x);
+        return x;
+    }
+    return inner;  
+}
+
+var a = outer();
+a();
+a();
+a();
+a();
+
+print(a());
+
+// def outer() {
+//     var x = 1;  // ← Vai ser isCaptured=true
+//     var y = 2;  // ← Não é capturada
+    
+//     def inner() {
+//         return x;  // ← Marca x.isCaptured=true
+//     }
+    
+//     return inner;
+// }  // ← Ao sair: x→OP_CLOSE_UPVALUE, y→OP_POP
+
+
+
+// def a() {
+//     var x = 1;
+//     def b() {
+//         var y = 2;
+//         def c() {
+//             var z = 3;
+//             def d() {
+//                 return x + y + z;  // ✓ Vê TUDO!
+//             }
+//         }
+//     }
+// }

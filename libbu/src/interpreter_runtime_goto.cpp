@@ -31,6 +31,8 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 
     currentFiber = fiber;
 
+ 
+
     CallFrame *frame;
     Value *stackStart;
     uint8 *ip;
@@ -202,6 +204,10 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
         &&op_clock,      // 81
         &&op_new_buffer, // 82
         &&op_free,       // 83
+        &&op_closure,
+        &&op_get_upvalue,
+        &&op_set_upvalue,
+        &&op_close_upvalue,
     };
 
 #define DISPATCH()                         \
@@ -848,7 +854,7 @@ op_call:
 {
     uint8 argCount = READ_BYTE();
 
-    //  SALVA IP ATUAL!
+    
     STORE_FRAME();
 
     Value callee = NPEEK(argCount);
@@ -882,6 +888,7 @@ op_call:
 
         CallFrame *newFrame = &fiber->frames[fiber->frameCount++];
         newFrame->func = targetFunc;
+        newFrame->closure = nullptr;
         newFrame->ip = targetFunc->chunk->code;
         newFrame->slots = fiber->stackTop - argCount - 1;
 
@@ -1052,6 +1059,7 @@ op_call:
 
             CallFrame *newFrame = &currentFiber->frames[currentFiber->frameCount++];
             newFrame->func = klass->constructor;
+            newFrame->closure = nullptr;
             newFrame->ip = klass->constructor->chunk->code;
             newFrame->slots = currentFiber->stackTop - argCount - 1;
 
@@ -1182,6 +1190,43 @@ op_call:
     }
 
     // ========================================
+    // PATH: CLOSURE
+    // ========================================
+    else if (callee.isClosure())
+    {
+        Closure *closure = callee.asClosure();
+        Function *targetFunc = functions[closure->functionId];
+
+        if (!targetFunc)
+        {
+            runtimeError("Invalid closure");
+            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+        }
+
+        if (argCount != targetFunc->arity)
+        {
+            runtimeError("Closure expected %d arguments but got %d",
+                         targetFunc->arity, argCount);
+            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+        }
+
+        if (fiber->frameCount >= FRAMES_MAX)
+        {
+            runtimeError("Stack overflow");
+            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+        }
+
+        CallFrame *newFrame = &fiber->frames[fiber->frameCount++];
+        newFrame->func = targetFunc;
+        newFrame->closure = closure;
+        newFrame->ip = targetFunc->chunk->code;
+        newFrame->slots = fiber->stackTop - argCount - 1;
+
+        LOAD_FRAME();
+        DISPATCH();    
+    }
+
+    // ========================================
     // ERRO: Tipo desconhecido
     // ========================================
     else
@@ -1192,11 +1237,27 @@ op_call:
         printf("\n");
         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
     }
+    
+    LOAD_FRAME();
 }
 
 op_return:
 {
     Value result = POP();
+
+    // Fecha upvalues desta frame
+    if (fiber->frameCount > 0)
+    {
+        CallFrame *returningFrame = &fiber->frames[fiber->frameCount - 1];
+        Value *frameStart = returningFrame->slots;
+        while (openUpvalues != nullptr && openUpvalues->location >= frameStart)
+        {
+            Upvalue *upvalue = openUpvalues;
+            upvalue->closed = *upvalue->location;
+            upvalue->location = &upvalue->closed;
+            openUpvalues = upvalue->nextOpen;
+        }
+    }
 
     bool hasFinally = false;
     if (fiber->tryDepth > 0)
@@ -1357,6 +1418,7 @@ op_spawn:
 
     CallFrame *frame = &newFiber->frames[newFiber->frameCount++];
     frame->func = func;
+    frame->closure = nullptr;
     frame->ip = func->chunk->code;
     frame->slots = newFiber->stack;
 
@@ -2378,6 +2440,7 @@ op_invoke:
 
             CallFrame *newFrame = &currentFiber->frames[currentFiber->frameCount];
             newFrame->func = method;
+            newFrame->closure = nullptr;
             newFrame->ip = method->chunk->code;
             newFrame->slots = currentFiber->stackTop - argCount - 1;
 
@@ -3385,6 +3448,7 @@ op_super_invoke:
 
     CallFrame *newFrame = &fiber->frames[fiber->frameCount];
     newFrame->func = method;
+    newFrame->closure = nullptr;
     newFrame->ip = method->chunk->code;
     newFrame->slots = fiber->stackTop - argCount - 1;
     fiber->frameCount++;
@@ -4367,7 +4431,7 @@ op_new_buffer:
         size_t elementSize = get_type_size((BufferType)t);
         if (fileSize % elementSize != 0)
         {
-            THROW_RUNTIME_ERROR("File size %d is not a multiple of element size %zu (type %d)",
+            THROW_RUNTIME_ERROR("File size %d is not a multiple of element size %zu (type %ld)",
                                 fileSize, elementSize, type);
         }
 
@@ -4377,13 +4441,13 @@ op_new_buffer:
         Value bufferVal = makeBuffer(count, t);
         if (bufferVal.asBuffer()->data == nullptr)
         {
-            THROW_RUNTIME_ERROR("Failed to allocate buffer of %d elements (type %d)", count, type);
+            THROW_RUNTIME_ERROR("Failed to allocate buffer of %d elements (type %ld)", count, type);
         }
         BufferInstance *buf = bufferVal.asBuffer();
         int bytesRead = OsFileRead(filename, buf->data, fileSize);
         if (bytesRead < 0 || bytesRead != fileSize)
         {
-            THROW_RUNTIME_ERROR("Failed to read data from '%s' (%d bytes read, expected %d)",
+            THROW_RUNTIME_ERROR("Failed to read data from '%s' (%d bytes read, expected %ld)",
                                 filename, bytesRead, fileSize);
         }
 
@@ -4489,6 +4553,117 @@ op_free:
 
     // Warning("Object not in category to be freed: %s", valueTypeToString(object.type));
     PUSH(makeBool(freed));
+    DISPATCH();
+}
+
+// ========== CLOSURES ==========
+
+op_closure:
+{
+    Value funcVal = READ_CONSTANT();
+    int funcID = funcVal.asFunctionId();
+    Function *function = functions[funcID];
+    Value closure = makeClosure();
+    Closure *closurePtr = closure.as.closure;
+    closurePtr->functionId = funcID;
+    closurePtr->upvalueCount = function->upvalueCount;
+
+    closurePtr->upvalues.clear();
+
+    for (int i = 0; i < function->upvalueCount; i++)
+    {
+        uint8 isLocal = READ_BYTE();
+        uint8 index = READ_BYTE();
+
+        if (isLocal)
+        {
+            Value *local = &stackStart[index];
+
+            // Procura na lista openUpvalues
+            Upvalue *prev = nullptr;
+            Upvalue *upvalue = openUpvalues;
+
+            while (upvalue != nullptr && upvalue->location > local)
+            {
+                prev = upvalue;
+                upvalue = upvalue->nextOpen;
+            }
+
+            if (upvalue != nullptr && upvalue->location == local)
+            {
+                closurePtr->upvalues.push(upvalue);
+            }
+            else
+            {
+                Upvalue *created = createUpvalue(local);
+                created->nextOpen = upvalue;
+
+                if (prev == nullptr)
+                {
+                    openUpvalues = created;
+                }
+                else
+                {
+                    prev->nextOpen = created;
+                }
+
+                closurePtr->upvalues.push(created);
+            }
+        }
+        else
+        {
+            if (!frame->closure)
+            {
+                runtimeError("Cannot capture upvalue without enclosing closure");
+                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            }
+            closurePtr->upvalues.push(frame->closure->upvalues[i]);
+        }
+    }
+
+    PUSH(closure);
+    DISPATCH();
+}
+
+op_get_upvalue:
+{
+    uint8 slot = READ_BYTE();
+
+    if (!frame->closure)
+    {
+        runtimeError("Upvalue access outside closure");
+        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    }
+
+    PUSH(*frame->closure->upvalues[slot]->location);
+    DISPATCH();
+}
+
+op_set_upvalue:
+{
+    uint8 slot = READ_BYTE();
+
+    if (!frame->closure)
+    {
+        runtimeError("Upvalue access outside closure");
+        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    }
+
+    *frame->closure->upvalues[slot]->location = PEEK();
+    DISPATCH();
+}
+
+op_close_upvalue:
+{
+    Value *last = fiber->stackTop - 1;
+    while (openUpvalues != nullptr && openUpvalues->location >= last)
+    {
+        Upvalue *upvalue = openUpvalues;
+        upvalue->closed = *upvalue->location;
+        upvalue->location = &upvalue->closed;
+        openUpvalues = upvalue->nextOpen;
+    }
+    DROP();
     DISPATCH();
 }
 

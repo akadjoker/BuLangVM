@@ -24,20 +24,21 @@ ParseRule Compiler::rules[TOKEN_COUNT];
 // ============================================
 
 Compiler::Compiler(Interpreter *vm)
-    : vm_(vm), lexer(nullptr),  
+    : vm_(vm), lexer(nullptr),
       function(nullptr), currentChunk(nullptr),
       currentProcess(nullptr), hadError(false),
       panicMode(false), scopeDepth(0), localCount_(0), loopDepth_(0),
       isProcess_(false), tryDepth(0),
-      expressionDepth(0), declarationDepth(0), callDepth(0)
+      expressionDepth(0), declarationDepth(0), callDepth(0),
+      upvalueCount_(0)
 {
-    initRules();
-    cursor = 0;
+  initRules();
+  cursor = 0;
 }
- 
+
 Compiler::~Compiler()
 {
-    delete lexer;   
+  delete lexer;
 }
 // ============================================
 // INICIALIZAÇÃO DA TABELA
@@ -169,11 +170,13 @@ void Compiler::setFileLoader(FileLoaderCallback loader, void *userdata)
 ProcessDef *Compiler::compile(const std::string &source)
 {
   delete lexer;
-  lexer = new Lexer(source); 
-  stats.maxExpressionDepth=0;
-  stats.maxScopeDepth=0;
-  stats.totalErrors==0;
-  stats.totalWarnings=0;
+  lexer = new Lexer(source);
+  stats.maxExpressionDepth = 0;
+  stats.maxScopeDepth = 0;
+  stats.totalErrors = 0;
+  stats.totalWarnings = 0;
+ enclosingStack_.clear();
+  upvalueCount_ = 0;
 
   compileStartTime = std::chrono::steady_clock::now();
 
@@ -228,13 +231,12 @@ ProcessDef *Compiler::compile(const std::string &source)
   auto endTime = std::chrono::steady_clock::now();
   stats.compileTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - compileStartTime);
 
-
-// Info("Compilation Statistics:");
-// Info("  Max Expression Depth: %zu", stats.maxExpressionDepth);
-// Info("  Max Scope Depth: %zu", stats.maxScopeDepth);
-// Info("  Total Errors: %zu", stats.totalErrors);
-// Info("  Total Warnings: %zu", stats.totalWarnings);
-// Info("  Compile Time: %lld ms", stats.compileTime.count());
+  // Info("Compilation Statistics:");
+  // Info("  Max Expression Depth: %zu", stats.maxExpressionDepth);
+  // Info("  Max Scope Depth: %zu", stats.maxScopeDepth);
+  // Info("  Total Errors: %zu", stats.totalErrors);
+  // Info("  Total Warnings: %zu", stats.totalWarnings);
+  // Info("  Compile Time: %lld ms", stats.compileTime.count());
 
   return currentProcess;
 }
@@ -243,11 +245,13 @@ ProcessDef *Compiler::compileExpression(const std::string &source)
 {
   numFibers_ = 1;
   delete lexer;
-  stats.maxExpressionDepth=0;
-  stats.maxScopeDepth=0;
-  stats.totalErrors==0;
-  stats.totalWarnings=0;
-  lexer = new Lexer(source); 
+  stats.maxExpressionDepth = 0;
+  stats.maxScopeDepth = 0;
+  stats.totalErrors = 0;
+  stats.totalWarnings = 0;
+  
+  upvalueCount_ = 0;
+  lexer = new Lexer(source);
 
   compileStartTime = std::chrono::steady_clock::now();
   tokens = lexer->scanAll();
@@ -258,7 +262,7 @@ ProcessDef *Compiler::compileExpression(const std::string &source)
   currentProcess = vm_->addProcess("__main__", function, 1);
   currentFunctionType = FunctionType::TYPE_SCRIPT;
   currentClass = nullptr;
-
+  enclosingStack_.clear();
   advance();
 
   if (check(TOKEN_EOF))
@@ -335,6 +339,56 @@ void Compiler::warningAt(Token &token, const char *message)
   stats.totalWarnings++;
 }
 
+int Compiler::resolveUpvalue(Token &name)
+{
+  // Se não há função pai, não pode ser upvalue
+  if (enclosingStack_.empty())
+    return -1;
+
+  // Procura em TODOS os níveis (de baixo para cima)
+  for (int level = enclosingStack_.size() - 1; level >= 0; level--)
+  {
+    // Procura nos locals desse nível
+    for (int i = enclosingStack_[level].locals.size() - 1; i >= 0; i--)
+    {
+      if (enclosingStack_[level].locals[i].name == name.lexeme)
+      {
+        // Marca como capturado
+        enclosingStack_[level].locals[i].isCaptured = true;
+
+        // Se é do pai imediato: isLocal=true
+        // Se é de mais acima: isLocal=false
+        bool isLocal = (level == (int)enclosingStack_.size() - 1);
+        return addUpvalue(i, isLocal);
+      }
+    }
+  }
+
+  return -1;
+}
+
+int Compiler::addUpvalue(uint8 index, bool isLocal)
+{
+    for (int i = 0; i < upvalueCount_; i++)
+    {
+        if (upvalues_[i].index == index && upvalues_[i].isLocal == isLocal)
+        {
+            return i;  
+        }
+    }
+    if (upvalueCount_ >= MAX_LOCALS)
+    {
+        error("Too many closure variables in function");
+        return 0;
+    }
+
+   
+    upvalues_[upvalueCount_].isLocal = isLocal;
+    upvalues_[upvalueCount_].index = index;
+
+    return upvalueCount_++;  
+}
+
 // ============================================
 // TOKEN MANAGEMENT
 // ============================================
@@ -354,21 +408,21 @@ void Compiler::advance()
 
 Token Compiler::peek(int offset)
 {
-    if (tokens.empty())
-    {
-        Token eof;
-        eof.type = TOKEN_EOF;
-        eof.lexeme = "";
-        eof.line = 1;
-        return eof;
-    }
+  if (tokens.empty())
+  {
+    Token eof;
+    eof.type = TOKEN_EOF;
+    eof.lexeme = "";
+    eof.line = 1;
+    return eof;
+  }
 
-    size_t index = cursor + offset;
-    if (index >= tokens.size())
-    {
-        return tokens.back();
-    }
-    return tokens[index];
+  size_t index = cursor + offset;
+  if (index >= tokens.size())
+  {
+    return tokens.back();
+  }
+  return tokens[index];
 }
 
 bool Compiler::checkNext(TokenType t) { return peek(0).type == t; }
@@ -434,7 +488,7 @@ void Compiler::errorAt(Token &token, const char *message)
 
   OsPrintf(": %s\n", message);
   hadError = true;
-   stats.totalErrors++; 
+  stats.totalErrors++;
 }
 
 void Compiler::errorAtCurrent(const char *message)
@@ -516,32 +570,41 @@ void Compiler::emitDiscard(uint8 count)
 
 void Compiler::emitReturn()
 {
+  // vamos testar no
+  //  for (int i = 0; i < localCount_; i++)
+  //  {
+  //    if (locals_[i].isCaptured)
+  //    {
+  //      emitByte(OP_CLOSE_UPVALUE);
+  //    }
+  //  }
   emitByte(OP_NIL);
   emitByte(OP_RETURN);
 }
 
 uint8 Compiler::makeConstant(Value value)
 {
-    if (hadError) return 0;
+  if (hadError)
+    return 0;
 
-    int constant = currentChunk->addConstant(value);
-    if (constant > UINT8_MAX)
-    {
-        error("Too many constants in one chunk");
-        hadError = true;
-        return 0;
-    }
+  int constant = currentChunk->addConstant(value);
+  if (constant > UINT8_MAX)
+  {
+    error("Too many constants in one chunk");
+    hadError = true;
+    return 0;
+  }
 
-    return (uint8)constant;
+  return (uint8)constant;
 }
 
 void Compiler::emitConstant(Value value)
 {
-    uint8 constant = makeConstant(value);
-    if (hadError) return;
-    emitBytes(OP_CONSTANT, constant);
+  uint8 constant = makeConstant(value);
+  if (hadError)
+    return;
+  emitBytes(OP_CONSTANT, constant);
 }
-
 
 // ============================================
 // JUMPS
@@ -706,7 +769,30 @@ void Compiler::resolveGotos()
       continue;
     }
 
-    patchJumpTo(jump.jumpOffset, targetOffset);
+    // Opcode está 1 byte ANTES de jumpOffset (não 3!)
+    int opcodePos = jump.jumpOffset - 1;
+    
+    if (targetOffset < jump.jumpOffset)
+    {
+      // Backward jump: usa OP_LOOP
+      currentChunk->code[opcodePos] = OP_LOOP;
+      
+      // Offset backward = distância para trás
+      int offset = jump.jumpOffset - targetOffset + 2;
+      if (offset > UINT16_MAX)
+      {
+        error("Goto distance too large");
+        continue;
+      }
+      
+      currentChunk->code[jump.jumpOffset] = (offset >> 8) & 0xff;
+      currentChunk->code[jump.jumpOffset + 1] = offset & 0xff;
+    }
+    else
+    {
+      // Forward jump
+      patchJumpTo(jump.jumpOffset, targetOffset);
+    }
   }
 
   pendingGotos.clear();

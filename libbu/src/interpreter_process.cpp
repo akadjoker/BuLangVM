@@ -246,6 +246,7 @@ Process *Interpreter::spawnProcess(ProcessDef *blueprint)
         for (int j = 0; j < srcFiber->frameCount; j++)
         {
             dstFiber->frames[j].func = srcFiber->frames[j].func;
+            dstFiber->frames[j].closure = srcFiber->frames[j].closure;
 
             // IP
             if (srcFiber->frames[j].ip != nullptr)
@@ -400,7 +401,7 @@ void Interpreter::run_process_step(Process *proc)
     // printf("  Executing Fiber %d\n", fiber - proc->fibers);
     //  Warning("  [run_process_step] result.reason=%d, instructions=%d",   (int)result.reason, result.instructionsRun);
 
-    currentFiber = nullptr;
+   // currentFiber = nullptr;
 
     if (proc->state == FiberState::DEAD)
     {

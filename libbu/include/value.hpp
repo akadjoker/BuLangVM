@@ -2,7 +2,6 @@
 #include "config.hpp"
 #include "string.hpp"
 #include "pool.hpp"
- 
 
 struct StructInstance;
 struct ArrayInstance;
@@ -11,6 +10,7 @@ struct MapInstance;
 struct ClassInstance;
 struct NativeClassInstance;
 struct NativeStructInstance;
+struct Closure;
 
 enum class ValueType : uint8
 {
@@ -41,6 +41,7 @@ enum class ValueType : uint8
   PROCESS,
   POINTER,
   MODULEREFERENCE,
+  CLOSURE,
 };
 
 struct Value
@@ -51,7 +52,7 @@ struct Value
     bool boolean;
     uint8 byte;
     int integer;
-    
+
     float real;
     double number;
     String *string;
@@ -64,6 +65,7 @@ struct Value
     ClassInstance *sClass;
     NativeClassInstance *sClassInstance;
     NativeStructInstance *sNativeStruct;
+    Closure *closure;
     void *pointer;
 
   } as;
@@ -73,8 +75,6 @@ struct Value
   Value(Value &&other) noexcept = default;
   Value &operator=(const Value &other) = default;
   Value &operator=(Value &&other) noexcept = default;
- 
-  
 
   // Type checks
   FORCE_INLINE bool isNumber() const { return ((type == ValueType::INT) || (type == ValueType::DOUBLE) || (type == ValueType::BYTE) || (type == ValueType::FLOAT) || (type == ValueType::UINT)); }
@@ -97,13 +97,14 @@ struct Value
   FORCE_INLINE bool isBuffer() const { return type == ValueType::BUFFER; }
   FORCE_INLINE bool isClass() const { return type == ValueType::CLASS; }
   FORCE_INLINE bool isClassInstance() const { return type == ValueType::CLASSINSTANCE; }
-  FORCE_INLINE bool isNativeClassInstance()const  { return type == ValueType::NATIVECLASSINSTANCE; }
-  FORCE_INLINE bool isPointer()const  { return type == ValueType::POINTER; }
-  FORCE_INLINE bool isNativeStruct()const  { return type == ValueType::NATIVESTRUCT; }
+  FORCE_INLINE bool isNativeClassInstance() const { return type == ValueType::NATIVECLASSINSTANCE; }
+  FORCE_INLINE bool isPointer() const { return type == ValueType::POINTER; }
+  FORCE_INLINE bool isNativeStruct() const { return type == ValueType::NATIVESTRUCT; }
   FORCE_INLINE bool isNativeStructInstance() const { return type == ValueType::NATIVESTRUCTINSTANCE; }
-  FORCE_INLINE bool isModuleRef() { return type == ValueType::MODULEREFERENCE; }
+  FORCE_INLINE bool isModuleRef() const { return type == ValueType::MODULEREFERENCE; }
+  FORCE_INLINE bool isClosure() const { return type == ValueType::CLOSURE; }
 
-  FORCE_INLINE bool isObject() const { return   (isBuffer() || isMap() || isArray() || isClassInstance() || isStructInstance() ||  isNativeClassInstance() || isNativeStructInstance()); }
+  FORCE_INLINE bool isObject() const { return (isBuffer() || isMap() || isArray() || isClassInstance() || isStructInstance() || isNativeClassInstance() || isNativeStructInstance() || isClosure()); }
 
   // Conversions
 
@@ -113,6 +114,11 @@ struct Value
   FORCE_INLINE int asNativeId() const { return as.integer; }
   FORCE_INLINE int asProcessId() const { return as.integer; }
 
+  FORCE_INLINE Closure * asClosure() const
+  {
+    return as.closure;
+  }
+  
 
   FORCE_INLINE int asStructId() const
   {
@@ -165,11 +171,10 @@ struct Value
     return as.buffer;
   }
 
-   FORCE_INLINE NativeClassInstance *asNativeClassInstance() const
+  FORCE_INLINE NativeClassInstance *asNativeClassInstance() const
   {
     return as.sClassInstance;
   }
-
 
   FORCE_INLINE ClassInstance *asClassInstance() const
   {
@@ -234,8 +239,6 @@ struct Value
       return 0;
     }
   }
-
-
 
   FORCE_INLINE int asInt() const
   {
@@ -373,9 +376,8 @@ struct Value
   }
 };
 
-
 void printValue(const Value &value);
- const char *valueTypeToString(ValueType type);
+const char *valueTypeToString(ValueType type);
 void printValueNl(const Value &value);
 
 void valueToBuffer(const Value &v, char *out, size_t size);
@@ -383,33 +385,32 @@ void valueToBuffer(const Value &v, char *out, size_t size);
 static FORCE_INLINE bool valuesEqual(const Value &a, const Value &b)
 {
 
-    if ((a.isInt() || a.isDouble()) && (b.isInt() || b.isDouble()))
-    {
-        double da = a.isInt() ? a.asInt() : a.asDouble();
-        double db = b.isInt() ? b.asInt() : b.asDouble();
-        return da == db;
-    }
+  if ((a.isInt() || a.isDouble()) && (b.isInt() || b.isDouble()))
+  {
+    double da = a.isInt() ? a.asInt() : a.asDouble();
+    double db = b.isInt() ? b.asInt() : b.asDouble();
+    return da == db;
+  }
 
-    // Resto precisa tipos iguais
-    if (a.type != b.type)
-        return false;
+  // Resto precisa tipos iguais
+  if (a.type != b.type)
+    return false;
 
-    switch (a.type)
-    {
-    case ValueType::BOOL:
-        return a.asBool() == b.asBool();
-    case ValueType::NIL:
-        return true;
-    case ValueType::STRING:
-    {
-        return compare_strings(a.asString(), b.asString());
-    }
+  switch (a.type)
+  {
+  case ValueType::BOOL:
+    return a.asBool() == b.asBool();
+  case ValueType::NIL:
+    return true;
+  case ValueType::STRING:
+  {
+    return compare_strings(a.asString(), b.asString());
+  }
 
-    default:
-        return false;
-    }
+  default:
+    return false;
+  }
 }
-
 
 static FORCE_INLINE bool isTruthy(const Value &value)
 {

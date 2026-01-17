@@ -12,65 +12,81 @@ int testsFailed = 0;
 std::string currentTestFile;
 
 // interpreter.cpp
-void beginTestFile(const char *filename) {
+void beginTestFile(const char *filename)
+{
   currentTestFile = filename;
   testsPassed = 0;
   testsFailed = 0;
 }
 
-void endTestFile() {
-  if (testsFailed == 0) {
+void endTestFile()
+{
+  if (testsFailed == 0)
+  {
     printf("✅ %s: %d passed\n", currentTestFile.c_str(), testsPassed);
-  } else {
+  }
+  else
+  {
     printf("❌ %s: %d passed, %d failed\n", currentTestFile.c_str(),
            testsPassed, testsFailed);
   }
 }
 
-void testPass(const char *name) {
+void testPass(const char *name)
+{
   testsPassed++;
   printf("  ✓ %s\n", name);
 }
 
-void testFail(const char *name, const char *reason) {
+void testFail(const char *name, const char *reason)
+{
   testsFailed++;
-  if (reason) {
+  if (reason)
+  {
     printf("  ✗ %s: %s\n", name, reason);
-  } else {
+  }
+  else
+  {
     printf("  ✗ %s\n", name);
   }
 }
 
-void getTestStats(int *passed, int *failed) {
+void getTestStats(int *passed, int *failed)
+{
   *passed = testsPassed;
   *failed = testsFailed;
 }
 
-void resetTestStats() {
+void resetTestStats()
+{
   testsPassed = 0;
   testsFailed = 0;
 }
 
-std::string valueToString(const Value &value) {
-  
-  return valueTypeToString(value.type);
+std::string valueToString(const Value &value)
+{
 
+  return valueTypeToString(value.type);
 }
 
-static Value native_pass(Interpreter *vm, int argc, Value *args) {
+static Value native_pass(Interpreter *vm, int argc, Value *args)
+{
   String *name = args[0].asString();
   Info("✓ %s", name->chars());
   return vm->makeNil();
 }
 
-static Value native_fail(Interpreter *vm, int argc, Value *args) {
+static Value native_fail(Interpreter *vm, int argc, Value *args)
+{
   String *name = args[0].asString();
   Error("✗ %s\n", name->chars());
   return vm->makeNil();
 }
 
-static Value native_assert_eq(Interpreter *vm, int argc, Value *args) {
-  if (argc < 3) {
+static Value native_assert_eq(Interpreter *vm, int argc, Value *args)
+{
+  if (argc < 3)
+  {
     vm->runtimeError("assert_eq() expects 3 arguments");
     return vm->makeNil();
   }
@@ -82,35 +98,56 @@ static Value native_assert_eq(Interpreter *vm, int argc, Value *args) {
 
   bool equal = false;
 
-  if (a.type != b.type) {
+  if (a.type != b.type)
+  {
     equal = false;
-  } else if (a.isInt()) {
+  }
+  else if (a.isInt())
+  {
     equal = (a.asInt() == b.asInt());
-  } else if (a.isDouble()) {
+  }
+  else if (a.isDouble())
+  {
     equal = (a.asDouble() == b.asDouble());
-  } else if (a.isBool()) {
+  }
+  else if (a.isBool())
+  {
     equal = (a.asBool() == b.asBool());
-  } else if (a.isString()) {
+  }
+  else if (a.isString())
+  {
     equal = (strcmp(a.asString()->chars(), b.asString()->chars()) == 0);
-  } else if (a.isNil() && b.isNil()) {
+  }
+  else if (a.isNil() && b.isNil())
+  {
     equal = true;
   }
 
-  if (equal) {
+  if (equal)
+  {
     testPass(name);
-  } else {
+  }
+  else
+  {
 
+    char bufferA[256];
+    char bufferB[256];
+    valueToBuffer(a, bufferA, sizeof(bufferA));
+    valueToBuffer(b, bufferB, sizeof(bufferB));
     char reason[256];
     snprintf(reason, sizeof(reason), "expected '%s', got '%s'",
-             valueToString(b).c_str(), valueToString(a).c_str());
+             bufferA, bufferB);
+ 
     testFail(name, reason);
   }
 
   return vm->makeNil();
 }
 
-static Value native_assert(Interpreter *vm, int argc, Value *args) {
-  if (argc < 2) {
+static Value native_assert(Interpreter *vm, int argc, Value *args)
+{
+  if (argc < 2)
+  {
     vm->runtimeError("assert() expects 2 arguments");
     return vm->makeNil();
   }
@@ -119,24 +156,30 @@ static Value native_assert(Interpreter *vm, int argc, Value *args) {
   const char *name =
       args[1].isString() ? args[1].asString()->chars() : "assertion";
 
-  if (condition) {
+  if (condition)
+  {
     testPass(name);
-  } else {
+  }
+  else
+  {
     testFail(name, "assertion failed");
   }
 
   return vm->makeNil();
 }
 
-Value native_clock(Interpreter *vm, int argCount, Value *args) {
+Value native_clock(Interpreter *vm, int argCount, Value *args)
+{
   return vm->makeDouble(static_cast<double>(clock()) / CLOCKS_PER_SEC);
 }
 
 // Helper: converte Value para string
-static void valueToString(const Value &v, std::string &out) {
+static void valueToString(const Value &v, std::string &out)
+{
   char buffer[256];
 
-  switch (v.type) {
+  switch (v.type)
+  {
   case ValueType::NIL:
     out += "nil";
     break;
@@ -163,7 +206,8 @@ static void valueToString(const Value &v, std::string &out) {
     snprintf(buffer, 256, "%.2f", v.as.number);
     out += buffer;
     break;
-  case ValueType::STRING: {
+  case ValueType::STRING:
+  {
     out += v.asStringChars();
     break;
   }
@@ -173,7 +217,7 @@ static void valueToString(const Value &v, std::string &out) {
   case ValueType::MAP:
     out += "{map}";
     break;
-  
+
   default:
     out += "<object>";
   }
@@ -182,17 +226,19 @@ static void valueToString(const Value &v, std::string &out) {
 Value native_print_stack(Interpreter *vm, int argCount, Value *args)
 {
 
-    if (argCount == 1)
-    {
-        Info("%s", args[0].asString()->chars());
-    }
+  if (argCount == 1)
+  {
+    Info("%s", args[0].asString()->chars());
+  }
 
-    vm->printStack();
-    return vm->makeNil();
+  vm->printStack();
+  return vm->makeNil();
 }
 
-Value native_format(Interpreter *vm, int argCount, Value *args) {
-  if (argCount < 1 || args[0].type != ValueType::STRING) {
+Value native_format(Interpreter *vm, int argCount, Value *args)
+{
+  if (argCount < 1 || args[0].type != ValueType::STRING)
+  {
     vm->runtimeError("format expects string as first argument");
     return vm->makeNil();
   }
@@ -201,13 +247,18 @@ Value native_format(Interpreter *vm, int argCount, Value *args) {
   std::string result;
   int argIndex = 1;
 
-  for (int i = 0; fmt[i] != '\0'; i++) {
-    if (fmt[i] == '{' && fmt[i + 1] == '}') {
-      if (argIndex < argCount) {
+  for (int i = 0; fmt[i] != '\0'; i++)
+  {
+    if (fmt[i] == '{' && fmt[i + 1] == '}')
+    {
+      if (argIndex < argCount)
+      {
         valueToString(args[argIndex++], result);
       }
       i++;
-    } else {
+    }
+    else
+    {
       result += fmt[i];
     }
   }
@@ -215,8 +266,10 @@ Value native_format(Interpreter *vm, int argCount, Value *args) {
   return vm->makeString(result.c_str());
 }
 
-Value native_write(Interpreter *vm, int argCount, Value *args) {
-  if (argCount < 1 || args[0].type != ValueType::STRING) {
+Value native_write(Interpreter *vm, int argCount, Value *args)
+{
+  if (argCount < 1 || args[0].type != ValueType::STRING)
+  {
     vm->runtimeError("write expects string as first argument");
     return vm->makeNil();
   }
@@ -225,13 +278,18 @@ Value native_write(Interpreter *vm, int argCount, Value *args) {
   std::string result;
   int argIndex = 1;
 
-  for (int i = 0; fmt[i] != '\0'; i++) {
-    if (fmt[i] == '{' && fmt[i + 1] == '}') {
-      if (argIndex < argCount) {
+  for (int i = 0; fmt[i] != '\0'; i++)
+  {
+    if (fmt[i] == '{' && fmt[i + 1] == '}')
+    {
+      if (argIndex < argCount)
+      {
         valueToString(args[argIndex++], result);
       }
       i++;
-    } else {
+    }
+    else
+    {
       result += fmt[i];
     }
   }
@@ -239,7 +297,16 @@ Value native_write(Interpreter *vm, int argCount, Value *args) {
   printf("%s", result.c_str());
   return vm->makeNil();
 }
-int main(int argc, char **argv) {
+
+Value native_gc(Interpreter *vm, int argCount, Value *args)
+{
+    vm->runGC();
+    return vm->makeNil();
+}
+
+
+int main(int argc, char **argv)
+{
   Interpreter vm;
 
   // Regista natives de teste
@@ -254,6 +321,8 @@ int main(int argc, char **argv) {
   vm.registerNative("write", native_write, -1);
   vm.registerNative("print_stack", native_print_stack, -1);
 
+  vm.registerNative("_gc", native_gc, 0);
+
   int totalPassed = 0;
   int totalFailed = 0;
   int filesRun = 0;
@@ -262,7 +331,8 @@ int main(int argc, char **argv) {
   namespace fs = std::filesystem;
   const fs::path testDir = "scripts/tests";
 
-  if (!fs::exists(testDir)) {
+  if (!fs::exists(testDir))
+  {
     printf("Error: Test directory '%s' does not exist\n", testDir.c_str());
     return 1;
   }
@@ -270,7 +340,8 @@ int main(int argc, char **argv) {
   printf("🧪 Running BuLang Tests\n");
   printf("======================\n\n");
 
-  for (auto &entry : fs::directory_iterator(testDir)) {
+  for (auto &entry : fs::directory_iterator(testDir))
+  {
     if (!entry.is_regular_file())
       continue;
     if (entry.path().extension() != ".bu")
@@ -281,7 +352,8 @@ int main(int argc, char **argv) {
 
     // Lê código
     std::ifstream file(path);
-    if (!file) {
+    if (!file)
+    {
       printf("❌ Failed to open %s\n", filename.c_str());
       filesFailed++;
       continue;
@@ -295,7 +367,8 @@ int main(int argc, char **argv) {
     filesRun++;
 
     // Compila
-    if (!vm.run(code.c_str(), false)) {
+    if (!vm.run(code.c_str(), false))
+    {
       printf("❌ %s: Compilation failed\n\n", filename.c_str());
       filesFailed++;
       continue;
@@ -305,12 +378,14 @@ int main(int argc, char **argv) {
     int maxFrames = 50000; // Safety limit
     int frame = 0;
 
-    while (vm.getTotalAliveProcesses() && frame < maxFrames) {
+    while (vm.getTotalAliveProcesses() && frame < maxFrames)
+    {
       vm.update(0.016f);
       frame++;
     }
 
-    if (frame >= maxFrames) {
+    if (frame >= maxFrames)
+    {
       printf("⚠️  Warning: Test hit frame limit (%d frames)\n", maxFrames);
     }
 
@@ -323,7 +398,8 @@ int main(int argc, char **argv) {
     totalPassed += passed;
     totalFailed += failed;
 
-    if (failed > 0) {
+    if (failed > 0)
+    {
       filesFailed++;
     }
 
@@ -338,10 +414,13 @@ int main(int argc, char **argv) {
   printf("Tests:  %d passed, %d failed\n", totalPassed, totalFailed);
   printf("======================\n");
 
-  if (totalFailed == 0 && filesFailed == 0) {
+  if (totalFailed == 0 && filesFailed == 0)
+  {
     printf("✅ All tests passed!\n");
     return 0;
-  } else {
+  }
+  else
+  {
     printf("❌ Some tests failed\n");
     return 1;
   }

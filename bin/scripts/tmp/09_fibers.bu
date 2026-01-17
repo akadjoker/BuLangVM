@@ -27,11 +27,15 @@ test_spawn();
 
 print("--- TESTE: Logic & Yield ---");
 
-struct State { x, y };
+struct State 
+{ 
+  var   x, y ;
+};
 
 def worker(st)
 {
     var steps = 0;
+    print("start");
     while (steps < 3) 
     {  
         st.x = st.x + 1;
@@ -45,15 +49,18 @@ def worker(st)
 process enemy()
 {
     var s = State(0, 0);
-    fiber worker(s);
+      fiber worker(s);
+ 
     
-    // Deixamos o fiber correr 4 frames
+    //Deixamos o fiber correr 4 frames
     frame; frame; frame; frame;
     
-    assert_eq(s.x, 3, "State updated by fiber");
+    assert_eq(3,s.x, "State updated by fiber");
 }
 
+ 
 enemy();
+ 
 
 
 print("--- TESTE: Recursion inside Fiber ---");
@@ -88,11 +95,12 @@ process math_test()
     }
     
     print("Fatorial de 5: " + finalResult);
-    assert_eq(finalResult, 120, "Recursive fiber result");
+    assert_eq(120,finalResult, "Recursive fiber result");
 }
 
+frame(1000);
 math_test();
-
+frame(1000);
 
 
 

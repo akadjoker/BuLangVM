@@ -89,6 +89,9 @@ const char *valueTypeToString(ValueType type)
         return "<native_class>";
     case ValueType::NATIVESTRUCT:
         return "<native_struct>";
+    case ValueType::CLOSURE:
+        return "<closure>";
+ 
 
     }
     return "<unknown>";
@@ -258,6 +261,11 @@ void printValue(const Value &value)
     case ValueType::NATIVECLASS:
     {
         OsPrintf("<native_class>");
+        break;
+    }
+    case ValueType::CLOSURE:
+    {
+        OsPrintf("<closure>");
         break;
     }
  
