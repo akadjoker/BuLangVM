@@ -299,6 +299,9 @@ Value native_math_tanh(Interpreter *vm, int argCount, Value *args)
     return vm->makeDouble(std::tanh(args[0].asNumber()));
 }
 
+
+static double CLAMP(double x, double min, double max) { return x < min ? min : x > max ? max : x; }
+
 Value native_math_smoothstep(Interpreter *vm, int argCount, Value *args)
 {
     // Suporta 1 argumento (t normalizado 0..1) ou 3 argumentos (range GLSL)
@@ -321,7 +324,7 @@ Value native_math_smoothstep(Interpreter *vm, int argCount, Value *args)
     }
 
     // Clamp e normalização
-    t = std::clamp((t - edge0) / (edge1 - edge0), 0.0, 1.0);
+    t = CLAMP((t - edge0) / (edge1 - edge0), 0.0, 1.0);
 
     // Fórmula: t * t * (3 - 2 * t)
     return vm->makeDouble(t * t * (3.0 - 2.0 * t));
@@ -350,7 +353,7 @@ Value native_math_smootherstep(Interpreter *vm, int argCount, Value *args)
        
     }
 
-    t = std::clamp((t - edge0) / (edge1 - edge0), 0.0, 1.0);
+    t = CLAMP((t - edge0) / (edge1 - edge0), 0.0, 1.0);
 
     // Fórmula: t * t * t * (t * (t * 6 - 15) + 10)
     return vm->makeDouble(t * t * t * (t * (t * 6.0 - 15.0) + 10.0));
@@ -382,12 +385,12 @@ double hermite(double value1, double tangent1, double value2, double tangent2, d
 
 float repeat(double t, double length)
 {
-    return std::clamp(t - floor(t / length) * length, 0.0f, length);
+    return CLAMP(t - std::floor(t / length) * length, 0.0f, length);
 }
 double ping_pong(double t, double length)
 {
     t = repeat(t, length * 2.0f);
-    return length - abs(t - length);
+    return length - std::abs(t - length);
 }
 
 
