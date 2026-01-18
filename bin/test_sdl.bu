@@ -47,14 +47,13 @@ while (running)
                 print("Clique Esquerdo em: " , e.btnX , ", " , e.btnY);
                 rectX = e.btnX;
                 rectY = e.btnY;
-                break;
             }
             
             if (e.button == 3) 
             {
                 print("Clique Direito!");
                 print_stack("mouse");
-                break;
+
             }
              
         }
@@ -74,12 +73,18 @@ while (running)
             
             if (e.winEvent == SDL_WINDOWEVENT_RESIZED) 
             {
-                print("Janela mudou de tamanho!");
+           
                 print("Nova Largura: " + e.Width);
                 print("Nova Altura:  " + e.Height);
                 
                 
             }
+        }
+
+        if (e.type == SDL_KEYDOWN) 
+        {
+             print("Tecla: " + e.key);
+             if (e.key == 27) { running = false; } // ESC
         }
          
     }

@@ -9,297 +9,351 @@ GLOBAL FUNCTIONS
 
 >>> Function: __main__
     Arity: 0
-    Has return: yes
+    Has return: no
     Index: 0
 
-  Constants (63):
-    [0] = "start"
-    [1] = <value type 26>
-    [2] = 62001
-    [3] = 0
-    [4] = "write"
-    [5] = "Couldn't initialize SDL:{}
-"
-    [6] = <value type 26>
-    [7] = "win"
-    [8] = <value type 26>
-    [9] = "Bulang SDL Test"
-    [10] = 536805376
-    [11] = 800
-    [12] = 600
-    [13] = 4
-    [14] = 32
-    [15] = "ren"
-    [16] = <value type 26>
-    [17] = 1
-    [18] = "e"
-    [19] = "SDL_Event"
-    [20] = "running"
-    [21] = "rectX"
-    [22] = 400
-    [23] = "rectY"
-    [24] = 300
-    [25] = "rectSize"
-    [26] = 50
-    [27] = <value type 26>
-    [28] = "type"
-    [29] = 256
-    [30] = 1024
-    [31] = 1025
-    [32] = "button"
-    [33] = "Clique Esquerdo em: "
-    [34] = "btnX"
-    [35] = ", "
-    [36] = "btnY"
-    [37] = 3
-    [38] = "Clique Direito!"
-    [39] = "print_stack"
-    [40] = "mouse"
-    [41] = 1027
-    [42] = "wheelY"
-    [43] = 10
-    [44] = 512
-    [45] = "winEvent"
-    [46] = 5
-    [47] = "Janela mudou de tamanho!"
-    [48] = "Nova Largura: "
-    [49] = "Width"
-    [50] = "Nova Altura:  "
-    [51] = "Height"
-    [52] = <value type 26>
-    [53] = 45
-    [54] = 255
-    [55] = <value type 26>
-    [56] = <value type 26>
-    [57] = <value type 26>
-    [58] = <value type 26>
-    [59] = <value type 26>
-    [60] = <value type 26>
-    [61] = <value type 26>
-    [62] = "end"
+  Constants (0):
 
   Bytecode:
-    0000    4 OP_CONSTANT             0 'start'
-    0002    | OP_PRINT                1
-    0004    6 OP_CONSTANT             1 '<module_reference 0 112 0>'
-    0006    | OP_CONSTANT             2 '62001'
-    0008    | OP_CALL                 1
-    0010    | OP_CONSTANT             3 '0'
-    0012    | OP_LESS             
-    0013    | OP_JUMP_IF_FALSE       13 -> 33
-    0016    | OP_POP              
-    0017    8 OP_GET_GLOBAL           4 'write'
-    0019    | OP_CONSTANT             5 'Couldn't initialize SDL:{}'
-    0021    | OP_CONSTANT             6 '<module_reference 0 112 2>'
-    0023    | OP_CALL                 0
-    0025    | OP_CALL                 2
-    0027    | OP_POP              
-    0028    9 OP_NIL              
-    0029    | OP_RETURN           
-    0030   10 OP_JUMP                30 -> 34
-    0033    | OP_POP              
-    0034   12 OP_CONSTANT             8 '<module_reference 0 112 17>'
-    0036    | OP_CONSTANT             9 'Bulang SDL Test'
-    0038    | OP_CONSTANT            10 '536805376'
-    0040    | OP_CONSTANT            10 '536805376'
-    0042    | OP_CONSTANT            11 '800'
-    0044    | OP_CONSTANT            12 '600'
-    0046    | OP_CONSTANT            13 '4'
-    0048    | OP_CONSTANT            14 '32'
-    0050    | OP_BITWISE_OR       
-    0051    | OP_CALL                 6
-    0053    | OP_DEFINE_GLOBAL        7 'win'
-    0055   13 OP_CONSTANT            16 '<module_reference 0 112 4>'
-    0057    | OP_GET_GLOBAL           7 'win'
-    0059    | OP_CONSTANT            17 '1'
-    0061    | OP_NEGATE           
-    0062    | OP_CONSTANT             3 '0'
-    0064    | OP_CALL                 3
-    0066    | OP_DEFINE_GLOBAL       15 'ren'
-    0068   15 OP_GET_GLOBAL          19 'SDL_Event'
-    0070    | OP_CALL                 0
-    0072    | OP_DEFINE_GLOBAL       18 'e'
-    0074   16 OP_TRUE             
-    0075    | OP_DEFINE_GLOBAL       20 'running'
-    0077   17 OP_CONSTANT            22 '400'
-    0079    | OP_DEFINE_GLOBAL       21 'rectX'
-    0081   18 OP_CONSTANT            24 '300'
-    0083    | OP_DEFINE_GLOBAL       23 'rectY'
-    0085   19 OP_CONSTANT            26 '50'
-    0087    | OP_DEFINE_GLOBAL       25 'rectSize'
-    0089   21 OP_GET_GLOBAL          20 'running'
-    0091    | OP_JUMP_IF_FALSE       91 -> 374
-    0094    | OP_POP              
-    0095   25 OP_CONSTANT            27 '<module_reference 0 112 16>'
-    0097    | OP_GET_GLOBAL          18 'e'
-    0099    | OP_CALL                 1
-    0101    | OP_JUMP_IF_FALSE      101 -> 315
-    0104    | OP_POP              
-    0105   28 OP_GET_GLOBAL          18 'e'
-    0107    | OP_GET_PROPERTY        28 'type'
-    0109    | OP_CONSTANT            29 '256'
-    0111    | OP_EQUAL            
-    0112    | OP_JUMP_IF_FALSE      112 -> 126
-    0115    | OP_POP              
-    0116   30 OP_FALSE            
-    0117    | OP_SET_GLOBAL          20 'running'
-    0119    | OP_POP              
-    0120   31 OP_JUMP               120 -> 315
-    0123   32 OP_JUMP               123 -> 127
-    0126    | OP_POP              
-    0127   34 OP_GET_GLOBAL          18 'e'
-    0129    | OP_GET_PROPERTY        28 'type'
-    0131    | OP_CONSTANT            30 '1024'
-    0133    | OP_EQUAL            
-    0134    | OP_JUMP_IF_FALSE      134 -> 141
-    0137    | OP_POP              
-    0138   40 OP_JUMP               138 -> 142
-    0141    | OP_POP              
-    0142   42 OP_GET_GLOBAL          18 'e'
-    0144    | OP_GET_PROPERTY        28 'type'
-    0146    | OP_CONSTANT            31 '1025'
-    0148    | OP_EQUAL            
-    0149    | OP_JUMP_IF_FALSE      149 -> 231
-    0152    | OP_POP              
-    0153   45 OP_GET_GLOBAL          18 'e'
-    0155    | OP_GET_PROPERTY        32 'button'
-    0157    | OP_CONSTANT            17 '1'
-    0159    | OP_EQUAL            
-    0160    | OP_JUMP_IF_FALSE      160 -> 198
-    0163    | OP_POP              
-    0164   47 OP_CONSTANT            33 'Clique Esquerdo em: '
-    0166    | OP_GET_GLOBAL          18 'e'
-    0168    | OP_GET_PROPERTY        34 'btnX'
-    0170    | OP_CONSTANT            35 ', '
-    0172    | OP_GET_GLOBAL          18 'e'
-    0174    | OP_GET_PROPERTY        36 'btnY'
-    0176    | OP_PRINT                4
-    0178   48 OP_GET_GLOBAL          18 'e'
-    0180    | OP_GET_PROPERTY        34 'btnX'
-    0182    | OP_SET_GLOBAL          21 'rectX'
-    0184    | OP_POP              
-    0185   49 OP_GET_GLOBAL          18 'e'
-    0187    | OP_GET_PROPERTY        36 'btnY'
-    0189    | OP_SET_GLOBAL          23 'rectY'
-    0191    | OP_POP              
-    0192   50 OP_JUMP               192 -> 315
-    0195   51 OP_JUMP               195 -> 199
-    0198    | OP_POP              
-    0199   53 OP_GET_GLOBAL          18 'e'
-    0201    | OP_GET_PROPERTY        32 'button'
-    0203    | OP_CONSTANT            37 '3'
-    0205    | OP_EQUAL            
-    0206    | OP_JUMP_IF_FALSE      206 -> 227
-    0209    | OP_POP              
-    0210   55 OP_CONSTANT            38 'Clique Direito!'
-    0212    | OP_PRINT                1
-    0214   56 OP_GET_GLOBAL          39 'print_stack'
-    0216    | OP_CONSTANT            40 'mouse'
-    0218    | OP_CALL                 1
-    0220    | OP_POP              
-    0221   57 OP_JUMP               221 -> 315
-    0224   58 OP_JUMP               224 -> 228
-    0227    | OP_POP              
-    0228   60 OP_JUMP               228 -> 232
-    0231    | OP_POP              
-    0232   63 OP_GET_GLOBAL          18 'e'
-    0234    | OP_GET_PROPERTY        28 'type'
-    0236    | OP_CONSTANT            41 '1027'
-    0238    | OP_EQUAL            
-    0239    | OP_JUMP_IF_FALSE      239 -> 259
-    0242    | OP_POP              
-    0243   67 OP_GET_GLOBAL          25 'rectSize'
-    0245    | OP_GET_GLOBAL          18 'e'
-    0247    | OP_GET_PROPERTY        42 'wheelY'
-    0249    | OP_CONSTANT            43 '10'
-    0251    | OP_MULTIPLY         
-    0252    | OP_ADD              
-    0253    | OP_SET_GLOBAL          25 'rectSize'
-    0255    | OP_POP              
-    0256   70 OP_JUMP               256 -> 260
-    0259    | OP_POP              
-    0260   71 OP_GET_GLOBAL          18 'e'
-    0262    | OP_GET_PROPERTY        28 'type'
-    0264    | OP_CONSTANT            44 '512'
-    0266    | OP_EQUAL            
-    0267    | OP_JUMP_IF_FALSE      267 -> 311
-    0270    | OP_POP              
-    0271   75 OP_GET_GLOBAL          18 'e'
-    0273    | OP_GET_PROPERTY        45 'winEvent'
-    0275    | OP_CONSTANT            46 '5'
-    0277    | OP_EQUAL            
-    0278    | OP_JUMP_IF_FALSE      278 -> 307
-    0281    | OP_POP              
-    0282   77 OP_CONSTANT            47 'Janela mudou de tamanho!'
-    0284    | OP_PRINT                1
-    0286   78 OP_CONSTANT            48 'Nova Largura: '
-    0288    | OP_GET_GLOBAL          18 'e'
-    0290    | OP_GET_PROPERTY        49 'Width'
-    0292    | OP_ADD              
-    0293    | OP_PRINT                1
-    0295   79 OP_CONSTANT            50 'Nova Altura:  '
-    0297    | OP_GET_GLOBAL          18 'e'
-    0299    | OP_GET_PROPERTY        51 'Height'
-    0301    | OP_ADD              
-    0302    | OP_PRINT                1
-    0304   82 OP_JUMP               304 -> 308
-    0307    | OP_POP              
-    0308   83 OP_JUMP               308 -> 312
-    0311    | OP_POP              
-    0312   85 OP_LOOP               312 -> 95
-    0315    | OP_POP              
-    0316   87 OP_CONSTANT            52 '<module_reference 0 112 6>'
-    0318    | OP_GET_GLOBAL          15 'ren'
-    0320    | OP_CONSTANT             3 '0'
-    0322    | OP_CONSTANT             3 '0'
-    0324    | OP_CONSTANT            53 '45'
-    0326    | OP_CONSTANT            54 '255'
-    0328    | OP_CALL                 5
-    0330    | OP_POP              
-    0331   88 OP_CONSTANT            55 '<module_reference 0 112 7>'
-    0333    | OP_GET_GLOBAL          15 'ren'
-    0335    | OP_CALL                 1
-    0337    | OP_POP              
-    0338   89 OP_CONSTANT            56 '<module_reference 0 112 6>'
-    0340    | OP_GET_GLOBAL          15 'ren'
-    0342    | OP_CONSTANT            54 '255'
-    0344    | OP_CONSTANT            54 '255'
-    0346    | OP_CONSTANT            54 '255'
-    0348    | OP_CONSTANT            54 '255'
-    0350    | OP_CALL                 5
-    0352    | OP_POP              
-    0353   90 OP_CONSTANT            57 '<module_reference 0 112 9>'
-    0355    | OP_GET_GLOBAL          15 'ren'
-    0357    | OP_GET_GLOBAL          21 'rectX'
-    0359    | OP_GET_GLOBAL          23 'rectY'
-    0361    | OP_CALL                 3
-    0363    | OP_POP              
-    0364   91 OP_CONSTANT            58 '<module_reference 0 112 8>'
-    0366    | OP_GET_GLOBAL          15 'ren'
-    0368    | OP_CALL                 1
-    0370    | OP_POP              
-    0371   92 OP_LOOP               371 -> 89
-    0374    | OP_POP              
-    0375   94 OP_CONSTANT            59 '<module_reference 0 112 5>'
-    0377    | OP_GET_GLOBAL          15 'ren'
-    0379    | OP_CALL                 1
-    0381    | OP_POP              
-    0382   95 OP_CONSTANT            60 '<module_reference 0 112 18>'
-    0384    | OP_GET_GLOBAL           7 'win'
-    0386    | OP_CALL                 1
-    0388    | OP_POP              
-    0389   96 OP_CONSTANT            61 '<module_reference 0 112 1>'
-    0391    | OP_CALL                 0
-    0393    | OP_POP              
-    0394   99 OP_CONSTANT            62 'end'
-    0396    | OP_PRINT                1
-    0398   10 OP_NIL              
-    0399    | OP_RETURN           
+    0000   81 OP_NIL              
+    0001    | OP_RETURN           
 
 
 ========================================
 CLASSES
 ========================================
+
+
+>>> Class: Cao
+    Index: 1
+    Field count: 1
+    Has superclass: yes
+    Superclass: Animal
+
+    Fields:
+      [0] nome
+
+    >>> Constructor (init)
+        Arity: 0
+
+      Constants (0):
+
+      Bytecode:
+
+    Methods:
+
+    >>> Method: init
+        Arity: 0
+        Has return: yes
+
+      Constants (0):
+
+      Bytecode:
+
+
+    >>> Method: som
+        Arity: 0
+        Has return: yes
+
+      Constants (0):
+
+      Bytecode:
+
+
+    >>> Method: getNome
+        Arity: 0
+        Has return: yes
+
+      Constants (0):
+
+      Bytecode:
+
+
+
+>>> Class: C
+    Index: 6
+    Field count: 3
+    Has superclass: yes
+    Superclass: B
+
+    Fields:
+      [0] a
+      [1] b
+      [2] c
+
+    >>> Constructor (init)
+        Arity: 0
+
+      Constants (0):
+
+      Bytecode:
+
+    Methods:
+
+    >>> Method: init
+        Arity: 0
+        Has return: yes
+
+      Constants (0):
+
+      Bytecode:
+
+
+    >>> Method: getC
+        Arity: 0
+        Has return: yes
+
+      Constants (0):
+
+      Bytecode:
+
+
+    >>> Method: getSum
+        Arity: 0
+        Has return: yes
+
+      Constants (0):
+
+      Bytecode:
+
+
+
+>>> Class: B
+    Index: 5
+    Field count: 2
+    Has superclass: yes
+    Superclass: A
+
+    Fields:
+      [0] a
+      [1] b
+
+    >>> Constructor (init)
+        Arity: 0
+
+      Constants (0):
+
+      Bytecode:
+
+    Methods:
+
+    >>> Method: init
+        Arity: 0
+        Has return: yes
+
+      Constants (0):
+
+      Bytecode:
+
+
+    >>> Method: getB
+        Arity: 0
+        Has return: yes
+
+      Constants (0):
+
+      Bytecode:
+
+
+
+>>> Class: RecursiveClass
+    Index: 8
+    Field count: 0
+    Has superclass: no
+
+    Fields:
+
+    Methods:
+
+    >>> Method: factorial
+        Arity: 0
+        Has return: yes
+
+      Constants (0):
+
+      Bytecode:
+
+
+
+>>> Class: Entity
+    Index: 2
+    Field count: 1
+    Has superclass: no
+
+    Fields:
+      [0] health
+
+    >>> Constructor (init)
+        Arity: 0
+
+      Constants (0):
+
+      Bytecode:
+
+    Methods:
+
+    >>> Method: init
+        Arity: 0
+        Has return: yes
+
+      Constants (0):
+
+      Bytecode:
+
+
+    >>> Method: damage
+        Arity: 0
+        Has return: yes
+
+      Constants (0):
+
+      Bytecode:
+
+
+
+>>> Class: A
+    Index: 4
+    Field count: 1
+    Has superclass: no
+
+    Fields:
+      [0] a
+
+    >>> Constructor (init)
+        Arity: 0
+
+      Constants (0):
+
+      Bytecode:
+
+    Methods:
+
+    >>> Method: init
+        Arity: 0
+        Has return: yes
+
+      Constants (0):
+
+      Bytecode:
+
+
+    >>> Method: getA
+        Arity: 0
+        Has return: yes
+
+      Constants (0):
+
+      Bytecode:
+
+
+
+>>> Class: Animal
+    Index: 0
+    Field count: 1
+    Has superclass: no
+
+    Fields:
+      [0] nome
+
+    >>> Constructor (init)
+        Arity: 0
+
+      Constants (0):
+
+      Bytecode:
+
+    Methods:
+
+    >>> Method: init
+        Arity: 0
+        Has return: yes
+
+      Constants (0):
+
+      Bytecode:
+
+
+    >>> Method: som
+        Arity: 0
+        Has return: yes
+
+      Constants (0):
+
+      Bytecode:
+
+
+
+>>> Class: Calculator
+    Index: 7
+    Field count: 1
+    Has superclass: no
+
+    Fields:
+      [0] value
+
+    >>> Constructor (init)
+        Arity: 0
+
+      Constants (0):
+
+      Bytecode:
+
+    Methods:
+
+    >>> Method: init
+        Arity: 0
+        Has return: yes
+
+      Constants (0):
+
+      Bytecode:
+
+
+    >>> Method: double
+        Arity: 0
+        Has return: yes
+
+      Constants (0):
+
+      Bytecode:
+
+
+    >>> Method: quadruple
+        Arity: 0
+        Has return: yes
+
+      Constants (0):
+
+      Bytecode:
+
+
+
+>>> Class: Particle
+    Index: 3
+    Field count: 2
+    Has superclass: no
+
+    Fields:
+      [0] x
+      [1] y
+
+    >>> Constructor (init)
+        Arity: 0
+
+      Constants (0):
+
+      Bytecode:
+
+    Methods:
+
+    >>> Method: init
+        Arity: 0
+        Has return: yes
+
+      Constants (0):
+
+      Bytecode:
+
 
 
 ========================================

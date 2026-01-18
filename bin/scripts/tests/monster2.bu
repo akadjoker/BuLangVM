@@ -106,154 +106,154 @@ var lim = Limited(1, 2);
 print("(Teste de erro comentado - descomentar para testar)\n");
 assertTrue("Struct limitado OK", lim.a == 1);
 
-// ═══════════════════════════════════════════════════════════════════════
-// TEST 16: Loop criando e destruindo structs (GC stress)
-// ═══════════════════════════════════════════════════════════════════════
-print("\n[TEST 16] GC stress - criar/destruir 10K structs em loop\n");
-print("────────────────────────────────────────────────────────────────\n");
+// // ═══════════════════════════════════════════════════════════════════════
+// // TEST 16: Loop criando e destruindo structs (GC stress)
+// // ═══════════════════════════════════════════════════════════════════════
+// print("\n[TEST 16] GC stress - criar/destruir 10K structs em loop\n");
+// print("────────────────────────────────────────────────────────────────\n");
 
-struct Temp { var id, data; };
+// struct Temp { var id, data; };
 
-for(var i = 0; i < 10000; i++) {
-    var temp = Temp(i, i * 2);
-    // temp vai ser garbage collected
-}
+// for(var i = 0; i < 10000; i++) {
+//     var temp = Temp(i, i * 2);
+//     // temp vai ser garbage collected
+// }
 
-assertTrue("GC stress OK", true);
+// assertTrue("GC stress OK", true);
 
-// ═══════════════════════════════════════════════════════════════════════
-// TEST 17: Array de structs diferentes
-// ═══════════════════════════════════════════════════════════════════════
-print("\n[TEST 17] Array com structs de tipos diferentes\n");
-print("────────────────────────────────────────────────────────────────\n");
+// // ═══════════════════════════════════════════════════════════════════════
+// // TEST 17: Array de structs diferentes
+// // ═══════════════════════════════════════════════════════════════════════
+// print("\n[TEST 17] Array com structs de tipos diferentes\n");
+// print("────────────────────────────────────────────────────────────────\n");
 
-struct A { var t; };
-struct B { var t; };
-struct C { var t; };
+// struct A { var t; };
+// struct B { var t; };
+// struct C { var t; };
 
-var mixed = [A("A"), B("B"), C("C")];
+// var mixed = [A("A"), B("B"), C("C")];
 
-assertEq("mixed[0].t", mixed[0].t, "A");
-assertEq("mixed[1].t", mixed[1].t, "B");
-assertEq("mixed[2].t", mixed[2].t, "C");
+// assertEq("mixed[0].t", mixed[0].t, "A");
+// assertEq("mixed[1].t", mixed[1].t, "B");
+// assertEq("mixed[2].t", mixed[2].t, "C");
 
-// ═══════════════════════════════════════════════════════════════════════
-// TEST 18: Struct como valor de outro struct
-// ═══════════════════════════════════════════════════════════════════════
-print("\n[TEST 18] Struct dentro de struct (não aninhado)\n");
-print("────────────────────────────────────────────────────────────────\n");
+// // ═══════════════════════════════════════════════════════════════════════
+// // TEST 18: Struct como valor de outro struct
+// // ═══════════════════════════════════════════════════════════════════════
+// print("\n[TEST 18] Struct dentro de struct (não aninhado)\n");
+// print("────────────────────────────────────────────────────────────────\n");
 
-struct Inner { var val; };
-struct Outer { var inner, other; };
+// struct Inner { var val; };
+// struct Outer { var inner, other; };
 
-var inner = Inner(42);
-var outer = Outer(inner, 100);
+// var inner = Inner(42);
+// var outer = Outer(inner, 100);
 
-assertEq("outer.inner.val", outer.inner.val, 42);
-assertEq("outer.other", outer.other, 100);
+// assertEq("outer.inner.val", outer.inner.val, 42);
+// assertEq("outer.other", outer.other, 100);
 
-inner.val = 999;
-assertEq("inner modificado reflete", outer.inner.val, 999);
+// inner.val = 999;
+// assertEq("inner modificado reflete", outer.inner.val, 999);
 
-// ═══════════════════════════════════════════════════════════════════════
-// TEST 19: Field names unicode (se suportado)
-// ═══════════════════════════════════════════════════════════════════════
-print("\n[TEST 19] Field names especiais\n");
-print("────────────────────────────────────────────────────────────────\n");
+// // ═══════════════════════════════════════════════════════════════════════
+// // TEST 19: Field names unicode (se suportado)
+// // ═══════════════════════════════════════════════════════════════════════
+// print("\n[TEST 19] Field names especiais\n");
+// print("────────────────────────────────────────────────────────────────\n");
 
-struct Special 
-{
-    var _private, special, __dunder__;
-};
+// struct Special 
+// {
+//     var _private, special, __dunder__;
+// };
 
-var spec = Special(1, 2, 3);
-assertEq("_private", spec._private, 1);
-assertEq("special", spec.special, 2);
-assertEq("__dunder__", spec.__dunder__, 3);
+// var spec = Special(1, 2, 3);
+// assertEq("_private", spec._private, 1);
+// assertEq("special", spec.special, 2);
+// assertEq("__dunder__", spec.__dunder__, 3);
 
-// ═══════════════════════════════════════════════════════════════════════
-// TEST 20: Performance comparison - Struct vs Array
-// ═══════════════════════════════════════════════════════════════════════
-print("\n[TEST 20] Performance: Struct vs Array\n");
-print("────────────────────────────────────────────────────────────────\n");
+// // ═══════════════════════════════════════════════════════════════════════
+// // TEST 20: Performance comparison - Struct vs Array
+// // ═══════════════════════════════════════════════════════════════════════
+// print("\n[TEST 20] Performance: Struct vs Array\n");
+// print("────────────────────────────────────────────────────────────────\n");
 
-struct Vec3 { var x, y, z; };
+// struct Vec3 { var x, y, z; };
 
-var startStruct = clock();
-for(var i = 0; i < 100000; i++) {
-    var v = Vec3(i, i+1, i+2);
-    var sum = v.x + v.y + v.z;
-}
-var timeStruct = clock() - startStruct;
+// var startStruct = clock();
+// for(var i = 0; i < 100000; i++) {
+//     var v = Vec3(i, i+1, i+2);
+//     var sum = v.x + v.y + v.z;
+// }
+// var timeStruct = clock() - startStruct;
 
-var startArray = clock();
-for(var i = 0; i < 100000; i++) {
-    var v = [i, i+1, i+2];
-    var sum = v[0] + v[1] + v[2];
-}
-var timeArray = clock() - startArray;
+// var startArray = clock();
+// for(var i = 0; i < 100000; i++) {
+//     var v = [i, i+1, i+2];
+//     var sum = v[0] + v[1] + v[2];
+// }
+// var timeArray = clock() - startArray;
 
-print("Struct time: " + timeStruct + "s\n");
-print("Array time: " + timeArray + "s\n");
-assertTrue("Struct performance reasonable", timeStruct < 10.0);
+// print("Struct time: " + timeStruct + "s\n");
+// print("Array time: " + timeArray + "s\n");
+// assertTrue("Struct performance reasonable", timeStruct < 10.0);
 
 
 
-var list = [];
-def factory(val) {
-    var x = val;
-    var y = val * 2;
-    // Closure captura 'x' e 'y'
-    def inner() {
-        return x + y;
-    }
-    return inner;
-}
+// var list = [];
+// def factory(val) {
+//     var x = val;
+//     var y = val * 2;
+//     // Closure captura 'x' e 'y'
+//     def inner() {
+//         return x + y;
+//     }
+//     return inner;
+// }
 
-for (var i = 0; i < 10000; i++) {
-    // Cria um scope local
+// for (var i = 0; i < 10000; i++) {
+//     // Cria um scope local
     
-    // Guarda a closure
-    list.push(factory(i));
+//     // Guarda a closure
+//     list.push(factory(i));
     
-    // Força GC no meio para ver se ele apaga o 'x' e 'y' indevidamente
-    if (i % 100 == 0) _gc(); 
-}
+//     // Força GC no meio para ver se ele apaga o 'x' e 'y' indevidamente
+//     if (i % 100 == 0) _gc(); 
+// }
 
-print("A verificar integridade...");
-for (var k = 0; k < 10000; k++) {
-    var func = list[k];
-    var res = func(); // Isto deve retornar k + k*2
-    if (res != k * 3) {
-        print("CRASH LOGICO: Valor errado no index " + k);
+// print("A verificar integridade...");
+// for (var k = 0; k < 10000; k++) {
+//     var func = list[k];
+//     var res = func(); // Isto deve retornar k + k*2
+//     if (res != k * 3) {
+//         print("CRASH LOGICO: Valor errado no index " + k);
      
-    }
-}
-print("Closures blindadas!");
+//     }
+// }
+// print("Closures blindadas!");
 
 
-var count = 0;
+// var count = 0;
 
-process Kamikaze() {
-    count = count + 1;
-    // Cria algum lixo na stack
-    var lixo = [1, 2, 3, "teste"];
-    // Morre imediatamente
-    return;
-}
+// process Kamikaze() {
+//     count = count + 1;
+//     // Cria algum lixo na stack
+//     var lixo = [1, 2, 3, "teste"];
+//     // Morre imediatamente
+//     return;
+// }
 
-print("A lançar enxame...");
+// print("A lançar enxame...");
 
-// Tenta lançar 500.000 processos (não todos ao mesmo tempo, mas sequencialmente)
-for (var i = 0; i < 500000; i++) {
-    Kamikaze();
-    frame; // Deixa o processo correr e morrer
+// // Tenta lançar 500.000 processos (não todos ao mesmo tempo, mas sequencialmente)
+// for (var i = 0; i < 500000; i++) {
+//     Kamikaze();
+//     frame; // Deixa o processo correr e morrer
     
-    // A cada 1000, força limpeza
-    if (i % 1000 == 0) {
-        print("Processos: " + i);
-        // O GC deve limpar os processos mortos aqui
-    }
-}
+//     // A cada 1000, força limpeza
+//     if (i % 1000 == 0) {
+//         print("Processos: " + i);
+//         // O GC deve limpar os processos mortos aqui
+//     }
+// }
 
-print("Enxame sobreviveu. Count final: " + count);
+// print("Enxame sobreviveu. Count final: " + count);

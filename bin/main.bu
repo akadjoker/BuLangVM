@@ -6,4 +6,125 @@
 //include "mod_time.bu";
 //include "mod_file.bu";
 //include "mod_socket.bu";
-include "test_sdl.bu";
+//include "test_sdl.bu";
+
+
+// print("=== TESTE POSTFIX EM PROPRIEDADES ===");
+
+// class Box 
+// {
+//     var val;
+
+//     def init()
+//     {
+//         self.val=10;
+//     }
+// }
+
+// var b = Box();
+
+// print("1. Valor Inicial: " + b.val); // Deve ser 10
+
+// // O Teste Crítico:
+// // Num postfix (val++), 'res' devia receber 10, e 'b.val' passar a 11.
+// // Com o bug atual, 'res' vai receber 11.
+// var res = b.val++; 
+
+// print("2. Resultado da expressão (b.val++): " + res);
+// print("3. Valor final no objeto (b.val): " + b.val);
+
+// if (res == 10 && b.val == 11) 
+// {
+//     print(">> SUCESSO: Postfix funcionou corretamente (Retornou Antigo).");
+// } else 
+// {
+//     print(">> AVISO: Postfix comportou-se como Prefix (Retornou Novo).");
+// }
+
+
+// class Box 
+// {
+//      var x; 
+//      def init()
+//      {
+//         self.x=0;
+//      }
+// }
+// var b = Box();
+
+// print("Inicial: " + b.x);
+
+// // Teste de atribuição normal (deve retornar o novo valor)
+// var res = (b.x = 99);
+
+// print("b.x vale: " + b.x); // Deve ser 99
+// print("res vale: " + res); // DEVE SER 99
+
+// if (res == 99) 
+// {
+//     print("SUCESSO: Atribuição normal OK.");
+// } else {
+//     print("ERRO CRÍTICO: Atribuição retornou o valor antigo!");
+// }
+
+
+
+print("=== TESTE DE INCREMENTOS (VAR vs CLASS vs STRUCT) ===");
+
+// -------------------------------------------------
+// 1. Variável Normal (O que sabemos que funciona)
+// -------------------------------------------------
+print("\n>> 1. Teste Variavel Normal");
+var num = 10;
+print("   Inicial: " + num);
+++num; // Prefix
+print("   Apos ++num: " + num);
+num++; // Postfix
+print("   Apos num++: " + num);
+
+
+// -------------------------------------------------
+// 2. Class Instance
+// -------------------------------------------------
+print("\n>> 2. Teste Classe");
+class Player 
+{
+    var hp = 100;
+    def init()
+    {
+        self.hp=100;
+    }
+}
+var p = Player();
+
+// A. Postfix (p.hp++) - Funciona porque é tratado na função 'dot()'
+print("   [Postfix] Tentando p.hp++ ...");
+p.hp++; 
+print("   HP agora: " + p.hp); 
+
+// B. Prefix (++p.hp) - O suspeito do crime
+print("   [Prefix] Tentando ++p.hp ...");
+// Se o compilador falhar, vai dar erro AQUI:
+++p.hp; 
+ print("   HP agora: " + p.hp);
+
+// -------------------------------------------------
+// 3. Struct Instance
+// -------------------------------------------------
+print("\n>> 3. Teste Struct");
+// (Assumindo que a sintaxe de struct é assim na tua lang)
+struct Vector { x; y; }
+var v = Vector();
+v.x = 50;
+
+// A. Postfix (v.x++)
+print("   [Postfix] Tentando v.x++ ...");
+v.x++;
+print("   X agora: " + v.x);
+
+// B. Prefix (++v.x)
+print("   [Prefix] Tentando ++v.x ...");
+++v.x;
+print("   X agora: " + v.x);
+
+print("\n=== FIM ===");
