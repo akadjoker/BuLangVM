@@ -5,5 +5,5 @@
 //include "mod_path.bu";
 //include "mod_time.bu";
 //include "mod_file.bu";
-include "mod_socket.bu";
-
+//include "mod_socket.bu";
+include "test_sdl.bu";

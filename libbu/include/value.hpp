@@ -385,10 +385,10 @@ void valueToBuffer(const Value &v, char *out, size_t size);
 static FORCE_INLINE bool valuesEqual(const Value &a, const Value &b)
 {
 
-  if ((a.isInt() || a.isDouble()) && (b.isInt() || b.isDouble()))
+  if (a.isNumber()  && b.isNumber())
   {
-    double da = a.isInt() ? a.asInt() : a.asDouble();
-    double db = b.isInt() ? b.asInt() : b.asDouble();
+    double da = a.asNumber();
+    double db = b.asNumber();
     return da == db;
   }
 

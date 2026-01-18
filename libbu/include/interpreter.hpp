@@ -271,6 +271,8 @@ public:
   ModuleBuilder(ModuleDef *module, Interpreter *vm);
   ModuleBuilder &addFunction(const char *name, NativeFunction func, int arity);
   ModuleBuilder &addInt(const char *name, int value);
+  ModuleBuilder &addByte(const char *name, uint8 value);
+
   ModuleBuilder &addFloat(const char *name, float value);
   ModuleBuilder &addDouble(const char *name, double value);
   ModuleBuilder &addBool(const char *name, bool value);

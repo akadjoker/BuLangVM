@@ -136,8 +136,7 @@ const char *tokenTypeToString(TokenType type)
 
     case TOKEN_PRINT:
         return "PRINT";
-    case TOKEN_TYPE:
-        return "TYPE";
+ 
 
     case TOKEN_EOF:
         return "EOF";

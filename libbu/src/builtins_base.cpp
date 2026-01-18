@@ -158,12 +158,25 @@ Value native_gc(Interpreter *vm, int argCount, Value *args)
   return vm->makeNil();
 }
 
+
+Value native_ticks(Interpreter *vm, int argCount, Value *args)
+{
+  if (argCount != 1 || !args[0].isNumber())
+  {
+    vm->runtimeError("ticks expects double as argument");
+    return vm->makeNil();
+  }
+  vm->update(args[0].asNumber());
+  return vm->makeNil();
+}
+
 void Interpreter::registerBase()
 {
   registerNative("format", native_format, -1);
   registerNative("write", native_write, -1);
   registerNative("input", native_input, -1);
   registerNative("print_stack", native_print_stack, -1);
+  registerNative("ticks", native_ticks, 1);
   registerNative("_gc", native_gc, 0);
 }
 

@@ -183,6 +183,12 @@ ModuleBuilder &ModuleBuilder::addInt(const char *name, int value)
     return *this;
 }
 
+ModuleBuilder &ModuleBuilder::addByte(const char *name, uint8 value)
+{
+    module->addConstant(name,vm->makeByte(value));
+    return *this;
+}
+
 ModuleBuilder &ModuleBuilder::addFloat(const char *name, float value)
 {
     module->addConstant(name,vm->makeFloat(value));
@@ -200,6 +206,8 @@ ModuleBuilder &ModuleBuilder::addBool(const char *name, bool value)
     module->addConstant(name,vm->makeBool(value));
     return *this;
 }
+
+
 
 ModuleBuilder &ModuleBuilder::addString(const char *name, const char *value)
 {

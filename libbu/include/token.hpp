@@ -89,7 +89,7 @@ enum TokenType
 
     // Built-ins
     TOKEN_PRINT,
-    TOKEN_TYPE,
+ 
 
     TOKEN_PROCESS,
     TOKEN_FRAME,

@@ -66,7 +66,6 @@ void Lexer::initKeywords()
         {"false", TOKEN_FALSE},
         {"nil", TOKEN_NIL},
         {"print", TOKEN_PRINT},
-        {"type", TOKEN_TYPE},
         {"process", TOKEN_PROCESS},
         {"frame", TOKEN_FRAME},
         {"len", TOKEN_LEN},
