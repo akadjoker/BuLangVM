@@ -22,21 +22,26 @@
 #define OS_MAC
 #endif
 
- 
-
-
 #if defined(__GNUC__) || defined(__clang__)
-  #define FORCE_INLINE __attribute__((always_inline)) inline
-  #define UNLIKELY(x)  __builtin_expect(!!(x), 0)
-  #define LIKELY(x)    __builtin_expect(!!(x), 1)  
+#define FORCE_INLINE __attribute__((always_inline)) inline
+#define UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define LIKELY(x) __builtin_expect(!!(x), 1)
 #else
-  #define FORCE_INLINE inline
-  #define UNLIKELY(x)  (x)
-  #define LIKELY(x)    (x)
+#define FORCE_INLINE inline
+#define UNLIKELY(x) (x)
+#define LIKELY(x) (x)
 #endif
 
-//#define USE_COMPUTED_GOTO 
- 
+#define USE_COMPUTED_GOTO 0
+
+#define BU_ENABLE_SOCKETS 1
+#define BU_ENABLE_FILE_IO 1
+#define BU_ENABLE_MATH 1
+#define BU_ENABLE_TIME 1
+#define BU_ENABLE_PATH 1
+#define BU_ENABLE_OS 1
+#define BU_ENABLE_TIME 1
+
 typedef signed char int8;
 typedef signed short int16;
 typedef signed int int32;
@@ -89,17 +94,13 @@ void Trace(int severity, const char *fmt, ...);
 #define ERROR(fmt, ...) Log(2, fmt, ##__VA_ARGS__)
 #define PRINT(fmt, ...) Log(3, fmt, ##__VA_ARGS__)
 
-
-
-
-
 #if defined(_DEBUG)
 #include <assert.h>
-#define DEBUG_BREAK_IF(condition)                                             \
-    if (condition)                                                            \
-    {                                                                         \
+#define DEBUG_BREAK_IF(condition)                                          \
+    if (condition)                                                         \
+    {                                                                      \
         Error("Debug break: %s at %s:%d", #condition, __FILE__, __LINE__); \
-        std::exit(EXIT_FAILURE);                                              \
+        std::exit(EXIT_FAILURE);                                           \
     }
 #else
 #define DEBUG_BREAK_IF(_CONDITION_)
@@ -134,15 +135,15 @@ static inline size_t GROW_CAPACITY(size_t capacity)
 
 static inline void *aAlloc(size_t size)
 {
-	return std::malloc(size);
+    return std::malloc(size);
 }
 
-static inline void *aRealloc(void *buffer,size_t size)
+static inline void *aRealloc(void *buffer, size_t size)
 {
-     return std::realloc(buffer,size);
+    return std::realloc(buffer, size);
 }
 
 static inline void aFree(void *mem)
 {
-	std::free(mem);
+    std::free(mem);
 }

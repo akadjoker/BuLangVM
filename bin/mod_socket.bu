@@ -1,48 +1,138 @@
 import socket;
 
-socket.init();
+// socket.init();
 
-// TCP Server non-blocking
-var server = socket.tcp_listen(8080);
-socket.set_blocking(server, false);
+// // TCP Server non-blocking
+// var server = socket.tcp_listen(8080);
+// socket.set_blocking(server, false);
 
-print(server);
+// print(server);
 
-var clients = [];
+// var clients = [];
 
-var quit =false;
+// var quit =false;
  
 
-while (!quit)
-{
-    // Accept novos clientes
-    var client = socket.tcp_accept(server);
-    if (client != nil)
-    {
-        socket.set_blocking(client, false);
-        socket.set_nodelay(client, true);  // Disable Nagle
-        clients.push(client);
-        print(client);
-        print("Cliente conectado!");
-    }
+// while (!quit)
+// {
+//     // Accept novos clientes
+//     var client = socket.tcp_accept(server);
+//     if (client != nil)
+//     {
+//         socket.set_blocking(client, false);
+//         socket.set_nodelay(client, true);  // Disable Nagle
+//         clients.push(client);
+//         print(client);
+//         print("Cliente conectado!");
+//     }
     
-    // Recebe de clientes
-    for (var i = 0; i < clients.length(); i++)
-    {
-        var data = socket.receive(clients[i]);
-        if (data != nil)
-        {
-            write("Recebido: {} \n", data);
-            socket.send(clients[i], "ACK\n");
-            if (data == ":quit" || data == ":quit\n")
-            {
-                quit=true;
-                break;
-            }
-        }
-    }
+//     // Recebe de clientes
+//     for (var i = 0; i < clients.length(); i++)
+//     {
+//         var data = socket.receive(clients[i]);
+//         if (data != nil)
+//         {
+//             write("Recebido: {} \n", data);
+//             socket.send(clients[i], "ACK\n");
+//             if (data == ":quit" || data == ":quit\n")
+//             {
+//                 quit=true;
+//                 break;
+//             }
+//         }
+//     }
     
+// }
+
+// print("Exit");
+// socket.quit();
+
+
+// print("=== TESTE 1: HTTP GET ===");
+// var response = socket.http_get("http://httpbin.org/get?nome=Teste&lang=BuLang");
+
+
+// if (response["success"]) {
+//     print("Status: " + response["status_code"]);
+//     print("Body recebido:");
+//     print(response["body"]); 
+// } else {
+//     print("Falha no GET");
+// }
+
+// print("\n=== TESTE 2: HTTP POST (JSON) ===");
+// var dados = {
+//     "user": "dev",
+//     "id": 123
+// };
+
+// var options = {
+//     "headers": {"X-Custom-Header": "O-Meu-Interpretador"},
+//     "json": dados
+// };
+
+// var respPost = socket.http_post("http://httpbin.org/post", options);
+// print("Status POST: " + respPost["status_code"]);
+// print("O servidor recebeu:");
+// print(respPost["body"]);
+
+
+// socket.http_get("http://localhost:8080/teste", {
+//     params: { q: "python", page: 1 },
+//     headers: {
+//         "User-Agent": "O-Meu-Bot-Via-Header",
+//         "Accept": "application/json"
+//     }
+// });
+
+
+
+ 
+
+print("=== TESTE JSON POST ===");
+
+// Um mapa complexo para testar a recursividade do serializador
+var meu_json = {
+    "nome": "BuLang User",
+    "id": 42,
+    "ativo": true,
+    "scores": [10, 20, 30], // Array dentro de mapa
+    "meta": {               // Mapa dentro de mapa
+        "lang": "cpp",
+        "version": 1.0
+    }
+};
+
+// Nota: Usamos a chave "json" nas opções
+var response = socket.http_post("http://httpbin.org/post", {
+    "json": meu_json,
+    "timeout": 5
+});
+
+if (response["success"]) {
+    print("Sucesso! O servidor respondeu:");
+    // O httpbin devolve o que enviamos na propriedade "json" ou "data"
+    print(response["body"]); 
+} else {
+    print("Erro: " + response["status_text"]);
 }
 
-print("Exit");
-socket.quit();
+
+var options = {
+    "data": { "login": "admin", "password": "123" }, // Form data normal
+    "headers": {
+        "X-Meu-Token": "segredo-123",
+        "User-Agent": "Agente-Secreto/0.0.7" // Isto deve substituir o default
+    }
+};
+
+var response = socket.http_post("http://httpbin.org/post", options);
+
+print("Body recebido:");
+print(response["body"]);
+
+
+socket.http_post("http://localhost:8080/api/teste", {
+    "json": { "teste": "funciona" },
+    "headers": { "Authorization": "Bearer 123" }
+});

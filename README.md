@@ -213,6 +213,8 @@ Comprehensive documentation is available at [bulang.netlify.app](https://bulang.
 - **Tutorials**: Step-by-step learning paths
 - **Examples**: Real-world code samples
 - **Performance Tips**: Optimization best practices
+- **[API Reference](API.md)** - Complete built-in functions and modules
+- **[Built-in Methods](BUILTIN_METHODS.md)** - String, Array, Map, Buffer methods
 
 ---
 

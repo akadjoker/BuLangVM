@@ -1,7 +1,10 @@
+#include "interpreter.hpp"
+
+#ifdef BU_ENABLE_TIME
+
 // ============================================
 // TIME MODULE - Cross-platform
 // ============================================
-#include "interpreter.hpp"
 #include <chrono>
 #include <thread>
 #include <ctime>
@@ -264,3 +267,5 @@ void Interpreter::registerTime()
         .addFunction("parse", native_time_parse, 2)       // Parse string
         .addFunction("diff", native_time_diff, 2);        // Diferença
 }
+
+#endif

@@ -582,7 +582,7 @@ void Interpreter::runtimeError(const char *format, ...)
   }
 #endif
 
-  resetFiber();
+  
 }
 bool Interpreter::throwException(Value error)
 {

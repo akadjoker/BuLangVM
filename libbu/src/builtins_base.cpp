@@ -7,10 +7,10 @@
 Value native_print_stack(Interpreter *vm, int argCount, Value *args)
 {
 
-    if (argCount == 1)
-    {
-        Info("%s", args[0].asString()->chars());
-    }
+  if (argCount == 1)
+  {
+    Info("%s", args[0].asString()->chars());
+  }
   vm->printStack();
   return vm->makeNil();
 }
@@ -65,7 +65,6 @@ static void valueToString(const Value &v, std::string &out)
     out += "<unknown>";
   }
 }
-
 
 Value native_format(Interpreter *vm, int argCount, Value *args)
 {
@@ -130,33 +129,76 @@ Value native_write(Interpreter *vm, int argCount, Value *args)
   return vm->makeNil();
 }
 
-Value native_gc(Interpreter *vm, int argCount, Value *args)
+Value native_input(Interpreter *vm, int argCount, Value *args)
 {
-    vm->runGC();
-    return vm->makeNil();
+  if (argCount > 0 && args[0].isString())
+  {
+    printf("%s", args[0].asStringChars());
+  }
+
+  char buffer[1024];
+  if (fgets(buffer, sizeof(buffer), stdin) != NULL)
+  {
+    size_t length = strlen(buffer);
+
+    // Remove o \n do final
+    if (length > 0 && buffer[length - 1] == '\n')
+    {
+      buffer[length - 1] = '\0';
+    }
+    return vm->makeString(buffer);
+  }
+
+  return vm->makeNil();
 }
 
+Value native_gc(Interpreter *vm, int argCount, Value *args)
+{
+  vm->runGC();
+  return vm->makeNil();
+}
 
 void Interpreter::registerBase()
 {
-    registerNative("format", native_format, -1);
-    registerNative("write", native_write, -1);
-    registerNative("print_stack", native_print_stack, -1);
-    registerNative("_gc", native_gc, 0);
-
-    
+  registerNative("format", native_format, -1);
+  registerNative("write", native_write, -1);
+  registerNative("input", native_input, -1);
+  registerNative("print_stack", native_print_stack, -1);
+  registerNative("_gc", native_gc, 0);
 }
-
 
 void Interpreter::registerAll()
 {
-    registerBase();
-    registerFS();
-    registerMath();
-    registerOS();
-    registerPath();
-    registerTime();
-    registerFile();
-    registerSocket();
-    
+  registerBase();
+
+#ifdef BU_ENABLE_MATH
+  registerMath();
+#endif
+
+#ifdef BU_ENABLE_OS
+
+  registerOS();
+
+#endif
+
+#ifdef BU_ENABLE_PATH
+
+  registerPath();
+
+#endif
+
+#ifdef BU_ENABLE_TIME
+
+  registerTime();
+
+#endif
+
+#ifdef BU_ENABLE_FILE_IO
+  registerFS();
+  registerFile();
+#endif
+
+#ifdef BU_ENABLE_SOCKETS
+  registerSocket();
+#endif
 }

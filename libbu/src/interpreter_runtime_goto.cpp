@@ -1242,6 +1242,11 @@ op_return:
 {
     Value result = POP();
 
+    if (hasFatalError_)
+    {
+        STORE_FRAME();
+        return {FiberResult::ERROR, instructionsRun, 0, 0};
+    }
     // Fecha upvalues desta frame
     if (fiber->frameCount > 0)
     {

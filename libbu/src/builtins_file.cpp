@@ -1,5 +1,9 @@
 
 #include "interpreter.hpp"
+
+
+#ifdef BU_ENABLE_FILE_IO
+
 #include "platform.hpp"
 #include "utils.hpp"
 #include <string>
@@ -609,3 +613,5 @@ void Interpreter::registerFile()
         .addFunction("tell", native_file_tell, 1)
         .addFunction("size", native_file_size, 1);
 }
+
+#endif

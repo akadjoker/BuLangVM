@@ -1,5 +1,8 @@
 
 #include "interpreter.hpp"
+
+#ifdef BU_ENABLE_FILE_IO
+
 #include "platform.hpp"
 #include "utils.hpp"
 #include <string>
@@ -227,3 +230,5 @@ void Interpreter::registerFS()
         .addFunction("stat", native_fs_stat, 1);
 }
 
+
+#endif

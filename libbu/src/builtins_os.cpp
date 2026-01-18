@@ -1,5 +1,8 @@
 
 #include "interpreter.hpp"
+
+#ifdef BU_ENABLE_OS
+
 #include <string>
 #include <vector>
 
@@ -414,3 +417,5 @@ void Interpreter::registerOS()
         .addFunction("chdir", native_os_chdir, 1)
         .addFunction("quit", native_os_exit, 1);
 }
+
+#endif

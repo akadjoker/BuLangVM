@@ -1,4 +1,8 @@
 #include "interpreter.hpp"
+
+
+#ifdef BU_ENABLE_PATH
+
 #include "platform.hpp"
 
 #include <string>
@@ -180,3 +184,4 @@ void Interpreter::registerPath()
         .addFunction("isfile", native_path_isfile, 1);
 }
 
+#endif

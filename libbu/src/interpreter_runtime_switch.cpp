@@ -1090,6 +1090,12 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 
             Value result = POP();
 
+            if (hasFatalError_)
+            {
+                STORE_FRAME();
+                return {FiberResult::ERROR, instructionsRun, 0, 0};
+            }
+
             if (fiber->frameCount > 0)
             {
                 CallFrame *returningFrame = &fiber->frames[fiber->frameCount - 1];
