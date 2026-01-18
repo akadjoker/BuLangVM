@@ -1621,9 +1621,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                 runtimeError("Process has no property '%s'", name);
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
-            else
-
-                if (object.isStructInstance())
+            else if (object.isStructInstance())
             {
 
                 StructInstance *inst = object.asStructInstance();
@@ -1645,8 +1643,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                 }
 
                 // Pop object, keep value
-                DROP(); // object
-
+                   DROP(); // object
                 break;
             }
             else if (object.isClassInstance())

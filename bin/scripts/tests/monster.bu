@@ -74,11 +74,11 @@ print("\n[TEST 4] Field collision entre structs\n");
 print("────────────────────────────────────────────────────────────────\n");
 
 struct aPlayer { var name, health, mana; };
-struct Enemy { var name, health, damage; };
+struct aEnemy { var name, health, damage; };
 struct NPC { var name, health, dialog; };
 
 var p = aPlayer("Hero", 100, 50);
-var e = Enemy("Goblin", 30, 10);
+var e = aEnemy("Goblin", 30, 10);
 var n = NPC("Merchant", 50, "Hello!");
 
 assertEq("Player.health", p.health, 100);
