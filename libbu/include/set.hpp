@@ -1,3 +1,38 @@
+/**
+ * @class HashSet
+ * @brief A generic hash set implementation using open addressing with linear probing.
+ *
+ * @tparam K The key type to be stored in the set.
+ * @tparam Hasher A callable type that computes hash values for keys of type K.
+ * @tparam Eq A callable type that compares two keys for equality.
+ *
+ * @details
+ * This hash set uses open addressing with linear probing to handle collisions.
+ * Tombstones are used to mark deleted entries, allowing iteration to find both
+ * new and existing entries during insertion. The hash table automatically grows
+ * when the load factor exceeds MAX_LOAD (0.75).
+ *
+ * The capacity is always maintained as a power of two to allow fast modulo
+ * operations using bitwise AND with the mask.
+ *
+ * @note This class is non-copyable and non-assignable.
+ * @note The key type K must be a trivially copyable (POD) type.
+ * @note Memory is managed through aAlloc() and aFree() functions.
+ *
+ * @member entries Pointer to the dynamically allocated entry array.
+ * @member capacity The current capacity of the hash table (always power of 2).
+ * @member count The number of active (FILLED) entries in the set.
+ * @member tombstones The number of deleted entries marked as TOMBSTONE.
+ * @member MAX_LOAD Maximum load factor threshold for growth (0.75).
+ *
+ * @see insert() - Add a key to the set.
+ * @see contains() - Check if a key exists in the set.
+ * @see erase() - Remove a key from the set.
+ * @see clear() - Remove all entries from the set.
+ * @see forEach() - Iterate over all active entries.
+ * @see forEachWhile() - Iterate with early exit capability.
+ * @see destroy() - Release all allocated memory.
+ */
 #pragma once
 #include "config.hpp"
 #include <cassert>

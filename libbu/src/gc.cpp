@@ -1,3 +1,29 @@
+/**
+ * @file gc.cpp
+ * @brief Garbage Collection implementation for the BuLang VM interpreter
+ * 
+ * This module implements a tri-color mark-and-sweep garbage collector with support for:
+ * - Root marking from global variables, process privates, fiber stacks, and call frames
+ * - Gray stack-based reference tracing to avoid stack overflow
+ * - Object blackening based on type-specific reference patterns
+ * - Automatic threshold adjustment based on allocation growth
+ * 
+ * The GC manages lifetime of the following object types:
+ * - Struct and Class instances (user-defined types)
+ * - Collections: Arrays, Maps, Buffers
+ * - Native bindings: Native class and struct instances
+ * - Function closures and their captured upvalues
+ * 
+ * Key Functions:
+ * - markRoots(): Identifies all reachable objects from VM state
+ * - markObject(): Marks a single object and adds it to the gray stack
+ * - markValue(): Determines object type and marks accordingly
+ * - traceReferences(): Processes gray stack to find all transitive references
+ * - blackenObject(): Exposes references within an object for tracing
+ * - sweep(): Reclaims unmarked objects and resets marks for next cycle
+ * - runGC(): Orchestrates the complete GC cycle with threshold management
+ * - checkGC(): Triggers collection when allocation exceeds threshold
+ */
 #include "interpreter.hpp"
 
 void Interpreter::markRoots()

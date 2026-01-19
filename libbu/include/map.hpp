@@ -1,3 +1,43 @@
+/**
+ * @brief Open-addressed hash map with linear probing and tombstone deletion.
+ *
+ * A generic hash map implementation using open addressing with linear probing.
+ * Supports efficient insertion, deletion, and lookup with O(1) average time complexity.
+ *
+ * @tparam K The key type. Must be hashable and comparable.
+ * @tparam V The value type.
+ * @tparam Hasher A callable type that computes hash values for keys of type K.
+ *                 Must implement: size_t operator()(const K&) const
+ * @tparam Eq A callable type for key equality comparison.
+ *            Must implement: bool operator()(const K&, const K&) const
+ *
+ * @details
+ * - Uses open addressing with linear probing for collision resolution
+ * - Tombstone entries mark deleted slots to maintain probe sequences
+ * - Capacity is always a power of 2 for efficient modulo operations via bitmask
+ * - Automatically grows when load factor exceeds MAX_LOAD (0.75)
+ * - All operations assume K and V are POD types (Plain Old Data)
+ *
+ * @note This class is non-copyable. Manual destroy() must be called for cleanup.
+ *
+ * @example
+ * ```cpp
+ * struct MyHasher {
+ *     size_t operator()(int k) const { return static_cast<size_t>(k); }
+ * };
+ * struct MyEq {
+ *     bool operator()(int a, int b) const { return a == b; }
+ * };
+ *
+ * HashMap<int, float, MyHasher, MyEq> map;
+ * map.set(1, 3.14f);
+ * float value;
+ * if (map.get(1, &value)) {
+ *     // Found: value = 3.14f
+ * }
+ * map.destroy();
+ * ```
+ */
 #pragma once
 #include "config.hpp"
 #include <cassert>

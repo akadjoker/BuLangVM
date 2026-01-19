@@ -1,3 +1,50 @@
+/**
+ * @class Vector
+ * @brief A high-performance vector container optimized for POD (Plain Old Data) types.
+ * 
+ * This template class provides a dynamic array implementation specifically designed
+ * for POD types without constructors or destructors. It uses move semantics and
+ * disables copying to ensure efficient memory management.
+ * 
+ * @tparam T The POD type stored in the vector. Must be a Plain Old Data type.
+ * 
+ * @note This class uses custom memory allocation functions (aAlloc/aFree).
+ * @note Copy operations are explicitly deleted; only move semantics are supported.
+ * @note All operations assume T is a POD type and use memcpy/memmove for efficiency.
+ * 
+ * @section Constructors
+ * - Vector(): Default constructor with initial capacity of 8.
+ * - Vector(size_t initialCapacity): Constructor with specified initial capacity.
+ * - Vector(Vector&&) noexcept: Move constructor.
+ * 
+ * @section Memory Management
+ * - reserve(size_t newCapacity): Ensures capacity is at least newCapacity.
+ * - destroy(): Frees all allocated memory and resets state.
+ * - resize(size_t newSize): Changes the logical size of the vector.
+ * 
+ * @section Element Operations
+ * - push(const T&): Adds an element to the end.
+ * - emplace(Args&&...): Constructs and adds an element to the end.
+ * - pop(): Removes the last element.
+ * - back(): Returns reference to the last element.
+ * - insert(size_t index, const T&): Inserts element at specified index.
+ * - remove(size_t index): Removes element at specified index.
+ * 
+ * @section Search and Utility
+ * - find(const T&): Returns index of element or -1 if not found.
+ * - contains(const T&): Checks if element exists in vector.
+ * - reverse(): Reverses the order of elements.
+ * - swap(size_t i, size_t j): Swaps two elements by index.
+ * - clear(): Removes all elements without deallocating memory.
+ * 
+ * @section Accessors
+ * - operator[](size_t): Direct element access by index.
+ * - data(): Returns pointer to underlying data buffer.
+ * - size(): Returns number of elements currently stored.
+ * - capacity(): Returns total allocated capacity.
+ * - empty(): Checks if vector contains no elements.
+ * - begin(), end(): Iterator support for range-based loops.
+ */
 #pragma once
 #include <cstdint>
 #include <cstring>

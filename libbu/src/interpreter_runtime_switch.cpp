@@ -1,3 +1,33 @@
+/**
+ * @brief Virtual machine interpreter that executes bytecode for the BuLang language
+ * 
+ * This is the main execution engine for the interpreter, implementing a stack-based VM
+ * that processes opcodes and manages the execution of functions, fibers, and processes.
+ * 
+ * Key Features:
+ * - Stack-based architecture for value operations
+ * - Fiber and process management for concurrent execution
+ * - Exception handling with try-catch-finally support
+ * - Support for multiple data types: integers, doubles, strings, arrays, maps, buffers, etc.
+ * - Object-oriented features: classes, structs, inheritance, methods
+ * - Native class and struct integration
+ * - Buffer manipulation with cursor-based I/O
+ * - Mathematical operations (trigonometric, logarithmic, power functions)
+ * - String manipulation methods (concatenation, substring, split, etc.)
+ * - Array and map operations with built-in methods
+ * - Gosub/return-sub for subroutine calls (legacy support)
+ * 
+ * The interpreter maintains:
+ * - A call stack for nested function calls
+ * - A value stack for operands
+ * - Frame information for each function call context
+ * - Try-catch handler stack for exception management
+ * - Upvalue list for closures
+ * 
+ * @file interpreter_runtime_switch.cpp
+ * @note This file implements the core execution loop using a large switch statement
+ *       for opcode dispatch, which is typical for VM implementations
+ */
 #include "interpreter.hpp"
 #include "pool.hpp"
 #include "opcode.hpp"
@@ -24,6 +54,7 @@ bool toNumberPair(const Value &a, const Value &b, double &da, double &db)
     db = b.isInt() ? static_cast<double>(b.asInt()) : b.asDouble();
     return true;
 }
+
 
 FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 {

@@ -1,3 +1,38 @@
+/**
+ * @file interpreter_runtime_goto.cpp
+ * @brief VM runtime interpreter using computed goto for opcode dispatch
+ * 
+ * Implements the core execution engine for the BuLang virtual machine using
+ * computed goto optimization for fast opcode dispatch. Handles:
+ * - Stack-based operations (push, pop, duplicate, swap)
+ * - Arithmetic and bitwise operations with type coercion
+ * - Variable access (local, global, private)
+ * - Control flow (jumps, loops, gosub/return)
+ * - Function calls and returns with frame management
+ * - Object-oriented features (classes, methods, properties, inheritance)
+ * - Exception handling (try-catch-finally with proper cleanup)
+ * - Closure and upvalue management
+ * - Collection operations (arrays, maps, buffers)
+ * - String manipulation methods
+ * - Mathematical functions (trigonometric, logarithmic, etc.)
+ * - Process/Fiber management and concurrency primitives
+ * - Native class/struct integration
+ * - Module function calls
+ * 
+ * The interpreter uses a dispatch table with computed goto for O(1) opcode
+ * routing, avoiding switch statement overhead. Each opcode is implemented
+ * as a labeled block that reads operands, performs the operation, and
+ * dispatches to the next instruction.
+ * 
+ * @note Compiled only when USE_COMPUTED_GOTO is defined
+ * @note Uses macro-based stack manipulation for performance
+ * @note Manages call frames for nested function invocations
+ * @note Handles both user-defined and native functions/classes
+ * 
+ * @param fiber The current fiber to execute
+ * @param process The parent process context
+ * @return FiberResult containing status, instruction count, and optional metrics
+ */
 #include "interpreter.hpp"
 #include "pool.hpp"
 #include "opcode.hpp"
@@ -25,6 +60,7 @@ bool toNumberPair(const Value &a, const Value &b, double &da, double &db)
     db = b.isInt() ? static_cast<double>(b.asInt()) : b.asDouble();
     return true;
 }
+
 
 FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 {
