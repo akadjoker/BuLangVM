@@ -1,0 +1,82 @@
+// Test: Script class inheriting from NativeClass
+
+print("=== Teste 1: NativeClass Vector2D directa ===");
+
+var v = Vector2D(3, 4);
+print(v.x);
+print(v.y);
+
+v.x = 10.0;
+v.y = 20.0;
+print(v.x);
+print(v.y);
+
+v.add(5, 5);
+print(v.x);
+print(v.y);
+
+print("=== NativeClass directa OK ===");
+
+print("=== Teste 2: Script class herdando de NativeClass ===");
+
+class Player : Vector2D {
+    var name;
+    var health;
+    
+    def init(n, px, py) {
+        self.name = n;
+        self.health = 100;
+        self.x = px;
+        self.y = py;
+    }
+    
+    def move(dx, dy) {
+        self.add(dx, dy);
+    }
+}
+
+var player = Player("Hero", 100.0, 200.0);
+assert_eq(player.name, "Hero", "Player.name");
+assert_eq(player.health, 100, "Player.health");
+print(player.x);
+print(player.y);
+
+player.move(50, 25);
+print(player.x);
+print(player.y);
+
+print("=== Herança de NativeClass OK ===");
+
+print("=== Teste 3: Herança em cadeia ===");
+
+class Entity : Vector2D {
+    var id;
+    def init(eid) {
+        self.id = eid;
+        self.x = 0.0;
+        self.y = 0.0;
+    }
+    def setPos(px, py) {
+        self.x = px;
+        self.y = py;
+    }
+}
+
+class Enemy : Entity {
+    var damage;
+    def init(eid, dmg) {
+        super.init(eid);
+        self.damage = dmg;
+    }
+}
+
+var enemy = Enemy(42, 25);
+assert_eq(enemy.id, 42, "Enemy.id");
+assert_eq(enemy.damage, 25, "Enemy.damage");
+enemy.setPos(300.0, 400.0);
+print(enemy.x);
+print(enemy.y);
+print(enemy.length());
+
+print("=== Herança em cadeia OK ===");
+print("TODOS OS TESTES DE NATIVE INHERITANCE PASSARAM!");

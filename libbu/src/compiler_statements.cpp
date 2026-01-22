@@ -2552,25 +2552,41 @@ void Compiler::classDeclaration()
 
         const char *name = superName.lexeme.c_str();
 
+        // Primeiro tenta ClassDef (script class)
         ClassDef *classSuper = nullptr;
-        if (!vm_->tryGetClassDefenition(name, &classSuper))
+        if (vm_->tryGetClassDefenition(name, &classSuper))
         {
-            fail("Undefined superclass '%s'", superName.lexeme.c_str());
-            return;
+            if (classSuper == classDef)
+            {
+                fail("A class cannot inherit from itself");
+                return;
+            }
+            classDef->inherited = true;
+            classDef->parent = classSuper->name;
+            classDef->superclass = classSuper;
+            // Copia fieldCount também (herdar fields)
+            classSuper->fieldNames.forEach([&](String *fieldName, uint8_t index)
+                                           {
+                classDef->fieldNames.set(fieldName, classDef->fieldCount);
+                classDef->fieldCount++; });
         }
-        if (classSuper == classDef)
+        else
         {
-            fail("A class cannot inherit from itself");
-            return;
+            // Tenta NativeClassDef (C++ class)
+            NativeClassDef *nativeSuper = nullptr;
+            if (vm_->tryGetNativeClassDef(name, &nativeSuper))
+            {
+                classDef->inherited = true;
+                classDef->parent = nativeSuper->name;
+                classDef->nativeSuperclass = nativeSuper;
+                // NativeClass não tem fields para copiar, só properties
+            }
+            else
+            {
+                fail("Undefined superclass '%s'", superName.lexeme.c_str());
+                return;
+            }
         }
-        classDef->inherited = true;
-        classDef->parent = classSuper->name;
-        classDef->superclass = classSuper;
-        // //  Copia fieldCount também ( herdar fields ??)
-        classSuper->fieldNames.forEach([&](String *fieldName, uint8_t index)
-                                       {
-            classDef->fieldNames.set(fieldName, classDef->fieldCount);
-            classDef->fieldCount++; });
     }
     consume(TOKEN_LBRACE, "Expect '{'");
 

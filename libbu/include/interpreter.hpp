@@ -167,6 +167,9 @@ struct StructDef
   ~StructDef();
 };
 
+// Forward declaration para NativeClassDef
+struct NativeClassDef;
+
 struct ClassDef
 {
   int index;
@@ -175,7 +178,8 @@ struct ClassDef
   bool inherited{false};
   int fieldCount;                 // Número de fields
   Function *constructor{nullptr}; // existe na tabela
-  ClassDef *superclass;           // 1 nível herança
+  ClassDef *superclass;           // Herança de outra ClassDef
+  NativeClassDef *nativeSuperclass{nullptr}; // Herança de NativeClass (híbrido)
 
   // HashMap<String *, Function *, StringHasher, StringEq> methods;
   // HashMap<String *, uint8_t, StringHasher, StringEq> fieldNames; // field name → index
@@ -313,6 +317,7 @@ struct ClassInstance : GCObject
 {
   ClassDef *klass;
   Vector<Value> fields;
+  void *nativeUserData{nullptr};  // Dados nativos quando herda de NativeClass
 
   ClassInstance() : GCObject(GCObjectType::CLASS) {}
 
@@ -326,6 +331,57 @@ struct ClassInstance : GCObject
       if (current->methods.get(name, out))
       {
         return true;
+      }
+      current = current->superclass;
+    }
+    return false;
+  }
+  
+  // Procura método nativo na superclass nativa
+  FORCE_INLINE bool getNativeMethod(String *name, NativeMethod *out)
+  {
+    ClassDef *current = klass;
+    while (current)
+    {
+      if (current->nativeSuperclass)
+      {
+        if (current->nativeSuperclass->methods.get(name, out))
+        {
+          return true;
+        }
+      }
+      current = current->superclass;
+    }
+    return false;
+  }
+  
+  // Retorna o NativeClassDef se existir na cadeia de herança
+  FORCE_INLINE NativeClassDef* getNativeSuperclass()
+  {
+    ClassDef *current = klass;
+    while (current)
+    {
+      if (current->nativeSuperclass)
+      {
+        return current->nativeSuperclass;
+      }
+      current = current->superclass;
+    }
+    return nullptr;
+  }
+  
+  // Procura propriedade nativa na superclass nativa
+  FORCE_INLINE bool getNativeProperty(String *name, NativeProperty *out)
+  {
+    ClassDef *current = klass;
+    while (current)
+    {
+      if (current->nativeSuperclass)
+      {
+        if (current->nativeSuperclass->properties.get(name, out))
+        {
+          return true;
+        }
       }
       current = current->superclass;
     }
@@ -543,6 +599,7 @@ class Interpreter
   HashMap<String *, NativeDef, StringHasher, StringEq> nativesMap;
   HashMap<String *, StructDef *, StringHasher, StringEq> structsMap;
   HashMap<String *, ClassDef *, StringHasher, StringEq> classesMap;
+  HashMap<String *, NativeClassDef *, StringHasher, StringEq> nativeClassesMap;
   HashMap<const char *, int, CStringHash, CStringEq> privateIndexMap;
 
   Vector<NativeDef> natives;
@@ -702,6 +759,19 @@ class Interpreter
   FORCE_INLINE void freeClass(ClassInstance *c)
   {
     size_t size = sizeof(ClassInstance);
+    
+    // Se herda de NativeClass, chama destructor nativo
+    if (c->nativeUserData)
+    {
+      NativeClassDef *nativeDef = c->getNativeSuperclass();
+      if (nativeDef && nativeDef->destructor)
+      {
+        nativeDef->destructor(this, c->nativeUserData);
+      }
+      // Nota: nativeUserData foi alocado pela arena ou pelo constructor nativo
+      // A arena limpa automaticamente na shutdown
+    }
+    
     c->fields.destroy();
     c->klass = nullptr;
     c->~ClassInstance();
@@ -910,6 +980,11 @@ public:
   bool containsClassDefenition(String *name);
   bool getClassDefenition(String *name, ClassDef *result);
   bool tryGetClassDefenition(const char *name, ClassDef **result);
+  bool tryGetNativeClassDef(const char *name, NativeClassDef **result);
+
+  // Criar instâncias de classes script a partir do C++
+  Value createClassInstance(const char *className, int argCount, Value *args);
+  Value createClassInstance(ClassDef *klass, int argCount, Value *args);
 
   uint32 getTotalProcesses() const;
   uint32 getTotalAliveProcesses() const;

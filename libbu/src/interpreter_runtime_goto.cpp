@@ -1072,6 +1072,24 @@ op_call:
             instance->fields.push(makeNil());
         }
 
+        // Verifica se há NativeClass na cadeia de herança (direta ou indireta)
+        NativeClassDef *nativeKlass = instance->getNativeSuperclass();
+        if (nativeKlass)
+        {
+            // Chama constructor nativo se existir (retorna userData)
+            if (nativeKlass->constructor)
+            {
+                // O constructor nativo cria o userData
+                instance->nativeUserData = nativeKlass->constructor(this, 0, nullptr);
+            }
+            else
+            {
+                // Sem constructor, aloca buffer genérico
+                instance->nativeUserData = arena.Allocate(128);
+                std::memset(instance->nativeUserData, 0, 128);
+            }
+        }
+
         // Substitui class por instance na stack
         fiber->stackTop[-argCount - 1] = value;
 
@@ -1620,6 +1638,18 @@ op_get_property:
                 PUSH(instance->fields[fieldIdx]);
                 DISPATCH();
             }
+            
+            // Verifica propriedades herdadas da NativeClass
+            NativeProperty nativeProp;
+            if (instance->getNativeProperty(nameValue.asString(), &nativeProp))
+            {
+                DROP(); // Remove object
+                // Chama getter nativo com userData do híbrido
+                Value result = nativeProp.getter(this, instance->nativeUserData);
+                PUSH(result);
+                DISPATCH();
+            }
+            
             runtimeError("Undefined property '%s'", name);
             PUSH(makeNil());
             return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
@@ -1844,6 +1874,24 @@ op_set_property:
         {
             instance->fields[fieldIdx] = value;
             // Stack: [obj, value] -> queremos [value]
+            DROP(); // Remove value
+            DROP(); // Remove object
+            PUSH(value); // Push value back
+            DISPATCH();
+        }
+
+        // Verifica propriedades herdadas da NativeClass
+        NativeProperty nativeProp;
+        if (instance->getNativeProperty(nameValue.asString(), &nativeProp))
+        {
+            if (!nativeProp.setter)
+            {
+                runtimeError("Property '%s' is read-only", name);
+                DROP();
+                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            }
+            // Chama setter nativo
+            nativeProp.setter(this, instance->nativeUserData, value);
             DROP(); // Remove value
             DROP(); // Remove object
             PUSH(value); // Push value back
@@ -2826,6 +2874,18 @@ op_invoke:
 
             DISPATCH();
         }
+        
+        // Verifica métodos herdados da NativeClass
+        NativeMethod nativeMethod;
+        if (instance->getNativeMethod(nameValue.asString(), &nativeMethod))
+        {
+            Value *args = fiber->stackTop - argCount;
+            Value result = nativeMethod(this, instance->nativeUserData, argCount, args);
+            fiber->stackTop -= (argCount + 1);
+            PUSH(result);
+            DISPATCH();
+        }
+        
         runtimeError("Instance '%s' has no method '%s'", instance->klass->name->chars(), name);
         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
     }

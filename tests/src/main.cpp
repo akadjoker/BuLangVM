@@ -1,5 +1,6 @@
 
 #include "interpreter.hpp"
+#include <cmath>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -168,8 +169,160 @@ static Value native_assert(Interpreter *vm, int argc, Value *args)
   return vm->makeNil();
 }
 
- 
+// ========================================
+// NATIVE CLASS: Vector2D para testes de herança
+// ========================================
 
+struct Vector2DData {
+    float x;
+    float y;
+};
+
+void* Vector2D_constructor(Interpreter* vm, int argc, Value* args) {
+    Vector2DData* data = new Vector2DData();
+    if (argc >= 2) {
+        data->x = (float)args[0].asNumber();
+        data->y = (float)args[1].asNumber();
+    } else {
+        data->x = 0.0f;
+        data->y = 0.0f;
+    }
+    return data;
+}
+
+void Vector2D_destructor(Interpreter* vm, void* userData) {
+    Vector2DData* data = static_cast<Vector2DData*>(userData);
+    delete data;
+}
+
+Value Vector2D_getX(Interpreter* vm, void* userData) {
+    Vector2DData* data = static_cast<Vector2DData*>(userData);
+    return vm->makeFloat(data->x);
+}
+
+void Vector2D_setX(Interpreter* vm, void* userData, Value value) {
+    Vector2DData* data = static_cast<Vector2DData*>(userData);
+    data->x = (float)value.asNumber();
+}
+
+Value Vector2D_getY(Interpreter* vm, void* userData) {
+    Vector2DData* data = static_cast<Vector2DData*>(userData);
+    return vm->makeFloat(data->y);
+}
+
+void Vector2D_setY(Interpreter* vm, void* userData, Value value) {
+    Vector2DData* data = static_cast<Vector2DData*>(userData);
+    data->y = (float)value.asNumber();
+}
+
+Value Vector2D_length(Interpreter* vm, void* userData, int argc, Value* args) {
+    Vector2DData* data = static_cast<Vector2DData*>(userData);
+    float len = std::sqrt(data->x * data->x + data->y * data->y);
+    return vm->makeFloat(len);
+}
+
+Value Vector2D_add(Interpreter* vm, void* userData, int argc, Value* args) {
+    Vector2DData* data = static_cast<Vector2DData*>(userData);
+    if (argc >= 2) {
+        data->x += (float)args[0].asNumber();
+        data->y += (float)args[1].asNumber();
+    }
+    return vm->makeNil();
+}
+
+void registerTestNativeClasses(Interpreter* vm) {
+    NativeClassDef* vec2 = vm->registerNativeClass("Vector2D", Vector2D_constructor, Vector2D_destructor, 2);
+    vm->addNativeProperty(vec2, "x", Vector2D_getX, Vector2D_setX);
+    vm->addNativeProperty(vec2, "y", Vector2D_getY, Vector2D_setY);
+    vm->addNativeMethod(vec2, "length", Vector2D_length);
+    vm->addNativeMethod(vec2, "add", Vector2D_add);
+}
+
+// ========================================
+// TESTE: Criar instância de classe script a partir do C++
+// ========================================
+
+void testCreateScriptClassFromCpp(Interpreter* vm) {
+    printf("\n=== TESTE C++: Criar instância de classe script ===\n");
+    
+    // Primeiro compila o código que define a classe
+    const char* code = R"(
+        class Enemy : Vector2D {
+            var id;
+            var damage;
+            def init(eid, dmg) {
+                self.id = eid;
+                self.damage = dmg;
+                self.x = 0.0;
+                self.y = 0.0;
+            }
+            def attack() {
+                return self.damage * 2;
+            }
+        }
+    )";
+    
+    if (!vm->run(code, false)) {
+        printf("  ✗ Falhou a compilar a classe\n");
+        return;
+    }
+    
+    // Agora cria uma instância a partir do C++
+    Value args[2];
+    args[0] = vm->makeInt(42);      // id
+    args[1] = vm->makeInt(100);     // damage
+    
+    Value enemyValue = vm->createClassInstance("Enemy", 2, args);
+    
+    if (enemyValue.isNil()) {
+        printf("  ✗ Falhou a criar instância\n");
+        return;
+    }
+    
+    printf("  ✓ Instância criada com sucesso!\n");
+    
+    // Verifica que é uma ClassInstance
+    if (!enemyValue.isClassInstance()) {
+        printf("  ✗ Não é uma ClassInstance\n");
+        return;
+    }
+    
+    ClassInstance* enemy = enemyValue.asClassInstance();
+    printf("  ✓ É uma ClassInstance do tipo '%s'\n", enemy->klass->name->chars());
+    
+    // Acede aos campos
+    // Os campos são: id (index 0), damage (index 1)
+    Value idValue = enemy->fields[0];
+    Value damageValue = enemy->fields[1];
+    
+    printf("  → enemy.id = %d\n", (int)idValue.asNumber());
+    printf("  → enemy.damage = %d\n", (int)damageValue.asNumber());
+    
+    if ((int)idValue.asNumber() == 42) {
+        printf("  ✓ enemy.id == 42\n");
+    } else {
+        printf("  ✗ enemy.id != 42\n");
+    }
+    
+    if ((int)damageValue.asNumber() == 100) {
+        printf("  ✓ enemy.damage == 100\n");
+    } else {
+        printf("  ✗ enemy.damage != 100\n");
+    }
+    
+    // Verifica que tem nativeUserData (herda de Vector2D)
+    if (enemy->nativeUserData != nullptr) {
+        printf("  ✓ Tem nativeUserData (herda de Vector2D)\n");
+        
+        // Acede às propriedades nativas via o userData
+        Vector2DData* vec = static_cast<Vector2DData*>(enemy->nativeUserData);
+        printf("  → enemy.x = %.1f, enemy.y = %.1f\n", vec->x, vec->y);
+    } else {
+        printf("  ✗ Não tem nativeUserData\n");
+    }
+    
+    printf("=== TESTE C++ OK ===\n\n");
+}
 
 int main(int argc, char **argv)
 {
@@ -180,6 +333,12 @@ int main(int argc, char **argv)
   vm.registerNative("fail", native_fail, 1);
   vm.registerNative("assert", native_assert, 2);
   vm.registerNative("assert_eq", native_assert_eq, 3);
+
+  // Regista NativeClasses de teste
+  registerTestNativeClasses(&vm);
+
+  // Teste: criar instância de classe script a partir do C++
+  testCreateScriptClassFromCpp(&vm);
 
   vm.registerAll();
 

@@ -1,0 +1,131 @@
+// Test: Script class inheriting from NativeClass
+// This file tests the hybrid inheritance feature
+
+// ============================================
+// PARTE 1: Testar NativeClass Vector2D directamente
+// ============================================
+
+print("=== Teste 1: NativeClass Vector2D directa ===");
+
+var v = Vector2D(3, 4);
+print("v.x = " + str(v.x));
+print("v.y = " + str(v.y));
+print("v.length() = " + str(v.length()));
+
+assert_eq(v.x, 3, "Vector2D.x inicial");
+assert_eq(v.y, 4, "Vector2D.y inicial");
+assert_eq(v.length(), 5, "Vector2D.length() = 5 (3-4-5 triangle)");
+
+v.x = 10;
+v.y = 0;
+assert_eq(v.x, 10, "Vector2D.x após set");
+assert_eq(v.length(), 10, "Vector2D.length() após set");
+
+v.add(5, 5);
+assert_eq(v.x, 15, "Vector2D.x após add");
+assert_eq(v.y, 5, "Vector2D.y após add");
+
+print("=== NativeClass directa OK ===\n");
+
+// ============================================
+// PARTE 2: Testar herança de NativeClass
+// ============================================
+
+print("=== Teste 2: Script class herdando de NativeClass ===");
+
+class Player : Vector2D {
+    var name;
+    var health;
+    
+    def init(n, px, py) {
+        self.name = n;
+        self.health = 100;
+        // x e y vêm da NativeClass
+        self.x = px;
+        self.y = py;
+    }
+    
+    def move(dx, dy) {
+        self.add(dx, dy);  // Método nativo
+    }
+    
+    def info() {
+        return self.name + " at (" + str(self.x) + ", " + str(self.y) + ")";
+    }
+}
+
+var player = Player("Hero", 100, 200);
+
+// Testa campos do script
+assert_eq(player.name, "Hero", "Player.name");
+assert_eq(player.health, 100, "Player.health");
+
+// Testa propriedades nativas herdadas
+assert_eq(player.x, 100, "Player.x (nativo herdado)");
+assert_eq(player.y, 200, "Player.y (nativo herdado)");
+
+// Testa método do script
+print("Player info: " + player.info());
+
+// Testa método nativo herdado
+player.move(50, 25);
+assert_eq(player.x, 150, "Player.x após move");
+assert_eq(player.y, 225, "Player.y após move");
+
+// Testa length() nativo
+var dist = player.length();
+print("Distance from origin: " + str(dist));
+assert(dist > 0, "Player.length() > 0");
+
+print("=== Herança de NativeClass OK ===\n");
+
+// ============================================
+// PARTE 3: Teste de herança em cadeia
+// ============================================
+
+print("=== Teste 3: Herança em cadeia (Script : Script : Native) ===");
+
+class Entity : Vector2D {
+    var id;
+    
+    def init(eid) {
+        self.id = eid;
+        self.x = 0;
+        self.y = 0;
+    }
+    
+    def setPos(px, py) {
+        self.x = px;
+        self.y = py;
+    }
+}
+
+class Enemy : Entity {
+    var damage;
+    
+    def init(eid, dmg) {
+        super.init(eid);
+        self.damage = dmg;
+    }
+    
+    def attack() {
+        return "Enemy " + str(self.id) + " attacks for " + str(self.damage) + " damage!";
+    }
+}
+
+var enemy = Enemy(42, 25);
+assert_eq(enemy.id, 42, "Enemy.id (script field)");
+assert_eq(enemy.damage, 25, "Enemy.damage (script field)");
+
+enemy.setPos(300, 400);
+assert_eq(enemy.x, 300, "Enemy.x (nativo via cadeia)");
+assert_eq(enemy.y, 400, "Enemy.y (nativo via cadeia)");
+assert_eq(enemy.length(), 500, "Enemy.length() = 500 (3-4-5 * 100)");
+
+print(enemy.attack());
+
+print("=== Herança em cadeia OK ===\n");
+
+print("========================================");
+print("TODOS OS TESTES DE NATIVE INHERITANCE PASSARAM!");
+print("========================================");

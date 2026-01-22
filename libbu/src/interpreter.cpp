@@ -164,6 +164,7 @@ void Interpreter::freeBlueprints()
   // === LIMPEZA DE MAPAS ===
   structsMap.destroy();
   classesMap.destroy();
+  nativeClassesMap.destroy();
   globals.destroy();
 }
 void Interpreter::reset()
@@ -292,9 +293,16 @@ NativeClassDef *Interpreter::registerNativeClass(const char *name,
   NativeClassDef *klass = new NativeClassDef();
   klass->name = createString(name);
   int id = nativeClasses.size();
+  klass->index = id;
   klass->constructor = ctor;
   klass->destructor = dtor;
   klass->argCount = argCount;
+
+  // Adiciona ao vector para lookup por id
+  nativeClasses.push(klass);
+
+  // Adiciona ao mapa para lookup por nome
+  nativeClassesMap.set(klass->name, klass);
 
   // Define global
   globals.set(klass->name, makeNativeClass(id));
@@ -821,6 +829,121 @@ bool Interpreter::tryGetClassDefenition(const char *name, ClassDef **out)
     result = true;
   }
   return result;
+}
+
+bool Interpreter::tryGetNativeClassDef(const char *name, NativeClassDef **out)
+{
+  String *pName = createString(name);
+  return nativeClassesMap.get(pName, out);
+}
+
+Value Interpreter::createClassInstance(const char *className, int argCount, Value *args)
+{
+  ClassDef *klass = nullptr;
+  if (!tryGetClassDefenition(className, &klass))
+  {
+    runtimeError("Class '%s' not found", className);
+    return makeNil();
+  }
+  return createClassInstance(klass, argCount, args);
+}
+
+Value Interpreter::createClassInstance(ClassDef *klass, int argCount, Value *args)
+{
+  if (!klass)
+  {
+    runtimeError("Cannot create instance of null class");
+    return makeNil();
+  }
+
+  // Cria a instância
+  Value value = makeClassInstance();
+  ClassInstance *instance = value.asClassInstance();
+  instance->klass = klass;
+  instance->fields.reserve(klass->fieldCount);
+
+  // Inicializa fields com nil
+  for (int i = 0; i < klass->fieldCount; i++)
+  {
+    instance->fields.push(makeNil());
+  }
+
+  // Se herda de NativeClass, cria os dados nativos
+  NativeClassDef *nativeDef = nullptr;
+  ClassDef *current = klass;
+  while (current)
+  {
+    if (current->nativeSuperclass)
+    {
+      nativeDef = current->nativeSuperclass;
+      break;
+    }
+    current = current->superclass;
+  }
+
+  if (nativeDef)
+  {
+    if (nativeDef->constructor)
+    {
+      instance->nativeUserData = nativeDef->constructor(this, 0, nullptr);
+    }
+    else
+    {
+      instance->nativeUserData = arena.Allocate(128);
+      std::memset(instance->nativeUserData, 0, 128);
+    }
+  }
+
+  // Chama o constructor (init) se existir
+  if (klass->constructor)
+  {
+    if (argCount != klass->constructor->arity)
+    {
+      runtimeError("init() expects %d arguments, got %d", klass->constructor->arity, argCount);
+      return makeNil();
+    }
+
+    // Guarda estado actual da fiber
+    Process *proc = mainProcess;
+    Fiber *fiber = &proc->fibers[0];
+    int savedFrameCount = fiber->frameCount;
+    Value *savedStackTop = fiber->stackTop;
+
+    // Prepara a stack: primeiro a instância (será slot 0 = self), depois os args
+    push(value);
+    for (int i = 0; i < argCount; i++)
+    {
+      push(args[i]);
+    }
+
+    // Cria um novo frame para o constructor
+    if (fiber->frameCount >= FRAMES_MAX)
+    {
+      runtimeError("Stack overflow calling constructor");
+      return makeNil();
+    }
+
+    CallFrame *frame = &fiber->frames[fiber->frameCount++];
+    frame->func = klass->constructor;
+    frame->closure = nullptr;
+    frame->ip = klass->constructor->chunk->code;
+    frame->slots = fiber->stackTop - argCount - 1; // self está antes dos args
+
+    // Executa o constructor
+    while (fiber->frameCount > savedFrameCount)
+    {
+      FiberResult result = run_fiber(fiber, proc);
+      if (result.reason == FiberResult::FIBER_DONE || result.reason == FiberResult::ERROR)
+      {
+        break;
+      }
+    }
+
+    // Limpa a stack (o constructor já fez pop do self)
+    fiber->stackTop = savedStackTop;
+  }
+
+  return value;
 }
 
 void Interpreter::addFiber(Process *proc, Function *func)
