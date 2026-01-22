@@ -1,0 +1,229 @@
+// =================================================================
+// TESTE COMPLETO: Correção de Prefix/Postfix Increment/Decrement
+// =================================================================
+
+print("=== INICIANDO TESTES DE INCREMENT/DECREMENT ===");
+print("");
+
+var test_count = 0;
+var pass_count = 0;
+
+// -----------------------------------------------------------------
+// TESTE 1: Postfix em expressão (i++)
+// -----------------------------------------------------------------
+print("Teste 1: Postfix em expressão (i++)");
+test_count = test_count + 1;
+
+var i = 5;
+var x = i++;
+
+if (x == 5 && i == 6) {
+    print("  ✓ PASS: x = " + x + " (valor ANTES), i = " + i);
+    pass_count = pass_count + 1;
+} else {
+    print("  ✗ FAIL: x = " + x + " (esperado 5), i = " + i + " (esperado 6)");
+}
+print("");
+
+// -----------------------------------------------------------------
+// TESTE 2: Prefix em expressão (++i)
+// -----------------------------------------------------------------
+print("Teste 2: Prefix em expressão (++i)");
+test_count = test_count + 1;
+
+var j = 5;
+var y = ++j;
+
+if (y == 6 && j == 6) {
+    print("  ✓ PASS: y = " + y + " (valor DEPOIS), j = " + j);
+    pass_count = pass_count + 1;
+} else {
+    print("  ✗ FAIL: y = " + y + " (esperado 6), j = " + j + " (esperado 6)");
+}
+print("");
+
+// -----------------------------------------------------------------
+// TESTE 3: Postfix Decrement em expressão (i--)
+// -----------------------------------------------------------------
+print("Teste 3: Postfix decrement em expressão (i--)");
+test_count = test_count + 1;
+
+var k = 10;
+var z = k--;
+
+if (z == 10 && k == 9) {
+    print("  ✓ PASS: z = " + z + " (valor ANTES), k = " + k);
+    pass_count = pass_count + 1;
+} else {
+    print("  ✗ FAIL: z = " + z + " (esperado 10), k = " + k + " (esperado 9)");
+}
+print("");
+
+// -----------------------------------------------------------------
+// TESTE 4: Prefix Decrement em expressão (--i)
+// -----------------------------------------------------------------
+print("Teste 4: Prefix decrement em expressão (--i)");
+test_count = test_count + 1;
+
+var m = 10;
+var w = --m;
+
+if (w == 9 && m == 9) {
+    print("  ✓ PASS: w = " + w + " (valor DEPOIS), m = " + m);
+    pass_count = pass_count + 1;
+} else {
+    print("  ✗ FAIL: w = " + w + " (esperado 9), m = " + m + " (esperado 9)");
+}
+print("");
+
+// -----------------------------------------------------------------
+// TESTE 5: Como statement (regressão - não vazar stack)
+// -----------------------------------------------------------------
+print("Teste 5: Como statement - loop de 100k iterações");
+test_count = test_count + 1;
+
+var counter = 0;
+while (counter < 100000) {
+    ++counter;  // Usado como statement, não deve vazar stack
+}
+
+if (counter == 100000) {
+    print("  ✓ PASS: counter = " + counter + " (sem stack leak)");
+    pass_count = pass_count + 1;
+} else {
+    print("  ✗ FAIL: counter = " + counter + " (esperado 100000)");
+}
+print("");
+
+// -----------------------------------------------------------------
+// TESTE 6: Postfix como statement
+// -----------------------------------------------------------------
+print("Teste 6: Postfix como statement");
+test_count = test_count + 1;
+
+var n = 0;
+while (n < 50000) {
+    n++;  // Usado como statement
+}
+
+if (n == 50000) {
+    print("  ✓ PASS: n = " + n);
+    pass_count = pass_count + 1;
+} else {
+    print("  ✗ FAIL: n = " + n + " (esperado 50000)");
+}
+print("");
+
+// -----------------------------------------------------------------
+// TESTE 7: Combinação de prefix e postfix
+// -----------------------------------------------------------------
+print("Teste 7: Combinação de prefix e postfix");
+test_count = test_count + 1;
+
+var a = 10;
+var b = 20;
+var result = (a++) + (++b);
+
+if (a == 11 && b == 21 && result == 31) {
+    print("  ✓ PASS: a = " + a + ", b = " + b + ", result = " + result);
+    pass_count = pass_count + 1;
+} else {
+    print("  ✗ FAIL: a = " + a + " (esperado 11), b = " + b + " (esperado 21), result = " + result + " (esperado 31)");
+}
+print("");
+
+// -----------------------------------------------------------------
+// TESTE 8: Em condições
+// -----------------------------------------------------------------
+print("Teste 8: Uso em condições");
+test_count = test_count + 1;
+
+var p = 0;
+var iterations = 0;
+while (++p < 10) {
+    iterations = iterations + 1;
+}
+
+if (p == 10 && iterations == 9) {
+    print("  ✓ PASS: p = " + p + ", iterations = " + iterations);
+    pass_count = pass_count + 1;
+} else {
+    print("  ✗ FAIL: p = " + p + " (esperado 10), iterations = " + iterations + " (esperado 9)");
+}
+print("");
+
+// -----------------------------------------------------------------
+// TESTE 9: Postfix em condições
+// -----------------------------------------------------------------
+print("Teste 9: Postfix em condições");
+test_count = test_count + 1;
+
+var q = 0;
+var loops = 0;
+while (q++ < 10) {
+    loops = loops + 1;
+}
+
+if (q == 11 && loops == 10) {
+    print("  ✓ PASS: q = " + q + ", loops = " + loops);
+    pass_count = pass_count + 1;
+} else {
+    print("  ✗ FAIL: q = " + q + " (esperado 11), loops = " + loops + " (esperado 10)");
+}
+print("");
+
+// -----------------------------------------------------------------
+// TESTE 10: Múltiplos incrementos na mesma expressão
+// -----------------------------------------------------------------
+print("Teste 10: Múltiplos incrementos");
+test_count = test_count + 1;
+
+var r = 5;
+var s = 3;
+var sum = (++r) + (++s) + (r++) + (s++);
+// ++r: r=6, retorna 6
+// ++s: s=4, retorna 4
+// r++: retorna 6, r=7
+// s++: retorna 4, s=5
+// sum = 6 + 4 + 6 + 4 = 20
+
+if (r == 7 && s == 5 && sum == 20) {
+    print("  ✓ PASS: r = " + r + ", s = " + s + ", sum = " + sum);
+    pass_count = pass_count + 1;
+} else {
+    print("  ✗ FAIL: r = " + r + " (esperado 7), s = " + s + " (esperado 5), sum = " + sum + " (esperado 20)");
+}
+print("");
+
+// -----------------------------------------------------------------
+// TESTE 11: Stress test - 1 milhão de incrementos
+// -----------------------------------------------------------------
+print("Teste 11: Stress test - 1 milhão de incrementos (pode demorar)");
+test_count = test_count + 1;
+
+var big = 0;
+while (big < 1000000) {
+    ++big;
+}
+
+if (big == 1000000) {
+    print("  ✓ PASS: big = " + big + " (stack não vazou!)");
+    pass_count = pass_count + 1;
+} else {
+    print("  ✗ FAIL: big = " + big + " (esperado 1000000)");
+}
+print("");
+
+// -----------------------------------------------------------------
+// RESUMO
+// -----------------------------------------------------------------
+print("===========================================");
+print("RESUMO: " + pass_count + " / " + test_count + " testes passaram");
+
+if (pass_count == test_count) {
+    print("✓✓✓ TODOS OS TESTES PASSARAM! ✓✓✓");
+} else {
+    var failed = test_count - pass_count;
+    print("✗✗✗ " + failed + " TESTE(S) FALHARAM! ✗✗✗");
+}
+print("===========================================");

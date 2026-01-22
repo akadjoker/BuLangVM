@@ -287,6 +287,12 @@ void Compiler::varDeclaration()
             emitByte(OP_NIL);
         }
 
+        // Track global variable names for proper resolution vs PRIVATE
+        if (scopeDepth == 0)
+        {
+            declaredGlobals_.insert(nameToken.lexeme);
+        }
+
         defineVariable(global);
 
     } while (match(TOKEN_COMMA)); //  Continua se tem vírgula
@@ -463,23 +469,23 @@ void Compiler::handle_assignment(uint8 getOp, uint8 setOp, int arg, bool canAssi
 
     if (match(TOKEN_PLUS_PLUS))
     {
-        // i++ (postfix)
-        emitBytes(getOp, (uint8)arg);
-        emitBytes(getOp, (uint8)arg);
-        emitConstant(vm_->makeInt(1));
-        emitByte(OP_ADD);
-        emitBytes(setOp, (uint8)arg);
-        emitByte(OP_POP);
+        // i++ (postfix) - retorna valor ANTIGO
+        emitBytes(getOp, (uint8)arg);        // [old_value]
+        emitByte(OP_DUP);                    // [old_value, old_value]
+        emitConstant(vm_->makeInt(1));       // [old_value, old_value, 1]
+        emitByte(OP_ADD);                    // [old_value, new_value]
+        emitBytes(setOp, (uint8)arg);        // [old_value, new_value] (SET usa PEEK, não remove!)
+        emitByte(OP_POP);                    // [old_value] - remove o new_value
     }
     else if (match(TOKEN_MINUS_MINUS))
     {
-        // i-- (postfix)
-        emitBytes(getOp, (uint8)arg);
-        emitBytes(getOp, (uint8)arg);
-        emitConstant(vm_->makeInt(1));
-        emitByte(OP_SUBTRACT);
-        emitBytes(setOp, (uint8)arg);
-        emitByte(OP_POP);
+        // i-- (postfix) - retorna valor ANTIGO
+        emitBytes(getOp, (uint8)arg);        // [old_value]
+        emitByte(OP_DUP);                    // [old_value, old_value]
+        emitConstant(vm_->makeInt(1));       // [old_value, old_value, 1]
+        emitByte(OP_SUBTRACT);               // [old_value, new_value]
+        emitBytes(setOp, (uint8)arg);        // [old_value, new_value] (SET usa PEEK)
+        emitByte(OP_POP);                    // [old_value] - remove o new_value
     }
     else if (canAssign && match(TOKEN_EQUAL))
     {
@@ -532,7 +538,38 @@ void Compiler::namedVariable(Token &name, bool canAssign)
     uint8 getOp, setOp;
     int arg;
 
-    // === 1. SE estamos em PROCESS e é private conhecido ===
+    // === 1. Tenta LOCAL (prioridade máxima - declaração explícita) ===
+    arg = resolveLocal(name);
+    if (arg != -1)
+    {
+        getOp = OP_GET_LOCAL;
+        setOp = OP_SET_LOCAL;
+        handle_assignment(getOp, setOp, arg, canAssign);
+        return;
+    }
+
+    // === 2. Tenta UPVALUE ===
+    arg = resolveUpvalue(name);
+    if (arg != -1)
+    {
+        getOp = OP_GET_UPVALUE;
+        setOp = OP_SET_UPVALUE;
+        handle_assignment(getOp, setOp, arg, canAssign);
+        return;
+    }
+
+    // === 3. Tenta GLOBAL (declaração explícita) ===
+    // Verifica se foi declarado como global antes de usar PRIVATE
+    if (declaredGlobals_.count(name.lexeme) > 0)
+    {
+        arg = identifierConstant(name);
+        getOp = OP_GET_GLOBAL;
+        setOp = OP_SET_GLOBAL;
+        handle_assignment(getOp, setOp, arg, canAssign);
+        return;
+    }
+
+    // === 4. PRIVATE (fallback para variáveis de processo) ===
     if (isProcess_)
     {
         arg = (int)vm_->getProcessPrivateIndex(name.lexeme.c_str());
@@ -545,30 +582,10 @@ void Compiler::namedVariable(Token &name, bool canAssign)
         }
     }
 
-    // === 2. Tenta LOCAL ===
-    arg = resolveLocal(name);
-    if (arg != -1)
-    {
-        getOp = OP_GET_LOCAL;
-        setOp = OP_SET_LOCAL;
-        handle_assignment(getOp, setOp, arg, canAssign);
-        return;
-    }
-
-    // === 2.5. Tenta UPVALUE ===
-    arg = resolveUpvalue(name);
-    if (arg != -1)
-    {
-        getOp = OP_GET_UPVALUE;
-        setOp = OP_SET_UPVALUE;
-        handle_assignment(getOp, setOp, arg, canAssign);
-        return;
-    }
-    // === 3. É GLOBAL ===
+    // === 5. Fallback final: assume GLOBAL (será criado ou erro em runtime) ===
     arg = identifierConstant(name);
     getOp = OP_GET_GLOBAL;
     setOp = OP_SET_GLOBAL;
-
     handle_assignment(getOp, setOp, arg, canAssign);
 }
 
@@ -1802,10 +1819,12 @@ void Compiler::prefixIncrement(bool canAssign)
         }
 
         // Agora sim, emite o código correto para QUALQUER tipo de variável
-        emitBytes(getOp, (uint8)arg);
-        emitConstant(vm_->makeInt(1));
-        emitByte(OP_ADD);
-        emitBytes(setOp, (uint8)arg);
+        // ++i retorna o valor NOVO
+        emitBytes(getOp, (uint8)arg);           // [old_value]
+        emitConstant(vm_->makeInt(1));          // [old_value, 1]
+        emitByte(OP_ADD);                       // [new_value]
+        emitBytes(setOp, (uint8)arg);           // [new_value] (SET usa PEEK, não remove!)
+        // SET já deixa o new_value na stack, não precisa de DUP
     }
 }
 
@@ -1899,10 +1918,12 @@ void Compiler::prefixDecrement(bool canAssign)
             setOp = OP_SET_GLOBAL;
         }
 
-        emitBytes(getOp, (uint8)arg);
-        emitConstant(vm_->makeInt(1));
-        emitByte(OP_SUBTRACT);
-        emitBytes(setOp, (uint8)arg); // Já deixa o valor na stack
+        // --i retorna o valor NOVO
+        emitBytes(getOp, (uint8)arg);           // [old_value]
+        emitConstant(vm_->makeInt(1));          // [old_value, 1]
+        emitByte(OP_SUBTRACT);                  // [new_value]
+        emitBytes(setOp, (uint8)arg);           // [new_value] (SET usa PEEK, não remove!)
+        // SET já deixa o new_value na stack
     }
 }
 

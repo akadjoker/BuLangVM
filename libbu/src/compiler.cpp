@@ -176,8 +176,9 @@ ProcessDef *Compiler::compile(const std::string &source)
   stats.totalErrors = 0;
   stats.totalWarnings = 0;
   enclosingStack_.clear();
+  declaredGlobals_.clear();
   upvalueCount_ = 0;
-  isProcess_ = true;
+  isProcess_ = true;  // Top-level code IS a process
 
   compileStartTime = std::chrono::steady_clock::now();
 
@@ -250,7 +251,7 @@ ProcessDef *Compiler::compileExpression(const std::string &source)
   stats.maxScopeDepth = 0;
   stats.totalErrors = 0;
   stats.totalWarnings = 0;
-  isProcess_ = true;
+  isProcess_ = true;  // Expression compilation IS a process
   upvalueCount_ = 0;
   lexer = new Lexer(source);
 
@@ -264,6 +265,7 @@ ProcessDef *Compiler::compileExpression(const std::string &source)
   currentFunctionType = FunctionType::TYPE_SCRIPT;
   currentClass = nullptr;
   enclosingStack_.clear();
+  declaredGlobals_.clear();
   advance();
 
   if (check(TOKEN_EOF))

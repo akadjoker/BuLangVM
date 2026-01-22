@@ -243,6 +243,7 @@ private:
 
   std::vector<std::string> errors;
   std::vector<std::string> warnings;
+  std::set<std::string> declaredGlobals_;  // Track declared global variable names
 
   // Token management
   void advance();
