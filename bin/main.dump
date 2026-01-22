@@ -12,6 +12,7 @@ GLOBAL FUNCTIONS
     Has return: no
     Index: 0
 
+<<<<<<< HEAD
   Constants (39):
     [0] = "A iniciar teste de tortura..."
     [1] = "counter"
@@ -251,6 +252,13 @@ GLOBAL FUNCTIONS
     0348    | OP_PRINT                1
     0350  138 OP_NIL              
     0351    | OP_RETURN           
+=======
+  Constants (0):
+
+  Bytecode:
+    0000   81 OP_NIL              
+    0001    | OP_RETURN           
+>>>>>>> f28eea8b3bafbf1b116b1f68e8ae9b912f85d189
 
 
 ========================================

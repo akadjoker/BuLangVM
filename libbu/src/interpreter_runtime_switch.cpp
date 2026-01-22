@@ -1653,14 +1653,17 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                 uint8_t fieldIdx;
                 if (instance->klass->fieldNames.get(nameValue.asString(), &fieldIdx))
                 {
+                    //Value old = instance->fields[fieldIdx];
                     instance->fields[fieldIdx] = value;
                     // Pop object, mantém value
                     DROP(); // object
+                    PUSH(value);
                     break;
                 }
 
                 runtimeError("Undefined property '%s'", name);
                 DROP(); // object
+
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
             else if (object.isNativeClassInstance())
@@ -1681,6 +1684,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                     // Chama setter
                     prop.setter(this, instance->userData, value);
                     DROP(); // Remove object
+                    PUSH(value);
                     break;
                 }
             }
@@ -1794,6 +1798,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                 }
 
                 DROP(); // Remove object
+                PUSH(value);
                 break;
             }
 
