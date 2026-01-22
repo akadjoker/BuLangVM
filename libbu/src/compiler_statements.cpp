@@ -290,6 +290,14 @@ void Compiler::varDeclaration()
         // Track global variable names for proper resolution vs PRIVATE
         if (scopeDepth == 0)
         {
+            // Avisa se a variável global tem o mesmo nome de uma private de processo
+            int privateIdx = vm_->getProcessPrivateIndex(nameToken.lexeme.c_str());
+            if (privateIdx != -1)
+            {
+                Warning("Global variable '%s' shadows process private variable. "
+                        "Inside processes, use a different name or the global will be used instead of the private.",
+                        nameToken.lexeme.c_str());
+            }
             declaredGlobals_.insert(nameToken.lexeme);
         }
 
@@ -2235,21 +2243,31 @@ void Compiler::dot(bool canAssign)
     //  INCREMENT/DECREMENT
     else if (canAssign && match(TOKEN_PLUS_PLUS))
     {
-        // self.x++ (postfix)
+        // self.x++ (postfix) - retorna valor ANTIGO
+        // Stack: [self]
         emitByte(OP_DUP);                    // [self, self]
         emitBytes(OP_GET_PROPERTY, nameIdx); // [self, old_x]
-        emitConstant(vm_->makeInt(1));       // [self, old_x, 1]
-        emitByte(OP_ADD);                    // [self, new_x]
-        emitBytes(OP_SET_PROPERTY, nameIdx); // []
+        emitByte(OP_SWAP);                   // [old_x, self]
+        emitByte(OP_DUP);                    // [old_x, self, self]
+        emitBytes(OP_GET_PROPERTY, nameIdx); // [old_x, self, old_x]
+        emitConstant(vm_->makeInt(1));       // [old_x, self, old_x, 1]
+        emitByte(OP_ADD);                    // [old_x, self, new_x]
+        emitBytes(OP_SET_PROPERTY, nameIdx); // [old_x, new_x]
+        emitByte(OP_POP);                    // [old_x] ← resultado correto!
     }
     else if (canAssign && match(TOKEN_MINUS_MINUS))
     {
-        // self.x-- (postfix)
-        emitByte(OP_DUP);
-        emitBytes(OP_GET_PROPERTY, nameIdx);
-        emitConstant(vm_->makeInt(1));
-        emitByte(OP_SUBTRACT);
-        emitBytes(OP_SET_PROPERTY, nameIdx);
+        // self.x-- (postfix) - retorna valor ANTIGO
+        // Stack: [self]
+        emitByte(OP_DUP);                    // [self, self]
+        emitBytes(OP_GET_PROPERTY, nameIdx); // [self, old_x]
+        emitByte(OP_SWAP);                   // [old_x, self]
+        emitByte(OP_DUP);                    // [old_x, self, self]
+        emitBytes(OP_GET_PROPERTY, nameIdx); // [old_x, self, old_x]
+        emitConstant(vm_->makeInt(1));       // [old_x, self, old_x, 1]
+        emitByte(OP_SUBTRACT);               // [old_x, self, new_x]
+        emitBytes(OP_SET_PROPERTY, nameIdx); // [old_x, new_x]
+        emitByte(OP_POP);                    // [old_x] ← resultado correto!
     }
     //  GET ONLY
     else

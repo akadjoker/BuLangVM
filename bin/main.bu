@@ -1,6 +1,19 @@
-// Teste increment com globais
-var i = 5;
-print("i antes: " + i);
-var x = i++;
-print("x (deve ser 5): " + x);
-print("i (deve ser 6): " + i);
+// ===== TESTE WARNING: Variáveis globais com nomes de privates =====
+
+// Estas variáveis devem gerar warnings porque x, y, z são privates de processo
+var x = 10;
+var y = 20;
+
+print("x=" + x + " y=" + y);
+
+// Processo para demonstrar
+process TestProcess() {
+    // x e y aqui vão usar os GLOBAIS, não as privates!
+    print("Dentro do processo: x=" + x + " y=" + y);
+    loop { frame; }
+}
+
+var p = TestProcess();
+print("Processo criado");
+
+print("FIM");

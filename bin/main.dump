@@ -12,39 +12,71 @@ GLOBAL FUNCTIONS
     Has return: no
     Index: 0
 
-  Constants (7):
-    [0] = "i"
-    [1] = 5
-    [2] = "i antes: "
-    [3] = "x"
-    [4] = 1
-    [5] = "x (deve ser 5): "
-    [6] = "i (deve ser 6): "
+  Constants (11):
+    [0] = "x"
+    [1] = 10
+    [2] = "y"
+    [3] = 20
+    [4] = "x="
+    [5] = " y="
+    [6] = <value type 24>
+    [7] = "TestProcess"
+    [8] = "p"
+    [9] = "Processo criado"
+    [10] = "FIM"
 
   Bytecode:
-    0000    2 OP_CONSTANT             1 '5'
-    0002    | OP_DEFINE_GLOBAL        0 'i'
-    0004    3 OP_CONSTANT             2 'i antes: '
-    0006    | OP_GET_GLOBAL           0 'i'
-    0008    | OP_ADD              
-    0009    | OP_PRINT                1
-    0011    4 OP_GET_GLOBAL           0 'i'
-    0013    | OP_DUP              
-    0014    | OP_CONSTANT             4 '1'
-    0016    | OP_ADD              
-    0017    | OP_SET_GLOBAL           0 'i'
-    0019    | OP_POP              
-    0020    | OP_DEFINE_GLOBAL        3 'x'
-    0022    5 OP_CONSTANT             5 'x (deve ser 5): '
-    0024    | OP_GET_GLOBAL           3 'x'
-    0026    | OP_ADD              
-    0027    | OP_PRINT                1
-    0029    6 OP_CONSTANT             6 'i (deve ser 6): '
-    0031    | OP_GET_GLOBAL           0 'i'
-    0033    | OP_ADD              
-    0034    | OP_PRINT                1
-    0036    7 OP_NIL              
-    0037    | OP_RETURN           
+    0000    4 OP_CONSTANT             1 '10'
+    0002    | OP_DEFINE_GLOBAL        0 'x'
+    0004    5 OP_CONSTANT             3 '20'
+    0006    | OP_DEFINE_GLOBAL        2 'y'
+    0008    7 OP_CONSTANT             4 'x='
+    0010    | OP_GET_GLOBAL           0 'x'
+    0012    | OP_ADD              
+    0013    | OP_CONSTANT             5 ' y='
+    0015    | OP_ADD              
+    0016    | OP_GET_GLOBAL           2 'y'
+    0018    | OP_ADD              
+    0019    | OP_PRINT                1
+    0021   14 OP_CONSTANT             6 '<process>'
+    0023    | OP_DEFINE_GLOBAL        7 'TestProcess'
+    0025   16 OP_GET_GLOBAL           7 'TestProcess'
+    0027    | OP_CALL                 0
+    0029    | OP_DEFINE_GLOBAL        8 'p'
+    0031   17 OP_CONSTANT             9 'Processo criado'
+    0033    | OP_PRINT                1
+    0035   19 OP_CONSTANT            10 'FIM'
+    0037    | OP_PRINT                1
+    0039   20 OP_NIL              
+    0040    | OP_RETURN           
+
+
+>>> Function: TestProcess
+    Arity: 0
+    Has return: no
+    Index: 1
+
+  Constants (5):
+    [0] = "Dentro do processo: x="
+    [1] = "x"
+    [2] = " y="
+    [3] = "y"
+    [4] = 100
+
+  Bytecode:
+    0000   12 OP_CONSTANT             0 'Dentro do processo: x='
+    0002    | OP_GET_GLOBAL           1 'x'
+    0004    | OP_ADD              
+    0005    | OP_CONSTANT             2 ' y='
+    0007    | OP_ADD              
+    0008    | OP_GET_GLOBAL           3 'y'
+    0010    | OP_ADD              
+    0011    | OP_PRINT                1
+    0013   13 OP_CONSTANT             4 '100'
+    0015    | OP_FRAME            
+    0016    | OP_LOOP                16 -> 13
+    0019   14 OP_NIL              
+    0020    | OP_RETURN           
 
 
 ========================================

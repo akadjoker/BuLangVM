@@ -872,7 +872,7 @@ public:
 
   void runGC();
   int getProcessPrivateIndex(const char *name);
-  bool hasGlobal(const std::string &name);
+ 
 
   void dumpToFile(const char *filename);
 
