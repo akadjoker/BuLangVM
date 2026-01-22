@@ -175,8 +175,9 @@ ProcessDef *Compiler::compile(const std::string &source)
   stats.maxScopeDepth = 0;
   stats.totalErrors = 0;
   stats.totalWarnings = 0;
- enclosingStack_.clear();
+  enclosingStack_.clear();
   upvalueCount_ = 0;
+  isProcess_ = true;
 
   compileStartTime = std::chrono::steady_clock::now();
 
@@ -249,7 +250,7 @@ ProcessDef *Compiler::compileExpression(const std::string &source)
   stats.maxScopeDepth = 0;
   stats.totalErrors = 0;
   stats.totalWarnings = 0;
-  
+  isProcess_ = true;
   upvalueCount_ = 0;
   lexer = new Lexer(source);
 

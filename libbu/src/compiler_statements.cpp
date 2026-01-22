@@ -569,20 +569,6 @@ void Compiler::namedVariable(Token &name, bool canAssign)
     getOp = OP_GET_GLOBAL;
     setOp = OP_SET_GLOBAL;
 
-    // if (canAssign && (check(TOKEN_EQUAL) ||
-    //                   check(TOKEN_PLUS_EQUAL) ||
-    //                   check(TOKEN_MINUS_EQUAL) ||
-    //                   check(TOKEN_STAR_EQUAL) ||
-    //                   check(TOKEN_SLASH_EQUAL) ||
-    //                   check(TOKEN_PERCENT_EQUAL) ||
-    //                   check(TOKEN_PLUS_PLUS) ||
-    //                   check(TOKEN_MINUS_MINUS)))
-    // {
-    //     fail("Variable '%s' not declared. Use 'var %s = ...'",
-    //          name.lexeme.c_str(), name.lexeme.c_str());
-    //     return;
-    // }
-
     handle_assignment(getOp, setOp, arg, canAssign);
 }
 
@@ -882,56 +868,70 @@ void Compiler::whileStatement()
         return;
     consume(TOKEN_RPAREN, "Expect ')' after condition");
 
+    // 1. Se for falso, salta para 'exitJump'
     int exitJump = emitJump(OP_JUMP_IF_FALSE);
+
+    // 2. Se for verdadeiro, faz POP do 'true' e entra no corpo
     emitByte(OP_POP);
 
-    beginLoop(loopStart); // Guarda loopStart SEM scope
-
-    statement(); // Se for {}, o bloco cria o próprio scope
-
+    beginLoop(loopStart);
+    statement();
     if (hadError)
     {
         endLoop();
         return;
     }
-
-    emitLoop(loopStart);
-
-    endLoop(); // Patch dos breaks
-
+    emitLoop(loopStart); // Volta ao início
+    // Passo A: Resolver a saída natural (quando o loop termina porque a condição é falsa)
+    // O OP_JUMP_IF_FALSE aterra AQUI.
     patchJump(exitJump);
+
+    // Passo B: Limpar o 'false' que ficou na stack da saída natural
     emitByte(OP_POP);
+    // Passo C: Resolver os breaks.
+    // Os breaks vêm de dentro do loop (onde a stack já está limpa).
+    // Por isso, eles devem aterrar AQUI (depois do POP), e não antes.
+    endLoop();
 }
+
 void Compiler::doWhileStatement()
 {
-    // do
     consume(TOKEN_LBRACE, "Expect '{' after 'do'");
 
-    int loopStart = currentChunk->count;
+    int loopStart = currentChunk->count; // Início do corpo (para onde o loop volta se for TRUE)
 
-    beginLoop(loopStart);
+    beginLoop(loopStart); // Regista o loop
 
-    // BODY (executa primeiro)
+    // BODY
     beginScope();
     block();
     endScope();
 
-    // while (condition)
+    // O 'continue' num do-while deve saltar para a verificação da condição,
+    // loopStart no contexto atual para apontar para AQUI.
+    loopContexts_[loopDepth_ - 1].loopStart = currentChunk->count;
+
     consume(TOKEN_WHILE, "Expect 'while' after do body");
     consume(TOKEN_LPAREN, "Expect '(' after 'while'");
-    expression(); // Condição
+    expression();
     if (hadError)
         return;
     consume(TOKEN_RPAREN, "Expect ')' after condition");
     consume(TOKEN_SEMICOLON, "Expect ';' after do-while");
 
-    // Se condição for TRUE, volta ao início
+    // Lógica de Salto (Invertida em relação ao while normal)
+
+    // 1. Se for FALSO, queremos sair. Mas OP_JUMP_IF_FALSE não faz pop.
     int exitJump = emitJump(OP_JUMP_IF_FALSE);
-    emitByte(OP_POP); // Pop se true
+
+    // 2. Se for VERDADEIRO (não saltou), fazemos POP do 'true' da stack...
+    emitByte(OP_POP);
+    // 3. ... e voltamos ao início do bloco (loopStart original)
     emitLoop(loopStart);
 
+    // 4. Se foi FALSO, aterra aqui.
     patchJump(exitJump);
-    emitByte(OP_POP); // Pop se false
+    emitByte(OP_POP); // Remove o 'false' da stack
 
     endLoop();
 }
@@ -1361,22 +1361,21 @@ void Compiler::funDeclaration()
         return;
     }
 
-     
     std::string actualName;
 
-      if (function != nullptr) 
-      {
-          // Nested function: adiciona prefixo da função pai
-          actualName = function->name->chars();
-          
+    if (function != nullptr)
+    {
+        // Nested function: adiciona prefixo da função pai
+        actualName = function->name->chars();
+
         actualName += "$";
         actualName += nameToken.lexeme;
-    } else 
+    }
+    else
     {
         // Top-level function: nome normal
         actualName = nameToken.lexeme;
     }
-
 
     Function *func = vm_->addFunction(actualName.c_str(), 0);
 
@@ -1485,7 +1484,7 @@ void Compiler::processDeclaration()
     }
     argNames.clear();
 
-   //Warning("Process '%s' registered with index %d and %d fibers", nameToken.lexeme.c_str(), proc->index, numFibers_);
+    // Warning("Process '%s' registered with index %d and %d fibers", nameToken.lexeme.c_str(), proc->index, numFibers_);
 
     emitConstant(vm_->makeProcess(proc->index));
     uint8 nameConstant = identifierConstant(nameToken);
@@ -1626,11 +1625,89 @@ void Compiler::compileFunction(Function *func, bool isProcess)
     }
 }
 
+// void Compiler::prefixIncrement(bool canAssign)
+// {
+//     (void)canAssign;
+
+//     // 1. Validar se temos um nome de variável
+//     if (!check(TOKEN_IDENTIFIER))
+//     {
+//         error("Expect variable name after '++'");
+//         return;
+//     }
+
+//     advance();             // Consome o identifier (ex: 'i' ou 'player')
+//     Token name = previous; // Guarda o token
+
+//     // -----------------------------------------------------------
+//     // CENÁRIO A: É uma PROPRIEDADE (ex: ++player.hp)
+//     // -----------------------------------------------------------
+//     if (match(TOKEN_DOT))
+//     {
+//         consume(TOKEN_IDENTIFIER, "Expect property name after '.'.");
+//         uint8_t nameIdx = identifierConstant(previous); // O índice do nome da propriedade (ex: 'hp')
+
+//         // 1. Carregar o Objeto para a stack (ex: 'player')
+//         // Usamos a mesma lógica de resolução de variáveis
+//         int arg = resolveLocal(name);
+//         if (arg != -1) {
+//             emitBytes(OP_GET_LOCAL, (uint8)arg);
+//         } else {
+//             arg = identifierConstant(name);
+//             emitBytes(OP_GET_GLOBAL, (uint8)arg);
+//         }
+//         // Stack: [obj]
+
+//         // 2. Duplicar (precisamos do obj para ler E para escrever)
+//         emitByte(OP_DUP);
+//         // Stack: [obj, obj]
+
+//         // 3. Ler o valor atual da propriedade
+//         emitBytes(OP_GET_PROPERTY, nameIdx);
+//         // Stack: [obj, valor_antigo]
+
+//         // 4. Somar 1
+//         emitConstant(vm_->makeInt(1));
+//         emitByte(OP_ADD);
+//         // Stack: [obj, valor_novo]
+
+//         // 5. Definir o valor novo
+//         // O OP_SET_PROPERTY consome [obj, valor_novo] e deixa [valor_novo]
+
+//         emitBytes(OP_SET_PROPERTY, nameIdx);
+//     }
+//     // -----------------------------------------------------------
+//     // CENÁRIO B: É uma VARIÁVEL SIMPLES (ex: ++i)
+//     // -----------------------------------------------------------
+//     else
+//     {
+//         uint8 getOp, setOp;
+//         int arg = resolveLocal(name);
+
+//         if (arg != -1)
+//         {
+//             getOp = OP_GET_LOCAL;
+//             setOp = OP_SET_LOCAL;
+//         }
+//         else
+//         {
+//             arg = identifierConstant(name);
+//             getOp = OP_GET_GLOBAL;
+//             setOp = OP_SET_GLOBAL;
+//         }
+
+//         // i = i + 1
+//         emitBytes(getOp, (uint8)arg);
+//         emitConstant(vm_->makeInt(1));
+//         emitByte(OP_ADD);
+//         emitBytes(setOp, (uint8)arg); // Deixa o valor novo na stack
+
+//     }
+// }
+
 void Compiler::prefixIncrement(bool canAssign)
 {
     (void)canAssign;
-    // ++i
-    // previous = '++', current deve ser identifier
 
     if (!check(TOKEN_IDENTIFIER))
     {
@@ -1638,39 +1715,105 @@ void Compiler::prefixIncrement(bool canAssign)
         return;
     }
 
-    advance();             // Consome o identifier manualmente
-    Token name = previous; // Agora previous é o identifier
+    advance();
+    Token name = previous; // O nome da variável
 
-    uint8 getOp, setOp;
-    int arg = resolveLocal(name);
-
-    if (arg != -1)
+    // -----------------------------------------------------------
+    // CENÁRIO A: É uma PROPRIEDADE (ex: ++player.hp)
+    // (Mantém-se igual ao que já tinhas e funcionava)
+    // -----------------------------------------------------------
+    if (match(TOKEN_DOT))
     {
-        getOp = OP_GET_LOCAL;
-        setOp = OP_SET_LOCAL;
+        consume(TOKEN_IDENTIFIER, "Expect property name after '.'.");
+        uint8_t nameIdx = identifierConstant(previous);
+
+        // Resolver o objeto (usando a nova lógica completa!)
+        // Nota: Aqui podíamos duplicar a lógica abaixo ou criar um helper,
+        // mas para simplificar, vamos assumir que o objeto é Local ou Global
+        // (Se quiseres ser perfecionista, o objeto 'player' também podia ser um Upvalue!)
+
+        // ... (Para não complicar, mantemos a lógica simples para o objeto base
+        // ou podes copiar o bloco 'Resolução Completa' abaixo para aqui também)
+        int arg = resolveLocal(name);
+        if (arg != -1)
+        {
+            emitBytes(OP_GET_LOCAL, (uint8)arg);
+        }
+        else
+        {
+            arg = identifierConstant(name);
+            emitBytes(OP_GET_GLOBAL, (uint8)arg);
+        }
+
+        emitByte(OP_DUP);
+        emitBytes(OP_GET_PROPERTY, nameIdx);
+        emitConstant(vm_->makeInt(1));
+        emitByte(OP_ADD);
+        emitBytes(OP_SET_PROPERTY, nameIdx);
     }
+    // -----------------------------------------------------------
+    // CENÁRIO B: É uma VARIÁVEL (++i, ++upvalue, ++private)
+    // -----------------------------------------------------------
     else
     {
-        arg = identifierConstant(name);
-        getOp = OP_GET_GLOBAL;
-        setOp = OP_SET_GLOBAL;
+        uint8 getOp, setOp;
+        int arg = -1; // Marcador para saber se encontrámos
+
+        // 1. Tenta PRIVATE (Se for Process e a variável for privada)
+        if (isProcess_)
+        {
+            int index = (int)vm_->getProcessPrivateIndex(name.lexeme.c_str());
+            if (index != -1)
+            {
+                arg = index;
+                getOp = OP_GET_PRIVATE;
+                setOp = OP_SET_PRIVATE;
+            }
+        }
+
+        // 2. Tenta LOCAL (Se não achou private)
+        if (arg == -1)
+        {
+            arg = resolveLocal(name);
+            if (arg != -1)
+            {
+                getOp = OP_GET_LOCAL;
+                setOp = OP_SET_LOCAL;
+            }
+        }
+
+        // 3. Tenta UPVALUE (Se não achou local) -> ISTO FALTAVA!
+        if (arg == -1)
+        {
+            arg = resolveUpvalue(name);
+            if (arg != -1)
+            {
+                getOp = OP_GET_UPVALUE;
+                setOp = OP_SET_UPVALUE;
+            }
+        }
+
+        // 4. Fallback para GLOBAL (Se não achou nada)
+        if (arg == -1)
+        {
+            arg = identifierConstant(name);
+            getOp = OP_GET_GLOBAL;
+            setOp = OP_SET_GLOBAL;
+        }
+
+        // Agora sim, emite o código correto para QUALQUER tipo de variável
+        emitBytes(getOp, (uint8)arg);
+        emitConstant(vm_->makeInt(1));
+        emitByte(OP_ADD);
+        emitBytes(setOp, (uint8)arg);
     }
-
-    // i = i + 1
-    emitBytes(getOp, (uint8)arg);
-    emitConstant(vm_->makeInt(1));
-    emitByte(OP_ADD);
-    emitBytes(setOp, (uint8)arg);
-
-    // Lê o novo valor para retornar
-    emitBytes(getOp, (uint8)arg);
 }
 
 void Compiler::prefixDecrement(bool canAssign)
 {
     (void)canAssign;
-    // --i
 
+    // 1. Validar nome
     if (!check(TOKEN_IDENTIFIER))
     {
         error("Expect variable name after '--'");
@@ -1680,27 +1823,87 @@ void Compiler::prefixDecrement(bool canAssign)
     advance();
     Token name = previous;
 
-    uint8 getOp, setOp;
-    int arg = resolveLocal(name);
-
-    if (arg != -1)
+    // -----------------------------------------------------------
+    // CENÁRIO A: É uma PROPRIEDADE (ex: --player.hp)
+    // -----------------------------------------------------------
+    if (match(TOKEN_DOT))
     {
-        getOp = OP_GET_LOCAL;
-        setOp = OP_SET_LOCAL;
+        consume(TOKEN_IDENTIFIER, "Expect property name after '.'.");
+        uint8_t nameIdx = identifierConstant(previous);
+
+        // Resolver objeto (Local ou Global)
+        int arg = resolveLocal(name);
+        if (arg != -1)
+        {
+            emitBytes(OP_GET_LOCAL, (uint8)arg);
+        }
+        else
+        {
+            arg = identifierConstant(name);
+            emitBytes(OP_GET_GLOBAL, (uint8)arg);
+        }
+
+        emitByte(OP_DUP);                    // [obj, obj]
+        emitBytes(OP_GET_PROPERTY, nameIdx); // [obj, val_antigo]
+        emitConstant(vm_->makeInt(1));       // [obj, val_antigo, 1]
+        emitByte(OP_SUBTRACT);               // [obj, val_novo]  
+        emitBytes(OP_SET_PROPERTY, nameIdx); // [val_novo]
     }
+    // -----------------------------------------------------------
+    // CENÁRIO B: É uma VARIÁVEL (Locais, Upvalues, Globais, Privates)
+    // -----------------------------------------------------------
     else
     {
-        arg = identifierConstant(name);
-        getOp = OP_GET_GLOBAL;
-        setOp = OP_SET_GLOBAL;
+        uint8 getOp, setOp;
+        int arg = -1;
+
+        // 1. Tenta PRIVATE
+        if (isProcess_)
+        {
+            int index = (int)vm_->getProcessPrivateIndex(name.lexeme.c_str());
+            if (index != -1)
+            {
+                arg = index;
+                getOp = OP_GET_PRIVATE;
+                setOp = OP_SET_PRIVATE;
+            }
+        }
+
+        // 2. Tenta LOCAL
+        if (arg == -1)
+        {
+            arg = resolveLocal(name);
+            if (arg != -1)
+            {
+                getOp = OP_GET_LOCAL;
+                setOp = OP_SET_LOCAL;
+            }
+        }
+
+        // 3. Tenta UPVALUE (CRÍTICO!)
+        if (arg == -1)
+        {
+            arg = resolveUpvalue(name);
+            if (arg != -1)
+            {
+                getOp = OP_GET_UPVALUE;
+                setOp = OP_SET_UPVALUE;
+            }
+        }
+
+        // 4. Fallback GLOBAL
+        if (arg == -1)
+        {
+            arg = identifierConstant(name);
+            getOp = OP_GET_GLOBAL;
+            setOp = OP_SET_GLOBAL;
+        }
+
+        emitBytes(getOp, (uint8)arg);
+        emitConstant(vm_->makeInt(1));
+        emitByte(OP_SUBTRACT);
+        emitBytes(setOp, (uint8)arg); // Já deixa o valor na stack
     }
-
-    emitBytes(getOp, (uint8)arg);
-    emitConstant(vm_->makeInt(1));
-    emitByte(OP_SUBTRACT);
-    emitBytes(setOp, (uint8)arg);
-
-    emitBytes(getOp, (uint8)arg);
 }
 
 void Compiler::frameStatement()
@@ -2138,6 +2341,7 @@ void Compiler::gosubStatement()
 
 void Compiler::structDeclaration()
 {
+    isProcess_ = false;
     consume(TOKEN_IDENTIFIER, "Expect struct name");
     Token structName = previous;
     uint8_t nameConstant = identifierConstant(structName);
@@ -2219,6 +2423,7 @@ void Compiler::structDeclaration()
 void Compiler::self(bool canAssign)
 {
     (void)canAssign;
+    isProcess_ = false;
     if (currentClass == nullptr)
     {
         error("Cannot use 'self' outside of a class");
@@ -2233,7 +2438,7 @@ void Compiler::self(bool canAssign)
 void Compiler::super(bool canAssign)
 {
     (void)canAssign;
-
+    isProcess_ = false;
     if (currentClass == nullptr)
     {
         error("Cannot use 'super' outside of a class");
@@ -2272,6 +2477,7 @@ void Compiler::super(bool canAssign)
 
 void Compiler::classDeclaration()
 {
+    isProcess_ = false;
     consume(TOKEN_IDENTIFIER, "Expect class name");
     Token className = previous;
     uint8_t nameConstant = identifierConstant(className);
@@ -2388,6 +2594,7 @@ void Compiler::classDeclaration()
 
 void Compiler::method(ClassDef *classDef)
 {
+    isProcess_ = false;
     consume(TOKEN_IDENTIFIER, "Expect method name");
     Token methodName = previous;
 
@@ -2494,6 +2701,7 @@ void Compiler::method(ClassDef *classDef)
 
 void Compiler::tryStatement()
 {
+    isProcess_ = false;
     consume(TOKEN_LBRACE, "Expect '{' after 'try'");
 
     if (tryDepth >= MAX_TRY_DEPTH)
@@ -2611,6 +2819,8 @@ void Compiler::tryStatement()
 void Compiler::throwStatement()
 {
     expression();
+    if (hadError)
+        return;
     consume(TOKEN_SEMICOLON, "Expect ';' after throw");
     emitByte(OP_THROW);
 }
