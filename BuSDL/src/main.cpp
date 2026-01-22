@@ -151,7 +151,7 @@ int main( int argc, char **argv)
     }
 
 
-    std::ifstream file("main.bu");
+    std::ifstream file("main_sdl.bu");
     std::string code((std::istreambuf_iterator<char>(file)),
                      std::istreambuf_iterator<char>());
 

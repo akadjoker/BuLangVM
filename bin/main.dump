@@ -12,440 +12,316 @@ GLOBAL FUNCTIONS
     Has return: no
     Index: 0
 
-  Constants (46):
-    [0] = "=== Teste 1: NativeClass Vector2D directa ==="
-    [1] = "v"
-    [2] = "Vector2D"
-    [3] = 3
-    [4] = 4
-    [5] = "x"
-    [6] = "y"
-    [7] = 10.00
-    [8] = 20.00
-    [9] = "add"
-    [10] = 5
-    [11] = "=== NativeClass directa OK ==="
-    [12] = "=== Teste 2: Script class herdando de NativeClass ==="
-    [13] = "Player"
-    [14] = <value type 22>
-    [15] = "player"
-    [16] = "Hero"
-    [17] = 100.00
-    [18] = 200.00
-    [19] = "assert_eq"
-    [20] = "name"
-    [21] = "Player.name"
-    [22] = "health"
-    [23] = 100
-    [24] = "Player.health"
-    [25] = "move"
+  Constants (66):
+    [0] = "start"
+    [1] = <value type 26>
+    [2] = 62001
+    [3] = 0
+    [4] = "write"
+    [5] = "Couldn't initialize SDL:{}
+"
+    [6] = <value type 26>
+    [7] = "win"
+    [8] = <value type 26>
+    [9] = "Bulang SDL Test"
+    [10] = 536805376
+    [11] = 800
+    [12] = 600
+    [13] = 4
+    [14] = 32
+    [15] = "ren"
+    [16] = <value type 26>
+    [17] = 1
+    [18] = "e"
+    [19] = "SDL_Event"
+    [20] = "running"
+    [21] = "rectX"
+    [22] = 400
+    [23] = "rectY"
+    [24] = 300
+    [25] = "rectSize"
     [26] = 50
-    [27] = 25
-    [28] = "=== Herança de NativeClass OK ==="
-    [29] = "=== Teste 3: Herança em cadeia ==="
-    [30] = "Entity"
-    [31] = <value type 22>
-    [32] = "Enemy"
-    [33] = <value type 22>
-    [34] = "enemy"
-    [35] = 42
-    [36] = "id"
-    [37] = "Enemy.id"
-    [38] = "damage"
-    [39] = "Enemy.damage"
-    [40] = "setPos"
-    [41] = 300.00
-    [42] = 400.00
-    [43] = "length"
-    [44] = "=== Herança em cadeia OK ==="
-    [45] = "TODOS OS TESTES DE NATIVE INHERITANCE PASSARAM!"
+    [27] = <value type 26>
+    [28] = "type"
+    [29] = 256
+    [30] = 1024
+    [31] = 1025
+    [32] = "button"
+    [33] = "Clique Esquerdo em: "
+    [34] = "btnX"
+    [35] = ", "
+    [36] = "btnY"
+    [37] = 3
+    [38] = "Clique Direito!"
+    [39] = "print_stack"
+    [40] = "mouse"
+    [41] = 1027
+    [42] = "wheelY"
+    [43] = 10
+    [44] = 512
+    [45] = "winEvent"
+    [46] = 5
+    [47] = "Nova Largura: "
+    [48] = "Width"
+    [49] = "Nova Altura:  "
+    [50] = "Height"
+    [51] = 768
+    [52] = "Tecla: "
+    [53] = "key"
+    [54] = 27
+    [55] = <value type 26>
+    [56] = 45
+    [57] = 255
+    [58] = <value type 26>
+    [59] = <value type 26>
+    [60] = <value type 26>
+    [61] = <value type 26>
+    [62] = <value type 26>
+    [63] = <value type 26>
+    [64] = <value type 26>
+    [65] = "end"
 
   Bytecode:
-    0000    3 OP_CONSTANT             0 '=== Teste 1: NativeClass Vector2D directa ==='
+    0000    4 OP_CONSTANT             0 'start'
     0002    | OP_PRINT                1
-    0004    5 OP_GET_GLOBAL           2 'Vector2D'
-    0006    | OP_CONSTANT             3 '3'
-    0008    | OP_CONSTANT             4 '4'
-    0010    | OP_CALL                 2
-    0012    | OP_DEFINE_GLOBAL        1 'v'
-    0014    6 OP_GET_GLOBAL           1 'v'
-    0016    | OP_GET_PROPERTY         5 'x'
-    0018    | OP_PRINT                1
-    0020    7 OP_GET_GLOBAL           1 'v'
-    0022    | OP_GET_PROPERTY         6 'y'
-    0024    | OP_PRINT                1
-    0026    9 OP_GET_GLOBAL           1 'v'
-    0028    | OP_CONSTANT             7 '10.0000'
-    0030    | OP_SET_PROPERTY         5 'x'
+    0004    6 OP_CONSTANT             1 '<module_reference 0 112 0>'
+    0006    | OP_CONSTANT             2 '62001'
+    0008    | OP_CALL                 1
+    0010    | OP_CONSTANT             3 '0'
+    0012    | OP_LESS             
+    0013    | OP_JUMP_IF_FALSE       13 -> 32
+    0016    | OP_POP              
+    0017    8 OP_GET_GLOBAL           4 'write'
+    0019    | OP_CONSTANT             5 'Couldn't initialize SDL:{}'
+    0021    | OP_CONSTANT             6 '<module_reference 0 112 2>'
+    0023    | OP_CALL                 0
+    0025    | OP_CALL                 2
+    0027    | OP_POP              
+    0028    9 OP_RETURN_SUB       
+    0029   10 OP_JUMP                29 -> 33
     0032    | OP_POP              
-    0033   10 OP_GET_GLOBAL           1 'v'
-    0035    | OP_CONSTANT             8 '20.0000'
-    0037    | OP_SET_PROPERTY         6 'y'
-    0039    | OP_POP              
-    0040   11 OP_GET_GLOBAL           1 'v'
-    0042    | OP_GET_PROPERTY         5 'x'
-    0044    | OP_PRINT                1
-    0046   12 OP_GET_GLOBAL           1 'v'
-    0048    | OP_GET_PROPERTY         6 'y'
-    0050    | OP_PRINT                1
-    0052   14 OP_GET_GLOBAL           1 'v'
-    0054    | OP_CONSTANT            10 '5'
-    0056    | OP_CONSTANT            10 '5'
-    0058    | OP_INVOKE               9 'add' (2 args)
-    0061    | OP_POP              
-    0062   15 OP_GET_GLOBAL           1 'v'
-    0064    | OP_GET_PROPERTY         5 'x'
-    0066    | OP_PRINT                1
-    0068   16 OP_GET_GLOBAL           1 'v'
-    0070    | OP_GET_PROPERTY         6 'y'
-    0072    | OP_PRINT                1
-    0074   18 OP_CONSTANT            11 '=== NativeClass directa OK ==='
-    0076    | OP_PRINT                1
-    0078   20 OP_CONSTANT            12 '=== Teste 2: Script class herdando de NativeClass ==='
-    0080    | OP_PRINT                1
-    0082   22 OP_CONSTANT            14 '<class 1>'
-    0084    | OP_DEFINE_GLOBAL       13 'Player'
-    0086   38 OP_GET_GLOBAL          13 'Player'
-    0088    | OP_CONSTANT            16 'Hero'
-    0090    | OP_CONSTANT            17 '100.0000'
-    0092    | OP_CONSTANT            18 '200.0000'
-    0094    | OP_CALL                 3
-    0096    | OP_DEFINE_GLOBAL       15 'player'
-    0098   39 OP_GET_GLOBAL          19 'assert_eq'
-    0100    | OP_GET_GLOBAL          15 'player'
-    0102    | OP_GET_PROPERTY        20 'name'
-    0104    | OP_CONSTANT            16 'Hero'
-    0106    | OP_CONSTANT            21 'Player.name'
-    0108    | OP_CALL                 3
-    0110    | OP_POP              
-    0111   40 OP_GET_GLOBAL          19 'assert_eq'
-    0113    | OP_GET_GLOBAL          15 'player'
-    0115    | OP_GET_PROPERTY        22 'health'
-    0117    | OP_CONSTANT            23 '100'
-    0119    | OP_CONSTANT            24 'Player.health'
-    0121    | OP_CALL                 3
-    0123    | OP_POP              
-    0124   41 OP_GET_GLOBAL          15 'player'
-    0126    | OP_GET_PROPERTY         5 'x'
-    0128    | OP_PRINT                1
-    0130   42 OP_GET_GLOBAL          15 'player'
-    0132    | OP_GET_PROPERTY         6 'y'
-    0134    | OP_PRINT                1
-    0136   44 OP_GET_GLOBAL          15 'player'
-    0138    | OP_CONSTANT            26 '50'
-    0140    | OP_CONSTANT            27 '25'
-    0142    | OP_INVOKE              25 'move' (2 args)
-    0145    | OP_POP              
-    0146   45 OP_GET_GLOBAL          15 'player'
-    0148    | OP_GET_PROPERTY         5 'x'
-    0150    | OP_PRINT                1
-    0152   46 OP_GET_GLOBAL          15 'player'
-    0154    | OP_GET_PROPERTY         6 'y'
-    0156    | OP_PRINT                1
-    0158   48 OP_CONSTANT            28 '=== Herança de NativeClass OK ==='
-    0160    | OP_PRINT                1
-    0162   50 OP_CONSTANT            29 '=== Teste 3: Herança em cadeia ==='
-    0164    | OP_PRINT                1
-    0166   52 OP_CONSTANT            31 '<class 2>'
-    0168    | OP_DEFINE_GLOBAL       30 'Entity'
-    0170   65 OP_CONSTANT            33 '<class 3>'
-    0172    | OP_DEFINE_GLOBAL       32 'Enemy'
-    0174   73 OP_GET_GLOBAL          32 'Enemy'
-    0176    | OP_CONSTANT            35 '42'
-    0178    | OP_CONSTANT            27 '25'
-    0180    | OP_CALL                 2
-    0182    | OP_DEFINE_GLOBAL       34 'enemy'
-    0184   74 OP_GET_GLOBAL          19 'assert_eq'
-    0186    | OP_GET_GLOBAL          34 'enemy'
-    0188    | OP_GET_PROPERTY        36 'id'
-    0190    | OP_CONSTANT            35 '42'
-    0192    | OP_CONSTANT            37 'Enemy.id'
-    0194    | OP_CALL                 3
-    0196    | OP_POP              
-    0197   75 OP_GET_GLOBAL          19 'assert_eq'
-    0199    | OP_GET_GLOBAL          34 'enemy'
-    0201    | OP_GET_PROPERTY        38 'damage'
-    0203    | OP_CONSTANT            27 '25'
-    0205    | OP_CONSTANT            39 'Enemy.damage'
-    0207    | OP_CALL                 3
-    0209    | OP_POP              
-    0210   76 OP_GET_GLOBAL          34 'enemy'
-    0212    | OP_CONSTANT            41 '300.0000'
-    0214    | OP_CONSTANT            42 '400.0000'
-    0216    | OP_INVOKE              40 'setPos' (2 args)
-    0219    | OP_POP              
-    0220   77 OP_GET_GLOBAL          34 'enemy'
-    0222    | OP_GET_PROPERTY         5 'x'
-    0224    | OP_PRINT                1
-    0226   78 OP_GET_GLOBAL          34 'enemy'
-    0228    | OP_GET_PROPERTY         6 'y'
-    0230    | OP_PRINT                1
-    0232   79 OP_GET_GLOBAL          34 'enemy'
-    0234    | OP_INVOKE              43 'length' (0 args)
-    0237    | OP_PRINT                1
-    0239   81 OP_CONSTANT            44 '=== Herança em cadeia OK ==='
-    0241    | OP_PRINT                1
-    0243   82 OP_CONSTANT            45 'TODOS OS TESTES DE NATIVE INHERITANCE PASSARAM!'
-    0245    | OP_PRINT                1
-    0247   83 OP_NIL              
-    0248    | OP_RETURN           
+    0033   12 OP_CONSTANT             8 '<module_reference 0 112 60>'
+    0035    | OP_CONSTANT             9 'Bulang SDL Test'
+    0037    | OP_CONSTANT            10 '536805376'
+    0039    | OP_CONSTANT            10 '536805376'
+    0041    | OP_CONSTANT            11 '800'
+    0043    | OP_CONSTANT            12 '600'
+    0045    | OP_CONSTANT            13 '4'
+    0047    | OP_CONSTANT            14 '32'
+    0049    | OP_BITWISE_OR       
+    0050    | OP_CALL                 6
+    0052    | OP_DEFINE_GLOBAL        7 'win'
+    0054   13 OP_CONSTANT            16 '<module_reference 0 112 4>'
+    0056    | OP_GET_GLOBAL           7 'win'
+    0058    | OP_CONSTANT            17 '1'
+    0060    | OP_NEGATE           
+    0061    | OP_CONSTANT             3 '0'
+    0063    | OP_CALL                 3
+    0065    | OP_DEFINE_GLOBAL       15 'ren'
+    0067   15 OP_GET_GLOBAL          19 'SDL_Event'
+    0069    | OP_CALL                 0
+    0071    | OP_DEFINE_GLOBAL       18 'e'
+    0073   16 OP_TRUE             
+    0074    | OP_DEFINE_GLOBAL       20 'running'
+    0076   17 OP_CONSTANT            22 '400'
+    0078    | OP_DEFINE_GLOBAL       21 'rectX'
+    0080   18 OP_CONSTANT            24 '300'
+    0082    | OP_DEFINE_GLOBAL       23 'rectY'
+    0084   19 OP_CONSTANT            26 '50'
+    0086    | OP_DEFINE_GLOBAL       25 'rectSize'
+    0088   21 OP_GET_GLOBAL          20 'running'
+    0090    | OP_JUMP_IF_FALSE       90 -> 406
+    0093    | OP_POP              
+    0094   25 OP_CONSTANT            27 '<module_reference 0 112 42>'
+    0096    | OP_GET_GLOBAL          18 'e'
+    0098    | OP_CALL                 1
+    0100    | OP_JUMP_IF_FALSE      100 -> 347
+    0103    | OP_POP              
+    0104   28 OP_GET_GLOBAL          18 'e'
+    0106    | OP_GET_PROPERTY        28 'type'
+    0108    | OP_CONSTANT            29 '256'
+    0110    | OP_EQUAL            
+    0111    | OP_JUMP_IF_FALSE      111 -> 125
+    0114    | OP_POP              
+    0115   30 OP_FALSE            
+    0116    | OP_SET_GLOBAL          20 'running'
+    0118    | OP_POP              
+    0119   31 OP_JUMP               119 -> 348
+    0122   32 OP_JUMP               122 -> 126
+    0125    | OP_POP              
+    0126   34 OP_GET_GLOBAL          18 'e'
+    0128    | OP_GET_PROPERTY        28 'type'
+    0130    | OP_CONSTANT            30 '1024'
+    0132    | OP_EQUAL            
+    0133    | OP_JUMP_IF_FALSE      133 -> 140
+    0136    | OP_POP              
+    0137   40 OP_JUMP               137 -> 141
+    0140    | OP_POP              
+    0141   42 OP_GET_GLOBAL          18 'e'
+    0143    | OP_GET_PROPERTY        28 'type'
+    0145    | OP_CONSTANT            31 '1025'
+    0147    | OP_EQUAL            
+    0148    | OP_JUMP_IF_FALSE      148 -> 224
+    0151    | OP_POP              
+    0152   45 OP_GET_GLOBAL          18 'e'
+    0154    | OP_GET_PROPERTY        32 'button'
+    0156    | OP_CONSTANT            17 '1'
+    0158    | OP_EQUAL            
+    0159    | OP_JUMP_IF_FALSE      159 -> 194
+    0162    | OP_POP              
+    0163   47 OP_CONSTANT            33 'Clique Esquerdo em: '
+    0165    | OP_GET_GLOBAL          18 'e'
+    0167    | OP_GET_PROPERTY        34 'btnX'
+    0169    | OP_CONSTANT            35 ', '
+    0171    | OP_GET_GLOBAL          18 'e'
+    0173    | OP_GET_PROPERTY        36 'btnY'
+    0175    | OP_PRINT                4
+    0177   48 OP_GET_GLOBAL          18 'e'
+    0179    | OP_GET_PROPERTY        34 'btnX'
+    0181    | OP_SET_GLOBAL          21 'rectX'
+    0183    | OP_POP              
+    0184   49 OP_GET_GLOBAL          18 'e'
+    0186    | OP_GET_PROPERTY        36 'btnY'
+    0188    | OP_SET_GLOBAL          23 'rectY'
+    0190    | OP_POP              
+    0191   50 OP_JUMP               191 -> 195
+    0194    | OP_POP              
+    0195   52 OP_GET_GLOBAL          18 'e'
+    0197    | OP_GET_PROPERTY        32 'button'
+    0199    | OP_CONSTANT            37 '3'
+    0201    | OP_EQUAL            
+    0202    | OP_JUMP_IF_FALSE      202 -> 220
+    0205    | OP_POP              
+    0206   54 OP_CONSTANT            38 'Clique Direito!'
+    0208    | OP_PRINT                1
+    0210   55 OP_GET_GLOBAL          39 'print_stack'
+    0212    | OP_CONSTANT            40 'mouse'
+    0214    | OP_CALL                 1
+    0216    | OP_POP              
+    0217   57 OP_JUMP               217 -> 221
+    0220    | OP_POP              
+    0221   59 OP_JUMP               221 -> 225
+    0224    | OP_POP              
+    0225   62 OP_GET_GLOBAL          18 'e'
+    0227    | OP_GET_PROPERTY        28 'type'
+    0229    | OP_CONSTANT            41 '1027'
+    0231    | OP_EQUAL            
+    0232    | OP_JUMP_IF_FALSE      232 -> 252
+    0235    | OP_POP              
+    0236   66 OP_GET_GLOBAL          25 'rectSize'
+    0238    | OP_GET_GLOBAL          18 'e'
+    0240    | OP_GET_PROPERTY        42 'wheelY'
+    0242    | OP_CONSTANT            43 '10'
+    0244    | OP_MULTIPLY         
+    0245    | OP_ADD              
+    0246    | OP_SET_GLOBAL          25 'rectSize'
+    0248    | OP_POP              
+    0249   69 OP_JUMP               249 -> 253
+    0252    | OP_POP              
+    0253   70 OP_GET_GLOBAL          18 'e'
+    0255    | OP_GET_PROPERTY        28 'type'
+    0257    | OP_CONSTANT            44 '512'
+    0259    | OP_EQUAL            
+    0260    | OP_JUMP_IF_FALSE      260 -> 300
+    0263    | OP_POP              
+    0264   74 OP_GET_GLOBAL          18 'e'
+    0266    | OP_GET_PROPERTY        45 'winEvent'
+    0268    | OP_CONSTANT            46 '5'
+    0270    | OP_EQUAL            
+    0271    | OP_JUMP_IF_FALSE      271 -> 296
+    0274    | OP_POP              
+    0275   77 OP_CONSTANT            47 'Nova Largura: '
+    0277    | OP_GET_GLOBAL          18 'e'
+    0279    | OP_GET_PROPERTY        48 'Width'
+    0281    | OP_ADD              
+    0282    | OP_PRINT                1
+    0284   78 OP_CONSTANT            49 'Nova Altura:  '
+    0286    | OP_GET_GLOBAL          18 'e'
+    0288    | OP_GET_PROPERTY        50 'Height'
+    0290    | OP_ADD              
+    0291    | OP_PRINT                1
+    0293   81 OP_JUMP               293 -> 297
+    0296    | OP_POP              
+    0297   82 OP_JUMP               297 -> 301
+    0300    | OP_POP              
+    0301   84 OP_GET_GLOBAL          18 'e'
+    0303    | OP_GET_PROPERTY        28 'type'
+    0305    | OP_CONSTANT            51 '768'
+    0307    | OP_EQUAL            
+    0308    | OP_JUMP_IF_FALSE      308 -> 343
+    0311    | OP_POP              
+    0312   86 OP_CONSTANT            52 'Tecla: '
+    0314    | OP_GET_GLOBAL          18 'e'
+    0316    | OP_GET_PROPERTY        53 'key'
+    0318    | OP_ADD              
+    0319    | OP_PRINT                1
+    0321   87 OP_GET_GLOBAL          18 'e'
+    0323    | OP_GET_PROPERTY        53 'key'
+    0325    | OP_CONSTANT            54 '27'
+    0327    | OP_EQUAL            
+    0328    | OP_JUMP_IF_FALSE      328 -> 339
+    0331    | OP_POP              
+    0332    | OP_FALSE            
+    0333    | OP_SET_GLOBAL          20 'running'
+    0335    | OP_POP              
+    0336    | OP_JUMP               336 -> 340
+    0339    | OP_POP              
+    0340   88 OP_JUMP               340 -> 344
+    0343    | OP_POP              
+    0344   90 OP_LOOP               344 -> 94
+    0347    | OP_POP              
+    0348   92 OP_CONSTANT            55 '<module_reference 0 112 6>'
+    0350    | OP_GET_GLOBAL          15 'ren'
+    0352    | OP_CONSTANT             3 '0'
+    0354    | OP_CONSTANT             3 '0'
+    0356    | OP_CONSTANT            56 '45'
+    0358    | OP_CONSTANT            57 '255'
+    0360    | OP_CALL                 5
+    0362    | OP_POP              
+    0363   93 OP_CONSTANT            58 '<module_reference 0 112 8>'
+    0365    | OP_GET_GLOBAL          15 'ren'
+    0367    | OP_CALL                 1
+    0369    | OP_POP              
+    0370   94 OP_CONSTANT            59 '<module_reference 0 112 6>'
+    0372    | OP_GET_GLOBAL          15 'ren'
+    0374    | OP_CONSTANT            57 '255'
+    0376    | OP_CONSTANT            57 '255'
+    0378    | OP_CONSTANT            57 '255'
+    0380    | OP_CONSTANT            57 '255'
+    0382    | OP_CALL                 5
+    0384    | OP_POP              
+    0385   95 OP_CONSTANT            60 '<module_reference 0 112 10>'
+    0387    | OP_GET_GLOBAL          15 'ren'
+    0389    | OP_GET_GLOBAL          21 'rectX'
+    0391    | OP_GET_GLOBAL          23 'rectY'
+    0393    | OP_CALL                 3
+    0395    | OP_POP              
+    0396   96 OP_CONSTANT            61 '<module_reference 0 112 9>'
+    0398    | OP_GET_GLOBAL          15 'ren'
+    0400    | OP_CALL                 1
+    0402    | OP_POP              
+    0403   97 OP_LOOP               403 -> 88
+    0406    | OP_POP              
+    0407   99 OP_CONSTANT            62 '<module_reference 0 112 5>'
+    0409    | OP_GET_GLOBAL          15 'ren'
+    0411    | OP_CALL                 1
+    0413    | OP_POP              
+    0414  100 OP_CONSTANT            63 '<module_reference 0 112 61>'
+    0416    | OP_GET_GLOBAL           7 'win'
+    0418    | OP_CALL                 1
+    0420    | OP_POP              
+    0421  101 OP_CONSTANT            64 '<module_reference 0 112 1>'
+    0423    | OP_CALL                 0
+    0425    | OP_POP              
+    0426  104 OP_CONSTANT            65 'end'
+    0428    | OP_PRINT                1
+    0430    | OP_NIL              
+    0431    | OP_RETURN           
 
 
 ========================================
 CLASSES
 ========================================
-
-
->>> Class: Player
-    Index: 1
-    Field count: 2
-    Has superclass: no
-
-    Fields:
-      [0] name
-      [1] health
-
-    >>> Constructor (init)
-        Arity: 3
-
-      Constants (5):
-        [0] = "name"
-        [1] = "health"
-        [2] = 100
-        [3] = "x"
-        [4] = "y"
-
-      Bytecode:
-        0000   27 OP_GET_LOCAL            0
-        0002    | OP_GET_LOCAL            1
-        0004    | OP_SET_PROPERTY         0 'name'
-        0006    | OP_POP              
-        0007   28 OP_GET_LOCAL            0
-        0009    | OP_CONSTANT             2 '100'
-        0011    | OP_SET_PROPERTY         1 'health'
-        0013    | OP_POP              
-        0014   29 OP_GET_LOCAL            0
-        0016    | OP_GET_LOCAL            2
-        0018    | OP_SET_PROPERTY         3 'x'
-        0020    | OP_POP              
-        0021   30 OP_GET_LOCAL            0
-        0023    | OP_GET_LOCAL            3
-        0025    | OP_SET_PROPERTY         4 'y'
-        0027    | OP_POP              
-        0028   31 OP_GET_LOCAL            0
-        0030    | OP_RETURN           
-        0031    | OP_POP              
-        0032    | OP_POP              
-        0033    | OP_POP              
-        0034    | OP_POP              
-
-    Methods:
-
-    >>> Method: init
-        Arity: 3
-        Has return: yes
-
-      Constants (5):
-        [0] = "name"
-        [1] = "health"
-        [2] = 100
-        [3] = "x"
-        [4] = "y"
-
-      Bytecode:
-        0000   27 OP_GET_LOCAL            0
-        0002    | OP_GET_LOCAL            1
-        0004    | OP_SET_PROPERTY         0 'name'
-        0006    | OP_POP              
-        0007   28 OP_GET_LOCAL            0
-        0009    | OP_CONSTANT             2 '100'
-        0011    | OP_SET_PROPERTY         1 'health'
-        0013    | OP_POP              
-        0014   29 OP_GET_LOCAL            0
-        0016    | OP_GET_LOCAL            2
-        0018    | OP_SET_PROPERTY         3 'x'
-        0020    | OP_POP              
-        0021   30 OP_GET_LOCAL            0
-        0023    | OP_GET_LOCAL            3
-        0025    | OP_SET_PROPERTY         4 'y'
-        0027    | OP_POP              
-        0028   31 OP_GET_LOCAL            0
-        0030    | OP_RETURN           
-        0031    | OP_POP              
-        0032    | OP_POP              
-        0033    | OP_POP              
-        0034    | OP_POP              
-
-
-    >>> Method: move
-        Arity: 2
-        Has return: yes
-
-      Constants (1):
-        [0] = "add"
-
-      Bytecode:
-        0000   34 OP_GET_LOCAL            0
-        0002    | OP_GET_LOCAL            1
-        0004    | OP_GET_LOCAL            2
-        0006    | OP_INVOKE               0 'add' (2 args)
-        0009    | OP_POP              
-        0010   35 OP_GET_LOCAL            0
-        0012    | OP_RETURN           
-        0013    | OP_POP              
-        0014    | OP_POP              
-        0015    | OP_POP              
-
-
-
->>> Class: Entity
-    Index: 2
-    Field count: 1
-    Has superclass: no
-
-    Fields:
-      [0] id
-
-    >>> Constructor (init)
-        Arity: 1
-
-      Constants (4):
-        [0] = "id"
-        [1] = "x"
-        [2] = 0.00
-        [3] = "y"
-
-      Bytecode:
-        0000   55 OP_GET_LOCAL            0
-        0002    | OP_GET_LOCAL            1
-        0004    | OP_SET_PROPERTY         0 'id'
-        0006    | OP_POP              
-        0007   56 OP_GET_LOCAL            0
-        0009    | OP_CONSTANT             2 '0.0000'
-        0011    | OP_SET_PROPERTY         1 'x'
-        0013    | OP_POP              
-        0014   57 OP_GET_LOCAL            0
-        0016    | OP_CONSTANT             2 '0.0000'
-        0018    | OP_SET_PROPERTY         3 'y'
-        0020    | OP_POP              
-        0021   58 OP_GET_LOCAL            0
-        0023    | OP_RETURN           
-        0024    | OP_POP              
-        0025    | OP_POP              
-
-    Methods:
-
-    >>> Method: init
-        Arity: 1
-        Has return: yes
-
-      Constants (4):
-        [0] = "id"
-        [1] = "x"
-        [2] = 0.00
-        [3] = "y"
-
-      Bytecode:
-        0000   55 OP_GET_LOCAL            0
-        0002    | OP_GET_LOCAL            1
-        0004    | OP_SET_PROPERTY         0 'id'
-        0006    | OP_POP              
-        0007   56 OP_GET_LOCAL            0
-        0009    | OP_CONSTANT             2 '0.0000'
-        0011    | OP_SET_PROPERTY         1 'x'
-        0013    | OP_POP              
-        0014   57 OP_GET_LOCAL            0
-        0016    | OP_CONSTANT             2 '0.0000'
-        0018    | OP_SET_PROPERTY         3 'y'
-        0020    | OP_POP              
-        0021   58 OP_GET_LOCAL            0
-        0023    | OP_RETURN           
-        0024    | OP_POP              
-        0025    | OP_POP              
-
-
-    >>> Method: setPos
-        Arity: 2
-        Has return: yes
-
-      Constants (2):
-        [0] = "x"
-        [1] = "y"
-
-      Bytecode:
-        0000   60 OP_GET_LOCAL            0
-        0002    | OP_GET_LOCAL            1
-        0004    | OP_SET_PROPERTY         0 'x'
-        0006    | OP_POP              
-        0007   61 OP_GET_LOCAL            0
-        0009    | OP_GET_LOCAL            2
-        0011    | OP_SET_PROPERTY         1 'y'
-        0013    | OP_POP              
-        0014   62 OP_GET_LOCAL            0
-        0016    | OP_RETURN           
-        0017    | OP_POP              
-        0018    | OP_POP              
-        0019    | OP_POP              
-
-
-
->>> Class: Enemy
-    Index: 3
-    Field count: 2
-    Has superclass: yes
-    Superclass: Entity
-
-    Fields:
-      [0] id
-      [1] damage
-
-    >>> Constructor (init)
-        Arity: 2
-
-      Constants (2):
-        [0] = "init"
-        [1] = "damage"
-
-      Bytecode:
-        0000   68 OP_GET_LOCAL            0
-        0002    | OP_GET_LOCAL            1
-        0004    | OP_SUPER_INVOKE      class=3 name=0 'init' (1 args)
-        0008    | OP_POP              
-        0009   69 OP_GET_LOCAL            0
-        0011    | OP_GET_LOCAL            2
-        0013    | OP_SET_PROPERTY         1 'damage'
-        0015    | OP_POP              
-        0016   70 OP_GET_LOCAL            0
-        0018    | OP_RETURN           
-        0019    | OP_POP              
-        0020    | OP_POP              
-        0021    | OP_POP              
-
-    Methods:
-
-    >>> Method: init
-        Arity: 2
-        Has return: yes
-
-      Constants (2):
-        [0] = "init"
-        [1] = "damage"
-
-      Bytecode:
-        0000   68 OP_GET_LOCAL            0
-        0002    | OP_GET_LOCAL            1
-        0004    | OP_SUPER_INVOKE      class=3 name=0 'init' (1 args)
-        0008    | OP_POP              
-        0009   69 OP_GET_LOCAL            0
-        0011    | OP_GET_LOCAL            2
-        0013    | OP_SET_PROPERTY         1 'damage'
-        0015    | OP_POP              
-        0016   70 OP_GET_LOCAL            0
-        0018    | OP_RETURN           
-        0019    | OP_POP              
-        0020    | OP_POP              
-        0021    | OP_POP              
-
 
 
 ========================================

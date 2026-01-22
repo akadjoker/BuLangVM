@@ -4,10 +4,11 @@
 #include <SDL2/SDL.h>
 
 namespace SDLBindings
-{ 
+{
  void registerAll(Interpreter &vm);
  void register_core(ModuleBuilder &mod);
  void register_window(ModuleBuilder &module);
  void register_renderer(ModuleBuilder &module);
+ void register_opengl(ModuleBuilder &module);
 
-} // namespace RaylibBindings
+} // namespace SDLBindings

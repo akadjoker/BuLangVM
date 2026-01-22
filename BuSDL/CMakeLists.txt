@@ -59,7 +59,9 @@ elseif(CMAKE_BUILD_TYPE MATCHES Release)
     target_link_options(BuSDL PRIVATE -O3   -DNDEBUG )
 endif()
 
-target_link_libraries(BuSDL libbu SDL2)
+find_package(OpenGL REQUIRED)
+
+target_link_libraries(BuSDL libbu SDL2 OpenGL::GL)
 
 if (WIN32)
     target_link_libraries(BuSDL Winmm.lib)

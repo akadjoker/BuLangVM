@@ -84,6 +84,848 @@ namespace SDLBindings
         return vm->makeNil();
     }
 
+    // =====================================================
+    // EVENT FUNCTIONS
+    // =====================================================
+
+    Value native_SDL_WaitEvent(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_WaitEvent expects 1 argument");
+            return vm->makeNil();
+        }
+        if (!args[0].isNativeStructInstance())
+        {
+            Error("SDL_WaitEvent expects SDL_Event");
+            return vm->makeNil();
+        }
+
+        auto *eventInst = args[0].asNativeStructInstance();
+        SDL_Event *event = (SDL_Event *)eventInst->data;
+        int result = SDL_WaitEvent(event);
+        return vm->makeInt(result);
+    }
+
+    Value native_SDL_WaitEventTimeout(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 2)
+        {
+            Error("SDL_WaitEventTimeout expects 2 arguments");
+            return vm->makeNil();
+        }
+        if (!args[0].isNativeStructInstance())
+        {
+            Error("SDL_WaitEventTimeout expects SDL_Event");
+            return vm->makeNil();
+        }
+
+        auto *eventInst = args[0].asNativeStructInstance();
+        SDL_Event *event = (SDL_Event *)eventInst->data;
+        int timeout = args[1].asNumber();
+        int result = SDL_WaitEventTimeout(event, timeout);
+        return vm->makeInt(result);
+    }
+
+    Value native_SDL_FlushEvent(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_FlushEvent expects 1 argument");
+            return vm->makeNil();
+        }
+        Uint32 type = args[0].asNumber();
+        SDL_FlushEvent(type);
+        return vm->makeNil();
+    }
+
+    Value native_SDL_FlushEvents(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 2)
+        {
+            Error("SDL_FlushEvents expects 2 arguments");
+            return vm->makeNil();
+        }
+        Uint32 minType = args[0].asNumber();
+        Uint32 maxType = args[1].asNumber();
+        SDL_FlushEvents(minType, maxType);
+        return vm->makeNil();
+    }
+
+    Value native_SDL_HasEvent(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_HasEvent expects 1 argument");
+            return vm->makeNil();
+        }
+        Uint32 type = args[0].asNumber();
+        SDL_bool result = SDL_HasEvent(type);
+        return vm->makeBool(result == SDL_TRUE);
+    }
+
+    // =====================================================
+    // KEYBOARD FUNCTIONS
+    // =====================================================
+
+    Value native_SDL_GetKeyboardState(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_GetKeyboardState expects 1 argument (scancode)");
+            return vm->makeNil();
+        }
+        int scancode = args[0].asNumber();
+        const Uint8 *state = SDL_GetKeyboardState(NULL);
+        return vm->makeBool(state[scancode] != 0);
+    }
+
+    Value native_SDL_GetScancodeFromKey(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_GetScancodeFromKey expects 1 argument");
+            return vm->makeNil();
+        }
+        SDL_Keycode key = args[0].asNumber();
+        SDL_Scancode scancode = SDL_GetScancodeFromKey(key);
+        return vm->makeInt(scancode);
+    }
+
+    Value native_SDL_GetKeyFromScancode(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_GetKeyFromScancode expects 1 argument");
+            return vm->makeNil();
+        }
+        SDL_Scancode scancode = (SDL_Scancode)args[0].asNumber();
+        SDL_Keycode key = SDL_GetKeyFromScancode(scancode);
+        return vm->makeInt(key);
+    }
+
+    Value native_SDL_GetKeyName(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_GetKeyName expects 1 argument");
+            return vm->makeNil();
+        }
+        SDL_Keycode key = args[0].asNumber();
+        const char *name = SDL_GetKeyName(key);
+        return vm->makeString(name);
+    }
+
+    Value native_SDL_GetModState(Interpreter *vm, int argc, Value *args)
+    {
+        SDL_Keymod mod = SDL_GetModState();
+        return vm->makeInt(mod);
+    }
+
+    // =====================================================
+    // MOUSE FUNCTIONS
+    // =====================================================
+
+    Value native_SDL_GetMouseState(Interpreter *vm, int argc, Value *args)
+    {
+        int x, y;
+        Uint32 buttons = SDL_GetMouseState(&x, &y);
+
+        Value result = vm->makeMap();
+        MapInstance *map = result.asMap();
+        map->table.set(vm->makeString("x").asString(), vm->makeInt(x));
+        map->table.set(vm->makeString("y").asString(), vm->makeInt(y));
+        map->table.set(vm->makeString("buttons").asString(), vm->makeInt(buttons));
+        return result;
+    }
+
+    Value native_SDL_GetGlobalMouseState(Interpreter *vm, int argc, Value *args)
+    {
+        int x, y;
+        Uint32 buttons = SDL_GetGlobalMouseState(&x, &y);
+
+        Value result = vm->makeMap();
+        MapInstance *map = result.asMap();
+        map->table.set(vm->makeString("x").asString(), vm->makeInt(x));
+        map->table.set(vm->makeString("y").asString(), vm->makeInt(y));
+        map->table.set(vm->makeString("buttons").asString(), vm->makeInt(buttons));
+        return result;
+    }
+
+    Value native_SDL_GetRelativeMouseState(Interpreter *vm, int argc, Value *args)
+    {
+        int x, y;
+        Uint32 buttons = SDL_GetRelativeMouseState(&x, &y);
+
+        Value result = vm->makeMap();
+        MapInstance *map = result.asMap();
+        map->table.set(vm->makeString("x").asString(), vm->makeInt(x));
+        map->table.set(vm->makeString("y").asString(), vm->makeInt(y));
+        map->table.set(vm->makeString("buttons").asString(), vm->makeInt(buttons));
+        return result;
+    }
+
+    Value native_SDL_WarpMouseInWindow(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 3)
+        {
+            Error("SDL_WarpMouseInWindow expects 3 arguments");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_WarpMouseInWindow expects window pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Window *window = (SDL_Window *)args[0].asPointer();
+        int x = args[1].asNumber();
+        int y = args[2].asNumber();
+        SDL_WarpMouseInWindow(window, x, y);
+        return vm->makeNil();
+    }
+
+    Value native_SDL_SetRelativeMouseMode(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_SetRelativeMouseMode expects 1 argument");
+            return vm->makeNil();
+        }
+        SDL_bool enabled = args[0].asBool() ? SDL_TRUE : SDL_FALSE;
+        int result = SDL_SetRelativeMouseMode(enabled);
+        return vm->makeInt(result);
+    }
+
+    Value native_SDL_GetRelativeMouseMode(Interpreter *vm, int argc, Value *args)
+    {
+        SDL_bool result = SDL_GetRelativeMouseMode();
+        return vm->makeBool(result == SDL_TRUE);
+    }
+
+    Value native_SDL_ShowCursor(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_ShowCursor expects 1 argument");
+            return vm->makeNil();
+        }
+        int toggle = args[0].asNumber();
+        int result = SDL_ShowCursor(toggle);
+        return vm->makeInt(result);
+    }
+
+    // =====================================================
+    // WINDOW EXTRA FUNCTIONS
+    // =====================================================
+
+    Value native_SDL_GetWindowSize(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_GetWindowSize expects 1 argument");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_GetWindowSize expects window pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Window *window = (SDL_Window *)args[0].asPointer();
+        int w, h;
+        SDL_GetWindowSize(window, &w, &h);
+
+        Value result = vm->makeMap();
+        MapInstance *map = result.asMap();
+        map->table.set(vm->makeString("w").asString(), vm->makeInt(w));
+        map->table.set(vm->makeString("h").asString(), vm->makeInt(h));
+        return result;
+    }
+
+    Value native_SDL_SetWindowSize(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 3)
+        {
+            Error("SDL_SetWindowSize expects 3 arguments");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_SetWindowSize expects window pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Window *window = (SDL_Window *)args[0].asPointer();
+        int w = args[1].asNumber();
+        int h = args[2].asNumber();
+        SDL_SetWindowSize(window, w, h);
+        return vm->makeNil();
+    }
+
+    Value native_SDL_GetWindowPosition(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_GetWindowPosition expects 1 argument");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_GetWindowPosition expects window pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Window *window = (SDL_Window *)args[0].asPointer();
+        int x, y;
+        SDL_GetWindowPosition(window, &x, &y);
+
+        Value result = vm->makeMap();
+        MapInstance *map = result.asMap();
+        map->table.set(vm->makeString("x").asString(), vm->makeInt(x));
+        map->table.set(vm->makeString("y").asString(), vm->makeInt(y));
+        return result;
+    }
+
+    Value native_SDL_SetWindowPosition(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 3)
+        {
+            Error("SDL_SetWindowPosition expects 3 arguments");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_SetWindowPosition expects window pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Window *window = (SDL_Window *)args[0].asPointer();
+        int x = args[1].asNumber();
+        int y = args[2].asNumber();
+        SDL_SetWindowPosition(window, x, y);
+        return vm->makeNil();
+    }
+
+    Value native_SDL_ShowWindow(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_ShowWindow expects 1 argument");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_ShowWindow expects window pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Window *window = (SDL_Window *)args[0].asPointer();
+        SDL_ShowWindow(window);
+        return vm->makeNil();
+    }
+
+    Value native_SDL_HideWindow(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_HideWindow expects 1 argument");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_HideWindow expects window pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Window *window = (SDL_Window *)args[0].asPointer();
+        SDL_HideWindow(window);
+        return vm->makeNil();
+    }
+
+    Value native_SDL_RaiseWindow(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_RaiseWindow expects 1 argument");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_RaiseWindow expects window pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Window *window = (SDL_Window *)args[0].asPointer();
+        SDL_RaiseWindow(window);
+        return vm->makeNil();
+    }
+
+    Value native_SDL_MaximizeWindow(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_MaximizeWindow expects 1 argument");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_MaximizeWindow expects window pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Window *window = (SDL_Window *)args[0].asPointer();
+        SDL_MaximizeWindow(window);
+        return vm->makeNil();
+    }
+
+    Value native_SDL_MinimizeWindow(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_MinimizeWindow expects 1 argument");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_MinimizeWindow expects window pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Window *window = (SDL_Window *)args[0].asPointer();
+        SDL_MinimizeWindow(window);
+        return vm->makeNil();
+    }
+
+    Value native_SDL_RestoreWindow(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_RestoreWindow expects 1 argument");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_RestoreWindow expects window pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Window *window = (SDL_Window *)args[0].asPointer();
+        SDL_RestoreWindow(window);
+        return vm->makeNil();
+    }
+
+    Value native_SDL_SetWindowFullscreen(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 2)
+        {
+            Error("SDL_SetWindowFullscreen expects 2 arguments");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_SetWindowFullscreen expects window pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Window *window = (SDL_Window *)args[0].asPointer();
+        Uint32 flags = args[1].asNumber();
+        int result = SDL_SetWindowFullscreen(window, flags);
+        return vm->makeInt(result);
+    }
+
+    Value native_SDL_GetWindowFlags(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_GetWindowFlags expects 1 argument");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_GetWindowFlags expects window pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Window *window = (SDL_Window *)args[0].asPointer();
+        Uint32 flags = SDL_GetWindowFlags(window);
+        return vm->makeInt(flags);
+    }
+
+    Value native_SDL_SetWindowGrab(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 2)
+        {
+            Error("SDL_SetWindowGrab expects 2 arguments");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_SetWindowGrab expects window pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Window *window = (SDL_Window *)args[0].asPointer();
+        SDL_bool grabbed = args[1].asBool() ? SDL_TRUE : SDL_FALSE;
+        SDL_SetWindowGrab(window, grabbed);
+        return vm->makeNil();
+    }
+
+    Value native_SDL_GetWindowGrab(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_GetWindowGrab expects 1 argument");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_GetWindowGrab expects window pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Window *window = (SDL_Window *)args[0].asPointer();
+        SDL_bool grabbed = SDL_GetWindowGrab(window);
+        return vm->makeBool(grabbed == SDL_TRUE);
+    }
+
+    // =====================================================
+    // TIME FUNCTIONS
+    // =====================================================
+
+    Value native_SDL_GetTicks(Interpreter *vm, int argc, Value *args)
+    {
+        Uint32 ticks = SDL_GetTicks();
+        return vm->makeInt(ticks);
+    }
+
+    Value native_SDL_GetPerformanceCounter(Interpreter *vm, int argc, Value *args)
+    {
+        Uint64 counter = SDL_GetPerformanceCounter();
+        return vm->makeDouble((double)counter);
+    }
+
+    Value native_SDL_GetPerformanceFrequency(Interpreter *vm, int argc, Value *args)
+    {
+        Uint64 freq = SDL_GetPerformanceFrequency();
+        return vm->makeDouble((double)freq);
+    }
+
+    // =====================================================
+    // WINDOW EXTRA FUNCTIONS
+    // =====================================================
+
+    Value native_SDL_GetWindowID(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_GetWindowID expects 1 argument");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_GetWindowID expects window pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Window *window = (SDL_Window *)args[0].asPointer();
+        Uint32 id = SDL_GetWindowID(window);
+        return vm->makeInt(id);
+    }
+
+    Value native_SDL_GetWindowFromID(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_GetWindowFromID expects 1 argument");
+            return vm->makeNil();
+        }
+
+        Uint32 id = args[0].asNumber();
+        SDL_Window *window = SDL_GetWindowFromID(id);
+        if (window)
+            return vm->makePointer(window);
+        return vm->makeNil();
+    }
+
+    Value native_SDL_SetWindowBordered(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 2)
+        {
+            Error("SDL_SetWindowBordered expects 2 arguments");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_SetWindowBordered expects window pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Window *window = (SDL_Window *)args[0].asPointer();
+        SDL_bool bordered = args[1].asBool() ? SDL_TRUE : SDL_FALSE;
+        SDL_SetWindowBordered(window, bordered);
+        return vm->makeNil();
+    }
+
+    Value native_SDL_SetWindowResizable(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 2)
+        {
+            Error("SDL_SetWindowResizable expects 2 arguments");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_SetWindowResizable expects window pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Window *window = (SDL_Window *)args[0].asPointer();
+        SDL_bool resizable = args[1].asBool() ? SDL_TRUE : SDL_FALSE;
+        SDL_SetWindowResizable(window, resizable);
+        return vm->makeNil();
+    }
+
+    Value native_SDL_SetWindowMinimumSize(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 3)
+        {
+            Error("SDL_SetWindowMinimumSize expects 3 arguments");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_SetWindowMinimumSize expects window pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Window *window = (SDL_Window *)args[0].asPointer();
+        int w = args[1].asNumber();
+        int h = args[2].asNumber();
+        SDL_SetWindowMinimumSize(window, w, h);
+        return vm->makeNil();
+    }
+
+    Value native_SDL_SetWindowMaximumSize(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 3)
+        {
+            Error("SDL_SetWindowMaximumSize expects 3 arguments");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_SetWindowMaximumSize expects window pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Window *window = (SDL_Window *)args[0].asPointer();
+        int w = args[1].asNumber();
+        int h = args[2].asNumber();
+        SDL_SetWindowMaximumSize(window, w, h);
+        return vm->makeNil();
+    }
+
+    Value native_SDL_GetWindowMinimumSize(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_GetWindowMinimumSize expects 1 argument");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_GetWindowMinimumSize expects window pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Window *window = (SDL_Window *)args[0].asPointer();
+        int w, h;
+        SDL_GetWindowMinimumSize(window, &w, &h);
+
+        Value result = vm->makeMap();
+        MapInstance *map = result.asMap();
+        map->table.set(vm->makeString("w").asString(), vm->makeInt(w));
+        map->table.set(vm->makeString("h").asString(), vm->makeInt(h));
+        return result;
+    }
+
+    Value native_SDL_GetWindowMaximumSize(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_GetWindowMaximumSize expects 1 argument");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_GetWindowMaximumSize expects window pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Window *window = (SDL_Window *)args[0].asPointer();
+        int w, h;
+        SDL_GetWindowMaximumSize(window, &w, &h);
+
+        Value result = vm->makeMap();
+        MapInstance *map = result.asMap();
+        map->table.set(vm->makeString("w").asString(), vm->makeInt(w));
+        map->table.set(vm->makeString("h").asString(), vm->makeInt(h));
+        return result;
+    }
+
+    Value native_SDL_GetWindowTitle(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_GetWindowTitle expects 1 argument");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_GetWindowTitle expects window pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Window *window = (SDL_Window *)args[0].asPointer();
+        const char *title = SDL_GetWindowTitle(window);
+        return vm->makeString(title);
+    }
+
+    // =====================================================
+    // DISPLAY FUNCTIONS
+    // =====================================================
+
+    Value native_SDL_GetNumVideoDisplays(Interpreter *vm, int argc, Value *args)
+    {
+        int num = SDL_GetNumVideoDisplays();
+        return vm->makeInt(num);
+    }
+
+    Value native_SDL_GetDisplayBounds(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_GetDisplayBounds expects 1 argument");
+            return vm->makeNil();
+        }
+
+        int displayIndex = args[0].asNumber();
+        SDL_Rect rect;
+        int result = SDL_GetDisplayBounds(displayIndex, &rect);
+
+        if (result == 0)
+        {
+            Value map = vm->makeMap();
+            MapInstance *m = map.asMap();
+            m->table.set(vm->makeString("x").asString(), vm->makeInt(rect.x));
+            m->table.set(vm->makeString("y").asString(), vm->makeInt(rect.y));
+            m->table.set(vm->makeString("w").asString(), vm->makeInt(rect.w));
+            m->table.set(vm->makeString("h").asString(), vm->makeInt(rect.h));
+            return map;
+        }
+        return vm->makeNil();
+    }
+
+    Value native_SDL_GetDisplayName(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_GetDisplayName expects 1 argument");
+            return vm->makeNil();
+        }
+
+        int displayIndex = args[0].asNumber();
+        const char *name = SDL_GetDisplayName(displayIndex);
+        if (name)
+            return vm->makeString(name);
+        return vm->makeNil();
+    }
+
+    Value native_SDL_GetWindowDisplayIndex(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_GetWindowDisplayIndex expects 1 argument");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_GetWindowDisplayIndex expects window pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Window *window = (SDL_Window *)args[0].asPointer();
+        int index = SDL_GetWindowDisplayIndex(window);
+        return vm->makeInt(index);
+    }
+
+    // =====================================================
+    // CLIPBOARD FUNCTIONS
+    // =====================================================
+
+    Value native_SDL_SetClipboardText(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_SetClipboardText expects 1 argument");
+            return vm->makeNil();
+        }
+        if (!args[0].isString())
+        {
+            Error("SDL_SetClipboardText expects string");
+            return vm->makeNil();
+        }
+
+        const char *text = args[0].asStringChars();
+        int result = SDL_SetClipboardText(text);
+        return vm->makeInt(result);
+    }
+
+    Value native_SDL_GetClipboardText(Interpreter *vm, int argc, Value *args)
+    {
+        char *text = SDL_GetClipboardText();
+        if (text)
+        {
+            Value result = vm->makeString(text);
+            SDL_free(text);
+            return result;
+        }
+        return vm->makeString("");
+    }
+
+    Value native_SDL_HasClipboardText(Interpreter *vm, int argc, Value *args)
+    {
+        SDL_bool result = SDL_HasClipboardText();
+        return vm->makeBool(result == SDL_TRUE);
+    }
+
+    // =====================================================
+    // MESSAGE BOX FUNCTIONS
+    // =====================================================
+
+    Value native_SDL_ShowSimpleMessageBox(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 4)
+        {
+            Error("SDL_ShowSimpleMessageBox expects 4 arguments (flags, title, message, window)");
+            return vm->makeNil();
+        }
+
+        Uint32 flags = args[0].asNumber();
+        const char *title = args[1].asStringChars();
+        const char *message = args[2].asStringChars();
+
+        SDL_Window *window = nullptr;
+        if (args[3].isPointer())
+        {
+            window = (SDL_Window *)args[3].asPointer();
+        }
+
+        int result = SDL_ShowSimpleMessageBox(flags, title, message, window);
+        return vm->makeInt(result);
+    }
+
     void register_window(ModuleBuilder &mod)
     {
 
@@ -142,11 +984,255 @@ namespace SDLBindings
             // Nota: Removi alguns menos usados como ICCPROF para poupar espaço,
             // mas podem ser adicionados futuramente
 
+            // =============================================================
+            // EVENT FUNCTIONS
+            // =============================================================
             .addFunction("SDL_PollEvent", native_SDL_PollEvent, 1)
+            .addFunction("SDL_WaitEvent", native_SDL_WaitEvent, 1)
+            .addFunction("SDL_WaitEventTimeout", native_SDL_WaitEventTimeout, 2)
+            .addFunction("SDL_FlushEvent", native_SDL_FlushEvent, 1)
+            .addFunction("SDL_FlushEvents", native_SDL_FlushEvents, 2)
+            .addFunction("SDL_HasEvent", native_SDL_HasEvent, 1)
 
+            // =============================================================
+            // KEYBOARD FUNCTIONS
+            // =============================================================
+            .addFunction("SDL_GetKeyboardState", native_SDL_GetKeyboardState, 1)
+            .addFunction("SDL_GetScancodeFromKey", native_SDL_GetScancodeFromKey, 1)
+            .addFunction("SDL_GetKeyFromScancode", native_SDL_GetKeyFromScancode, 1)
+            .addFunction("SDL_GetKeyName", native_SDL_GetKeyName, 1)
+            .addFunction("SDL_GetModState", native_SDL_GetModState, 0)
+
+            // =============================================================
+            // MOUSE FUNCTIONS
+            // =============================================================
+            .addFunction("SDL_GetMouseState", native_SDL_GetMouseState, 0)
+            .addFunction("SDL_GetGlobalMouseState", native_SDL_GetGlobalMouseState, 0)
+            .addFunction("SDL_GetRelativeMouseState", native_SDL_GetRelativeMouseState, 0)
+            .addFunction("SDL_WarpMouseInWindow", native_SDL_WarpMouseInWindow, 3)
+            .addFunction("SDL_SetRelativeMouseMode", native_SDL_SetRelativeMouseMode, 1)
+            .addFunction("SDL_GetRelativeMouseMode", native_SDL_GetRelativeMouseMode, 0)
+            .addFunction("SDL_ShowCursor", native_SDL_ShowCursor, 1)
+
+            // =============================================================
+            // WINDOW FUNCTIONS
+            // =============================================================
             .addFunction("SDL_CreateWindow", native_SDL_CreateWindow, 6)
             .addFunction("SDL_DestroyWindow", native_SDL_DestroyWindow, 1)
-            .addFunction("SDL_SetWindowTitle", native_SDL_SetWindowTitle, 2);
+            .addFunction("SDL_SetWindowTitle", native_SDL_SetWindowTitle, 2)
+            .addFunction("SDL_GetWindowTitle", native_SDL_GetWindowTitle, 1)
+            .addFunction("SDL_GetWindowSize", native_SDL_GetWindowSize, 1)
+            .addFunction("SDL_SetWindowSize", native_SDL_SetWindowSize, 3)
+            .addFunction("SDL_GetWindowPosition", native_SDL_GetWindowPosition, 1)
+            .addFunction("SDL_SetWindowPosition", native_SDL_SetWindowPosition, 3)
+            .addFunction("SDL_ShowWindow", native_SDL_ShowWindow, 1)
+            .addFunction("SDL_HideWindow", native_SDL_HideWindow, 1)
+            .addFunction("SDL_RaiseWindow", native_SDL_RaiseWindow, 1)
+            .addFunction("SDL_MaximizeWindow", native_SDL_MaximizeWindow, 1)
+            .addFunction("SDL_MinimizeWindow", native_SDL_MinimizeWindow, 1)
+            .addFunction("SDL_RestoreWindow", native_SDL_RestoreWindow, 1)
+            .addFunction("SDL_SetWindowFullscreen", native_SDL_SetWindowFullscreen, 2)
+            .addFunction("SDL_GetWindowFlags", native_SDL_GetWindowFlags, 1)
+            .addFunction("SDL_SetWindowGrab", native_SDL_SetWindowGrab, 2)
+            .addFunction("SDL_GetWindowGrab", native_SDL_GetWindowGrab, 1)
+            .addFunction("SDL_GetWindowID", native_SDL_GetWindowID, 1)
+            .addFunction("SDL_GetWindowFromID", native_SDL_GetWindowFromID, 1)
+            .addFunction("SDL_SetWindowBordered", native_SDL_SetWindowBordered, 2)
+            .addFunction("SDL_SetWindowResizable", native_SDL_SetWindowResizable, 2)
+            .addFunction("SDL_SetWindowMinimumSize", native_SDL_SetWindowMinimumSize, 3)
+            .addFunction("SDL_SetWindowMaximumSize", native_SDL_SetWindowMaximumSize, 3)
+            .addFunction("SDL_GetWindowMinimumSize", native_SDL_GetWindowMinimumSize, 1)
+            .addFunction("SDL_GetWindowMaximumSize", native_SDL_GetWindowMaximumSize, 1)
+            .addFunction("SDL_GetWindowDisplayIndex", native_SDL_GetWindowDisplayIndex, 1)
+
+            // =============================================================
+            // DISPLAY FUNCTIONS
+            // =============================================================
+            .addFunction("SDL_GetNumVideoDisplays", native_SDL_GetNumVideoDisplays, 0)
+            .addFunction("SDL_GetDisplayBounds", native_SDL_GetDisplayBounds, 1)
+            .addFunction("SDL_GetDisplayName", native_SDL_GetDisplayName, 1)
+
+            // =============================================================
+            // CLIPBOARD FUNCTIONS
+            // =============================================================
+            .addFunction("SDL_SetClipboardText", native_SDL_SetClipboardText, 1)
+            .addFunction("SDL_GetClipboardText", native_SDL_GetClipboardText, 0)
+            .addFunction("SDL_HasClipboardText", native_SDL_HasClipboardText, 0)
+
+            // =============================================================
+            // MESSAGE BOX FUNCTIONS
+            // =============================================================
+            .addFunction("SDL_ShowSimpleMessageBox", native_SDL_ShowSimpleMessageBox, 4)
+            .addInt("SDL_MESSAGEBOX_ERROR", SDL_MESSAGEBOX_ERROR)
+            .addInt("SDL_MESSAGEBOX_WARNING", SDL_MESSAGEBOX_WARNING)
+            .addInt("SDL_MESSAGEBOX_INFORMATION", SDL_MESSAGEBOX_INFORMATION)
+
+            // =============================================================
+            // TIME FUNCTIONS
+            // =============================================================
+            .addFunction("SDL_GetTicks", native_SDL_GetTicks, 0)
+            .addFunction("SDL_GetPerformanceCounter", native_SDL_GetPerformanceCounter, 0)
+            .addFunction("SDL_GetPerformanceFrequency", native_SDL_GetPerformanceFrequency, 0)
+
+            // =============================================================
+            // KEYBOARD MODIFIERS
+            // =============================================================
+            .addInt("KMOD_NONE", KMOD_NONE)
+            .addInt("KMOD_LSHIFT", KMOD_LSHIFT)
+            .addInt("KMOD_RSHIFT", KMOD_RSHIFT)
+            .addInt("KMOD_LCTRL", KMOD_LCTRL)
+            .addInt("KMOD_RCTRL", KMOD_RCTRL)
+            .addInt("KMOD_LALT", KMOD_LALT)
+            .addInt("KMOD_RALT", KMOD_RALT)
+            .addInt("KMOD_LGUI", KMOD_LGUI)
+            .addInt("KMOD_RGUI", KMOD_RGUI)
+            .addInt("KMOD_SHIFT", KMOD_SHIFT)
+            .addInt("KMOD_CTRL", KMOD_CTRL)
+            .addInt("KMOD_ALT", KMOD_ALT)
+            .addInt("KMOD_GUI", KMOD_GUI)
+            .addInt("KMOD_CAPS", KMOD_CAPS)
+            .addInt("KMOD_NUM", KMOD_NUM)
+
+            // =============================================================
+            // KEYBOARD SCANCODES (Common ones)
+            // =============================================================
+            .addInt("SDL_SCANCODE_A", SDL_SCANCODE_A)
+            .addInt("SDL_SCANCODE_B", SDL_SCANCODE_B)
+            .addInt("SDL_SCANCODE_C", SDL_SCANCODE_C)
+            .addInt("SDL_SCANCODE_D", SDL_SCANCODE_D)
+            .addInt("SDL_SCANCODE_E", SDL_SCANCODE_E)
+            .addInt("SDL_SCANCODE_F", SDL_SCANCODE_F)
+            .addInt("SDL_SCANCODE_G", SDL_SCANCODE_G)
+            .addInt("SDL_SCANCODE_H", SDL_SCANCODE_H)
+            .addInt("SDL_SCANCODE_I", SDL_SCANCODE_I)
+            .addInt("SDL_SCANCODE_J", SDL_SCANCODE_J)
+            .addInt("SDL_SCANCODE_K", SDL_SCANCODE_K)
+            .addInt("SDL_SCANCODE_L", SDL_SCANCODE_L)
+            .addInt("SDL_SCANCODE_M", SDL_SCANCODE_M)
+            .addInt("SDL_SCANCODE_N", SDL_SCANCODE_N)
+            .addInt("SDL_SCANCODE_O", SDL_SCANCODE_O)
+            .addInt("SDL_SCANCODE_P", SDL_SCANCODE_P)
+            .addInt("SDL_SCANCODE_Q", SDL_SCANCODE_Q)
+            .addInt("SDL_SCANCODE_R", SDL_SCANCODE_R)
+            .addInt("SDL_SCANCODE_S", SDL_SCANCODE_S)
+            .addInt("SDL_SCANCODE_T", SDL_SCANCODE_T)
+            .addInt("SDL_SCANCODE_U", SDL_SCANCODE_U)
+            .addInt("SDL_SCANCODE_V", SDL_SCANCODE_V)
+            .addInt("SDL_SCANCODE_W", SDL_SCANCODE_W)
+            .addInt("SDL_SCANCODE_X", SDL_SCANCODE_X)
+            .addInt("SDL_SCANCODE_Y", SDL_SCANCODE_Y)
+            .addInt("SDL_SCANCODE_Z", SDL_SCANCODE_Z)
+            .addInt("SDL_SCANCODE_1", SDL_SCANCODE_1)
+            .addInt("SDL_SCANCODE_2", SDL_SCANCODE_2)
+            .addInt("SDL_SCANCODE_3", SDL_SCANCODE_3)
+            .addInt("SDL_SCANCODE_4", SDL_SCANCODE_4)
+            .addInt("SDL_SCANCODE_5", SDL_SCANCODE_5)
+            .addInt("SDL_SCANCODE_6", SDL_SCANCODE_6)
+            .addInt("SDL_SCANCODE_7", SDL_SCANCODE_7)
+            .addInt("SDL_SCANCODE_8", SDL_SCANCODE_8)
+            .addInt("SDL_SCANCODE_9", SDL_SCANCODE_9)
+            .addInt("SDL_SCANCODE_0", SDL_SCANCODE_0)
+            .addInt("SDL_SCANCODE_RETURN", SDL_SCANCODE_RETURN)
+            .addInt("SDL_SCANCODE_ESCAPE", SDL_SCANCODE_ESCAPE)
+            .addInt("SDL_SCANCODE_BACKSPACE", SDL_SCANCODE_BACKSPACE)
+            .addInt("SDL_SCANCODE_TAB", SDL_SCANCODE_TAB)
+            .addInt("SDL_SCANCODE_SPACE", SDL_SCANCODE_SPACE)
+            .addInt("SDL_SCANCODE_F1", SDL_SCANCODE_F1)
+            .addInt("SDL_SCANCODE_F2", SDL_SCANCODE_F2)
+            .addInt("SDL_SCANCODE_F3", SDL_SCANCODE_F3)
+            .addInt("SDL_SCANCODE_F4", SDL_SCANCODE_F4)
+            .addInt("SDL_SCANCODE_F5", SDL_SCANCODE_F5)
+            .addInt("SDL_SCANCODE_F6", SDL_SCANCODE_F6)
+            .addInt("SDL_SCANCODE_F7", SDL_SCANCODE_F7)
+            .addInt("SDL_SCANCODE_F8", SDL_SCANCODE_F8)
+            .addInt("SDL_SCANCODE_F9", SDL_SCANCODE_F9)
+            .addInt("SDL_SCANCODE_F10", SDL_SCANCODE_F10)
+            .addInt("SDL_SCANCODE_F11", SDL_SCANCODE_F11)
+            .addInt("SDL_SCANCODE_F12", SDL_SCANCODE_F12)
+            .addInt("SDL_SCANCODE_RIGHT", SDL_SCANCODE_RIGHT)
+            .addInt("SDL_SCANCODE_LEFT", SDL_SCANCODE_LEFT)
+            .addInt("SDL_SCANCODE_DOWN", SDL_SCANCODE_DOWN)
+            .addInt("SDL_SCANCODE_UP", SDL_SCANCODE_UP)
+            .addInt("SDL_SCANCODE_LCTRL", SDL_SCANCODE_LCTRL)
+            .addInt("SDL_SCANCODE_LSHIFT", SDL_SCANCODE_LSHIFT)
+            .addInt("SDL_SCANCODE_LALT", SDL_SCANCODE_LALT)
+            .addInt("SDL_SCANCODE_RCTRL", SDL_SCANCODE_RCTRL)
+            .addInt("SDL_SCANCODE_RSHIFT", SDL_SCANCODE_RSHIFT)
+            .addInt("SDL_SCANCODE_RALT", SDL_SCANCODE_RALT)
+
+            // =============================================================
+            // KEYCODES (SDLK_*) - Common ones
+            // =============================================================
+            .addInt("SDLK_a", SDLK_a)
+            .addInt("SDLK_b", SDLK_b)
+            .addInt("SDLK_c", SDLK_c)
+            .addInt("SDLK_d", SDLK_d)
+            .addInt("SDLK_e", SDLK_e)
+            .addInt("SDLK_f", SDLK_f)
+            .addInt("SDLK_g", SDLK_g)
+            .addInt("SDLK_h", SDLK_h)
+            .addInt("SDLK_i", SDLK_i)
+            .addInt("SDLK_j", SDLK_j)
+            .addInt("SDLK_k", SDLK_k)
+            .addInt("SDLK_l", SDLK_l)
+            .addInt("SDLK_m", SDLK_m)
+            .addInt("SDLK_n", SDLK_n)
+            .addInt("SDLK_o", SDLK_o)
+            .addInt("SDLK_p", SDLK_p)
+            .addInt("SDLK_q", SDLK_q)
+            .addInt("SDLK_r", SDLK_r)
+            .addInt("SDLK_s", SDLK_s)
+            .addInt("SDLK_t", SDLK_t)
+            .addInt("SDLK_u", SDLK_u)
+            .addInt("SDLK_v", SDLK_v)
+            .addInt("SDLK_w", SDLK_w)
+            .addInt("SDLK_x", SDLK_x)
+            .addInt("SDLK_y", SDLK_y)
+            .addInt("SDLK_z", SDLK_z)
+            .addInt("SDLK_0", SDLK_0)
+            .addInt("SDLK_1", SDLK_1)
+            .addInt("SDLK_2", SDLK_2)
+            .addInt("SDLK_3", SDLK_3)
+            .addInt("SDLK_4", SDLK_4)
+            .addInt("SDLK_5", SDLK_5)
+            .addInt("SDLK_6", SDLK_6)
+            .addInt("SDLK_7", SDLK_7)
+            .addInt("SDLK_8", SDLK_8)
+            .addInt("SDLK_9", SDLK_9)
+            .addInt("SDLK_RETURN", SDLK_RETURN)
+            .addInt("SDLK_ESCAPE", SDLK_ESCAPE)
+            .addInt("SDLK_BACKSPACE", SDLK_BACKSPACE)
+            .addInt("SDLK_TAB", SDLK_TAB)
+            .addInt("SDLK_SPACE", SDLK_SPACE)
+            .addInt("SDLK_F1", SDLK_F1)
+            .addInt("SDLK_F2", SDLK_F2)
+            .addInt("SDLK_F3", SDLK_F3)
+            .addInt("SDLK_F4", SDLK_F4)
+            .addInt("SDLK_F5", SDLK_F5)
+            .addInt("SDLK_F6", SDLK_F6)
+            .addInt("SDLK_F7", SDLK_F7)
+            .addInt("SDLK_F8", SDLK_F8)
+            .addInt("SDLK_F9", SDLK_F9)
+            .addInt("SDLK_F10", SDLK_F10)
+            .addInt("SDLK_F11", SDLK_F11)
+            .addInt("SDLK_F12", SDLK_F12)
+            .addInt("SDLK_RIGHT", SDLK_RIGHT)
+            .addInt("SDLK_LEFT", SDLK_LEFT)
+            .addInt("SDLK_DOWN", SDLK_DOWN)
+            .addInt("SDLK_UP", SDLK_UP)
+            .addInt("SDLK_LCTRL", SDLK_LCTRL)
+            .addInt("SDLK_LSHIFT", SDLK_LSHIFT)
+            .addInt("SDLK_LALT", SDLK_LALT)
+            .addInt("SDLK_RCTRL", SDLK_RCTRL)
+            .addInt("SDLK_RSHIFT", SDLK_RSHIFT)
+            .addInt("SDLK_RALT", SDLK_RALT)
+
+            // =============================================================
+            // CURSOR CONSTANTS
+            // =============================================================
+            .addInt("SDL_DISABLE", SDL_DISABLE)
+            .addInt("SDL_ENABLE", SDL_ENABLE)
+            .addInt("SDL_QUERY", SDL_QUERY);
     }
 
 }

@@ -256,6 +256,681 @@ namespace SDLBindings
         map->table.set(vm->makeString("y").asString(), vm->makeDouble(scaleY));
         return result;
     }
+
+    // =====================================================
+    // RENDERER EXTRA FUNCTIONS
+    // =====================================================
+
+    Value native_SDL_GetRenderDrawColor(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_GetRenderDrawColor expects 1 argument");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_GetRenderDrawColor expects renderer pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
+        Uint8 r, g, b, a;
+        SDL_GetRenderDrawColor(renderer, &r, &g, &b, &a);
+
+        Value result = vm->makeMap();
+        MapInstance *map = result.asMap();
+        map->table.set(vm->makeString("r").asString(), vm->makeInt(r));
+        map->table.set(vm->makeString("g").asString(), vm->makeInt(g));
+        map->table.set(vm->makeString("b").asString(), vm->makeInt(b));
+        map->table.set(vm->makeString("a").asString(), vm->makeInt(a));
+        return result;
+    }
+
+    Value native_SDL_RenderSetViewport(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 5)
+        {
+            Error("SDL_RenderSetViewport expects 5 arguments (renderer, x, y, w, h)");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_RenderSetViewport expects renderer pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
+        SDL_Rect rect;
+        rect.x = args[1].asNumber();
+        rect.y = args[2].asNumber();
+        rect.w = args[3].asNumber();
+        rect.h = args[4].asNumber();
+
+        int result = SDL_RenderSetViewport(renderer, &rect);
+        return vm->makeInt(result);
+    }
+
+    Value native_SDL_RenderGetViewport(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_RenderGetViewport expects 1 argument");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_RenderGetViewport expects renderer pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
+        SDL_Rect rect;
+        SDL_RenderGetViewport(renderer, &rect);
+
+        Value result = vm->makeMap();
+        MapInstance *map = result.asMap();
+        map->table.set(vm->makeString("x").asString(), vm->makeInt(rect.x));
+        map->table.set(vm->makeString("y").asString(), vm->makeInt(rect.y));
+        map->table.set(vm->makeString("w").asString(), vm->makeInt(rect.w));
+        map->table.set(vm->makeString("h").asString(), vm->makeInt(rect.h));
+        return result;
+    }
+
+    Value native_SDL_RenderSetClipRect(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 5)
+        {
+            Error("SDL_RenderSetClipRect expects 5 arguments (renderer, x, y, w, h)");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_RenderSetClipRect expects renderer pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
+        SDL_Rect rect;
+        rect.x = args[1].asNumber();
+        rect.y = args[2].asNumber();
+        rect.w = args[3].asNumber();
+        rect.h = args[4].asNumber();
+
+        int result = SDL_RenderSetClipRect(renderer, &rect);
+        return vm->makeInt(result);
+    }
+
+    Value native_SDL_RenderGetClipRect(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_RenderGetClipRect expects 1 argument");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_RenderGetClipRect expects renderer pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
+        SDL_Rect rect;
+        SDL_RenderGetClipRect(renderer, &rect);
+
+        Value result = vm->makeMap();
+        MapInstance *map = result.asMap();
+        map->table.set(vm->makeString("x").asString(), vm->makeInt(rect.x));
+        map->table.set(vm->makeString("y").asString(), vm->makeInt(rect.y));
+        map->table.set(vm->makeString("w").asString(), vm->makeInt(rect.w));
+        map->table.set(vm->makeString("h").asString(), vm->makeInt(rect.h));
+        return result;
+    }
+
+    Value native_SDL_RenderIsClipEnabled(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_RenderIsClipEnabled expects 1 argument");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_RenderIsClipEnabled expects renderer pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
+        SDL_bool result = SDL_RenderIsClipEnabled(renderer);
+        return vm->makeBool(result == SDL_TRUE);
+    }
+
+    Value native_SDL_RenderSetLogicalSize(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 3)
+        {
+            Error("SDL_RenderSetLogicalSize expects 3 arguments");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_RenderSetLogicalSize expects renderer pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
+        int w = args[1].asNumber();
+        int h = args[2].asNumber();
+
+        int result = SDL_RenderSetLogicalSize(renderer, w, h);
+        return vm->makeInt(result);
+    }
+
+    Value native_SDL_RenderGetLogicalSize(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_RenderGetLogicalSize expects 1 argument");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_RenderGetLogicalSize expects renderer pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
+        int w, h;
+        SDL_RenderGetLogicalSize(renderer, &w, &h);
+
+        Value result = vm->makeMap();
+        MapInstance *map = result.asMap();
+        map->table.set(vm->makeString("w").asString(), vm->makeInt(w));
+        map->table.set(vm->makeString("h").asString(), vm->makeInt(h));
+        return result;
+    }
+
+    Value native_SDL_GetRendererOutputSize(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_GetRendererOutputSize expects 1 argument");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_GetRendererOutputSize expects renderer pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
+        int w, h;
+        SDL_GetRendererOutputSize(renderer, &w, &h);
+
+        Value result = vm->makeMap();
+        MapInstance *map = result.asMap();
+        map->table.set(vm->makeString("w").asString(), vm->makeInt(w));
+        map->table.set(vm->makeString("h").asString(), vm->makeInt(h));
+        return result;
+    }
+
+    // =====================================================
+    // TEXTURE FUNCTIONS
+    // =====================================================
+
+    Value native_SDL_CreateTexture(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 5)
+        {
+            Error("SDL_CreateTexture expects 5 arguments (renderer, format, access, w, h)");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_CreateTexture expects renderer pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
+        Uint32 format = args[1].asNumber();
+        int access = args[2].asNumber();
+        int w = args[3].asNumber();
+        int h = args[4].asNumber();
+
+        SDL_Texture *texture = SDL_CreateTexture(renderer, format, access, w, h);
+        return vm->makePointer(texture);
+    }
+
+    Value native_SDL_DestroyTexture(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_DestroyTexture expects 1 argument");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_DestroyTexture expects texture pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Texture *texture = (SDL_Texture *)args[0].asPointer();
+        SDL_DestroyTexture(texture);
+        return vm->makeNil();
+    }
+
+    Value native_SDL_SetRenderTarget(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 2)
+        {
+            Error("SDL_SetRenderTarget expects 2 arguments");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_SetRenderTarget expects renderer pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
+        SDL_Texture *texture = nullptr;
+        if (args[1].isPointer())
+        {
+            texture = (SDL_Texture *)args[1].asPointer();
+        }
+
+        int result = SDL_SetRenderTarget(renderer, texture);
+        return vm->makeInt(result);
+    }
+
+    Value native_SDL_GetRenderTarget(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_GetRenderTarget expects 1 argument");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_GetRenderTarget expects renderer pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
+        SDL_Texture *texture = SDL_GetRenderTarget(renderer);
+        if (texture)
+            return vm->makePointer(texture);
+        return vm->makeNil();
+    }
+
+    Value native_SDL_QueryTexture(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_QueryTexture expects 1 argument");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_QueryTexture expects texture pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Texture *texture = (SDL_Texture *)args[0].asPointer();
+        Uint32 format;
+        int access, w, h;
+        SDL_QueryTexture(texture, &format, &access, &w, &h);
+
+        Value result = vm->makeMap();
+        MapInstance *map = result.asMap();
+        map->table.set(vm->makeString("format").asString(), vm->makeInt(format));
+        map->table.set(vm->makeString("access").asString(), vm->makeInt(access));
+        map->table.set(vm->makeString("w").asString(), vm->makeInt(w));
+        map->table.set(vm->makeString("h").asString(), vm->makeInt(h));
+        return result;
+    }
+
+    Value native_SDL_SetTextureColorMod(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 4)
+        {
+            Error("SDL_SetTextureColorMod expects 4 arguments");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_SetTextureColorMod expects texture pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Texture *texture = (SDL_Texture *)args[0].asPointer();
+        Uint8 r = args[1].asNumber();
+        Uint8 g = args[2].asNumber();
+        Uint8 b = args[3].asNumber();
+
+        int result = SDL_SetTextureColorMod(texture, r, g, b);
+        return vm->makeInt(result);
+    }
+
+    Value native_SDL_SetTextureAlphaMod(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 2)
+        {
+            Error("SDL_SetTextureAlphaMod expects 2 arguments");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_SetTextureAlphaMod expects texture pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Texture *texture = (SDL_Texture *)args[0].asPointer();
+        Uint8 alpha = args[1].asNumber();
+
+        int result = SDL_SetTextureAlphaMod(texture, alpha);
+        return vm->makeInt(result);
+    }
+
+    Value native_SDL_SetTextureBlendMode(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 2)
+        {
+            Error("SDL_SetTextureBlendMode expects 2 arguments");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_SetTextureBlendMode expects texture pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Texture *texture = (SDL_Texture *)args[0].asPointer();
+        SDL_BlendMode blendMode = (SDL_BlendMode)args[1].asNumber();
+
+        int result = SDL_SetTextureBlendMode(texture, blendMode);
+        return vm->makeInt(result);
+    }
+
+    // SDL_RenderCopy(renderer, texture, srcRect, dstRect)
+    // srcRect pode ser nil para usar toda a textura
+    // dstRect pode ser nil para usar todo o renderer
+    Value native_SDL_RenderCopy(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 10)
+        {
+            Error("SDL_RenderCopy expects 10 arguments (renderer, texture, srcX, srcY, srcW, srcH, dstX, dstY, dstW, dstH)");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer() || !args[1].isPointer())
+        {
+            Error("SDL_RenderCopy expects renderer and texture pointers");
+            return vm->makeNil();
+        }
+
+        SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
+        SDL_Texture *texture = (SDL_Texture *)args[1].asPointer();
+
+        SDL_Rect srcRect, dstRect;
+        SDL_Rect *pSrc = nullptr;
+        SDL_Rect *pDst = nullptr;
+
+        // Source rect (se srcW > 0)
+        int srcW = args[4].asNumber();
+        if (srcW > 0)
+        {
+            srcRect.x = args[2].asNumber();
+            srcRect.y = args[3].asNumber();
+            srcRect.w = srcW;
+            srcRect.h = args[5].asNumber();
+            pSrc = &srcRect;
+        }
+
+        // Dest rect (se dstW > 0)
+        int dstW = args[8].asNumber();
+        if (dstW > 0)
+        {
+            dstRect.x = args[6].asNumber();
+            dstRect.y = args[7].asNumber();
+            dstRect.w = dstW;
+            dstRect.h = args[9].asNumber();
+            pDst = &dstRect;
+        }
+
+        int result = SDL_RenderCopy(renderer, texture, pSrc, pDst);
+        return vm->makeInt(result);
+    }
+
+    // Versão simplificada para desenhar textura inteira numa posição
+    Value native_SDL_RenderCopySimple(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 4)
+        {
+            Error("SDL_RenderCopySimple expects 4 arguments (renderer, texture, x, y)");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer() || !args[1].isPointer())
+        {
+            Error("SDL_RenderCopySimple expects renderer and texture pointers");
+            return vm->makeNil();
+        }
+
+        SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
+        SDL_Texture *texture = (SDL_Texture *)args[1].asPointer();
+        int x = args[2].asNumber();
+        int y = args[3].asNumber();
+
+        // Query texture size
+        int w, h;
+        SDL_QueryTexture(texture, nullptr, nullptr, &w, &h);
+
+        SDL_Rect dstRect = {x, y, w, h};
+        int result = SDL_RenderCopy(renderer, texture, nullptr, &dstRect);
+        return vm->makeInt(result);
+    }
+
+    // SDL_RenderCopyEx com rotação e flip
+    Value native_SDL_RenderCopyEx(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 14)
+        {
+            Error("SDL_RenderCopyEx expects 14 arguments (renderer, texture, srcX, srcY, srcW, srcH, dstX, dstY, dstW, dstH, angle, centerX, centerY, flip)");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer() || !args[1].isPointer())
+        {
+            Error("SDL_RenderCopyEx expects renderer and texture pointers");
+            return vm->makeNil();
+        }
+
+        SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
+        SDL_Texture *texture = (SDL_Texture *)args[1].asPointer();
+
+        SDL_Rect srcRect, dstRect;
+        SDL_Rect *pSrc = nullptr;
+        SDL_Rect *pDst = nullptr;
+
+        // Source rect (se srcW > 0)
+        int srcW = args[4].asNumber();
+        if (srcW > 0)
+        {
+            srcRect.x = args[2].asNumber();
+            srcRect.y = args[3].asNumber();
+            srcRect.w = srcW;
+            srcRect.h = args[5].asNumber();
+            pSrc = &srcRect;
+        }
+
+        // Dest rect (se dstW > 0)
+        int dstW = args[8].asNumber();
+        if (dstW > 0)
+        {
+            dstRect.x = args[6].asNumber();
+            dstRect.y = args[7].asNumber();
+            dstRect.w = dstW;
+            dstRect.h = args[9].asNumber();
+            pDst = &dstRect;
+        }
+
+        double angle = args[10].asNumber();
+
+        SDL_Point center;
+        SDL_Point *pCenter = nullptr;
+        int centerX = args[11].asNumber();
+        int centerY = args[12].asNumber();
+        if (centerX >= 0 && centerY >= 0)
+        {
+            center.x = centerX;
+            center.y = centerY;
+            pCenter = &center;
+        }
+
+        SDL_RendererFlip flip = (SDL_RendererFlip)args[13].asNumber();
+
+        int result = SDL_RenderCopyEx(renderer, texture, pSrc, pDst, angle, pCenter, flip);
+        return vm->makeInt(result);
+    }
+
+    // Versão simplificada com rotação
+    Value native_SDL_RenderCopyExSimple(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 6)
+        {
+            Error("SDL_RenderCopyExSimple expects 6 arguments (renderer, texture, x, y, angle, flip)");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer() || !args[1].isPointer())
+        {
+            Error("SDL_RenderCopyExSimple expects renderer and texture pointers");
+            return vm->makeNil();
+        }
+
+        SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
+        SDL_Texture *texture = (SDL_Texture *)args[1].asPointer();
+        int x = args[2].asNumber();
+        int y = args[3].asNumber();
+        double angle = args[4].asNumber();
+        SDL_RendererFlip flip = (SDL_RendererFlip)args[5].asNumber();
+
+        // Query texture size
+        int w, h;
+        SDL_QueryTexture(texture, nullptr, nullptr, &w, &h);
+
+        SDL_Rect dstRect = {x, y, w, h};
+        int result = SDL_RenderCopyEx(renderer, texture, nullptr, &dstRect, angle, nullptr, flip);
+        return vm->makeInt(result);
+    }
+
+    // =====================================================
+    // SURFACE FUNCTIONS (para carregar imagens)
+    // =====================================================
+
+    Value native_SDL_LoadBMP(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_LoadBMP expects 1 argument");
+            return vm->makeNil();
+        }
+        if (!args[0].isString())
+        {
+            Error("SDL_LoadBMP expects string filename");
+            return vm->makeNil();
+        }
+
+        const char *filename = args[0].asStringChars();
+        SDL_Surface *surface = SDL_LoadBMP(filename);
+        if (surface)
+            return vm->makePointer(surface);
+        return vm->makeNil();
+    }
+
+    Value native_SDL_FreeSurface(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_FreeSurface expects 1 argument");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_FreeSurface expects surface pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Surface *surface = (SDL_Surface *)args[0].asPointer();
+        SDL_FreeSurface(surface);
+        return vm->makeNil();
+    }
+
+    Value native_SDL_CreateTextureFromSurface(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 2)
+        {
+            Error("SDL_CreateTextureFromSurface expects 2 arguments");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer() || !args[1].isPointer())
+        {
+            Error("SDL_CreateTextureFromSurface expects renderer and surface pointers");
+            return vm->makeNil();
+        }
+
+        SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
+        SDL_Surface *surface = (SDL_Surface *)args[1].asPointer();
+
+        SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
+        if (texture)
+            return vm->makePointer(texture);
+        return vm->makeNil();
+    }
+
+    Value native_SDL_GetSurfaceSize(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+        {
+            Error("SDL_GetSurfaceSize expects 1 argument");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_GetSurfaceSize expects surface pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Surface *surface = (SDL_Surface *)args[0].asPointer();
+
+        Value result = vm->makeMap();
+        MapInstance *map = result.asMap();
+        map->table.set(vm->makeString("w").asString(), vm->makeInt(surface->w));
+        map->table.set(vm->makeString("h").asString(), vm->makeInt(surface->h));
+        return result;
+    }
+
+    Value native_SDL_SetColorKey(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 5)
+        {
+            Error("SDL_SetColorKey expects 5 arguments (surface, flag, r, g, b)");
+            return vm->makeNil();
+        }
+        if (!args[0].isPointer())
+        {
+            Error("SDL_SetColorKey expects surface pointer");
+            return vm->makeNil();
+        }
+
+        SDL_Surface *surface = (SDL_Surface *)args[0].asPointer();
+        int flag = args[1].asNumber();
+        Uint8 r = args[2].asNumber();
+        Uint8 g = args[3].asNumber();
+        Uint8 b = args[4].asNumber();
+
+        Uint32 key = SDL_MapRGB(surface->format, r, g, b);
+        int result = SDL_SetColorKey(surface, flag, key);
+        return vm->makeInt(result);
+    }
+
     void register_renderer(ModuleBuilder &module)
     {
         // =============================================================
@@ -275,11 +950,12 @@ namespace SDLBindings
             .addInt("SDL_BLENDMODE_MOD", SDL_BLENDMODE_MOD)
 
             // =============================================================
-            //  FUNCTIONS
+            //  RENDERER FUNCTIONS
             // =============================================================
             .addFunction("SDL_CreateRenderer", native_SDL_CreateRenderer, 3)
             .addFunction("SDL_DestroyRenderer", native_SDL_DestroyRenderer, 1)
             .addFunction("SDL_SetRenderDrawColor", native_SDL_SetRenderDrawColor, 5)
+            .addFunction("SDL_GetRenderDrawColor", native_SDL_GetRenderDrawColor, 1)
             .addFunction("SDL_RenderClear", native_SDL_RenderClear, 1)
             .addFunction("SDL_RenderPresent", native_SDL_RenderPresent, 1)
             .addFunction("SDL_RenderDrawPoint", native_SDL_RenderDrawPoint, 3)
@@ -288,6 +964,64 @@ namespace SDLBindings
             .addFunction("SDL_RenderFillRect", native_SDL_RenderFillRect, 5)
             .addFunction("SDL_SetRenderDrawBlendMode", native_SDL_SetRenderDrawBlendMode, 2)
             .addFunction("SDL_RenderSetScale", native_SDL_RenderSetScale, 3)
-            .addFunction("SDL_RenderGetScale", native_SDL_RenderGetScale, 1);
+            .addFunction("SDL_RenderGetScale", native_SDL_RenderGetScale, 1)
+            .addFunction("SDL_RenderSetViewport", native_SDL_RenderSetViewport, 5)
+            .addFunction("SDL_RenderGetViewport", native_SDL_RenderGetViewport, 1)
+            .addFunction("SDL_RenderSetClipRect", native_SDL_RenderSetClipRect, 5)
+            .addFunction("SDL_RenderGetClipRect", native_SDL_RenderGetClipRect, 1)
+            .addFunction("SDL_RenderIsClipEnabled", native_SDL_RenderIsClipEnabled, 1)
+            .addFunction("SDL_RenderSetLogicalSize", native_SDL_RenderSetLogicalSize, 3)
+            .addFunction("SDL_RenderGetLogicalSize", native_SDL_RenderGetLogicalSize, 1)
+            .addFunction("SDL_GetRendererOutputSize", native_SDL_GetRendererOutputSize, 1)
+
+            // =============================================================
+            //  TEXTURE FUNCTIONS
+            // =============================================================
+            .addFunction("SDL_CreateTexture", native_SDL_CreateTexture, 5)
+            .addFunction("SDL_DestroyTexture", native_SDL_DestroyTexture, 1)
+            .addFunction("SDL_SetRenderTarget", native_SDL_SetRenderTarget, 2)
+            .addFunction("SDL_GetRenderTarget", native_SDL_GetRenderTarget, 1)
+            .addFunction("SDL_QueryTexture", native_SDL_QueryTexture, 1)
+            .addFunction("SDL_SetTextureColorMod", native_SDL_SetTextureColorMod, 4)
+            .addFunction("SDL_SetTextureAlphaMod", native_SDL_SetTextureAlphaMod, 2)
+            .addFunction("SDL_SetTextureBlendMode", native_SDL_SetTextureBlendMode, 2)
+            .addFunction("SDL_RenderCopy", native_SDL_RenderCopy, 10)
+            .addFunction("SDL_RenderCopySimple", native_SDL_RenderCopySimple, 4)
+            .addFunction("SDL_RenderCopyEx", native_SDL_RenderCopyEx, 14)
+            .addFunction("SDL_RenderCopyExSimple", native_SDL_RenderCopyExSimple, 6)
+
+            // =============================================================
+            //  SURFACE FUNCTIONS
+            // =============================================================
+            .addFunction("SDL_LoadBMP", native_SDL_LoadBMP, 1)
+            .addFunction("SDL_FreeSurface", native_SDL_FreeSurface, 1)
+            .addFunction("SDL_CreateTextureFromSurface", native_SDL_CreateTextureFromSurface, 2)
+            .addFunction("SDL_GetSurfaceSize", native_SDL_GetSurfaceSize, 1)
+            .addFunction("SDL_SetColorKey", native_SDL_SetColorKey, 5)
+
+            // =============================================================
+            //  TEXTURE ACCESS CONSTANTS
+            // =============================================================
+            .addInt("SDL_TEXTUREACCESS_STATIC", SDL_TEXTUREACCESS_STATIC)
+            .addInt("SDL_TEXTUREACCESS_STREAMING", SDL_TEXTUREACCESS_STREAMING)
+            .addInt("SDL_TEXTUREACCESS_TARGET", SDL_TEXTUREACCESS_TARGET)
+
+            // =============================================================
+            //  PIXEL FORMAT CONSTANTS (common ones)
+            // =============================================================
+            .addInt("SDL_PIXELFORMAT_UNKNOWN", SDL_PIXELFORMAT_UNKNOWN)
+            .addInt("SDL_PIXELFORMAT_RGBA8888", SDL_PIXELFORMAT_RGBA8888)
+            .addInt("SDL_PIXELFORMAT_ARGB8888", SDL_PIXELFORMAT_ARGB8888)
+            .addInt("SDL_PIXELFORMAT_BGRA8888", SDL_PIXELFORMAT_BGRA8888)
+            .addInt("SDL_PIXELFORMAT_RGB888", SDL_PIXELFORMAT_RGB888)
+            .addInt("SDL_PIXELFORMAT_RGB24", SDL_PIXELFORMAT_RGB24)
+            .addInt("SDL_PIXELFORMAT_BGR24", SDL_PIXELFORMAT_BGR24)
+
+            // =============================================================
+            //  FLIP CONSTANTS
+            // =============================================================
+            .addInt("SDL_FLIP_NONE", SDL_FLIP_NONE)
+            .addInt("SDL_FLIP_HORIZONTAL", SDL_FLIP_HORIZONTAL)
+            .addInt("SDL_FLIP_VERTICAL", SDL_FLIP_VERTICAL);
     }
 }

@@ -315,16 +315,23 @@ void Compiler::variable(bool canAssign)
 
     // =====================================================
     // PASSO 1: Procura em módulos USING (flat access)
+    // Com detecção de conflitos
     // =====================================================
-    bool foundInUsing = false;
+
+    struct UsingMatch {
+        uint16 moduleId;
+        uint16 id;
+        std::string moduleName;
+        bool isFunction;
+    };
+    std::vector<UsingMatch> matches;
 
     for (const auto &modName : usingModules)
     {
-
         uint16 moduleId;
         if (!vm_->getModuleId(modName.c_str(), &moduleId))
         {
-            continue; // Módulo não existe (não deve acontecer)
+            continue;
         }
 
         ModuleDef *mod = vm_->getModule(moduleId);
@@ -337,6 +344,37 @@ void Compiler::variable(bool canAssign)
         uint16 funcId;
         if (mod->getFunctionId(nameStr.c_str(), &funcId))
         {
+            matches.push_back({moduleId, funcId, modName, true});
+        }
+
+        // Tenta como constante
+        uint16 constId;
+        if (mod->getConstantId(nameStr.c_str(), &constId))
+        {
+            matches.push_back({moduleId, constId, modName, false});
+        }
+    }
+
+    // Verifica conflitos
+    if (matches.size() > 1)
+    {
+        std::string modules = matches[0].moduleName;
+        for (size_t i = 1; i < matches.size(); i++)
+        {
+            modules += ", " + matches[i].moduleName;
+        }
+        fail("Ambiguous: '%s' found in multiple modules: %s. Use qualified name (module.%s)",
+             nameStr.c_str(), modules.c_str(), nameStr.c_str());
+        return;
+    }
+
+    // Único match encontrado
+    if (matches.size() == 1)
+    {
+        const UsingMatch &m = matches[0];
+
+        if (m.isFunction)
+        {
             // É função! Deve ser chamada
             if (!match(TOKEN_LPAREN))
             {
@@ -345,27 +383,22 @@ void Compiler::variable(bool canAssign)
             }
 
             // Emite ModuleRef
-            Value ref = vm_->makeModuleRef(moduleId, funcId);
+            Value ref = vm_->makeModuleRef(m.moduleId, m.id);
             emitConstant(ref);
 
             // Compila argumentos e CALL
             call(false);
-
-            foundInUsing = true;
-            return; //  Encontrou!
+            return;
         }
-
-        // Tenta como constante
-        uint16 constId;
-        if (mod->getConstantId(nameStr.c_str(), &constId))
+        else
         {
             // É constante! Emite valor direto
-            Value *value = mod->getConstant(constId);
+            ModuleDef *mod = vm_->getModule(m.moduleId);
+            Value *value = mod->getConstant(m.id);
             if (value)
             {
                 emitConstant(*value);
-                foundInUsing = true;
-                return; //  Encontrou!
+                return;
             }
         }
     }
