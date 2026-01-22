@@ -7,7 +7,6 @@
 #include <chrono>
 #include <thread>
 #include "bidings.hpp"
-#include "random.hpp"
 #include "interpreter.hpp"
 
 
@@ -168,6 +167,7 @@ int main()
     RaylibBindings::registerColor(vm);
     RaylibBindings::registerRectangle(vm);
     RaylibBindings::registerVector2(vm);
+    //vm.registerAll();
     // RaylibBindings::registerVector3(vm);
     // RaylibBindings::registerCamera2D(vm);
 

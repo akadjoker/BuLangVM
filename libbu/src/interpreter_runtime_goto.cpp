@@ -1827,8 +1827,10 @@ op_set_property:
             return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
         }
 
-        // Pop object, keep value
-        DROP(); // object
+        // Stack: [obj, value] -> queremos [value]
+        DROP(); // Remove value
+        DROP(); // Remove object
+        PUSH(value); // Push value back - assignment returns the assigned value
 
         DISPATCH();
     }
@@ -1841,8 +1843,10 @@ op_set_property:
         if (instance->klass->fieldNames.get(nameValue.asString(), &fieldIdx))
         {
             instance->fields[fieldIdx] = value;
-            // Pop object, mantém value
-            DROP(); // object
+            // Stack: [obj, value] -> queremos [value]
+            DROP(); // Remove value
+            DROP(); // Remove object
+            PUSH(value); // Push value back
             DISPATCH();
         }
 
@@ -1868,7 +1872,10 @@ op_set_property:
 
             // Chama setter
             prop.setter(this, instance->userData, value);
+            // Stack: [obj, value] -> queremos [value]
+            DROP(); // Remove value
             DROP(); // Remove object
+            PUSH(value);
             DISPATCH();
         }
     }
@@ -1982,7 +1989,10 @@ op_set_property:
         }
         }
 
+        // Stack: [obj, value] -> queremos [value]
+        DROP(); // Remove value
         DROP(); // Remove object
+        PUSH(value);
         DISPATCH();
     }
 

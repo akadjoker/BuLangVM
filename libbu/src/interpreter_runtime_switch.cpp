@@ -1673,8 +1673,11 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                     return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
                 }
 
-                // Pop object, keep value
-                   DROP(); // object
+                // Stack: [obj, value] -> queremos [value]
+                // Pop value, drop object, push value back
+                DROP(); // Remove value
+                DROP(); // Remove object
+                PUSH(value); // Push value back - assignment returns the assigned value
                 break;
             }
             else if (object.isClassInstance())
@@ -1684,11 +1687,11 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                 uint8_t fieldIdx;
                 if (instance->klass->fieldNames.get(nameValue.asString(), &fieldIdx))
                 {
-                    //Value old = instance->fields[fieldIdx];
                     instance->fields[fieldIdx] = value;
-                    // Pop object, mantém value
-                    DROP(); // object
-                    PUSH(value);
+                    // Stack: [obj, value] -> queremos [value]
+                    DROP(); // Remove value
+                    DROP(); // Remove object
+                    PUSH(value); // Push value back
                     break;
                 }
 
@@ -1714,6 +1717,8 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 
                     // Chama setter
                     prop.setter(this, instance->userData, value);
+                    // Stack: [obj, value] -> queremos [value]
+                    DROP(); // Remove value
                     DROP(); // Remove object
                     PUSH(value);
                     break;
@@ -1828,6 +1833,8 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                 }
                 }
 
+                // Stack: [obj, value] -> queremos [value]
+                DROP(); // Remove value
                 DROP(); // Remove object
                 PUSH(value);
                 break;

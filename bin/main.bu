@@ -1,6 +1,1 @@
-// Teste increment com globais
-var i = 5;
-print("i antes: " + i);
-var x = i++;
-print("x (deve ser 5): " + x);
-print("i (deve ser 6): " + i);
+include "fireworkds.bu";
