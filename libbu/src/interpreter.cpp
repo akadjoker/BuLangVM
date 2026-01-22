@@ -236,9 +236,9 @@ Interpreter::~Interpreter()
   freeInstances();
   freeRunningProcesses();
   freeFunctions();
-  freeBlueprints();
   globals.destroy();
-  clearAllGCObjects();
+  clearAllGCObjects();  // Must be called before freeBlueprints() so native destructors can access ClassDef/NativeClassDef
+  freeBlueprints();
 
   openUpvalues = nullptr;
   // Info("Heap stats:");
