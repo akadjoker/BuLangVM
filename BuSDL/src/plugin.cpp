@@ -2,7 +2,7 @@
 // This file exports the plugin interface for dynamic loading
 
 #include "plugin.hpp"
-#include "bidings.hpp"
+#include "bindings.hpp"
 
 // Plugin registration function
 void register_sdl_module(Interpreter* vm)

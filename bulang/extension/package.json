@@ -2,7 +2,7 @@
   "name": "bulang",
   "displayName": "BuLang",
   "description": "Syntax highlighting and formatting for BuLang",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "publisher": "akadjoker",
   "engines": {
     "vscode": "^1.75.0"

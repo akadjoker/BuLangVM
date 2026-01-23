@@ -1,23 +1,68 @@
-// Test SDL loaded via command line
-// Run with: ./bu --plugin sdl test_sdl_simple.bu
+// Test script demonstrating the plugin system
+// Run with: ./bu test_plugin.bu
 
-print "Testing SDL module...";
+print "=== BuLang Plugin System Test ===";
 
+// Load SDL plugin using require
+require "sdl";
+
+// Import and use the SDL module
 import SDL;
 using SDL;
 
-var result = SDL_Init(SDL_INIT_VIDEO);
-print "SDL_Init returned: " + result;
+print "SDL plugin loaded successfully!";
 
-if (result >= 0)
-{
-    print "SDL initialized OK!";
-    SDL_Quit();
-    print "SDL_Quit called";
-}
-else
+// Initialize SDL
+var result = SDL_Init(SDL_INIT_VIDEO);
+if (result < 0)
 {
     print "SDL_Init failed: " + SDL_GetError();
 }
+else
+{
+    print "SDL initialized OK";
 
-print "Test complete!";
+    // Create a window
+    var window = SDL_CreateWindow("BuLang Plugin Test", 100, 100, 640, 480, SDL_WINDOW_SHOWN);
+    if (window == nil)
+    {
+        print "Window creation failed: " + SDL_GetError();
+    }
+    else
+    {
+        print "Window created successfully!";
+
+        // Create renderer
+        var renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+        if (renderer == nil)
+        {
+            print "Renderer creation failed: " + SDL_GetError();
+        }
+        else
+        {
+            print "Renderer created successfully!";
+
+            // Draw something
+            SDL_SetRenderDrawColor(renderer, 100, 149, 237, 255); // Cornflower blue
+            SDL_RenderClear(renderer);
+
+            // Draw a red rectangle
+            SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+            SDL_RenderFillRect(renderer, 100, 100, 200, 150);
+
+            // Present
+            SDL_RenderPresent(renderer);
+
+            print "Displaying window for 2 seconds...";
+            SDL_Delay(2000);
+
+            SDL_DestroyRenderer(renderer);
+        }
+
+        SDL_DestroyWindow(window);
+    }
+
+    SDL_Quit();
+}
+
+print "=== Test Complete ===";

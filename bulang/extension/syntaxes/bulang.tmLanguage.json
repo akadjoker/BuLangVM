@@ -38,7 +38,7 @@
         },
         {
           "name": "keyword.other.bulang",
-          "match": "\\b(self|super|frame|yield|fiber|exit|include|import|print)\\b"
+          "match": "\\b(self|super|frame|yield|fiber|exit|include|import|print|using|require)\\b"
         },
         {
           "name": "keyword.operator.logical.bulang",

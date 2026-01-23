@@ -19,45 +19,19 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin/modules)
 
 # Source files for bindings (shared between executable and plugin)
 set(BINDING_SOURCES
-    src/bidings.cpp
+    src/bindings.cpp
     src/structs.cpp
     src/core.cpp
     src/shapes.cpp
     src/textures.cpp
+    src/rlgl.cpp
     src/text.cpp
     src/input.cpp
     src/audio.cpp
     src/camera.cpp
     src/models.cpp
 )
-
-# ============================================
-# BuRay Executable (standalone)
-# ============================================
-add_executable(BuRay src/main.cpp ${BINDING_SOURCES})
-
-target_include_directories(BuRay PRIVATE include src ${CMAKE_SOURCE_DIR}/libbu/include)
-
-if(CMAKE_BUILD_TYPE MATCHES Debug)
-    if (UNIX)
-        target_compile_options(BuRay PRIVATE -fsanitize=address -fsanitize=undefined -fsanitize=leak -g -D_DEBUG -DVERBOSE)
-        target_link_options(BuRay PRIVATE -fsanitize=address -fsanitize=undefined -fsanitize=leak -g -D_DEBUG)
-    endif()
-elseif(CMAKE_BUILD_TYPE MATCHES Release)
-    target_compile_options(BuRay PRIVATE -O3 -DNDEBUG -s)
-    target_link_options(BuRay PRIVATE -O3 -DNDEBUG)
-endif()
-
-target_link_libraries(BuRay libbu raylib)
-
-if (WIN32)
-    target_link_libraries(BuRay Winmm.lib)
-endif()
-
-if (UNIX)
-    target_link_libraries(BuRay m dl)
-endif()
-
+ 
 # ============================================
 # libbu_raylib Plugin (shared library)
 # ============================================

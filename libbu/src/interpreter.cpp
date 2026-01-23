@@ -162,6 +162,7 @@ void Interpreter::freeBlueprints()
   processes.clear();
 
   // === LIMPEZA DE MAPAS ===
+  
   structsMap.destroy();
   classesMap.destroy();
   nativeClassesMap.destroy();
@@ -223,7 +224,7 @@ Interpreter::~Interpreter()
   // Info("Native classes   : %zu", getTotalNativeClasses());
   // Info("Native structs   : %zu", getTotalNativeStructs());
   // Info("Processes        : %zu", aliveProcesses.size());
-
+unloadAllPlugins();
   for (size_t i = 0; i < modules.size(); i++)
   {
     ModuleDef *mod = modules[i];

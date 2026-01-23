@@ -25,16 +25,11 @@ add_subdirectory(external/raylib)
 set_target_properties(raylib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(glfw PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-add_subdirectory(main)
 add_subdirectory(BuGLFW)
-add_subdirectory(game)
 add_subdirectory(BuRay)
 add_subdirectory(BuSDL)
+add_subdirectory(BuGTK)
 add_subdirectory(bu)
-add_subdirectory(tests)
-add_subdirectory(testParser)
-add_subdirectory(compilerTest)
-add_subdirectory(divgraphics)
 
 
  

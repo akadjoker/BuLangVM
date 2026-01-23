@@ -1,4 +1,4 @@
-#include "bidings.hpp"
+#include "bindings.hpp"
  
 
 namespace GLFWBindings

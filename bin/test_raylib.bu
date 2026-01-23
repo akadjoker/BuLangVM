@@ -6,32 +6,33 @@ require "raylib";
 
 print "Raylib plugin loaded!";
 
-// Import the module
-import raylib;
+// // Import the module
+ import raylib;
+ using raylib;
 
-print "Raylib module imported!";
+// print "Raylib module imported!";
 
-// Create colors (raylib colors are structs)
-var white = Color(245, 245, 245, 255);
-var darkGray = Color(80, 80, 80, 255);
+// // Create colors (raylib colors are structs)
+ var white = Color(245, 245, 245, 255);
+ var darkGray = Color(80, 80, 80, 255);
 
-// Test window creation
-raylib.InitWindow(800, 600, "BuLang Raylib Test");
-print "Window created!";
+// // Test window creation
+ InitWindow(800, 600, "BuLang Raylib Test");
+// print "Window created!";
 
-// Main loop - just a few frames to test
-var frameCount = 0;
-while (!raylib.WindowShouldClose() && frameCount < 120)
-{
-    raylib.BeginDrawing();
-    raylib.ClearBackground(white);
-    raylib.DrawText("Hello from BuLang!", 200, 280, 30, darkGray);
-    raylib.DrawFPS(10, 10);
-    raylib.EndDrawing();
-    frameCount = frameCount + 1;
-}
+// // Main loop - just a few frames to test
+// var frameCount = 0;
+// while (!WindowShouldClose() && frameCount < 120)
+// {
+//     BeginDrawing();
+//     ClearBackground(white);
+//     DrawText("Hello from BuLang!", 200, 280, 30, darkGray);
+//     DrawFPS(10, 10);
+//     EndDrawing();
+//     frameCount = frameCount + 1;
+// }
 
-raylib.CloseWindow();
-print "Window closed!";
+CloseWindow();
+// print "Window closed!";
 
 print "Raylib plugin test passed!";

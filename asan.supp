@@ -1,0 +1,26 @@
+# asan.supp
+leak:libGL
+leak:libX11
+leak:__pthread_once_slow
+leak:libpthread
+leak:libGL
+leak:libglib
+leak:libgtk
+
+
+# GTK/GLib initialization leaks
+leak:libglib-2.0.so
+leak:libgtk-3.so
+leak:libgobject
+leak:libgio
+leak:g_malloc
+leak:g_strdup
+
+# Dynamic linker initialization
+leak:_dl_init
+leak:call_init
+leak:dl_open_worker
+
+# GLib type system
+leak:g_type_
+ 

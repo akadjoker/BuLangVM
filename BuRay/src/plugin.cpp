@@ -2,7 +2,7 @@
 // This file exports the plugin interface for dynamic loading
 
 #include "plugin.hpp"
-#include "bidings.hpp"
+#include "bindings.hpp"
 
 // Plugin registration function
 void register_raylib_module(Interpreter* vm)
@@ -13,6 +13,7 @@ void register_raylib_module(Interpreter* vm)
 // Plugin cleanup function
 void cleanup_raylib_module()
 {
+    Info("Raylib cleanup");
     // Raylib cleanup is handled by CloseWindow in user code
 }
 

@@ -1,4 +1,4 @@
-#include "bidings.hpp"
+#include "bindings.hpp"
 
 #ifdef _WIN32
 #include <windows.h>
