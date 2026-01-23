@@ -10,5 +10,6 @@ namespace SDLBindings
  void register_window(ModuleBuilder &module);
  void register_renderer(ModuleBuilder &module);
  void register_opengl(ModuleBuilder &module);
+     void register_rlgl(ModuleBuilder &mod);
 
 } // namespace SDLBindings

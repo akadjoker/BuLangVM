@@ -14,10 +14,10 @@ if (WIN32)
     endif()
 endif()
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
+ 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin/modules)
 
-# Source files for bindings (shared between executable and plugin)
+ 
 set(BINDING_SOURCES
     src/bindings.cpp
     src/core.cpp

@@ -32,6 +32,7 @@ namespace RaylibBindings
     void register_audio(ModuleBuilder &mod);
     void register_camera(ModuleBuilder &mod);
     void register_models(ModuleBuilder &mod);
+    void register_rlgl(ModuleBuilder &mod);
 
     // ========================================
     // MAIN REGISTRATION

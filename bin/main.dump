@@ -12,95 +12,14 @@ GLOBAL FUNCTIONS
     Has return: no
     Index: 0
 
-  Constants (21):
-    [0] = "=== BuLang Plugin System Test ==="
-    [1] = "GTK plugin loaded successfully!"
-    [2] = <value type 16>
-    [3] = "click"
-    [4] = <value type 26>
-    [5] = "win"
-    [6] = <value type 26>
-    [7] = <value type 26>
-    [8] = "BuLang GTK"
-    [9] = <value type 26>
-    [10] = 400
-    [11] = 300
-    [12] = "btn"
-    [13] = <value type 26>
-    [14] = "Clica-me caralho"
-    [15] = <value type 26>
-    [16] = <value type 26>
-    [17] = "clicked"
-    [18] = <value type 26>
-    [19] = <value type 26>
-    [20] = "=== Test Complete ==="
-
-  Bytecode:
-    0000    2 OP_CONSTANT             0 '=== BuLang Plugin System Test ==='
-    0002    | OP_PRINT                1
-    0004   10 OP_CONSTANT             1 'GTK plugin loaded successfully!'
-    0006    | OP_PRINT                1
-    0008   16 OP_CONSTANT             2 '<function 1>'
-    0010    | OP_DEFINE_GLOBAL        3 'click'
-    0012   18 OP_CONSTANT             4 '<module_reference 0 112 0>'
-    0014    | OP_CALL                 0
-    0016    | OP_POP              
-    0017   21 OP_CONSTANT             6 '<module_reference 0 112 3>'
-    0019    | OP_CALL                 0
-    0021    | OP_DEFINE_GLOBAL        5 'win'
-    0023   22 OP_CONSTANT             7 '<module_reference 0 112 4>'
-    0025    | OP_GET_GLOBAL           5 'win'
-    0027    | OP_CONSTANT             8 'BuLang GTK'
-    0029    | OP_CALL                 2
-    0031    | OP_POP              
-    0032   23 OP_CONSTANT             9 '<module_reference 0 112 5>'
-    0034    | OP_GET_GLOBAL           5 'win'
-    0036    | OP_CONSTANT            10 '400'
-    0038    | OP_CONSTANT            11 '300'
-    0040    | OP_CALL                 3
-    0042    | OP_POP              
-    0043   26 OP_CONSTANT            13 '<module_reference 0 112 6>'
-    0045    | OP_CONSTANT            14 'Clica-me caralho'
-    0047    | OP_CALL                 1
-    0049    | OP_DEFINE_GLOBAL       12 'btn'
-    0051   27 OP_CONSTANT            15 '<module_reference 0 112 7>'
-    0053    | OP_GET_GLOBAL           5 'win'
-    0055    | OP_GET_GLOBAL          12 'btn'
-    0057    | OP_CALL                 2
-    0059    | OP_POP              
-    0060   30 OP_CONSTANT            16 '<module_reference 0 112 9>'
-    0062    | OP_GET_GLOBAL          12 'btn'
-    0064    | OP_CONSTANT            17 'clicked'
-    0066    | OP_CONSTANT             3 'click'
-    0068    | OP_CALL                 3
-    0070    | OP_POP              
-    0071   33 OP_CONSTANT            18 '<module_reference 0 112 8>'
-    0073    | OP_GET_GLOBAL           5 'win'
-    0075    | OP_CALL                 1
-    0077    | OP_POP              
-    0078   34 OP_CONSTANT            19 '<module_reference 0 112 1>'
-    0080    | OP_CALL                 0
-    0082    | OP_POP              
-    0083   36 OP_CONSTANT            20 '=== Test Complete ==='
-    0085    | OP_PRINT                1
-    0087    4 OP_NIL              
-    0088    | OP_RETURN           
-
-
->>> Function: __main__$click
-    Arity: 0
-    Has return: no
-    Index: 1
-
   Constants (1):
-    [0] = "Foda-se, finalmente funciona!"
+    [0] = "Testing raylib plugin..."
 
   Bytecode:
-    0000   15 OP_CONSTANT             0 'Foda-se, finalmente funciona!'
+    0000    2 OP_CONSTANT             0 'Testing raylib plugin...'
     0002    | OP_PRINT                1
-    0004   16 OP_POP              
-    0005    | OP_NIL              
-    0006    | OP_RETURN           
+    0004    6 OP_NIL              
+    0005    | OP_RETURN           
 
 
 ========================================

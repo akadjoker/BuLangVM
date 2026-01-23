@@ -29,6 +29,7 @@ add_subdirectory(BuGLFW)
 add_subdirectory(BuRay)
 add_subdirectory(BuSDL)
 add_subdirectory(BuGTK)
+add_subdirectory(BuRlGl)
 add_subdirectory(bu)
 
 

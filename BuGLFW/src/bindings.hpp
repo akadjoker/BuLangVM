@@ -11,4 +11,5 @@ namespace GLFWBindings
     void register_input(ModuleBuilder &mod);
     void register_monitor(ModuleBuilder &mod);
     void register_context(ModuleBuilder &mod);
+     
 } // namespace GLFWBindings

@@ -24,7 +24,6 @@ set(BINDING_SOURCES
     src/core.cpp
     src/shapes.cpp
     src/textures.cpp
-    src/rlgl.cpp
     src/text.cpp
     src/input.cpp
     src/audio.cpp

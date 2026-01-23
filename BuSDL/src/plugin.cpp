@@ -17,4 +17,4 @@ void cleanup_sdl_module()
 }
 
 // Export the plugin
-BU_DEFINE_PLUGIN("SDL", "1.0.0", "BuLang", register_sdl_module, cleanup_sdl_module)
+BU_DEFINE_PLUGIN("sdl", "1.0.0", "BuLang", register_sdl_module, cleanup_sdl_module)

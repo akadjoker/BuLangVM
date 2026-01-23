@@ -13,5 +13,6 @@ namespace GLFWBindings
         register_input(module);
         register_monitor(module);
         register_context(module);
+   
     }
 }
