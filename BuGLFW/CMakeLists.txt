@@ -22,38 +22,12 @@ set(BINDING_SOURCES
     src/bidings.cpp
     src/core.cpp
     src/window.cpp
+    src/rlgl.cpp
     src/input.cpp
     src/monitor.cpp
     src/context.cpp
 )
-
-# ============================================
-# BuGLFW Executable (standalone)
-# ============================================
-add_executable(BuGLFW src/main.cpp ${BINDING_SOURCES})
-
-target_include_directories(BuGLFW PRIVATE include src ${CMAKE_SOURCE_DIR}/libbu/include)
-
-if(CMAKE_BUILD_TYPE MATCHES Debug)
-    if (UNIX)
-        target_compile_options(BuGLFW PRIVATE -fsanitize=address -fsanitize=undefined -fsanitize=leak -g -D_DEBUG -DVERBOSE)
-        target_link_options(BuGLFW PRIVATE -fsanitize=address -fsanitize=undefined -fsanitize=leak -g -D_DEBUG)
-    endif()
-elseif(CMAKE_BUILD_TYPE MATCHES Release)
-    target_compile_options(BuGLFW PRIVATE -O3 -DNDEBUG -s)
-    target_link_options(BuGLFW PRIVATE -O3 -DNDEBUG)
-endif()
-
-target_link_libraries(BuGLFW libbu glfw)
-
-if (WIN32)
-    target_link_libraries(BuGLFW Winmm.lib)
-endif()
-
-if (UNIX)
-    target_link_libraries(BuGLFW m dl)
-endif()
-
+ 
 # ============================================
 # libbu_raylib Plugin (shared library)
 # ============================================

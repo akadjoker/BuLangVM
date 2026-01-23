@@ -28,32 +28,7 @@ set(BINDING_SOURCES
 
 find_package(OpenGL REQUIRED)
 
-# ============================================
-# BuSDL Executable (standalone)
-# ============================================
-add_executable(BuSDL src/main.cpp ${BINDING_SOURCES})
-
-target_include_directories(BuSDL PRIVATE include src ${CMAKE_SOURCE_DIR}/libbu/include)
-
-if(CMAKE_BUILD_TYPE MATCHES Debug)
-    if (UNIX)
-        target_compile_options(BuSDL PRIVATE -fsanitize=address -fsanitize=undefined -fsanitize=leak -g -D_DEBUG -DVERBOSE)
-        target_link_options(BuSDL PRIVATE -fsanitize=address -fsanitize=undefined -fsanitize=leak -g -D_DEBUG)
-    endif()
-elseif(CMAKE_BUILD_TYPE MATCHES Release)
-    target_compile_options(BuSDL PRIVATE -O3 -DNDEBUG -s)
-    target_link_options(BuSDL PRIVATE -O3 -DNDEBUG)
-endif()
-
-target_link_libraries(BuSDL libbu SDL2 OpenGL::GL)
-
-if (WIN32)
-    target_link_libraries(BuSDL Winmm.lib)
-endif()
-
-if (UNIX)
-    target_link_libraries(BuSDL m dl)
-endif()
+ 
 
 # ============================================
 # libbu_sdl Plugin (shared library)
