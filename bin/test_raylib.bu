@@ -2,13 +2,19 @@
 print "Testing raylib plugin...";
 
 // Load raylib plugin
+require "glfw";
 require "raylib";
+require "rlgl";
 
 print "Raylib plugin loaded!";
 
 // // Import the module
  import raylib;
+ import GLFW;
+
+
  using raylib;
+using GLFW;
 
 // print "Raylib module imported!";
 

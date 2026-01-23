@@ -18,4 +18,4 @@ void cleanup_rlgl_module()
 }
 
 // Export the plugin
-BU_DEFINE_PLUGIN("rlgl", "1.0.0", "BuLang", register_rlgl_module, cleanup_rlgl_module)
+BU_DEFINE_PLUGIN("RLGL", "1.0.0", "BuLang", register_rlgl_module, cleanup_rlgl_module)

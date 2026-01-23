@@ -3,17 +3,17 @@
 
 // // Load GLFW plugin
 require "glfw";
-
+require "rlgl";
 
 print "GLFW plugin loaded!";
 
 // Import the module
 import GLFW;
-
+//import RLGL;
 
 
 using GLFW;
-
+//using rlgl;
 
 
 
@@ -63,13 +63,13 @@ if (result == GLFW_TRUE)
         glfwMakeContextCurrent(window);
         glfwSwapInterval(1);
 
-        // print "Iniciando RLGL...";
-        // rlglInit(width, height);
-        // rlViewport(0, 0, width, height);
+        print "Iniciando RLGL...";
+        rlglInit(width, height);
+        rlViewport(0, 0, width, height);
 
-        // // Configurar estado inicial
-        // rlEnableDepthTest();
-        // rlClearColor(30, 30, 30, 255); // Fundo Cinzento Escuro
+        // Configurar estado inicial
+        rlEnableDepthTest();
+        rlClearColor(30, 30, 30, 255); // Fundo Cinzento Escuro
 
         // Main loop - just a few frames
         var frameCount = 0;

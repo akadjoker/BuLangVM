@@ -26,6 +26,7 @@ set(BINDING_SOURCES
     src/textures.cpp
     src/text.cpp
     src/input.cpp
+    src/rlgl.cpp
     src/audio.cpp
     src/camera.cpp
     src/models.cpp

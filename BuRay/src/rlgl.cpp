@@ -1,25 +1,13 @@
 #include "bindings.hpp"
-#define RLGL_IMPLEMENTATION
 #include "rlgl.h"
 
-namespace SDLBindings
+namespace RaylibBindings
 {
-
+ 
     // =============================================================
     // 1. LIFECYCLE E UTILITÁRIOS
     // =============================================================
-
-    Value native_rlglInit(Interpreter *vm, int argc, Value *args) {
-        if (argc != 2) return vm->makeNil();
-        rlglInit(args[0].asNumber(), args[1].asNumber());
-        return vm->makeNil();
-    }
-
-    Value native_rlglClose(Interpreter *vm, int argc, Value *args) {
-        rlglClose();
-        return vm->makeNil();
-    }
-
+ 
     Value native_rlGetVersion(Interpreter *vm, int argc, Value *args) {
         return vm->makeInt(rlGetVersion());
     }
@@ -325,11 +313,7 @@ namespace SDLBindings
 
     void register_rlgl(ModuleBuilder &mod)
     {
-        mod
-            // --- LIFECYCLE ---
-            .addFunction("rlglInit", native_rlglInit, 2)
-            .addFunction("rlglClose", native_rlglClose, 0)
-            .addFunction("rlGetVersion", native_rlGetVersion, 0)
+        mod.addFunction("rlGetVersion", native_rlGetVersion, 0)
             .addFunction("rlCheckErrors", native_rlCheckErrors, 0)
 
             // --- MATRIX ---
@@ -484,9 +468,5 @@ namespace SDLBindings
             .addInt("RL_SHADER_UNIFORM_IVEC3", RL_SHADER_UNIFORM_IVEC3)
             .addInt("RL_SHADER_UNIFORM_IVEC4", RL_SHADER_UNIFORM_IVEC4)
             .addInt("RL_SHADER_UNIFORM_SAMPLER2D", RL_SHADER_UNIFORM_SAMPLER2D);
-            
-            
-
-  }
-}  
-
+    }
+}
