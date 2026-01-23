@@ -142,6 +142,12 @@ const char *tokenTypeToString(TokenType type)
         return "EOF";
     case TOKEN_ERROR:
         return "ERROR";
+    case TOKEN_IMPORT:
+        return "IMPORT";
+    case TOKEN_USING:
+        return "USING";
+    case TOKEN_REQUIRE:
+        return "REQUIRE";
 
     default:
         return "UNKNOWN";

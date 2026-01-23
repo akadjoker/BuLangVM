@@ -2,6 +2,13 @@
 
 #include <cstdarg>
 
+// Dynamic library loading headers
+#if defined(__linux__) || defined(__APPLE__)
+#include <dlfcn.h>
+#elif defined(_WIN32)
+#include <windows.h>
+#endif
+
 // ============================================
 // LINUX/DESKTOP Platform
 // ============================================
@@ -309,6 +316,122 @@ int OsFileSize(const char *filename)
 bool OsFileDelete(const char *filename)
 {
     return remove(filename) == 0;
+}
+
+#endif
+
+// ============================================
+// Dynamic Library Loading
+// ============================================
+
+#if defined(__linux__) || defined(__APPLE__)
+
+void* OsLoadLibrary(const char* path)
+{
+    void* handle = dlopen(path, RTLD_NOW | RTLD_LOCAL);
+    return handle;
+}
+
+void* OsGetSymbol(void* handle, const char* symbol)
+{
+    if (!handle) return nullptr;
+    return dlsym(handle, symbol);
+}
+
+void OsFreeLibrary(void* handle)
+{
+    if (handle) {
+        dlclose(handle);
+    }
+}
+
+const char* OsGetLibraryError()
+{
+    return dlerror();
+}
+
+const char* OsGetLibraryExtension()
+{
+#if defined(__APPLE__)
+    return ".dylib";
+#else
+    return ".so";
+#endif
+}
+
+#elif defined(_WIN32)
+
+void* OsLoadLibrary(const char* path)
+{
+    return (void*)LoadLibraryA(path);
+}
+
+void* OsGetSymbol(void* handle, const char* symbol)
+{
+    if (!handle) return nullptr;
+    return (void*)GetProcAddress((HMODULE)handle, symbol);
+}
+
+void OsFreeLibrary(void* handle)
+{
+    if (handle) {
+        FreeLibrary((HMODULE)handle);
+    }
+}
+
+static char s_winErrorBuffer[256];
+
+const char* OsGetLibraryError()
+{
+    DWORD error = GetLastError();
+    if (error == 0) return nullptr;
+
+    FormatMessageA(
+        FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+        nullptr,
+        error,
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        s_winErrorBuffer,
+        sizeof(s_winErrorBuffer),
+        nullptr
+    );
+    return s_winErrorBuffer;
+}
+
+const char* OsGetLibraryExtension()
+{
+    return ".dll";
+}
+
+#elif defined(__EMSCRIPTEN__)
+
+// WASM doesn't support dynamic loading
+void* OsLoadLibrary(const char* path)
+{
+    (void)path;
+    return nullptr;
+}
+
+void* OsGetSymbol(void* handle, const char* symbol)
+{
+    (void)handle;
+    (void)symbol;
+    return nullptr;
+}
+
+void OsFreeLibrary(void* handle)
+{
+    (void)handle;
+}
+
+const char* OsGetLibraryError()
+{
+    return "Dynamic library loading not supported on WASM";
+}
+
+const char* OsGetLibraryExtension()
+{
+    return ".wasm";
 }
 
 #endif

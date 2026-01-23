@@ -1,0 +1,23 @@
+// Test SDL loaded via command line
+// Run with: ./bu --plugin sdl test_sdl_simple.bu
+
+print "Testing SDL module...";
+
+import SDL;
+using SDL;
+
+var result = SDL_Init(SDL_INIT_VIDEO);
+print "SDL_Init returned: " + result;
+
+if (result >= 0)
+{
+    print "SDL initialized OK!";
+    SDL_Quit();
+    print "SDL_Quit called";
+}
+else
+{
+    print "SDL_Init failed: " + SDL_GetError();
+}
+
+print "Test complete!";

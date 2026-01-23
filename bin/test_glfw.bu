@@ -1,0 +1,78 @@
+// Test GLFW plugin with require keyword
+print "Testing GLFW plugin...";
+
+// Load GLFW plugin
+require "glfw";
+
+print "GLFW plugin loaded!";
+
+// Import the module
+import GLFW;
+using GLFW;
+
+print "GLFW module imported!";
+
+// Initialize GLFW
+var result = glfwInit();
+print "glfwInit() returned: " + result;
+
+if (result == GLFW_TRUE)
+{
+    // Get version
+    var version = glfwGetVersionString();
+    print "GLFW Version: " + version;
+
+    // Get primary monitor info
+    var monitor = glfwGetPrimaryMonitor();
+    if (monitor != nil)
+    {
+        var name = glfwGetMonitorName(monitor);
+        print "Primary Monitor: " + name;
+
+        var videoMode = glfwGetVideoMode(monitor);
+        print "Resolution: " + videoMode["width"] + "x" + videoMode["height"];
+        print "Refresh Rate: " + videoMode["refreshRate"] + " Hz";
+    }
+
+    // Create window
+    glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+
+    var window = glfwCreateWindow(800, 600, "BuLang GLFW Test", nil, nil);
+
+    if (window != nil)
+    {
+        print "Window created!";
+
+        // Make context current
+        glfwMakeContextCurrent(window);
+        glfwSwapInterval(1);
+
+        // Main loop - just a few frames
+        var frameCount = 0;
+        while (!glfwWindowShouldClose(window) && frameCount < 60)
+        {
+            glfwPollEvents();
+            glfwSwapBuffers(window);
+            frameCount = frameCount + 1;
+        }
+
+        glfwDestroyWindow(window);
+        print "Window destroyed!";
+    }
+    else
+    {
+        print "Failed to create window!";
+        var error = glfwGetError();
+        print "Error: " + error["description"];
+    }
+
+    glfwTerminate();
+    print "GLFW terminated!";
+}
+else
+{
+    print "Failed to initialize GLFW!";
+}
+
+print "GLFW plugin test completed!";

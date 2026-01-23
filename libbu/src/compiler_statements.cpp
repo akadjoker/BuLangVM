@@ -43,6 +43,10 @@ void Compiler::declaration()
     {
         parseUsing();
     }
+    else if (match(TOKEN_REQUIRE))
+    {
+        parseRequire();
+    }
     else
     {
         statement();
@@ -2154,6 +2158,40 @@ void Compiler::parseImport()
     } while (match(TOKEN_COMMA));
 
     consume(TOKEN_SEMICOLON, "Expect ';' after import");
+}
+
+void Compiler::parseRequire()
+{
+    // require "SDL";
+    // require "raylib";
+
+    consume(TOKEN_STRING, "Expect plugin name as string after 'require'");
+    std::string pluginName = previous.lexeme;
+
+    // Remove quotes from string literal
+    if (pluginName.size() >= 2 && pluginName.front() == '"' && pluginName.back() == '"')
+    {
+        pluginName = pluginName.substr(1, pluginName.size() - 2);
+    }
+
+    // Check if module is already loaded (e.g., via --plugin command line)
+    if (vm_->containsModule(pluginName.c_str()))
+    {
+        // Module already loaded, nothing to do
+        consume(TOKEN_SEMICOLON, "Expect ';' after require");
+        return;
+    }
+
+    // Try to load the plugin
+    if (!vm_->loadPluginByName(pluginName.c_str()))
+    {
+        fail("Failed to load plugin '%s': %s",
+             pluginName.c_str(),
+             vm_->getLastPluginError());
+        return;
+    }
+
+    consume(TOKEN_SEMICOLON, "Expect ';' after require");
 }
 
 void Compiler::yieldStatement()

@@ -1,7 +1,6 @@
 project(BuSDL)
 cmake_policy(SET CMP0072 NEW)
 
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ")
 
@@ -11,55 +10,40 @@ if (WIN32)
         if(CMAKE_BUILD_TYPE MATCHES Debug)
             add_compile_options(/RTC1 /Od /Zi)
             set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fsanitize=address")
-        endif()     
+        endif()
     endif()
-
 endif()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin/modules)
 
-
-
-
-
-file(GLOB SOURCES "src/*.cpp")
-add_executable(BuSDL   ${SOURCES})
-
-
-target_include_directories(libbu PUBLIC  include src)
-
-
-
-if(CMAKE_BUILD_TYPE MATCHES Debug)
-
-if (UNIX)
-target_compile_options(BuSDL PRIVATE -fsanitize=address -fsanitize=undefined -fsanitize=leak -g  -D_DEBUG -DVERBOSE)
-target_link_options(BuSDL PRIVATE -fsanitize=address -fsanitize=undefined -fsanitize=leak -g  -D_DEBUG) 
-endif()
-
-# if (UNIX)
-#     target_compile_options(BuSDL PRIVATE
-#         -O3
-#         -g
-#         -fno-omit-frame-pointer
-#     )
-# endif()
- 
-
-# if (WIN32)
-#     target_compile_options(BuSDL PRIVATE
-#         -O3
-#         -g
-#         -fno-omit-frame-pointer
-#     )
-# endif()
-
-elseif(CMAKE_BUILD_TYPE MATCHES Release)
-    target_compile_options(BuSDL PRIVATE -O3   -DNDEBUG -s)
-    target_link_options(BuSDL PRIVATE -O3   -DNDEBUG )
-endif()
+# Source files for bindings (shared between executable and plugin)
+set(BINDING_SOURCES
+    src/bidings.cpp
+    src/core.cpp
+    src/renderer.cpp
+    src/window.cpp
+    src/opengl.cpp
+)
 
 find_package(OpenGL REQUIRED)
+
+# ============================================
+# BuSDL Executable (standalone)
+# ============================================
+add_executable(BuSDL src/main.cpp ${BINDING_SOURCES})
+
+target_include_directories(BuSDL PRIVATE include src ${CMAKE_SOURCE_DIR}/libbu/include)
+
+if(CMAKE_BUILD_TYPE MATCHES Debug)
+    if (UNIX)
+        target_compile_options(BuSDL PRIVATE -fsanitize=address -fsanitize=undefined -fsanitize=leak -g -D_DEBUG -DVERBOSE)
+        target_link_options(BuSDL PRIVATE -fsanitize=address -fsanitize=undefined -fsanitize=leak -g -D_DEBUG)
+    endif()
+elseif(CMAKE_BUILD_TYPE MATCHES Release)
+    target_compile_options(BuSDL PRIVATE -O3 -DNDEBUG -s)
+    target_link_options(BuSDL PRIVATE -O3 -DNDEBUG)
+endif()
 
 target_link_libraries(BuSDL libbu SDL2 OpenGL::GL)
 
@@ -67,7 +51,45 @@ if (WIN32)
     target_link_libraries(BuSDL Winmm.lib)
 endif()
 
-
 if (UNIX)
-    target_link_libraries(BuSDL  m )
+    target_link_libraries(BuSDL m dl)
+endif()
+
+# ============================================
+# libbu_sdl Plugin (shared library)
+# ============================================
+add_library(bu_sdl SHARED src/plugin.cpp ${BINDING_SOURCES})
+
+target_include_directories(bu_sdl PRIVATE include src ${CMAKE_SOURCE_DIR}/libbu/include)
+
+# Plugin-specific compile definitions
+target_compile_definitions(bu_sdl PRIVATE BU_PLUGIN_BUILD)
+
+if(CMAKE_BUILD_TYPE MATCHES Debug)
+    if (UNIX)
+        target_compile_options(bu_sdl PRIVATE -g -D_DEBUG -DVERBOSE -fPIC)
+    endif()
+elseif(CMAKE_BUILD_TYPE MATCHES Release)
+    target_compile_options(bu_sdl PRIVATE -O3 -DNDEBUG -fPIC)
+endif()
+
+# On Unix, shared libraries need -fPIC
+if (UNIX)
+    set_target_properties(bu_sdl PROPERTIES POSITION_INDEPENDENT_CODE ON)
+endif()
+
+# Set output name to libbu_sdl.so (or .dll on Windows)
+set_target_properties(bu_sdl PROPERTIES
+    OUTPUT_NAME "bu_sdl"
+    PREFIX "lib"
+)
+
+# Don't link libbu to the plugin - it will use symbols from the main executable
+# This avoids duplicate state issues with static libraries
+if (WIN32)
+    # On Windows, we need to link libbu since we can't use -rdynamic
+    target_link_libraries(bu_sdl libbu SDL2 OpenGL::GL Winmm.lib)
+else()
+    # On Unix, symbols will be resolved from the main executable
+    target_link_libraries(bu_sdl SDL2 OpenGL::GL m dl)
 endif()

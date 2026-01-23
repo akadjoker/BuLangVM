@@ -26,6 +26,14 @@ bool OsFileExists(const char *filename);
 int OsFileSize(const char *filename);
 bool OsFileDelete(const char *filename);
 
+// Dynamic library loading
+void* OsLoadLibrary(const char* path);
+void* OsGetSymbol(void* handle, const char* symbol);
+void  OsFreeLibrary(void* handle);
+const char* OsGetLibraryError();
+
+// Get library extension for current platform (.so, .dll, .dylib)
+const char* OsGetLibraryExtension();
 
 #ifdef __cplusplus
 }

@@ -20,10 +20,17 @@ endif()
 
 add_subdirectory(libbu)
 add_subdirectory(external/raylib)
+
+# Enable PIC for raylib and glfw so they can be linked into shared libraries (plugins)
+set_target_properties(raylib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(glfw PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 add_subdirectory(main)
+add_subdirectory(BuGLFW)
 add_subdirectory(game)
 add_subdirectory(BuRay)
 add_subdirectory(BuSDL)
+add_subdirectory(bu)
 add_subdirectory(tests)
 add_subdirectory(testParser)
 add_subdirectory(compilerTest)

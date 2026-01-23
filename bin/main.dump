@@ -12,311 +12,223 @@ GLOBAL FUNCTIONS
     Has return: no
     Index: 0
 
-  Constants (66):
-    [0] = "start"
-    [1] = <value type 26>
-    [2] = 62001
-    [3] = 0
-    [4] = "write"
-    [5] = "Couldn't initialize SDL:{}
-"
-    [6] = <value type 26>
-    [7] = "win"
+  Constants (53):
+    [0] = "Testing GLFW plugin..."
+    [1] = "GLFW plugin loaded!"
+    [2] = "GLFW module imported!"
+    [3] = "result"
+    [4] = <value type 26>
+    [5] = "glfwInit() returned: "
+    [6] = 1
+    [7] = "version"
     [8] = <value type 26>
-    [9] = "Bulang SDL Test"
-    [10] = 536805376
-    [11] = 800
-    [12] = 600
-    [13] = 4
-    [14] = 32
-    [15] = "ren"
+    [9] = "GLFW Version: "
+    [10] = "monitor"
+    [11] = <value type 26>
+    [12] = "name"
+    [13] = <value type 26>
+    [14] = "Primary Monitor: "
+    [15] = "videoMode"
     [16] = <value type 26>
-    [17] = 1
-    [18] = "e"
-    [19] = "SDL_Event"
-    [20] = "running"
-    [21] = "rectX"
-    [22] = 400
-    [23] = "rectY"
-    [24] = 300
-    [25] = "rectSize"
-    [26] = 50
-    [27] = <value type 26>
-    [28] = "type"
-    [29] = 256
-    [30] = 1024
-    [31] = 1025
-    [32] = "button"
-    [33] = "Clique Esquerdo em: "
-    [34] = "btnX"
-    [35] = ", "
-    [36] = "btnY"
-    [37] = 3
-    [38] = "Clique Direito!"
-    [39] = "print_stack"
-    [40] = "mouse"
-    [41] = 1027
-    [42] = "wheelY"
-    [43] = 10
-    [44] = 512
-    [45] = "winEvent"
-    [46] = 5
-    [47] = "Nova Largura: "
-    [48] = "Width"
-    [49] = "Nova Altura:  "
-    [50] = "Height"
-    [51] = 768
-    [52] = "Tecla: "
-    [53] = "key"
-    [54] = 27
-    [55] = <value type 26>
-    [56] = 45
-    [57] = 255
-    [58] = <value type 26>
-    [59] = <value type 26>
-    [60] = <value type 26>
-    [61] = <value type 26>
-    [62] = <value type 26>
-    [63] = <value type 26>
-    [64] = <value type 26>
-    [65] = "end"
+    [17] = "Resolution: "
+    [18] = "width"
+    [19] = "x"
+    [20] = "height"
+    [21] = "Refresh Rate: "
+    [22] = "refreshRate"
+    [23] = " Hz"
+    [24] = <value type 26>
+    [25] = 131076
+    [26] = <value type 26>
+    [27] = 131075
+    [28] = "window"
+    [29] = <value type 26>
+    [30] = 800
+    [31] = 600
+    [32] = "BuLang GLFW Test"
+    [33] = "Window created!"
+    [34] = <value type 26>
+    [35] = <value type 26>
+    [36] = "frameCount"
+    [37] = 0
+    [38] = <value type 26>
+    [39] = 60
+    [40] = <value type 26>
+    [41] = <value type 26>
+    [42] = <value type 26>
+    [43] = "Window destroyed!"
+    [44] = "Failed to create window!"
+    [45] = "error"
+    [46] = <value type 26>
+    [47] = "Error: "
+    [48] = "description"
+    [49] = <value type 26>
+    [50] = "GLFW terminated!"
+    [51] = "Failed to initialize GLFW!"
+    [52] = "GLFW plugin test completed!"
 
   Bytecode:
-    0000    4 OP_CONSTANT             0 'start'
+    0000    2 OP_CONSTANT             0 'Testing GLFW plugin...'
     0002    | OP_PRINT                1
-    0004    6 OP_CONSTANT             1 '<module_reference 0 112 0>'
-    0006    | OP_CONSTANT             2 '62001'
-    0008    | OP_CALL                 1
-    0010    | OP_CONSTANT             3 '0'
-    0012    | OP_LESS             
-    0013    | OP_JUMP_IF_FALSE       13 -> 32
-    0016    | OP_POP              
-    0017    8 OP_GET_GLOBAL           4 'write'
-    0019    | OP_CONSTANT             5 'Couldn't initialize SDL:{}'
-    0021    | OP_CONSTANT             6 '<module_reference 0 112 2>'
-    0023    | OP_CALL                 0
-    0025    | OP_CALL                 2
-    0027    | OP_POP              
-    0028    9 OP_RETURN_SUB       
-    0029   10 OP_JUMP                29 -> 33
-    0032    | OP_POP              
-    0033   12 OP_CONSTANT             8 '<module_reference 0 112 60>'
-    0035    | OP_CONSTANT             9 'Bulang SDL Test'
-    0037    | OP_CONSTANT            10 '536805376'
-    0039    | OP_CONSTANT            10 '536805376'
-    0041    | OP_CONSTANT            11 '800'
-    0043    | OP_CONSTANT            12 '600'
-    0045    | OP_CONSTANT            13 '4'
-    0047    | OP_CONSTANT            14 '32'
-    0049    | OP_BITWISE_OR       
-    0050    | OP_CALL                 6
-    0052    | OP_DEFINE_GLOBAL        7 'win'
-    0054   13 OP_CONSTANT            16 '<module_reference 0 112 4>'
-    0056    | OP_GET_GLOBAL           7 'win'
-    0058    | OP_CONSTANT            17 '1'
-    0060    | OP_NEGATE           
-    0061    | OP_CONSTANT             3 '0'
-    0063    | OP_CALL                 3
-    0065    | OP_DEFINE_GLOBAL       15 'ren'
-    0067   15 OP_GET_GLOBAL          19 'SDL_Event'
-    0069    | OP_CALL                 0
-    0071    | OP_DEFINE_GLOBAL       18 'e'
-    0073   16 OP_TRUE             
-    0074    | OP_DEFINE_GLOBAL       20 'running'
-    0076   17 OP_CONSTANT            22 '400'
-    0078    | OP_DEFINE_GLOBAL       21 'rectX'
-    0080   18 OP_CONSTANT            24 '300'
-    0082    | OP_DEFINE_GLOBAL       23 'rectY'
-    0084   19 OP_CONSTANT            26 '50'
-    0086    | OP_DEFINE_GLOBAL       25 'rectSize'
-    0088   21 OP_GET_GLOBAL          20 'running'
-    0090    | OP_JUMP_IF_FALSE       90 -> 406
-    0093    | OP_POP              
-    0094   25 OP_CONSTANT            27 '<module_reference 0 112 42>'
-    0096    | OP_GET_GLOBAL          18 'e'
-    0098    | OP_CALL                 1
-    0100    | OP_JUMP_IF_FALSE      100 -> 347
-    0103    | OP_POP              
-    0104   28 OP_GET_GLOBAL          18 'e'
-    0106    | OP_GET_PROPERTY        28 'type'
-    0108    | OP_CONSTANT            29 '256'
-    0110    | OP_EQUAL            
-    0111    | OP_JUMP_IF_FALSE      111 -> 125
+    0004    7 OP_CONSTANT             1 'GLFW plugin loaded!'
+    0006    | OP_PRINT                1
+    0008   13 OP_CONSTANT             2 'GLFW module imported!'
+    0010    | OP_PRINT                1
+    0012   16 OP_CONSTANT             4 '<module_reference 0 112 0>'
+    0014    | OP_CALL                 0
+    0016    | OP_DEFINE_GLOBAL        3 'result'
+    0018   17 OP_CONSTANT             5 'glfwInit() returned: '
+    0020    | OP_GET_GLOBAL           3 'result'
+    0022    | OP_ADD              
+    0023    | OP_PRINT                1
+    0025   19 OP_GET_GLOBAL           3 'result'
+    0027    | OP_CONSTANT             6 '1'
+    0029    | OP_EQUAL            
+    0030    | OP_JUMP_IF_FALSE       30 -> 268
+    0033    | OP_POP              
+    0034   22 OP_CONSTANT             8 '<module_reference 0 112 4>'
+    0036    | OP_CALL                 0
+    0038   23 OP_CONSTANT             9 'GLFW Version: '
+    0040    | OP_GET_LOCAL            0
+    0042    | OP_ADD              
+    0043    | OP_PRINT                1
+    0045   26 OP_CONSTANT            11 '<module_reference 0 112 54>'
+    0047    | OP_CALL                 0
+    0049   27 OP_GET_LOCAL            1
+    0051    | OP_NIL              
+    0052    | OP_EQUAL            
+    0053    | OP_NOT              
+    0054    | OP_JUMP_IF_FALSE       54 -> 114
+    0057    | OP_POP              
+    0058   29 OP_CONSTANT            13 '<module_reference 0 112 59>'
+    0060    | OP_GET_LOCAL            1
+    0062    | OP_CALL                 1
+    0064   30 OP_CONSTANT            14 'Primary Monitor: '
+    0066    | OP_GET_LOCAL            2
+    0068    | OP_ADD              
+    0069    | OP_PRINT                1
+    0071   32 OP_CONSTANT            16 '<module_reference 0 112 60>'
+    0073    | OP_GET_LOCAL            1
+    0075    | OP_CALL                 1
+    0077   33 OP_CONSTANT            17 'Resolution: '
+    0079    | OP_GET_LOCAL            3
+    0081    | OP_CONSTANT            18 'width'
+    0083    | OP_GET_INDEX        
+    0084    | OP_ADD              
+    0085    | OP_CONSTANT            19 'x'
+    0087    | OP_ADD              
+    0088    | OP_GET_LOCAL            3
+    0090    | OP_CONSTANT            20 'height'
+    0092    | OP_GET_INDEX        
+    0093    | OP_ADD              
+    0094    | OP_PRINT                1
+    0096   34 OP_CONSTANT            21 'Refresh Rate: '
+    0098    | OP_GET_LOCAL            3
+    0100    | OP_CONSTANT            22 'refreshRate'
+    0102    | OP_GET_INDEX        
+    0103    | OP_ADD              
+    0104    | OP_CONSTANT            23 ' Hz'
+    0106    | OP_ADD              
+    0107    | OP_PRINT                1
+    0109   35 OP_POP              
+    0110    | OP_POP              
+    0111    | OP_JUMP               111 -> 115
     0114    | OP_POP              
-    0115   30 OP_FALSE            
-    0116    | OP_SET_GLOBAL          20 'running'
-    0118    | OP_POP              
-    0119   31 OP_JUMP               119 -> 348
-    0122   32 OP_JUMP               122 -> 126
-    0125    | OP_POP              
-    0126   34 OP_GET_GLOBAL          18 'e'
-    0128    | OP_GET_PROPERTY        28 'type'
-    0130    | OP_CONSTANT            30 '1024'
-    0132    | OP_EQUAL            
-    0133    | OP_JUMP_IF_FALSE      133 -> 140
-    0136    | OP_POP              
-    0137   40 OP_JUMP               137 -> 141
-    0140    | OP_POP              
-    0141   42 OP_GET_GLOBAL          18 'e'
-    0143    | OP_GET_PROPERTY        28 'type'
-    0145    | OP_CONSTANT            31 '1025'
-    0147    | OP_EQUAL            
-    0148    | OP_JUMP_IF_FALSE      148 -> 224
-    0151    | OP_POP              
-    0152   45 OP_GET_GLOBAL          18 'e'
-    0154    | OP_GET_PROPERTY        32 'button'
-    0156    | OP_CONSTANT            17 '1'
-    0158    | OP_EQUAL            
-    0159    | OP_JUMP_IF_FALSE      159 -> 194
-    0162    | OP_POP              
-    0163   47 OP_CONSTANT            33 'Clique Esquerdo em: '
-    0165    | OP_GET_GLOBAL          18 'e'
-    0167    | OP_GET_PROPERTY        34 'btnX'
-    0169    | OP_CONSTANT            35 ', '
-    0171    | OP_GET_GLOBAL          18 'e'
-    0173    | OP_GET_PROPERTY        36 'btnY'
-    0175    | OP_PRINT                4
-    0177   48 OP_GET_GLOBAL          18 'e'
-    0179    | OP_GET_PROPERTY        34 'btnX'
-    0181    | OP_SET_GLOBAL          21 'rectX'
-    0183    | OP_POP              
-    0184   49 OP_GET_GLOBAL          18 'e'
-    0186    | OP_GET_PROPERTY        36 'btnY'
-    0188    | OP_SET_GLOBAL          23 'rectY'
-    0190    | OP_POP              
-    0191   50 OP_JUMP               191 -> 195
-    0194    | OP_POP              
-    0195   52 OP_GET_GLOBAL          18 'e'
-    0197    | OP_GET_PROPERTY        32 'button'
-    0199    | OP_CONSTANT            37 '3'
-    0201    | OP_EQUAL            
-    0202    | OP_JUMP_IF_FALSE      202 -> 220
+    0115   38 OP_CONSTANT            24 '<module_reference 0 112 14>'
+    0117    | OP_CONSTANT            25 '131076'
+    0119    | OP_CONSTANT             6 '1'
+    0121    | OP_CALL                 2
+    0123    | OP_POP              
+    0124   39 OP_CONSTANT            26 '<module_reference 0 112 14>'
+    0126    | OP_CONSTANT            27 '131075'
+    0128    | OP_CONSTANT             6 '1'
+    0130    | OP_CALL                 2
+    0132    | OP_POP              
+    0133   41 OP_CONSTANT            29 '<module_reference 0 112 16>'
+    0135    | OP_CONSTANT            30 '800'
+    0137    | OP_CONSTANT            31 '600'
+    0139    | OP_CONSTANT            32 'BuLang GLFW Test'
+    0141    | OP_NIL              
+    0142    | OP_NIL              
+    0143    | OP_CALL                 5
+    0145   43 OP_GET_LOCAL            2
+    0147    | OP_NIL              
+    0148    | OP_EQUAL            
+    0149    | OP_NOT              
+    0150    | OP_JUMP_IF_FALSE      150 -> 233
+    0153    | OP_POP              
+    0154   45 OP_CONSTANT            33 'Window created!'
+    0156    | OP_PRINT                1
+    0158   48 OP_CONSTANT            34 '<module_reference 0 112 65>'
+    0160    | OP_GET_LOCAL            2
+    0162    | OP_CALL                 1
+    0164    | OP_POP              
+    0165   49 OP_CONSTANT            35 '<module_reference 0 112 68>'
+    0167    | OP_CONSTANT             6 '1'
+    0169    | OP_CALL                 1
+    0171    | OP_POP              
+    0172   52 OP_CONSTANT            37 '0'
+    0174   53 OP_CONSTANT            38 '<module_reference 0 112 18>'
+    0176    | OP_GET_LOCAL            2
+    0178    | OP_CALL                 1
+    0180    | OP_NOT              
+    0181    | OP_JUMP_IF_FALSE      181 -> 190
+    0184    | OP_POP              
+    0185    | OP_GET_LOCAL            3
+    0187    | OP_CONSTANT            39 '60'
+    0189    | OP_LESS             
+    0190    | OP_JUMP_IF_FALSE      190 -> 217
+    0193    | OP_POP              
+    0194   55 OP_CONSTANT            40 '<module_reference 0 112 37>'
+    0196    | OP_CALL                 0
+    0198    | OP_POP              
+    0199   56 OP_CONSTANT            41 '<module_reference 0 112 67>'
+    0201    | OP_GET_LOCAL            2
+    0203    | OP_CALL                 1
     0205    | OP_POP              
-    0206   54 OP_CONSTANT            38 'Clique Direito!'
-    0208    | OP_PRINT                1
-    0210   55 OP_GET_GLOBAL          39 'print_stack'
-    0212    | OP_CONSTANT            40 'mouse'
-    0214    | OP_CALL                 1
-    0216    | OP_POP              
-    0217   57 OP_JUMP               217 -> 221
-    0220    | OP_POP              
-    0221   59 OP_JUMP               221 -> 225
+    0206   57 OP_GET_LOCAL            3
+    0208    | OP_CONSTANT             6 '1'
+    0210    | OP_ADD              
+    0211    | OP_SET_LOCAL            3
+    0213    | OP_POP              
+    0214   58 OP_LOOP               214 -> 174
+    0217    | OP_POP              
+    0218   60 OP_CONSTANT            42 '<module_reference 0 112 17>'
+    0220    | OP_GET_LOCAL            2
+    0222    | OP_CALL                 1
     0224    | OP_POP              
-    0225   62 OP_GET_GLOBAL          18 'e'
-    0227    | OP_GET_PROPERTY        28 'type'
-    0229    | OP_CONSTANT            41 '1027'
-    0231    | OP_EQUAL            
-    0232    | OP_JUMP_IF_FALSE      232 -> 252
-    0235    | OP_POP              
-    0236   66 OP_GET_GLOBAL          25 'rectSize'
-    0238    | OP_GET_GLOBAL          18 'e'
-    0240    | OP_GET_PROPERTY        42 'wheelY'
-    0242    | OP_CONSTANT            43 '10'
-    0244    | OP_MULTIPLY         
-    0245    | OP_ADD              
-    0246    | OP_SET_GLOBAL          25 'rectSize'
-    0248    | OP_POP              
-    0249   69 OP_JUMP               249 -> 253
-    0252    | OP_POP              
-    0253   70 OP_GET_GLOBAL          18 'e'
-    0255    | OP_GET_PROPERTY        28 'type'
-    0257    | OP_CONSTANT            44 '512'
-    0259    | OP_EQUAL            
-    0260    | OP_JUMP_IF_FALSE      260 -> 300
+    0225   61 OP_CONSTANT            43 'Window destroyed!'
+    0227    | OP_PRINT                1
+    0229   62 OP_POP              
+    0230    | OP_JUMP               230 -> 253
+    0233    | OP_POP              
+    0234   65 OP_CONSTANT            44 'Failed to create window!'
+    0236    | OP_PRINT                1
+    0238   66 OP_CONSTANT            46 '<module_reference 0 112 5>'
+    0240    | OP_CALL                 0
+    0242   67 OP_CONSTANT            47 'Error: '
+    0244    | OP_GET_LOCAL            3
+    0246    | OP_CONSTANT            48 'description'
+    0248    | OP_GET_INDEX        
+    0249    | OP_ADD              
+    0250    | OP_PRINT                1
+    0252   68 OP_POP              
+    0253   70 OP_CONSTANT            49 '<module_reference 0 112 1>'
+    0255    | OP_CALL                 0
+    0257    | OP_POP              
+    0258   71 OP_CONSTANT            50 'GLFW terminated!'
+    0260    | OP_PRINT                1
+    0262   72 OP_POP              
     0263    | OP_POP              
-    0264   74 OP_GET_GLOBAL          18 'e'
-    0266    | OP_GET_PROPERTY        45 'winEvent'
-    0268    | OP_CONSTANT            46 '5'
-    0270    | OP_EQUAL            
-    0271    | OP_JUMP_IF_FALSE      271 -> 296
-    0274    | OP_POP              
-    0275   77 OP_CONSTANT            47 'Nova Largura: '
-    0277    | OP_GET_GLOBAL          18 'e'
-    0279    | OP_GET_PROPERTY        48 'Width'
-    0281    | OP_ADD              
-    0282    | OP_PRINT                1
-    0284   78 OP_CONSTANT            49 'Nova Altura:  '
-    0286    | OP_GET_GLOBAL          18 'e'
-    0288    | OP_GET_PROPERTY        50 'Height'
-    0290    | OP_ADD              
-    0291    | OP_PRINT                1
-    0293   81 OP_JUMP               293 -> 297
-    0296    | OP_POP              
-    0297   82 OP_JUMP               297 -> 301
-    0300    | OP_POP              
-    0301   84 OP_GET_GLOBAL          18 'e'
-    0303    | OP_GET_PROPERTY        28 'type'
-    0305    | OP_CONSTANT            51 '768'
-    0307    | OP_EQUAL            
-    0308    | OP_JUMP_IF_FALSE      308 -> 343
-    0311    | OP_POP              
-    0312   86 OP_CONSTANT            52 'Tecla: '
-    0314    | OP_GET_GLOBAL          18 'e'
-    0316    | OP_GET_PROPERTY        53 'key'
-    0318    | OP_ADD              
-    0319    | OP_PRINT                1
-    0321   87 OP_GET_GLOBAL          18 'e'
-    0323    | OP_GET_PROPERTY        53 'key'
-    0325    | OP_CONSTANT            54 '27'
-    0327    | OP_EQUAL            
-    0328    | OP_JUMP_IF_FALSE      328 -> 339
-    0331    | OP_POP              
-    0332    | OP_FALSE            
-    0333    | OP_SET_GLOBAL          20 'running'
-    0335    | OP_POP              
-    0336    | OP_JUMP               336 -> 340
-    0339    | OP_POP              
-    0340   88 OP_JUMP               340 -> 344
-    0343    | OP_POP              
-    0344   90 OP_LOOP               344 -> 94
-    0347    | OP_POP              
-    0348   92 OP_CONSTANT            55 '<module_reference 0 112 6>'
-    0350    | OP_GET_GLOBAL          15 'ren'
-    0352    | OP_CONSTANT             3 '0'
-    0354    | OP_CONSTANT             3 '0'
-    0356    | OP_CONSTANT            56 '45'
-    0358    | OP_CONSTANT            57 '255'
-    0360    | OP_CALL                 5
-    0362    | OP_POP              
-    0363   93 OP_CONSTANT            58 '<module_reference 0 112 8>'
-    0365    | OP_GET_GLOBAL          15 'ren'
-    0367    | OP_CALL                 1
-    0369    | OP_POP              
-    0370   94 OP_CONSTANT            59 '<module_reference 0 112 6>'
-    0372    | OP_GET_GLOBAL          15 'ren'
-    0374    | OP_CONSTANT            57 '255'
-    0376    | OP_CONSTANT            57 '255'
-    0378    | OP_CONSTANT            57 '255'
-    0380    | OP_CONSTANT            57 '255'
-    0382    | OP_CALL                 5
-    0384    | OP_POP              
-    0385   95 OP_CONSTANT            60 '<module_reference 0 112 10>'
-    0387    | OP_GET_GLOBAL          15 'ren'
-    0389    | OP_GET_GLOBAL          21 'rectX'
-    0391    | OP_GET_GLOBAL          23 'rectY'
-    0393    | OP_CALL                 3
-    0395    | OP_POP              
-    0396   96 OP_CONSTANT            61 '<module_reference 0 112 9>'
-    0398    | OP_GET_GLOBAL          15 'ren'
-    0400    | OP_CALL                 1
-    0402    | OP_POP              
-    0403   97 OP_LOOP               403 -> 88
-    0406    | OP_POP              
-    0407   99 OP_CONSTANT            62 '<module_reference 0 112 5>'
-    0409    | OP_GET_GLOBAL          15 'ren'
-    0411    | OP_CALL                 1
-    0413    | OP_POP              
-    0414  100 OP_CONSTANT            63 '<module_reference 0 112 61>'
-    0416    | OP_GET_GLOBAL           7 'win'
-    0418    | OP_CALL                 1
-    0420    | OP_POP              
-    0421  101 OP_CONSTANT            64 '<module_reference 0 112 1>'
-    0423    | OP_CALL                 0
-    0425    | OP_POP              
-    0426  104 OP_CONSTANT            65 'end'
-    0428    | OP_PRINT                1
-    0430    | OP_NIL              
-    0431    | OP_RETURN           
+    0264    | OP_POP              
+    0265    | OP_JUMP               265 -> 273
+    0268    | OP_POP              
+    0269   75 OP_CONSTANT            51 'Failed to initialize GLFW!'
+    0271    | OP_PRINT                1
+    0273   78 OP_CONSTANT            52 'GLFW plugin test completed!'
+    0275    | OP_PRINT                1
+    0277   79 OP_NIL              
+    0278    | OP_RETURN           
 
 
 ========================================

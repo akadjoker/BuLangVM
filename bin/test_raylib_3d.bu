@@ -1,0 +1,61 @@
+// Test raylib 3D functions
+print "Testing raylib 3D...";
+
+require "raylib";
+import raylib;
+
+// Colors
+var white = Color(245, 245, 245, 255);
+var red = Color(230, 41, 55, 255);
+var green = Color(0, 228, 48, 255);
+var blue = Color(0, 121, 241, 255);
+var gray = Color(130, 130, 130, 255);
+var darkGray = Color(80, 80, 80, 255);
+
+// Initialize
+raylib.InitWindow(800, 600, "BuLang Raylib 3D Test");
+raylib.SetTargetFPS(60);
+
+// Create camera
+var camera = raylib.CreateCamera3D();
+raylib.SetCamera3DPosition(camera, 10.0, 10.0, 10.0);
+raylib.SetCamera3DTarget(camera, 0.0, 0.0, 0.0);
+raylib.SetCamera3DFovy(camera, 45.0);
+
+print "Camera created!";
+
+var frameCount = 0;
+while (!raylib.WindowShouldClose() && frameCount < 180)
+{
+    // Update camera
+    raylib.UpdateCamera(camera, raylib.CAMERA_ORBITAL);
+
+    raylib.BeginDrawing();
+    raylib.ClearBackground(white);
+
+    raylib.BeginMode3D(camera);
+
+    // Draw grid
+    raylib.DrawGrid(10, 1.0);
+
+    // Draw 3D shapes
+    raylib.DrawCube(0.0, 0.5, 0.0, 1.0, 1.0, 1.0, red);
+    raylib.DrawCubeWires(0.0, 0.5, 0.0, 1.0, 1.0, 1.0, darkGray);
+
+    raylib.DrawSphere(3.0, 0.5, 0.0, 0.5, green);
+
+    raylib.DrawCylinder(-3.0, 0.0, 0.0, 0.0, 0.5, 1.0, 8, blue);
+
+    raylib.EndMode3D();
+
+    raylib.DrawText("Raylib 3D Test", 10, 10, 20, darkGray);
+    raylib.DrawFPS(10, 40);
+
+    raylib.EndDrawing();
+    frameCount = frameCount + 1;
+}
+
+raylib.DestroyCamera3D(camera);
+raylib.CloseWindow();
+
+print "3D Test passed!";

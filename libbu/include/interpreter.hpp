@@ -639,6 +639,22 @@ class Interpreter
   Vector<ModuleDef *> modules;                                   // Array de módulos!
   HashMap<String *, Value, StringHasher, StringEq> globals;
 
+  // Plugin system internals
+  static constexpr int MAX_PLUGIN_PATHS = 8;
+  static constexpr int MAX_PATH_LEN = 256;
+  static constexpr int MAX_PLUGINS = 32;
+
+  struct LoadedPlugin {
+      void* handle;
+      const char* name;
+      void (*cleanup)();
+  };
+  LoadedPlugin loadedPlugins[MAX_PLUGINS];
+  int loadedPluginCount = 0;
+  char pluginSearchPaths[MAX_PLUGIN_PATHS][MAX_PATH_LEN];
+  int pluginSearchPathCount = 0;
+  char lastPluginError[512];
+
   Vector<Process *> aliveProcesses;
   Vector<Process *> cleanProcesses;
 
@@ -1057,6 +1073,13 @@ public:
   bool getModuleId(String *name, uint16 *outId);
   bool getModuleId(const char *name, uint16 *outId);
   bool containsModule(const char *name);
+
+  // Plugin system
+  bool loadPlugin(const char *path);                    // Load plugin from specific path
+  bool loadPluginByName(const char *name);              // Search and load plugin by name
+  void addPluginSearchPath(const char *path);           // Add search path for plugins
+  void unloadAllPlugins();                              // Cleanup all loaded plugins
+  const char *getLastPluginError() const;               // Get last plugin error message
 
   void printStack();
   void disassemble();
