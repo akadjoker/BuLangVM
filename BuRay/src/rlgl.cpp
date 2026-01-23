@@ -1,5 +1,4 @@
 #include "bindings.hpp"
-//#define RLGL_IMPLEMENTATION
 #include "rlgl.h"
 
 namespace RaylibBindings
