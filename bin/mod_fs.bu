@@ -90,6 +90,7 @@ var rm_res = fs.remove(TEST_FILE);
 assert(rm_res, "Remove ficheiro OK");
 
 // Verifica se sumiu
+print(fs.stat(TEST_FILE));
 assert(fs.stat(TEST_FILE) == nil, "Ficheiro ja nao existe");
 
 var rmdir_res = fs.rmdir(TEST_DIR);
@@ -99,3 +100,6 @@ assert(rmdir_res, "Rmdir OK");
 assert(fs.stat(TEST_DIR) == nil, "Diretoria ja nao existe");
 
 print("\n--- TESTES CONCLUIDOS ---");
+
+
+ 

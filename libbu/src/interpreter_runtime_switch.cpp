@@ -1,9 +1,9 @@
 /**
  * @brief Virtual machine interpreter that executes bytecode for the BuLang language
- * 
+ *
  * This is the main execution engine for the interpreter, implementing a stack-based VM
  * that processes opcodes and manages the execution of functions, fibers, and processes.
- * 
+ *
  * Key Features:
  * - Stack-based architecture for value operations
  * - Fiber and process management for concurrent execution
@@ -16,14 +16,14 @@
  * - String manipulation methods (concatenation, substring, split, etc.)
  * - Array and map operations with built-in methods
  * - Gosub/return-sub for subroutine calls (legacy support)
- * 
+ *
  * The interpreter maintains:
  * - A call stack for nested function calls
  * - A value stack for operands
  * - Frame information for each function call context
  * - Try-catch handler stack for exception management
  * - Upvalue list for closures
- * 
+ *
  * @file interpreter_runtime_switch.cpp
  * @note This file implements the core execution loop using a large switch statement
  *       for opcode dispatch, which is typical for VM implementations
@@ -54,7 +54,6 @@ bool toNumberPair(const Value &a, const Value &b, double &da, double &db)
     db = b.isInt() ? static_cast<double>(b.asInt()) : b.asDouble();
     return true;
 }
-
 
 FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 {
@@ -121,6 +120,40 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 
     // printf("[DEBUG] Starting run_fiber: ip=%p, func=%s, offset=%ld\n",
     //        (void*)ip, func->name->chars(), ip - func->chunk->code);
+
+#define SAFE_CALL_NATIVE(fiber, argCount, callFunc)                                    \
+    do                                                                                 \
+    {                                                                                  \
+        /* 1. Calcular o OFFSET (Índice seguro) */                                     \
+        size_t _slot = ((fiber)->stackTop - (fiber)->stack) - (argCount) - 1;          \
+                                                                                       \
+        /* 2. Definir _args para ser usado dentro da 'callFunc' */                     \
+        Value *_args = &(fiber)->stack[_slot + 1];                                     \
+                                                                                       \
+        /* 3. CHAMADA (Aqui o _args é passado implicitamente na expressão callFunc) */ \
+        int _rets = (callFunc);                                                        \
+                                                                                       \
+        /* 4. RECALCULAR DESTINO (Seguro contra realloc) */                            \
+        Value *_dest = &(fiber)->stack[_slot];                                         \
+                                                                                       \
+        /* 5. Processar Retornos */                                                    \
+        if (_rets > 0)                                                                 \
+        {                                                                              \
+            Value *_src = (fiber)->stackTop - _rets;                                   \
+            if (_src != _dest)                                                         \
+            {                                                                          \
+                /* memmove é necessário se houver overlap, copy se não houver */       \
+                std::memmove(_dest, _src, _rets * sizeof(Value));                      \
+            }                                                                          \
+            (fiber)->stackTop = _dest + _rets;                                         \
+        }                                                                              \
+        else                                                                           \
+        {                                                                              \
+            /* Retornar nil se for void */                                             \
+            *_dest = makeNil();                                                        \
+            (fiber)->stackTop = _dest + 1;                                             \
+        }                                                                              \
+    } while (0)
 
     // ===== LOOP PRINCIPAL =====
 
@@ -771,8 +804,8 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 
             Value callee = NPEEK(argCount);
 
-            //  printf("Call : (");
-            //   printValue(callee);
+            // printf("Call : (");
+            // printValue(callee);
             //   printf(") count %d\n", argCount);
 
             if (callee.isFunction())
@@ -815,6 +848,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
             {
                 int index = callee.asNativeId();
                 NativeDef nativeFunc = natives[index];
+
                 if (nativeFunc.arity != -1 && argCount != nativeFunc.arity)
                 {
                     runtimeError("Function %s expected %d arguments but got %d",
@@ -822,13 +856,12 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                     return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
                 }
 
-                Value result = nativeFunc.func(this, argCount, fiber->stackTop - argCount);
+                SAFE_CALL_NATIVE(fiber, argCount, nativeFunc.func(this, argCount, _args));
 
-                // Remove args + callee da stack
-                fiber->stackTop -= (argCount + 1);
+ 
+                    
 
-                // push resultado
-                PUSH(result);
+
             }
             else if (callee.isProcess())
             {
@@ -1058,7 +1091,6 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
             }
             else if (callee.isModuleRef())
             {
-
                 uint32 packed = callee.as.unsignedInteger;
                 uint16 moduleId = (callee.as.unsignedInteger >> 16) & 0xFFFF;
                 uint16 funcId = callee.as.unsignedInteger & 0xFFFF;
@@ -1068,24 +1100,30 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                     runtimeError("Invalid module ID: %d", moduleId);
                     return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
                 }
+
                 ModuleDef *mod = modules[moduleId];
                 if (funcId >= mod->functions.size())
                 {
                     runtimeError("Invalid function ID %d in module '%s'", funcId, mod->name);
                     return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
                 }
+
                 NativeFunctionDef &func = mod->functions[funcId];
-                // Info("args count: %d funcId: %d arity: %d", argCount,funcId,func.arity);
+
                 if (func.arity != -1 && func.arity != argCount)
                 {
                     String *funcName;
                     mod->getFunctionName(funcId, &funcName);
-                    runtimeError("Module '%s' expects %d args on function '%s' got %d", mod->name->chars(), func.arity, funcName->chars(), argCount);
+                    runtimeError("Module '%s' expects %d args on function '%s' got %d",
+                                 mod->name->chars(), func.arity, funcName->chars(), argCount);
                     return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
                 }
-                Value result = func.ptr(this, argCount, fiber->stackTop - argCount);
-                fiber->stackTop -= (argCount + 1);
-                PUSH(result);
+
+                SAFE_CALL_NATIVE(fiber, argCount, func.ptr(this, argCount, _args));
+
+
+
+
                 break;
             }
             else if (callee.isClosure())
@@ -1485,7 +1523,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                         PUSH(instance->fields[fieldIdx]);
                         break;
                     }
-                    
+
                     // Verifica propriedades herdadas da NativeClass
                     NativeProperty nativeProp;
                     if (instance->getNativeProperty(nameValue.asString(), &nativeProp))
@@ -1496,7 +1534,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                         PUSH(result);
                         break;
                     }
-                    
+
                     runtimeError("Undefined property '%s'", name);
                     PUSH(makeNil());
                     return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
@@ -1526,7 +1564,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                 }
                 else
 
-                    if (object.isNativeStructInstance())
+                if (object.isNativeStructInstance())
                 {
 
                     NativeStructInstance *inst = object.asNativeStructInstance();
@@ -1583,6 +1621,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                         break;
                     }
                     }
+                    
 
                     DROP(); // Remove object
                     PUSH(result);
@@ -1705,8 +1744,8 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 
                 // Stack: [obj, value] -> queremos [value]
                 // Pop value, drop object, push value back
-                DROP(); // Remove value
-                DROP(); // Remove object
+                DROP();      // Remove value
+                DROP();      // Remove object
                 PUSH(value); // Push value back - assignment returns the assigned value
                 break;
             }
@@ -1719,8 +1758,8 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                 {
                     instance->fields[fieldIdx] = value;
                     // Stack: [obj, value] -> queremos [value]
-                    DROP(); // Remove value
-                    DROP(); // Remove object
+                    DROP();      // Remove value
+                    DROP();      // Remove object
                     PUSH(value); // Push value back
                     break;
                 }
@@ -1737,8 +1776,8 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                     }
                     // Chama setter nativo
                     nativeProp.setter(this, instance->nativeUserData, value);
-                    DROP(); // Remove value
-                    DROP(); // Remove object
+                    DROP();      // Remove value
+                    DROP();      // Remove object
                     PUSH(value); // Push value back
                     break;
                 }
@@ -1828,13 +1867,13 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                     break;
                 case FieldType::FLOAT:
                 {
-                    if (!value.isFloat())
+                    if (!value.isNumber())
                     {
                         runtimeError("Field expects float");
                         DROP();
                         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
                     }
-                    *(float *)ptr = value.asFloat();
+                    *(float *)ptr =(float) value.asNumber();
                     break;
                 }
                 case FieldType::DOUBLE:
@@ -2717,26 +2756,40 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 
                     break;
                 }
-                
+
                 // Verifica métodos herdados da NativeClass
                 NativeMethod nativeMethod;
                 if (instance->getNativeMethod(nameValue.asString(), &nativeMethod))
                 {
-                    Value *args = fiber->stackTop - argCount;
-                    Value result = nativeMethod(this, instance->nativeUserData, argCount, args);
-                    fiber->stackTop -= (argCount + 1);
-                    PUSH(result);
+                    size_t _slot = (fiber->stackTop - fiber->stack) - argCount - 1;
+                    Value *_args = &fiber->stack[_slot + 1];
+                    int _rets = nativeMethod(this, instance->nativeUserData, argCount, _args);
+                    Value *_dest = &fiber->stack[_slot];
+                    if (_rets > 0)
+                    {
+                        Value *_src = fiber->stackTop - _rets;
+                        if (_src != _dest)
+                        {
+                            std::memmove(_dest, _src, _rets * sizeof(Value));
+                        }
+                        fiber->stackTop = _dest + _rets;
+                    }
+                    else
+                    {
+                        *_dest = makeNil();
+                        fiber->stackTop = _dest + 1;
+                    }
                     break;
                 }
-                
+
                 runtimeError("Instance '%s' has no method '%s'", instance->klass->name->chars(), name);
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
 
             if (receiver.isNativeClassInstance())
             {
-                printValueNl(receiver);
-                printValueNl(nameValue);
+                // printValueNl(receiver);
+                // printValueNl(nameValue);
 
                 NativeClassInstance *instance = receiver.asNativeClassInstance();
                 NativeClassDef *klass = instance->klass;
@@ -2748,10 +2801,24 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                     return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
                 }
 
-                Value *args = fiber->stackTop - argCount;
-                Value result = method(this, instance->userData, argCount, args);
-                fiber->stackTop -= (argCount + 1);
-                PUSH(result);
+                size_t calleeSlot = (fiber->stackTop - fiber->stack) - argCount - 1;
+                Value *argsPtr = &fiber->stack[calleeSlot + 1];
+                int numReturns = method(this, instance->userData, argCount, argsPtr);
+                Value *dest = &fiber->stack[calleeSlot];
+                if (numReturns > 0)
+                {
+                    Value *src = fiber->stackTop - numReturns;
+                    if (src != dest)
+                    {
+                        std::memmove(dest, src, numReturns * sizeof(Value));
+                    }
+                    fiber->stackTop = dest + numReturns;
+                }
+                else
+                {
+                    *dest = makeNil();
+                    fiber->stackTop = dest + 1;
+                }
 
                 break;
             }

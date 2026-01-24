@@ -1,0 +1,53 @@
+require "raylib";
+import math;
+import raylib;
+using raylib;
+
+InitWindow(800, 600, "Tunnel");
+SetTargetFPS(60);
+
+var BLACK = Color(0, 0, 0, 255);
+var WIDTH = 160;
+var HEIGHT = 120;
+var PIXEL_SIZE = 5;
+
+var time = 0.0;
+
+while (!WindowShouldClose())
+{
+    time = time + 0.03;
+    
+    BeginDrawing();
+    ClearBackground(BLACK);
+    
+    for(var y=0; y<HEIGHT; y=y+1)
+    {
+        for(var x=0; x<WIDTH; x=x+1)
+        {
+            var dx = x - WIDTH / 2;
+            var dy = y - HEIGHT / 2;
+            
+            var dist = sqrt(dx*dx + dy*dy);
+            
+            // PROTEÇÃO CONTRA DIVISÃO POR ZERO!
+            if (dist < 0.1) dist = 0.1;
+            
+            var angle = atan2(dy, dx);
+            
+            var u = time + 10.0 / dist;
+            var v = angle / 3.14159 + time;
+            
+            var value = (sin(u * 10) + sin(v * 10)) * 127 + 128;
+            
+            var color = Color(value, value / 2, 255 - value, 255);
+            DrawRectangle(x * PIXEL_SIZE, y * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE, color);
+        }
+    }
+    
+    DrawText("TUNNEL EFFECT", 10, 10, 20, Color(255, 255, 255, 255));
+    DrawFPS(10, 30);
+    
+    EndDrawing();
+}
+
+CloseWindow();

@@ -7,12 +7,19 @@ namespace RaylibBindings
     // VECTOR2
     // ========================================
 
+    static void vector2_ctor(Interpreter *vm, void *buffer, int argc, Value *args)
+    {
+        Vector2 *vec = (Vector2 *)buffer;
+        vec->x = args[0].asNumber();
+        vec->y = args[1].asNumber();
+    }
+
     void registerVector2(Interpreter &vm)
     {
         auto *vec2 = vm.registerNativeStruct(
             "Vector2",
             sizeof(Vector2),
-            nullptr,
+            vector2_ctor,
             nullptr);
 
         vm.addStructField(vec2, "x", offsetof(Vector2, x), FieldType::FLOAT);
@@ -23,12 +30,20 @@ namespace RaylibBindings
     // VECTOR3
     // ========================================
 
+    static void vector3_ctor(Interpreter *vm, void *buffer, int argc, Value *args)
+    {
+        Vector3 *vec = (Vector3 *)buffer;
+        vec->x = args[0].asNumber();
+        vec->y = args[1].asNumber();
+        vec->z = args[2].asNumber();
+    }
+
     void registerVector3(Interpreter &vm)
     {
         auto *vec3 = vm.registerNativeStruct(
             "Vector3",
             sizeof(Vector3),
-            nullptr,
+            vector3_ctor,
             nullptr);
 
         vm.addStructField(vec3, "x", offsetof(Vector3, x), FieldType::FLOAT);
@@ -43,10 +58,10 @@ namespace RaylibBindings
     static void rectangle_ctor(Interpreter *vm, void *buffer, int argc, Value *args)
     {
         Rectangle *v = (Rectangle *)buffer;
-        v->x = 0;
-        v->y = 0;
-        v->width = 0;
-        v->height = 0;
+        v->x = args[0].asNumber();
+        v->y = args[1].asNumber();
+        v->width = args[2].asNumber();
+        v->height = args[3].asNumber();
     }
 
     void registerRectangle(Interpreter &vm)

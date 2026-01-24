@@ -47,7 +47,9 @@ namespace SDLBindings
         register_core(module);
         register_renderer(module);
         register_window(module);
+        register_sdl_opengl(module);
+        
+        module = vm.addModule("OpenGl");
         register_opengl(module);
-        register_rlgl(module);
     }
 }

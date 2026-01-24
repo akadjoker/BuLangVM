@@ -1,3 +1,5 @@
+require "raylib";
+
 import math;
 import raylib;
 using raylib;
@@ -313,13 +315,13 @@ class Rocket
             );
             
             //Glow effect
-            DrawTextureRotate(tex, point.x, point.y, 0, size * 0.5, Color(255, 255, 255, 255));
-            DrawTextureRotate(tex, point.x, point.y, 0, size * 0.5, trailColor);
+            DrawTextureEx(tex, point.x, point.y, 0, size * 0.5, Color(255, 255, 255, 255));
+            DrawTextureEx(tex, point.x, point.y, 0, size * 0.5, trailColor);
         }
         
         // Rocket head com glow
-         DrawTextureRotate(tex, self.x+20, self.y, 0, 0.5, WHITE);
-         DrawTextureRotate(tex, self.x, self.y, 0, 0.5, self.color);
+         DrawTextureEx(tex, self.x+20, self.y, 0, 0.5, WHITE);
+         DrawTextureEx(tex, self.x, self.y, 0, 0.5, self.color);
     }
 }
 
@@ -443,15 +445,15 @@ class Particle
             self.color.b,
             alpha * 100
         );
-       // DrawTextureRotate(tex, self.x, self.y, 0, glowSize * 0.5, glowColor);
+       // DrawTextureEx(tex, self.x, self.y, 0, glowSize * 0.5, glowColor);
         
         // Main particle
-        DrawTextureRotate(tex, self.x-20, self.y, 0, size * 0.5, c);
+        DrawTextureEx(tex, self.x-20, self.y, 0, size * 0.5, c);
         
         // Bright center
         if (alpha > 0.7)
         {
-          //  DrawTextureRotate(tex, self.x, self.y, 0, size * 0.5, WHITE);
+          //  DrawTextureEx(tex, self.x, self.y, 0, size * 0.5, WHITE);
         }
     }
 }
@@ -546,6 +548,7 @@ while (!WindowShouldClose())
     }
     
     // Draw ordem correta (back to front)
+    BeginBlendMode(BLEND_ADDITIVE);
     
     // 1. Sparkles (atrás)
     for (i = 0; i < len(sparkles); i = i + 1)
@@ -564,7 +567,7 @@ while (!WindowShouldClose())
     {
         rockets[i].draw();
     }
-    
+    EndBlendMode();
     // UI
     DrawText("Click to launch fireworks!", 10, 10, 24, WHITE);
     DrawText(format("Rockets: {}", len(rockets)), 10, 40, 18, LIGHTGRAY);

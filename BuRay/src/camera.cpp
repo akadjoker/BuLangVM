@@ -7,36 +7,36 @@ namespace RaylibBindings
     // CAMERA 2D
     // ========================================
 
-    static Value native_BeginMode2D(Interpreter *vm, int argc, Value *args)
+    static int native_BeginMode2D(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1 || !args[0].isNativeStructInstance())
         {
             Error("BeginMode2D expects Camera2D");
-            return vm->makeNil();
+            return 0;
         }
         auto *inst = args[0].asNativeStructInstance();
         Camera2D *camera = (Camera2D *)inst->data;
         BeginMode2D(*camera);
-        return vm->makeNil();
+        return 0;
     }
 
-    static Value native_EndMode2D(Interpreter *vm, int argc, Value *args)
+    static int native_EndMode2D(Interpreter *vm, int argc, Value *args)
     {
         EndMode2D();
-        return vm->makeNil();
+        return 0;
     }
 
-    static Value native_GetScreenToWorld2D(Interpreter *vm, int argc, Value *args)
+    static int native_GetScreenToWorld2D(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 2)
         {
             Error("GetScreenToWorld2D expects 2 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isNativeStructInstance() || !args[1].isNativeStructInstance())
         {
             Error("GetScreenToWorld2D expects Vector2 and Camera2D");
-            return vm->makeNil();
+            return 0;
         }
         auto *posInst = args[0].asNativeStructInstance();
         Vector2 *pos = (Vector2 *)posInst->data;
@@ -44,21 +44,22 @@ namespace RaylibBindings
         Camera2D *camera = (Camera2D *)camInst->data;
 
         Vector2 result = GetScreenToWorld2D(*pos, *camera);
-        // TODO: Return Vector2 struct instance
-        return vm->makeNil();
+        vm->makeFloat(result.x);
+        vm->makeFloat(result.y);
+        return 2;
     }
 
-    static Value native_GetWorldToScreen2D(Interpreter *vm, int argc, Value *args)
+    static int native_GetWorldToScreen2D(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 2)
         {
             Error("GetWorldToScreen2D expects 2 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isNativeStructInstance() || !args[1].isNativeStructInstance())
         {
             Error("GetWorldToScreen2D expects Vector2 and Camera2D");
-            return vm->makeNil();
+            return 0;
         }
         auto *posInst = args[0].asNativeStructInstance();
         Vector2 *pos = (Vector2 *)posInst->data;
@@ -66,33 +67,34 @@ namespace RaylibBindings
         Camera2D *camera = (Camera2D *)camInst->data;
 
         Vector2 result = GetWorldToScreen2D(*pos, *camera);
-        // TODO: Return Vector2 struct instance
-        return vm->makeNil();
+        vm->makeFloat(result.x);
+        vm->makeFloat(result.y);
+        return 2;
     }
 
     // ========================================
     // CAMERA 3D
     // ========================================
 
-    static Value native_BeginMode3D(Interpreter *vm, int argc, Value *args)
+    static int native_BeginMode3D(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1 || !args[0].isPointer())
         {
             Error("BeginMode3D expects Camera3D pointer");
-            return vm->makeNil();
+            return 0;
         }
         Camera3D *camera = (Camera3D *)args[0].asPointer();
         BeginMode3D(*camera);
-        return vm->makeNil();
+        return 0;
     }
 
-    static Value native_EndMode3D(Interpreter *vm, int argc, Value *args)
+    static int native_EndMode3D(Interpreter *vm, int argc, Value *args)
     {
         EndMode3D();
-        return vm->makeNil();
+        return 0;
     }
 
-    static Value native_CreateCamera3D(Interpreter *vm, int argc, Value *args)
+    static int native_CreateCamera3D(Interpreter *vm, int argc, Value *args)
     {
         Camera3D *camera = new Camera3D();
         camera->position = {0.0f, 10.0f, 10.0f};
@@ -100,95 +102,96 @@ namespace RaylibBindings
         camera->up = {0.0f, 1.0f, 0.0f};
         camera->fovy = 45.0f;
         camera->projection = CAMERA_PERSPECTIVE;
-        return vm->makePointer(camera);
+        vm->push( vm->makePointer(camera));
+        return 1;
     }
 
-    static Value native_DestroyCamera3D(Interpreter *vm, int argc, Value *args)
+    static int native_DestroyCamera3D(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1 || !args[0].isPointer())
-            return vm->makeNil();
+            return 0;
         Camera3D *camera = (Camera3D *)args[0].asPointer();
         delete camera;
-        return vm->makeNil();
+        return 0;
     }
 
-    static Value native_SetCamera3DPosition(Interpreter *vm, int argc, Value *args)
+    static int native_SetCamera3DPosition(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 4 || !args[0].isPointer())
         {
             Error("SetCamera3DPosition expects Camera3D and x, y, z");
-            return vm->makeNil();
+            return 0;
         }
         Camera3D *camera = (Camera3D *)args[0].asPointer();
         camera->position.x = args[1].asDouble();
         camera->position.y = args[2].asDouble();
         camera->position.z = args[3].asDouble();
-        return vm->makeNil();
+        return 0;
     }
 
-    static Value native_SetCamera3DTarget(Interpreter *vm, int argc, Value *args)
+    static int native_SetCamera3DTarget(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 4 || !args[0].isPointer())
         {
             Error("SetCamera3DTarget expects Camera3D and x, y, z");
-            return vm->makeNil();
+            return 0;
         }
         Camera3D *camera = (Camera3D *)args[0].asPointer();
         camera->target.x = args[1].asDouble();
         camera->target.y = args[2].asDouble();
         camera->target.z = args[3].asDouble();
-        return vm->makeNil();
+        return 0;
     }
 
-    static Value native_SetCamera3DUp(Interpreter *vm, int argc, Value *args)
+    static int native_SetCamera3DUp(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 4 || !args[0].isPointer())
         {
             Error("SetCamera3DUp expects Camera3D and x, y, z");
-            return vm->makeNil();
+            return 0;
         }
         Camera3D *camera = (Camera3D *)args[0].asPointer();
         camera->up.x = args[1].asDouble();
         camera->up.y = args[2].asDouble();
         camera->up.z = args[3].asDouble();
-        return vm->makeNil();
+        return 0;
     }
 
-    static Value native_SetCamera3DFovy(Interpreter *vm, int argc, Value *args)
+    static int native_SetCamera3DFovy(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 2 || !args[0].isPointer())
         {
             Error("SetCamera3DFovy expects Camera3D and fovy");
-            return vm->makeNil();
+            return 0;
         }
         Camera3D *camera = (Camera3D *)args[0].asPointer();
         camera->fovy = args[1].asDouble();
-        return vm->makeNil();
+        return 0;
     }
 
-    static Value native_SetCamera3DProjection(Interpreter *vm, int argc, Value *args)
+    static int native_SetCamera3DProjection(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 2 || !args[0].isPointer())
         {
             Error("SetCamera3DProjection expects Camera3D and projection");
-            return vm->makeNil();
+            return 0;
         }
         Camera3D *camera = (Camera3D *)args[0].asPointer();
         camera->projection = (int)args[1].asNumber();
-        return vm->makeNil();
+        return 0;
     }
 
-    static Value native_UpdateCamera(Interpreter *vm, int argc, Value *args)
+    static int native_UpdateCamera(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 2 || !args[0].isPointer())
         {
             Error("UpdateCamera expects Camera3D and mode");
-            return vm->makeNil();
+            return 0;
         }
         Camera3D *camera = (Camera3D *)args[0].asPointer();
         int mode = args[1].asNumber();
         UpdateCamera(camera, mode);
-        return vm->makeNil();
+        return 0;
     }
 
     // ========================================

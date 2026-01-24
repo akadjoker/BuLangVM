@@ -20,7 +20,7 @@ namespace RaylibBindings
         register_audio(module);
         register_camera(module);
         register_models(module);
-        register_rlgl(module);
+       
     }
 
 }

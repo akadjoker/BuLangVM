@@ -7,216 +7,224 @@ namespace GLFWBindings
     // KEYBOARD INPUT
     // =============================================================
 
-    Value native_glfwGetKey(Interpreter *vm, int argc, Value *args)
+    int native_glfwGetKey(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 2)
         {
             Error("glfwGetKey expects 2 arguments (window, key)");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("glfwGetKey expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         GLFWwindow *window = (GLFWwindow *)args[0].asPointer();
         int key = args[1].asNumber();
         int state = glfwGetKey(window, key);
-        return vm->makeInt(state);
+        vm->pushInt(state);
+        return 1;
     }
 
-    Value native_glfwGetKeyScancode(Interpreter *vm, int argc, Value *args)
+    int native_glfwGetKeyScancode(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("glfwGetKeyScancode expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
 
         int key = args[0].asNumber();
         int scancode = glfwGetKeyScancode(key);
-        return vm->makeInt(scancode);
+        vm->pushInt(scancode);
+        return 1;
     }
 
-    Value native_glfwGetKeyName(Interpreter *vm, int argc, Value *args)
+    int native_glfwGetKeyName(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 2)
         {
             Error("glfwGetKeyName expects 2 arguments");
-            return vm->makeNil();
+            return 0;
         }
 
         int key = args[0].asNumber();
         int scancode = args[1].asNumber();
         const char *name = glfwGetKeyName(key, scancode);
-        return name ? vm->makeString(name) : vm->makeNil();
+        vm->pushString(name);
+        return 1;
     }
 
     // =============================================================
     // MOUSE INPUT
     // =============================================================
 
-    Value native_glfwGetMouseButton(Interpreter *vm, int argc, Value *args)
+    int native_glfwGetMouseButton(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 2)
         {
             Error("glfwGetMouseButton expects 2 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("glfwGetMouseButton expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         GLFWwindow *window = (GLFWwindow *)args[0].asPointer();
         int button = args[1].asNumber();
         int state = glfwGetMouseButton(window, button);
-        return vm->makeInt(state);
+        vm->pushInt(state);
+        return 1;
     }
 
-    Value native_glfwGetCursorPos(Interpreter *vm, int argc, Value *args)
+    int native_glfwGetCursorPos(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("glfwGetCursorPos expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("glfwGetCursorPos expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         GLFWwindow *window = (GLFWwindow *)args[0].asPointer();
         double x, y;
         glfwGetCursorPos(window, &x, &y);
 
-        Value result = vm->makeMap();
-        MapInstance *map = result.asMap();
-        map->table.set(vm->makeString("x").asString(), vm->makeDouble(x));
-        map->table.set(vm->makeString("y").asString(), vm->makeDouble(y));
-        return result;
+        vm->pushDouble(x);
+        vm->pushDouble(y);
+        return 2;
+
     }
 
-    Value native_glfwSetCursorPos(Interpreter *vm, int argc, Value *args)
+    int native_glfwSetCursorPos(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 3)
         {
             Error("glfwSetCursorPos expects 3 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("glfwSetCursorPos expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         GLFWwindow *window = (GLFWwindow *)args[0].asPointer();
         double x = args[1].asNumber();
         double y = args[2].asNumber();
         glfwSetCursorPos(window, x, y);
-        return vm->makeNil();
+        return 0;
     }
 
     // =============================================================
     // INPUT MODE
     // =============================================================
 
-    Value native_glfwGetInputMode(Interpreter *vm, int argc, Value *args)
+    int native_glfwGetInputMode(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 2)
         {
             Error("glfwGetInputMode expects 2 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("glfwGetInputMode expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         GLFWwindow *window = (GLFWwindow *)args[0].asPointer();
         int mode = args[1].asNumber();
         int value = glfwGetInputMode(window, mode);
-        return vm->makeInt(value);
+        vm->pushInt(value);
+        return 1;
     }
 
-    Value native_glfwSetInputMode(Interpreter *vm, int argc, Value *args)
+    int native_glfwSetInputMode(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 3)
         {
             Error("glfwSetInputMode expects 3 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("glfwSetInputMode expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         GLFWwindow *window = (GLFWwindow *)args[0].asPointer();
         int mode = args[1].asNumber();
         int value = args[2].asNumber();
         glfwSetInputMode(window, mode, value);
-        return vm->makeNil();
+        return 0;
     }
 
     // =============================================================
     // JOYSTICK INPUT
     // =============================================================
 
-    Value native_glfwJoystickPresent(Interpreter *vm, int argc, Value *args)
+    int native_glfwJoystickPresent(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("glfwJoystickPresent expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
 
         int jid = args[0].asNumber();
         int present = glfwJoystickPresent(jid);
-        return vm->makeBool(present == GLFW_TRUE);
+        vm->pushBool(present == GLFW_TRUE);
+        return 1;
     }
 
-    Value native_glfwGetJoystickName(Interpreter *vm, int argc, Value *args)
+    int native_glfwGetJoystickName(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("glfwGetJoystickName expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
 
         int jid = args[0].asNumber();
         const char *name = glfwGetJoystickName(jid);
-        return name ? vm->makeString(name) : vm->makeNil();
+        vm->pushString(name);
+        return 1;
     }
 
-    Value native_glfwJoystickIsGamepad(Interpreter *vm, int argc, Value *args)
+    int native_glfwJoystickIsGamepad(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("glfwJoystickIsGamepad expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
 
         int jid = args[0].asNumber();
         int result = glfwJoystickIsGamepad(jid);
-        return vm->makeBool(result == GLFW_TRUE);
+        vm->pushBool(result == GLFW_TRUE);
+        return 1;
     }
 
-    Value native_glfwGetGamepadName(Interpreter *vm, int argc, Value *args)
+    int native_glfwGetGamepadName(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("glfwGetGamepadName expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
 
         int jid = args[0].asNumber();
         const char *name = glfwGetGamepadName(jid);
-        return name ? vm->makeString(name) : vm->makeNil();
+        vm->pushString(name);
+        return 1;
     }
 
     void register_input(ModuleBuilder &mod)
@@ -253,9 +261,9 @@ namespace GLFWBindings
             // =============================================================
             // KEY STATES
             // =============================================================
-            .addInt("GLFW_RELEASE", GLFW_RELEASE)
-            .addInt("GLFW_PRESS", GLFW_PRESS)
-            .addInt("GLFW_REPEAT", GLFW_REPEAT)
+            .addByte("GLFW_RELEASE", GLFW_RELEASE)
+            .addByte("GLFW_PRESS", GLFW_PRESS)
+            .addByte("GLFW_REPEAT", GLFW_REPEAT)
 
             // =============================================================
             // INPUT MODES
@@ -276,37 +284,37 @@ namespace GLFWBindings
             // =============================================================
             // MOUSE BUTTONS
             // =============================================================
-            .addInt("GLFW_MOUSE_BUTTON_1", GLFW_MOUSE_BUTTON_1)
-            .addInt("GLFW_MOUSE_BUTTON_2", GLFW_MOUSE_BUTTON_2)
-            .addInt("GLFW_MOUSE_BUTTON_3", GLFW_MOUSE_BUTTON_3)
-            .addInt("GLFW_MOUSE_BUTTON_4", GLFW_MOUSE_BUTTON_4)
-            .addInt("GLFW_MOUSE_BUTTON_5", GLFW_MOUSE_BUTTON_5)
-            .addInt("GLFW_MOUSE_BUTTON_6", GLFW_MOUSE_BUTTON_6)
-            .addInt("GLFW_MOUSE_BUTTON_7", GLFW_MOUSE_BUTTON_7)
-            .addInt("GLFW_MOUSE_BUTTON_8", GLFW_MOUSE_BUTTON_8)
-            .addInt("GLFW_MOUSE_BUTTON_LEFT", GLFW_MOUSE_BUTTON_LEFT)
-            .addInt("GLFW_MOUSE_BUTTON_RIGHT", GLFW_MOUSE_BUTTON_RIGHT)
-            .addInt("GLFW_MOUSE_BUTTON_MIDDLE", GLFW_MOUSE_BUTTON_MIDDLE)
+            .addByte("GLFW_MOUSE_BUTTON_1", GLFW_MOUSE_BUTTON_1)
+            .addByte("GLFW_MOUSE_BUTTON_2", GLFW_MOUSE_BUTTON_2)
+            .addByte("GLFW_MOUSE_BUTTON_3", GLFW_MOUSE_BUTTON_3)
+            .addByte("GLFW_MOUSE_BUTTON_4", GLFW_MOUSE_BUTTON_4)
+            .addByte("GLFW_MOUSE_BUTTON_5", GLFW_MOUSE_BUTTON_5)
+            .addByte("GLFW_MOUSE_BUTTON_6", GLFW_MOUSE_BUTTON_6)
+            .addByte("GLFW_MOUSE_BUTTON_7", GLFW_MOUSE_BUTTON_7)
+            .addByte("GLFW_MOUSE_BUTTON_8", GLFW_MOUSE_BUTTON_8)
+            .addByte("GLFW_MOUSE_BUTTON_LEFT", GLFW_MOUSE_BUTTON_LEFT)
+            .addByte("GLFW_MOUSE_BUTTON_RIGHT", GLFW_MOUSE_BUTTON_RIGHT)
+            .addByte("GLFW_MOUSE_BUTTON_MIDDLE", GLFW_MOUSE_BUTTON_MIDDLE)
 
             // =============================================================
             // JOYSTICK IDS
             // =============================================================
-            .addInt("GLFW_JOYSTICK_1", GLFW_JOYSTICK_1)
-            .addInt("GLFW_JOYSTICK_2", GLFW_JOYSTICK_2)
-            .addInt("GLFW_JOYSTICK_3", GLFW_JOYSTICK_3)
-            .addInt("GLFW_JOYSTICK_4", GLFW_JOYSTICK_4)
-            .addInt("GLFW_JOYSTICK_5", GLFW_JOYSTICK_5)
-            .addInt("GLFW_JOYSTICK_6", GLFW_JOYSTICK_6)
-            .addInt("GLFW_JOYSTICK_7", GLFW_JOYSTICK_7)
-            .addInt("GLFW_JOYSTICK_8", GLFW_JOYSTICK_8)
-            .addInt("GLFW_JOYSTICK_9", GLFW_JOYSTICK_9)
-            .addInt("GLFW_JOYSTICK_10", GLFW_JOYSTICK_10)
-            .addInt("GLFW_JOYSTICK_11", GLFW_JOYSTICK_11)
-            .addInt("GLFW_JOYSTICK_12", GLFW_JOYSTICK_12)
-            .addInt("GLFW_JOYSTICK_13", GLFW_JOYSTICK_13)
-            .addInt("GLFW_JOYSTICK_14", GLFW_JOYSTICK_14)
-            .addInt("GLFW_JOYSTICK_15", GLFW_JOYSTICK_15)
-            .addInt("GLFW_JOYSTICK_16", GLFW_JOYSTICK_16)
+            .addByte("GLFW_JOYSTICK_1", GLFW_JOYSTICK_1)
+            .addByte("GLFW_JOYSTICK_2", GLFW_JOYSTICK_2)
+            .addByte("GLFW_JOYSTICK_3", GLFW_JOYSTICK_3)
+            .addByte("GLFW_JOYSTICK_4", GLFW_JOYSTICK_4)
+            .addByte("GLFW_JOYSTICK_5", GLFW_JOYSTICK_5)
+            .addByte("GLFW_JOYSTICK_6", GLFW_JOYSTICK_6)
+            .addByte("GLFW_JOYSTICK_7", GLFW_JOYSTICK_7)
+            .addByte("GLFW_JOYSTICK_8", GLFW_JOYSTICK_8)
+            .addByte("GLFW_JOYSTICK_9", GLFW_JOYSTICK_9)
+            .addByte("GLFW_JOYSTICK_10", GLFW_JOYSTICK_10)
+            .addByte("GLFW_JOYSTICK_11", GLFW_JOYSTICK_11)
+            .addByte("GLFW_JOYSTICK_12", GLFW_JOYSTICK_12)
+            .addByte("GLFW_JOYSTICK_13", GLFW_JOYSTICK_13)
+            .addByte("GLFW_JOYSTICK_14", GLFW_JOYSTICK_14)
+            .addByte("GLFW_JOYSTICK_15", GLFW_JOYSTICK_15)
+            .addByte("GLFW_JOYSTICK_16", GLFW_JOYSTICK_16)
 
             // =============================================================
             // KEYBOARD KEYS (Common ones)
@@ -398,11 +406,11 @@ namespace GLFWBindings
             // =============================================================
             // MODIFIER KEY FLAGS
             // =============================================================
-            .addInt("GLFW_MOD_SHIFT", GLFW_MOD_SHIFT)
-            .addInt("GLFW_MOD_CONTROL", GLFW_MOD_CONTROL)
-            .addInt("GLFW_MOD_ALT", GLFW_MOD_ALT)
-            .addInt("GLFW_MOD_SUPER", GLFW_MOD_SUPER)
-            .addInt("GLFW_MOD_CAPS_LOCK", GLFW_MOD_CAPS_LOCK)
-            .addInt("GLFW_MOD_NUM_LOCK", GLFW_MOD_NUM_LOCK);
+            .addByte("GLFW_MOD_SHIFT", GLFW_MOD_SHIFT)
+            .addByte("GLFW_MOD_CONTROL", GLFW_MOD_CONTROL)
+            .addByte("GLFW_MOD_ALT", GLFW_MOD_ALT)
+            .addByte("GLFW_MOD_SUPER", GLFW_MOD_SUPER)
+            .addByte("GLFW_MOD_CAPS_LOCK", GLFW_MOD_CAPS_LOCK)
+            .addByte("GLFW_MOD_NUM_LOCK", GLFW_MOD_NUM_LOCK);
     }
 }

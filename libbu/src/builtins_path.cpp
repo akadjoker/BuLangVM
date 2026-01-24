@@ -1,6 +1,5 @@
 #include "interpreter.hpp"
 
-
 #ifdef BU_ENABLE_PATH
 
 #include "platform.hpp"
@@ -20,7 +19,7 @@
 #include <dirent.h>
 #endif
 
-Value native_path_join(Interpreter *vm, int argCount, Value *args)
+int native_path_join(Interpreter *vm, int argCount, Value *args)
 {
     std::string result;
     for (int i = 0; i < argCount; i++)
@@ -37,19 +36,19 @@ Value native_path_join(Interpreter *vm, int argCount, Value *args)
         }
         result += args[i].asStringChars();
     }
-    return vm->makeString(result.c_str());
+    vm->push(vm->makeString(result.c_str()));
+    return 1;
 }
 
-Value native_path_normalize(Interpreter *vm, int argCount, Value *args)
+int native_path_normalize(Interpreter *vm, int argCount, Value *args)
 {
     if (!args[0].isString())
-        return vm->makeNil();
+        return 0;
     
     std::string path = args[0].asStringChars();
     std::string result;
     std::vector<std::string> parts;
     
-    // Split por '/' ou '\\'
     size_t start = 0;
     for (size_t i = 0; i <= path.size(); i++)
     {
@@ -71,105 +70,129 @@ Value native_path_normalize(Interpreter *vm, int argCount, Value *args)
         }
     }
     
-    // Reconstrói
     for (size_t i = 0; i < parts.size(); i++)
     {
         if (i > 0) result += "/";
         result += parts[i];
     }
     
-    return vm->makeString(result.c_str());
+    vm->push(vm->makeString(result.c_str()));
+    return 1;
 }
 
-Value native_path_basename(Interpreter *vm, int argCount, Value *args)
+int native_path_basename(Interpreter *vm, int argCount, Value *args)
 {
     if (!args[0].isString())
-        return vm->makeNil();
+        return 0;
     
     std::string path = args[0].asStringChars();
     size_t pos = path.find_last_of("/\\");
     
     if (pos != std::string::npos)
-        return vm->makeString(path.substr(pos + 1).c_str());
+    {
+        vm->push(vm->makeString(path.substr(pos + 1).c_str()));
+        return 1;
+    }
     
-    return args[0];
+    vm->push(args[0]);
+    return 1;
 }
 
-Value native_path_dirname(Interpreter *vm, int argCount, Value *args)
+int native_path_dirname(Interpreter *vm, int argCount, Value *args)
 {
     if (!args[0].isString())
-        return vm->makeNil();
+        return 0;
     
     std::string path = args[0].asStringChars();
     size_t pos = path.find_last_of("/\\");
     
     if (pos != std::string::npos)
-        return vm->makeString(path.substr(0, pos).c_str());
+    {
+        vm->push(vm->makeString(path.substr(0, pos).c_str()));
+        return 1;
+    }
     
-    return vm->makeString(".");
+    vm->push(vm->makeString("."));
+    return 1;
 }
 
-Value native_path_exists(Interpreter *vm, int argCount, Value *args)
+int native_path_exists(Interpreter *vm, int argCount, Value *args)
 {
     if (!args[0].isString())
-        return vm->makeBool(false);
+    {
+        vm->push(vm->makeBool(false));
+        return 1;
+    }
     
-    return vm->makeBool(OsFileExists(args[0].asStringChars()));
+    vm->push(vm->makeBool(OsFileExists(args[0].asStringChars())));
+    return 1;
 }
 
-
-Value native_path_extname(Interpreter *vm, int argCount, Value *args)
+int native_path_extname(Interpreter *vm, int argCount, Value *args)
 {
     if (!args[0].isString())
-        return vm->makeString("");
+    {
+        vm->push(vm->makeString(""));
+        return 1;
+    }
     
     std::string path = args[0].asStringChars();
     size_t pos = path.find_last_of('.');
     size_t slash = path.find_last_of("/\\");
     
-    // Tem '.' e está depois da última barra?
     if (pos != std::string::npos && 
         (slash == std::string::npos || pos > slash))
     {
-        return vm->makeString(path.substr(pos).c_str());
+        vm->push(vm->makeString(path.substr(pos).c_str()));
+        return 1;
     }
     
-    return vm->makeString("");
+    vm->push(vm->makeString(""));
+    return 1;
 }
 
-Value native_path_isdir(Interpreter *vm, int argCount, Value *args)
+int native_path_isdir(Interpreter *vm, int argCount, Value *args)
 {
     if (!args[0].isString())
-        return vm->makeBool(false);
+    {
+        vm->push(vm->makeBool(false));
+        return 1;
+    }
     
     const char *path = args[0].asStringChars();
     
 #ifdef _WIN32
     DWORD attrs = GetFileAttributesA(path);
-    return vm->makeBool(attrs != INVALID_FILE_ATTRIBUTES && 
-                       (attrs & FILE_ATTRIBUTE_DIRECTORY));
+    vm->push(vm->makeBool(attrs != INVALID_FILE_ATTRIBUTES && 
+                         (attrs & FILE_ATTRIBUTE_DIRECTORY)));
 #else
     struct stat st;
-    return vm->makeBool(stat(path, &st) == 0 && S_ISDIR(st.st_mode));
+    vm->push(vm->makeBool(stat(path, &st) == 0 && S_ISDIR(st.st_mode)));
 #endif
+    return 1;
 }
 
-Value native_path_isfile(Interpreter *vm, int argCount, Value *args)
+int native_path_isfile(Interpreter *vm, int argCount, Value *args)
 {
     if (!args[0].isString())
-        return vm->makeBool(false);
+    {
+        vm->push(vm->makeBool(false));
+        return 1;
+    }
     
     const char *path = args[0].asStringChars();
     
 #ifdef _WIN32
     DWORD attrs = GetFileAttributesA(path);
-    return vm->makeBool(attrs != INVALID_FILE_ATTRIBUTES && 
-                       !(attrs & FILE_ATTRIBUTE_DIRECTORY));
+    vm->push(vm->makeBool(attrs != INVALID_FILE_ATTRIBUTES && 
+                         !(attrs & FILE_ATTRIBUTE_DIRECTORY)));
 #else
     struct stat st;
-    return vm->makeBool(stat(path, &st) == 0 && S_ISREG(st.st_mode));
+    vm->push(vm->makeBool(stat(path, &st) == 0 && S_ISREG(st.st_mode)));
 #endif
+    return 1;
 }
+ 
 
 void Interpreter::registerPath()
 {

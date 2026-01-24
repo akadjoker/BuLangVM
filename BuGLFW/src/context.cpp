@@ -7,12 +7,12 @@ namespace GLFWBindings
     // CONTEXT FUNCTIONS
     // =============================================================
 
-    Value native_glfwMakeContextCurrent(Interpreter *vm, int argc, Value *args)
+    int native_glfwMakeContextCurrent(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("glfwMakeContextCurrent expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
 
         GLFWwindow *window = nullptr;
@@ -20,62 +20,65 @@ namespace GLFWBindings
             window = (GLFWwindow *)args[0].asPointer();
 
         glfwMakeContextCurrent(window);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_glfwGetCurrentContext(Interpreter *vm, int argc, Value *args)
+    int native_glfwGetCurrentContext(Interpreter *vm, int argc, Value *args)
     {
         GLFWwindow *window = glfwGetCurrentContext();
-        return window ? vm->makePointer(window) : vm->makeNil();
+        vm->push(vm->makePointer(window));
+        return 1;
+
     }
 
-    Value native_glfwSwapBuffers(Interpreter *vm, int argc, Value *args)
+    int native_glfwSwapBuffers(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("glfwSwapBuffers expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("glfwSwapBuffers expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         GLFWwindow *window = (GLFWwindow *)args[0].asPointer();
         glfwSwapBuffers(window);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_glfwSwapInterval(Interpreter *vm, int argc, Value *args)
+    int native_glfwSwapInterval(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("glfwSwapInterval expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
 
         int interval = args[0].asNumber();
         glfwSwapInterval(interval);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_glfwExtensionSupported(Interpreter *vm, int argc, Value *args)
+    int native_glfwExtensionSupported(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("glfwExtensionSupported expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isString())
         {
             Error("glfwExtensionSupported expects string");
-            return vm->makeNil();
+            return 0;
         }
 
         const char *extension = args[0].asStringChars();
         int result = glfwExtensionSupported(extension);
-        return vm->makeBool(result == GLFW_TRUE);
+         vm->pushBool(result == GLFW_TRUE);
+        return 1;
     }
 
     void register_context(ModuleBuilder &mod)

@@ -1,0 +1,120 @@
+require "raylib";
+import math;
+import raylib;
+using raylib;
+
+InitWindow(800, 600, "Lightning");
+SetTargetFPS(60);
+
+var BLACK = Color(0, 0, 0, 255);
+var WHITE = Color(255, 255, 255, 255);
+var CYAN = Color(100, 200, 255, 255);
+
+def generateBolt(x1, y1, x2, y2)
+{
+    var points = [];
+    points.push([x1, y1]);
+    points.push([x2, y2]);
+    
+    // Subdividir 4 vezes
+    for(var iter=0; iter<4; iter=iter+1)
+    {
+        var newPoints = [];
+        newPoints.push(points[0]);
+        
+        for(var i=0; i<len(points)-1; i=i+1)
+        {
+            var p1 = points[i];
+            var p2 = points[i+1];
+            
+            var mx = (p1[0] + p2[0]) / 2;
+            var my = (p1[1] + p2[1]) / 2;
+            
+            var dx = p2[0] - p1[0];
+            var dy = p2[1] - p1[1];
+            
+            var offset = (math.rand(60) - 30) / (iter + 1);
+            
+            mx = mx + dy * offset * 0.01;
+            my = my - dx * offset * 0.01;
+            
+            newPoints.push([mx, my]);
+            newPoints.push(p2);
+        }
+        
+        points = newPoints;
+    }
+    
+    return points;
+}
+
+var bolt = [];
+var boltTimer = 0;
+var boltLife = 0;
+
+while (!WindowShouldClose())
+{
+    boltTimer = boltTimer + 1;
+    
+    if (boltTimer > 20)
+    {
+        var x1 = 400;
+        var y1 = 50;
+        var x2 = 200 + math.rand(400);
+        var y2 = 550;
+        
+        bolt = generateBolt(x1, y1, x2, y2);
+        boltTimer = 0;
+        boltLife = 5;
+    }
+    
+    if (boltLife > 0) boltLife = boltLife - 1;
+    
+    BeginDrawing();
+    ClearBackground(BLACK);
+    
+    if (boltLife > 0)
+    {
+        // Desenhar glow
+        for(var i=0; i<len(bolt)-1; i=i+1)
+        {
+            var p1 = bolt[i];
+            var p2 = bolt[i+1];
+            
+            DrawLine(p1[0], p1[1], p2[0], p2[1], CYAN);
+        }
+        
+        // Desenhar bolt principal (branco)
+        for(var i=0; i<len(bolt)-1; i=i+1)
+        {
+            var p1 = bolt[i];
+            var p2 = bolt[i+1];
+            
+            DrawLine(p1[0], p1[1], p2[0], p2[1], WHITE);
+        }
+        
+        // Branches (ramos)
+        for(var i=0; i<len(bolt); i=i+5)
+        {
+            if (math.rand(100) < 30)
+            {
+                var p = bolt[i];
+                var branch = generateBolt(p[0], p[1], p[0] + math.rand(100) - 50, p[1] + 50);
+                
+                for(var j=0; j<len(branch)-1; j=j+1)
+                {
+                    var b1 = branch[j];
+                    var b2 = branch[j+1];
+                    DrawLine(b1[0], b1[1], b2[0], b2[1], CYAN);
+                }
+            }
+        }
+    }
+    
+    DrawText("LIGHTNING!", 10, 10, 20, WHITE);
+    DrawFPS(700, 10);
+    
+    EndDrawing();
+}
+
+CloseWindow();

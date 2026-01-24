@@ -3,17 +3,17 @@
 namespace SDLBindings
 {
 
-    Value native_SDL_CreateWindow(Interpreter *vm, int argc, Value *args)
+    int native_SDL_CreateWindow(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 6)
         {
             Error("SDL_CreateWindow expects 6 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isString())
         {
             Error("SDL_CreateWindow expects string title");
-            return vm->makeNil();
+            return 0;
         }
 
         const char *title = args[0].asStringChars();
@@ -24,790 +24,799 @@ namespace SDLBindings
         Uint32 flags = args[5].asNumber();
 
         SDL_Window *window = SDL_CreateWindow(title, x, y, w, h, flags);
-        return vm->makePointer(window);
+        vm->push(vm->makePointer(window));
+        return 1;
     }
 
-    Value native_SDL_DestroyWindow(Interpreter *vm, int argc, Value *args)
+    int native_SDL_DestroyWindow(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_DestroyWindow expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_DestroyWindow expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Window *window = (SDL_Window *)args[0].asPointer();
         SDL_DestroyWindow(window);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_SDL_PollEvent(Interpreter *vm, int argc, Value *args)
+    int native_SDL_PollEvent(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_PollEvent expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isNativeStructInstance())
         {
             Error("SDL_PollEvent expects SDL_Event");
-            return vm->makeNil();
+            return 0;
         }
 
         auto *eventInst = args[0].asNativeStructInstance();
         SDL_Event *event = (SDL_Event *)eventInst->data;
 
         int result = SDL_PollEvent(event);
-        return vm->makeInt(result);
+        vm->push(vm->makeInt(result));
+        return 1;
     }
 
-    Value native_SDL_SetWindowTitle(Interpreter *vm, int argc, Value *args)
+    int native_SDL_SetWindowTitle(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 2)
         {
             Error("SDL_SetWindowTitle expects 2 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_SetWindowTitle expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Window *window = (SDL_Window *)args[0].asPointer();
         const char *title = args[1].asStringChars();
         SDL_SetWindowTitle(window, title);
-        return vm->makeNil();
+        return 0;
     }
 
     // =====================================================
     // EVENT FUNCTIONS
     // =====================================================
 
-    Value native_SDL_WaitEvent(Interpreter *vm, int argc, Value *args)
+    int native_SDL_WaitEvent(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_WaitEvent expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isNativeStructInstance())
         {
             Error("SDL_WaitEvent expects SDL_Event");
-            return vm->makeNil();
+            return 0;
         }
 
         auto *eventInst = args[0].asNativeStructInstance();
         SDL_Event *event = (SDL_Event *)eventInst->data;
         int result = SDL_WaitEvent(event);
-        return vm->makeInt(result);
+        vm->push(vm->makeInt(result));
+        return 1;
     }
 
-    Value native_SDL_WaitEventTimeout(Interpreter *vm, int argc, Value *args)
+    int native_SDL_WaitEventTimeout(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 2)
         {
             Error("SDL_WaitEventTimeout expects 2 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isNativeStructInstance())
         {
             Error("SDL_WaitEventTimeout expects SDL_Event");
-            return vm->makeNil();
+            return 0;
         }
 
         auto *eventInst = args[0].asNativeStructInstance();
         SDL_Event *event = (SDL_Event *)eventInst->data;
         int timeout = args[1].asNumber();
         int result = SDL_WaitEventTimeout(event, timeout);
-        return vm->makeInt(result);
+        vm->push(vm->makeInt(result));
+        return 1;
     }
 
-    Value native_SDL_FlushEvent(Interpreter *vm, int argc, Value *args)
+    int native_SDL_FlushEvent(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_FlushEvent expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         Uint32 type = args[0].asNumber();
         SDL_FlushEvent(type);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_SDL_FlushEvents(Interpreter *vm, int argc, Value *args)
+    int native_SDL_FlushEvents(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 2)
         {
             Error("SDL_FlushEvents expects 2 arguments");
-            return vm->makeNil();
+            return 0;
         }
         Uint32 minType = args[0].asNumber();
         Uint32 maxType = args[1].asNumber();
         SDL_FlushEvents(minType, maxType);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_SDL_HasEvent(Interpreter *vm, int argc, Value *args)
+    int native_SDL_HasEvent(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_HasEvent expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         Uint32 type = args[0].asNumber();
         SDL_bool result = SDL_HasEvent(type);
-        return vm->makeBool(result == SDL_TRUE);
+        vm->push(vm->makeBool(result));
+        return 1;
     }
 
     // =====================================================
     // KEYBOARD FUNCTIONS
     // =====================================================
 
-    Value native_SDL_GetKeyboardState(Interpreter *vm, int argc, Value *args)
+    int native_SDL_GetKeyboardState(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_GetKeyboardState expects 1 argument (scancode)");
-            return vm->makeNil();
+            return 0;
         }
         int scancode = args[0].asNumber();
         const Uint8 *state = SDL_GetKeyboardState(NULL);
-        return vm->makeBool(state[scancode] != 0);
+        vm->push(vm->makeInt(state[scancode]));
+        return 1;
     }
 
-    Value native_SDL_GetScancodeFromKey(Interpreter *vm, int argc, Value *args)
+    int native_SDL_GetScancodeFromKey(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_GetScancodeFromKey expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         SDL_Keycode key = args[0].asNumber();
         SDL_Scancode scancode = SDL_GetScancodeFromKey(key);
-        return vm->makeInt(scancode);
+        vm->push(vm->makeInt(scancode));
+        return 1;
     }
 
-    Value native_SDL_GetKeyFromScancode(Interpreter *vm, int argc, Value *args)
+    int native_SDL_GetKeyFromScancode(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_GetKeyFromScancode expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         SDL_Scancode scancode = (SDL_Scancode)args[0].asNumber();
         SDL_Keycode key = SDL_GetKeyFromScancode(scancode);
-        return vm->makeInt(key);
+        vm->push(vm->makeInt(key));
+        return 1;
     }
 
-    Value native_SDL_GetKeyName(Interpreter *vm, int argc, Value *args)
+    int native_SDL_GetKeyName(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_GetKeyName expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         SDL_Keycode key = args[0].asNumber();
         const char *name = SDL_GetKeyName(key);
-        return vm->makeString(name);
+        vm->push(vm->makeString(name));
+        return 1;
     }
 
-    Value native_SDL_GetModState(Interpreter *vm, int argc, Value *args)
+    int native_SDL_GetModState(Interpreter *vm, int argc, Value *args)
     {
         SDL_Keymod mod = SDL_GetModState();
-        return vm->makeInt(mod);
+        vm->push(vm->makeInt(mod));
+        return 1;
     }
 
     // =====================================================
     // MOUSE FUNCTIONS
     // =====================================================
 
-    Value native_SDL_GetMouseState(Interpreter *vm, int argc, Value *args)
+    int native_SDL_GetMouseState(Interpreter *vm, int argc, Value *args)
     {
         int x, y;
         Uint32 buttons = SDL_GetMouseState(&x, &y);
 
-        Value result = vm->makeMap();
-        MapInstance *map = result.asMap();
-        map->table.set(vm->makeString("x").asString(), vm->makeInt(x));
-        map->table.set(vm->makeString("y").asString(), vm->makeInt(y));
-        map->table.set(vm->makeString("buttons").asString(), vm->makeInt(buttons));
-        return result;
+        vm->push(vm->makeInt(x));
+        vm->push(vm->makeInt(y));
+        vm->push(vm->makeInt(buttons));
+        return 3;
     }
 
-    Value native_SDL_GetGlobalMouseState(Interpreter *vm, int argc, Value *args)
+    int native_SDL_GetGlobalMouseState(Interpreter *vm, int argc, Value *args)
     {
         int x, y;
         Uint32 buttons = SDL_GetGlobalMouseState(&x, &y);
 
-        Value result = vm->makeMap();
-        MapInstance *map = result.asMap();
-        map->table.set(vm->makeString("x").asString(), vm->makeInt(x));
-        map->table.set(vm->makeString("y").asString(), vm->makeInt(y));
-        map->table.set(vm->makeString("buttons").asString(), vm->makeInt(buttons));
-        return result;
+        vm->push(vm->makeInt(x));
+        vm->push(vm->makeInt(y));
+        vm->push(vm->makeInt(buttons));
+        return 3;
     }
 
-    Value native_SDL_GetRelativeMouseState(Interpreter *vm, int argc, Value *args)
+    int native_SDL_GetRelativeMouseState(Interpreter *vm, int argc, Value *args)
     {
         int x, y;
         Uint32 buttons = SDL_GetRelativeMouseState(&x, &y);
 
-        Value result = vm->makeMap();
-        MapInstance *map = result.asMap();
-        map->table.set(vm->makeString("x").asString(), vm->makeInt(x));
-        map->table.set(vm->makeString("y").asString(), vm->makeInt(y));
-        map->table.set(vm->makeString("buttons").asString(), vm->makeInt(buttons));
-        return result;
+        vm->push(vm->makeInt(x));
+        vm->push(vm->makeInt(y));
+        vm->push(vm->makeInt(buttons));
+        return 3;
     }
 
-    Value native_SDL_WarpMouseInWindow(Interpreter *vm, int argc, Value *args)
+    int native_SDL_WarpMouseInWindow(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 3)
         {
             Error("SDL_WarpMouseInWindow expects 3 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_WarpMouseInWindow expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Window *window = (SDL_Window *)args[0].asPointer();
         int x = args[1].asNumber();
         int y = args[2].asNumber();
         SDL_WarpMouseInWindow(window, x, y);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_SDL_SetRelativeMouseMode(Interpreter *vm, int argc, Value *args)
+    int native_SDL_SetRelativeMouseMode(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_SetRelativeMouseMode expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         SDL_bool enabled = args[0].asBool() ? SDL_TRUE : SDL_FALSE;
         int result = SDL_SetRelativeMouseMode(enabled);
-        return vm->makeInt(result);
+        vm->push(vm->makeInt(result));
+        return 1;
     }
 
-    Value native_SDL_GetRelativeMouseMode(Interpreter *vm, int argc, Value *args)
+    int native_SDL_GetRelativeMouseMode(Interpreter *vm, int argc, Value *args)
     {
         SDL_bool result = SDL_GetRelativeMouseMode();
-        return vm->makeBool(result == SDL_TRUE);
+        vm->push(vm->makeBool(result));
+        return 1;
     }
 
-    Value native_SDL_ShowCursor(Interpreter *vm, int argc, Value *args)
+    int native_SDL_ShowCursor(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_ShowCursor expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         int toggle = args[0].asNumber();
         int result = SDL_ShowCursor(toggle);
-        return vm->makeInt(result);
+        vm->push(vm->makeInt(result));
+        return 1;
     }
 
     // =====================================================
     // WINDOW EXTRA FUNCTIONS
     // =====================================================
 
-    Value native_SDL_GetWindowSize(Interpreter *vm, int argc, Value *args)
+    int native_SDL_GetWindowSize(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_GetWindowSize expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_GetWindowSize expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Window *window = (SDL_Window *)args[0].asPointer();
         int w, h;
         SDL_GetWindowSize(window, &w, &h);
 
-        Value result = vm->makeMap();
-        MapInstance *map = result.asMap();
-        map->table.set(vm->makeString("w").asString(), vm->makeInt(w));
-        map->table.set(vm->makeString("h").asString(), vm->makeInt(h));
-        return result;
+        vm->push(vm->makeInt(w));
+        vm->push(vm->makeInt(h));
+        return 2;   
     }
 
-    Value native_SDL_SetWindowSize(Interpreter *vm, int argc, Value *args)
+    int native_SDL_SetWindowSize(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 3)
         {
             Error("SDL_SetWindowSize expects 3 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_SetWindowSize expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Window *window = (SDL_Window *)args[0].asPointer();
         int w = args[1].asNumber();
         int h = args[2].asNumber();
         SDL_SetWindowSize(window, w, h);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_SDL_GetWindowPosition(Interpreter *vm, int argc, Value *args)
+    int native_SDL_GetWindowPosition(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_GetWindowPosition expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_GetWindowPosition expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Window *window = (SDL_Window *)args[0].asPointer();
         int x, y;
         SDL_GetWindowPosition(window, &x, &y);
 
-        Value result = vm->makeMap();
-        MapInstance *map = result.asMap();
-        map->table.set(vm->makeString("x").asString(), vm->makeInt(x));
-        map->table.set(vm->makeString("y").asString(), vm->makeInt(y));
-        return result;
+        vm->push(vm->makeInt(x));
+        vm->push(vm->makeInt(y));
+        return 2;
     }
 
-    Value native_SDL_SetWindowPosition(Interpreter *vm, int argc, Value *args)
+    int native_SDL_SetWindowPosition(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 3)
         {
             Error("SDL_SetWindowPosition expects 3 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_SetWindowPosition expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Window *window = (SDL_Window *)args[0].asPointer();
         int x = args[1].asNumber();
         int y = args[2].asNumber();
         SDL_SetWindowPosition(window, x, y);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_SDL_ShowWindow(Interpreter *vm, int argc, Value *args)
+    int native_SDL_ShowWindow(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_ShowWindow expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_ShowWindow expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Window *window = (SDL_Window *)args[0].asPointer();
         SDL_ShowWindow(window);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_SDL_HideWindow(Interpreter *vm, int argc, Value *args)
+    int native_SDL_HideWindow(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_HideWindow expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_HideWindow expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Window *window = (SDL_Window *)args[0].asPointer();
         SDL_HideWindow(window);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_SDL_RaiseWindow(Interpreter *vm, int argc, Value *args)
+    int native_SDL_RaiseWindow(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_RaiseWindow expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_RaiseWindow expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Window *window = (SDL_Window *)args[0].asPointer();
         SDL_RaiseWindow(window);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_SDL_MaximizeWindow(Interpreter *vm, int argc, Value *args)
+    int native_SDL_MaximizeWindow(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_MaximizeWindow expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_MaximizeWindow expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Window *window = (SDL_Window *)args[0].asPointer();
         SDL_MaximizeWindow(window);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_SDL_MinimizeWindow(Interpreter *vm, int argc, Value *args)
+    int native_SDL_MinimizeWindow(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_MinimizeWindow expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_MinimizeWindow expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Window *window = (SDL_Window *)args[0].asPointer();
         SDL_MinimizeWindow(window);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_SDL_RestoreWindow(Interpreter *vm, int argc, Value *args)
+    int native_SDL_RestoreWindow(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_RestoreWindow expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_RestoreWindow expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Window *window = (SDL_Window *)args[0].asPointer();
         SDL_RestoreWindow(window);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_SDL_SetWindowFullscreen(Interpreter *vm, int argc, Value *args)
+    int native_SDL_SetWindowFullscreen(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 2)
         {
             Error("SDL_SetWindowFullscreen expects 2 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_SetWindowFullscreen expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Window *window = (SDL_Window *)args[0].asPointer();
         Uint32 flags = args[1].asNumber();
         int result = SDL_SetWindowFullscreen(window, flags);
-        return vm->makeInt(result);
+        vm->pushBool(result == 0);
+        return 1;
     }
 
-    Value native_SDL_GetWindowFlags(Interpreter *vm, int argc, Value *args)
+    int native_SDL_GetWindowFlags(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_GetWindowFlags expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_GetWindowFlags expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Window *window = (SDL_Window *)args[0].asPointer();
         Uint32 flags = SDL_GetWindowFlags(window);
-        return vm->makeInt(flags);
+        vm->pushDouble(flags);
+        return 1;
     }
 
-    Value native_SDL_SetWindowGrab(Interpreter *vm, int argc, Value *args)
+    int native_SDL_SetWindowGrab(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 2)
         {
             Error("SDL_SetWindowGrab expects 2 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_SetWindowGrab expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Window *window = (SDL_Window *)args[0].asPointer();
         SDL_bool grabbed = args[1].asBool() ? SDL_TRUE : SDL_FALSE;
         SDL_SetWindowGrab(window, grabbed);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_SDL_GetWindowGrab(Interpreter *vm, int argc, Value *args)
+    int native_SDL_GetWindowGrab(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_GetWindowGrab expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_GetWindowGrab expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Window *window = (SDL_Window *)args[0].asPointer();
         SDL_bool grabbed = SDL_GetWindowGrab(window);
-        return vm->makeBool(grabbed == SDL_TRUE);
+        vm->pushBool(grabbed == SDL_TRUE);
+        return 1;
     }
 
     // =====================================================
     // TIME FUNCTIONS
     // =====================================================
 
-    Value native_SDL_GetTicks(Interpreter *vm, int argc, Value *args)
+    int native_SDL_GetTicks(Interpreter *vm, int argc, Value *args)
     {
         Uint32 ticks = SDL_GetTicks();
-        return vm->makeInt(ticks);
+        vm->pushDouble(ticks);
+        return 1;
     }
 
-    Value native_SDL_GetPerformanceCounter(Interpreter *vm, int argc, Value *args)
+    int native_SDL_GetPerformanceCounter(Interpreter *vm, int argc, Value *args)
     {
         Uint64 counter = SDL_GetPerformanceCounter();
-        return vm->makeDouble((double)counter);
+        vm->pushDouble((double)counter);
+        return 1;
     }
 
-    Value native_SDL_GetPerformanceFrequency(Interpreter *vm, int argc, Value *args)
+    int native_SDL_GetPerformanceFrequency(Interpreter *vm, int argc, Value *args)
     {
         Uint64 freq = SDL_GetPerformanceFrequency();
-        return vm->makeDouble((double)freq);
+        vm->pushDouble((double)freq);
+        return 1;
     }
 
     // =====================================================
     // WINDOW EXTRA FUNCTIONS
     // =====================================================
 
-    Value native_SDL_GetWindowID(Interpreter *vm, int argc, Value *args)
+    int native_SDL_GetWindowID(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_GetWindowID expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_GetWindowID expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Window *window = (SDL_Window *)args[0].asPointer();
         Uint32 id = SDL_GetWindowID(window);
-        return vm->makeInt(id);
+        vm->pushDouble(id);
+        return 1;
     }
 
-    Value native_SDL_GetWindowFromID(Interpreter *vm, int argc, Value *args)
+    int native_SDL_GetWindowFromID(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_GetWindowFromID expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
 
         Uint32 id = args[0].asNumber();
         SDL_Window *window = SDL_GetWindowFromID(id);
         if (window)
-            return vm->makePointer(window);
-        return vm->makeNil();
+        {
+            vm->pushPointer(window);
+            return 1;
+        }
+        return 0;
     }
 
-    Value native_SDL_SetWindowBordered(Interpreter *vm, int argc, Value *args)
+    int native_SDL_SetWindowBordered(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 2)
         {
             Error("SDL_SetWindowBordered expects 2 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_SetWindowBordered expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Window *window = (SDL_Window *)args[0].asPointer();
         SDL_bool bordered = args[1].asBool() ? SDL_TRUE : SDL_FALSE;
         SDL_SetWindowBordered(window, bordered);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_SDL_SetWindowResizable(Interpreter *vm, int argc, Value *args)
+    int native_SDL_SetWindowResizable(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 2)
         {
             Error("SDL_SetWindowResizable expects 2 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_SetWindowResizable expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Window *window = (SDL_Window *)args[0].asPointer();
         SDL_bool resizable = args[1].asBool() ? SDL_TRUE : SDL_FALSE;
         SDL_SetWindowResizable(window, resizable);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_SDL_SetWindowMinimumSize(Interpreter *vm, int argc, Value *args)
+    int native_SDL_SetWindowMinimumSize(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 3)
         {
             Error("SDL_SetWindowMinimumSize expects 3 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_SetWindowMinimumSize expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Window *window = (SDL_Window *)args[0].asPointer();
         int w = args[1].asNumber();
         int h = args[2].asNumber();
         SDL_SetWindowMinimumSize(window, w, h);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_SDL_SetWindowMaximumSize(Interpreter *vm, int argc, Value *args)
+    int native_SDL_SetWindowMaximumSize(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 3)
         {
             Error("SDL_SetWindowMaximumSize expects 3 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_SetWindowMaximumSize expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Window *window = (SDL_Window *)args[0].asPointer();
         int w = args[1].asNumber();
         int h = args[2].asNumber();
         SDL_SetWindowMaximumSize(window, w, h);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_SDL_GetWindowMinimumSize(Interpreter *vm, int argc, Value *args)
+    int native_SDL_GetWindowMinimumSize(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_GetWindowMinimumSize expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_GetWindowMinimumSize expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Window *window = (SDL_Window *)args[0].asPointer();
         int w, h;
         SDL_GetWindowMinimumSize(window, &w, &h);
-
-        Value result = vm->makeMap();
-        MapInstance *map = result.asMap();
-        map->table.set(vm->makeString("w").asString(), vm->makeInt(w));
-        map->table.set(vm->makeString("h").asString(), vm->makeInt(h));
-        return result;
+        vm->pushInt(w);
+        vm->pushInt(h);
+        return 2;
     }
 
-    Value native_SDL_GetWindowMaximumSize(Interpreter *vm, int argc, Value *args)
+    int native_SDL_GetWindowMaximumSize(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_GetWindowMaximumSize expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_GetWindowMaximumSize expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Window *window = (SDL_Window *)args[0].asPointer();
         int w, h;
         SDL_GetWindowMaximumSize(window, &w, &h);
-
-        Value result = vm->makeMap();
-        MapInstance *map = result.asMap();
-        map->table.set(vm->makeString("w").asString(), vm->makeInt(w));
-        map->table.set(vm->makeString("h").asString(), vm->makeInt(h));
-        return result;
+        vm->pushInt(w);
+        vm->pushInt(h);
+        return 2;
     }
 
-    Value native_SDL_GetWindowTitle(Interpreter *vm, int argc, Value *args)
+    int native_SDL_GetWindowTitle(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_GetWindowTitle expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_GetWindowTitle expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Window *window = (SDL_Window *)args[0].asPointer();
         const char *title = SDL_GetWindowTitle(window);
-        return vm->makeString(title);
+        vm->pushString(title);
+        return 1;
     }
 
     // =====================================================
     // DISPLAY FUNCTIONS
     // =====================================================
 
-    Value native_SDL_GetNumVideoDisplays(Interpreter *vm, int argc, Value *args)
+    int native_SDL_GetNumVideoDisplays(Interpreter *vm, int argc, Value *args)
     {
         int num = SDL_GetNumVideoDisplays();
-        return vm->makeInt(num);
+        vm->pushInt(num);
+        return 1;
     }
 
-    Value native_SDL_GetDisplayBounds(Interpreter *vm, int argc, Value *args)
+    int native_SDL_GetDisplayBounds(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_GetDisplayBounds expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
 
         int displayIndex = args[0].asNumber();
@@ -816,100 +825,101 @@ namespace SDLBindings
 
         if (result == 0)
         {
-            Value map = vm->makeMap();
-            MapInstance *m = map.asMap();
-            m->table.set(vm->makeString("x").asString(), vm->makeInt(rect.x));
-            m->table.set(vm->makeString("y").asString(), vm->makeInt(rect.y));
-            m->table.set(vm->makeString("w").asString(), vm->makeInt(rect.w));
-            m->table.set(vm->makeString("h").asString(), vm->makeInt(rect.h));
-            return map;
+            vm->pushInt(rect.x);
+            vm->pushInt(rect.y);
+            vm->pushInt(rect.w);
+            vm->pushInt(rect.h);
+            return 4;
         }
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_SDL_GetDisplayName(Interpreter *vm, int argc, Value *args)
+    int native_SDL_GetDisplayName(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_GetDisplayName expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
 
         int displayIndex = args[0].asNumber();
         const char *name = SDL_GetDisplayName(displayIndex);
-        if (name)
-            return vm->makeString(name);
-        return vm->makeNil();
+        vm->pushString(name);
+        return 0;
     }
 
-    Value native_SDL_GetWindowDisplayIndex(Interpreter *vm, int argc, Value *args)
+    int native_SDL_GetWindowDisplayIndex(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_GetWindowDisplayIndex expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_GetWindowDisplayIndex expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Window *window = (SDL_Window *)args[0].asPointer();
         int index = SDL_GetWindowDisplayIndex(window);
-        return vm->makeInt(index);
+        vm->pushInt(index);
+        return 1;
     }
 
     // =====================================================
     // CLIPBOARD FUNCTIONS
     // =====================================================
 
-    Value native_SDL_SetClipboardText(Interpreter *vm, int argc, Value *args)
+    int native_SDL_SetClipboardText(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_SetClipboardText expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isString())
         {
             Error("SDL_SetClipboardText expects string");
-            return vm->makeNil();
+            return 0;
         }
 
         const char *text = args[0].asStringChars();
         int result = SDL_SetClipboardText(text);
-        return vm->makeInt(result);
+        vm->pushInt(result);
+        return 1;
     }
 
-    Value native_SDL_GetClipboardText(Interpreter *vm, int argc, Value *args)
+    int native_SDL_GetClipboardText(Interpreter *vm, int argc, Value *args)
     {
         char *text = SDL_GetClipboardText();
         if (text)
         {
             Value result = vm->makeString(text);
             SDL_free(text);
-            return result;
+            vm->push(result);
+            return 1;
         }
-        return vm->makeString("");
+        return 0;
     }
 
-    Value native_SDL_HasClipboardText(Interpreter *vm, int argc, Value *args)
+    int native_SDL_HasClipboardText(Interpreter *vm, int argc, Value *args)
     {
         SDL_bool result = SDL_HasClipboardText();
-        return vm->makeBool(result == SDL_TRUE);
+        vm->push(vm->makeBool(result));
+        return 1;
     }
 
     // =====================================================
     // MESSAGE BOX FUNCTIONS
     // =====================================================
 
-    Value native_SDL_ShowSimpleMessageBox(Interpreter *vm, int argc, Value *args)
+    int native_SDL_ShowSimpleMessageBox(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 4)
         {
             Error("SDL_ShowSimpleMessageBox expects 4 arguments (flags, title, message, window)");
-            return vm->makeNil();
+            return 0;
         }
 
         Uint32 flags = args[0].asNumber();
@@ -923,7 +933,8 @@ namespace SDLBindings
         }
 
         int result = SDL_ShowSimpleMessageBox(flags, title, message, window);
-        return vm->makeInt(result);
+        vm->pushInt(result);
+        return 1;
     }
 
     void register_window(ModuleBuilder &mod)

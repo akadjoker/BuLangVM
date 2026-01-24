@@ -1,5 +1,5 @@
 // Test raylib 3D functions
-print "Testing raylib 3D...";
+ 
 
 require "raylib";
 import raylib;
@@ -23,7 +23,7 @@ SetCamera3DPosition(camera, 10.0, 10.0, 10.0);
 SetCamera3DTarget(camera, 0.0, 0.0, 0.0);
 SetCamera3DFovy(camera, 45.0);
 
-print "Camera created!";
+ 
 
 var frameCount = 0;
 while (!WindowShouldClose()  )
@@ -59,4 +59,4 @@ while (!WindowShouldClose()  )
 DestroyCamera3D(camera);
 CloseWindow();
 
-print "3D Test passed!";
+ 

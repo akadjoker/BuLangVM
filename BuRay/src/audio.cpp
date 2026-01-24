@@ -7,135 +7,138 @@ namespace RaylibBindings
     // AUDIO DEVICE
     // ========================================
 
-    static Value native_InitAudioDevice(Interpreter *vm, int argc, Value *args)
+    static int native_InitAudioDevice(Interpreter *vm, int argc, Value *args)
     {
         InitAudioDevice();
-        return vm->makeNil();
+        return 0;
     }
 
-    static Value native_CloseAudioDevice(Interpreter *vm, int argc, Value *args)
+    static int native_CloseAudioDevice(Interpreter *vm, int argc, Value *args)
     {
         CloseAudioDevice();
-        return vm->makeNil();
+        return 0;
     }
 
     // ========================================
     // SOUND
     // ========================================
 
-    static Value native_LoadSound(Interpreter *vm, int argc, Value *args)
+    static int native_LoadSound(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1 || !args[0].isString())
-            return vm->makeNil();
+            return 0;
         Sound snd = LoadSound(args[0].asStringChars());
         Sound *ptr = new Sound(snd);
-        return vm->makePointer(ptr);
+        vm->push(vm->makePointer(ptr));
+        return 1;
     }
 
-    static Value native_UnloadSound(Interpreter *vm, int argc, Value *args)
+    static int native_UnloadSound(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1 || !args[0].isPointer())
-            return vm->makeNil();
+            return 0;
         Sound *snd = (Sound *)args[0].asPointer();
         UnloadSound(*snd);
         delete snd;
-        return vm->makeNil();
+        return 0;
     }
 
-    static Value native_PlaySound(Interpreter *vm, int argc, Value *args)
+    static int native_PlaySound(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1 || !args[0].isPointer())
-            return vm->makeNil();
+            return 0;
         Sound *snd = (Sound *)args[0].asPointer();
         PlaySound(*snd);
-        return vm->makeNil();
+        return 0;
     }
 
-    static Value native_StopSound(Interpreter *vm, int argc, Value *args)
+    static int native_StopSound(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1 || !args[0].isPointer())
-            return vm->makeNil();
+            return 0;
         Sound *snd = (Sound *)args[0].asPointer();
         StopSound(*snd);
-        return vm->makeNil();
+        return 0;
     }
 
-    static Value native_IsSoundPlaying(Interpreter *vm, int argc, Value *args)
+    static int native_IsSoundPlaying(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1 || !args[0].isPointer())
-            return vm->makeBool(false);
+            return 0;
         Sound *snd = (Sound *)args[0].asPointer();
-        return vm->makeBool(IsSoundPlaying(*snd));
+        vm->pushBool(IsSoundPlaying(*snd));
+        return 1;
     }
 
-    static Value native_SetSoundVolume(Interpreter *vm, int argc, Value *args)
+    static int native_SetSoundVolume(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 2 || !args[0].isPointer())
-            return vm->makeNil();
+            return 0;
         Sound *snd = (Sound *)args[0].asPointer();
         float volume = args[1].asDouble();
         SetSoundVolume(*snd, volume);
-        return vm->makeNil();
+        return 0;
     }
 
     // ========================================
     // MUSIC
     // ========================================
 
-    static Value native_LoadMusicStream(Interpreter *vm, int argc, Value *args)
+    static int native_LoadMusicStream(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1 || !args[0].isString())
-            return vm->makeNil();
+            return 0;
         Music music = LoadMusicStream(args[0].asStringChars());
         Music *ptr = new Music(music);
-        return vm->makePointer(ptr);
+        vm->push(vm->makePointer(ptr));
+        return 1;
     }
 
-    static Value native_UnloadMusicStream(Interpreter *vm, int argc, Value *args)
+    static int native_UnloadMusicStream(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1 || !args[0].isPointer())
-            return vm->makeNil();
+            return 0;
         Music *music = (Music *)args[0].asPointer();
         UnloadMusicStream(*music);
         delete music;
-        return vm->makeNil();
+        return 0;
     }
 
-    static Value native_PlayMusicStream(Interpreter *vm, int argc, Value *args)
+    static int native_PlayMusicStream(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1 || !args[0].isPointer())
-            return vm->makeNil();
+            return 0;
         Music *music = (Music *)args[0].asPointer();
         PlayMusicStream(*music);
-        return vm->makeNil();
+        return 0;
     }
 
-    static Value native_UpdateMusicStream(Interpreter *vm, int argc, Value *args)
+    static int native_UpdateMusicStream(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1 || !args[0].isPointer())
-            return vm->makeNil();
+            return 0;
         Music *music = (Music *)args[0].asPointer();
         UpdateMusicStream(*music);
-        return vm->makeNil();
+        return 0;
     }
 
-    static Value native_StopMusicStream(Interpreter *vm, int argc, Value *args)
+    static int native_StopMusicStream(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1 || !args[0].isPointer())
-            return vm->makeNil();
+            return 0;
         Music *music = (Music *)args[0].asPointer();
         StopMusicStream(*music);
-        return vm->makeNil();
+        return 0;
     }
 
-    static Value native_SetMusicVolume(Interpreter *vm, int argc, Value *args)
+    static int native_SetMusicVolume(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 2 || !args[0].isPointer())
-            return vm->makeNil();
+            return 0;
         Music *music = (Music *)args[0].asPointer();
         float volume = args[1].asDouble();
         SetMusicVolume(*music, volume);
-        return vm->makeNil();
+        return 0;
     }
 
     // ========================================

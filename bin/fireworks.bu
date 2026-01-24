@@ -1,3 +1,6 @@
+
+require "raylib";
+
 import math;
 import raylib;
 using raylib;
@@ -135,13 +138,13 @@ class Rocket
                 alpha
             );
              //DrawCircle(point.x, point.y, 3, trailColor);
-             DrawTextureRotate(tex, point.x, point.y, 0,1.0,trailColor);
+             DrawTextureEx(tex, point.x, point.y, 0,1.0,trailColor);
        
         }
         
         // Draw rocket head (bright)
         //DrawCircle(self.x, self.y, 5, WHITE);
-        DrawTextureRotate(tex, self.x,self.y, 0,1.0,self.color);
+        DrawTextureEx(tex, self.x,self.y, 0,1.0,self.color);
     }
 }
 
@@ -200,7 +203,7 @@ class Particle
         );
         
         var size = (self.life / self.maxLife) * 3 + 1;
-        DrawTextureRotate(tex, self.x,self.y, 0,size * 0.5,c);
+        DrawTextureEx(tex, self.x,self.y, 0,size * 0.5,c);
  
 
     }

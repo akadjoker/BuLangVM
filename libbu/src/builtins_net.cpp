@@ -4,7 +4,7 @@
 #ifdef BU_ENABLE_SOCKETS
 
 // ============================================
-// SOCKET MODULE 
+// SOCKET MODULE
 // ============================================
 #include "platform.hpp"
 #include "utils.hpp"
@@ -15,7 +15,6 @@
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
-
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -249,8 +248,9 @@ static void SocketModuleCleanup()
 #endif
 }
 
-Value native_socket_init(Interpreter *vm, int argCount, Value *args)
+int native_socket_init(Interpreter *vm, int argCount, Value *args)
 {
+    bool result = false;
 #ifdef _WIN32
     if (!wsaInitialized)
     {
@@ -259,34 +259,34 @@ Value native_socket_init(Interpreter *vm, int argCount, Value *args)
         if (result != 0)
         {
             vm->runtimeError("WSAStartup failed: %d", result);
-            return vm->makeBool(false);
+            vm->push(vm->makeBool(false));
         }
         wsaInitialized = true;
     }
 #endif
-    return vm->makeBool(true);
+    vm->push(vm->makeBool(result));
+    return 1;
 }
 
-Value native_socket_quit(Interpreter *vm, int argCount, Value *args)
+int native_socket_quit(Interpreter *vm, int argCount, Value *args)
 {
     SocketModuleCleanup();
-    return vm->makeNil();
+    return 0;
 }
 
 //
 // REQUESTS
 //
- 
 
 // =============================================================
 // FUNCTION: HTTP GET Completo
 // =============================================================
-Value native_socket_http_get(Interpreter *vm, int argCount, Value *args)
+int native_socket_http_get(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount < 1 || !args[0].isString())
     {
         vm->runtimeError("http_get expects (url, [options_map])");
-        return vm->makeNil();
+        return 0;
     }
 
     std::string url = args[0].asStringChars();
@@ -356,14 +356,14 @@ Value native_socket_http_get(Interpreter *vm, int argCount, Value *args)
     if (protoEnd == std::string::npos)
     {
         vm->runtimeError("Invalid URL");
-        return vm->makeNil();
+        return 0;
     }
 
     std::string protocol = url.substr(0, protoEnd);
     if (protocol == "https")
     {
         vm->runtimeError("HTTPS not supported");
-        return vm->makeNil();
+        return 0;
     }
 
     size_t hostStart = protoEnd + 3;
@@ -385,7 +385,7 @@ Value native_socket_http_get(Interpreter *vm, int argCount, Value *args)
     if (sock == INVALID_SOCKET)
     {
         vm->runtimeError("Socket creation failed");
-        return vm->makeNil();
+        return 0;
     }
 
     struct timeval tv;
@@ -399,7 +399,7 @@ Value native_socket_http_get(Interpreter *vm, int argCount, Value *args)
     {
         closesocket(sock);
         vm->runtimeError("Host resolution failed");
-        return vm->makeNil();
+        return 0;
     }
 
     sockaddr_in addr = {0};
@@ -411,7 +411,7 @@ Value native_socket_http_get(Interpreter *vm, int argCount, Value *args)
     {
         closesocket(sock);
         vm->runtimeError("Connection failed");
-        return vm->makeNil();
+        return 0;
     }
 
     // --- SEND REQUEST ---
@@ -429,7 +429,7 @@ Value native_socket_http_get(Interpreter *vm, int argCount, Value *args)
     if (send(sock, request.c_str(), request.length(), 0) == SOCKET_ERROR)
     {
         closesocket(sock);
-        return vm->makeNil();
+        return 0;
     }
 
     // --- RECEIVE RESPONSE ---
@@ -455,7 +455,6 @@ Value native_socket_http_get(Interpreter *vm, int argCount, Value *args)
     map->table.set(vm->makeString("success").asString(), vm->makeBool(httpResp.success));
     map->table.set(vm->makeString("url").asString(), vm->makeString(url.c_str()));
     map->table.set(vm->makeString("received").asString(), vm->makeInt(response.length()));
-    
 
     Value headersMap = vm->makeMap();
     MapInstance *headers = headersMap.asMap();
@@ -465,7 +464,8 @@ Value native_socket_http_get(Interpreter *vm, int argCount, Value *args)
     }
     map->table.set(vm->makeString("headers").asString(), headersMap);
 
-    return result;
+    vm->push(result);
+    return 1;
 }
 
 // HTTP POST request -
@@ -505,7 +505,7 @@ static std::string serializeJson(Interpreter *vm, Value value)
         MapInstance *map = value.asMap();
         bool first = true;
         map->table.forEach([&](String *k, Value v)
-        {
+                           {
             if (!first) json += ",";
             first = false;
             json += "\"" + std::string(k->chars()) + "\":" + serializeJson(vm, v); });
@@ -529,14 +529,14 @@ static std::string serializeJson(Interpreter *vm, Value value)
 }
 
 // =============================================================
-// FUNCTION: HTTP POST  
+// FUNCTION: HTTP POST
 // =============================================================
-Value native_socket_http_post(Interpreter *vm, int argCount, Value *args)
+int native_socket_http_post(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount < 1 || !args[0].isString())
     {
         vm->runtimeError("http_post expects (url, [options_map])");
-        return vm->makeNil();
+        return 0;
     }
 
     std::string url = args[0].asStringChars();
@@ -598,7 +598,7 @@ Value native_socket_http_post(Interpreter *vm, int argCount, Value *args)
     }
 
     // --- SMART HEADERS MANAGEMENT ---
-    // User-Agent: Se existir nos headers,  
+    // User-Agent: Se existir nos headers,
     auto itUA = customHeaders.find("User-Agent");
     if (itUA == customHeaders.end())
         itUA = customHeaders.find("user-agent");
@@ -608,7 +608,7 @@ Value native_socket_http_post(Interpreter *vm, int argCount, Value *args)
         customHeaders.erase(itUA);
     }
 
-    // Content-Type: Se existir nos headers,  
+    // Content-Type: Se existir nos headers,
     auto itCT = customHeaders.find("Content-Type");
     if (itCT == customHeaders.end())
         itCT = customHeaders.find("content-type");
@@ -623,14 +623,14 @@ Value native_socket_http_post(Interpreter *vm, int argCount, Value *args)
     if (protoEnd == std::string::npos)
     {
         vm->runtimeError("Invalid URL");
-        return vm->makeNil();
+        return 0;
     }
 
     std::string protocol = url.substr(0, protoEnd);
     if (protocol == "https")
     {
         vm->runtimeError("HTTPS not supported");
-        return vm->makeNil();
+        return 0;
     }
 
     size_t hostStart = protoEnd + 3;
@@ -650,7 +650,7 @@ Value native_socket_http_post(Interpreter *vm, int argCount, Value *args)
     if (sock == INVALID_SOCKET)
     {
         vm->runtimeError("Socket error");
-        return vm->makeNil();
+        return 0;
     }
 
     struct timeval tv;
@@ -664,7 +664,7 @@ Value native_socket_http_post(Interpreter *vm, int argCount, Value *args)
     {
         closesocket(sock);
         vm->runtimeError("DNS error");
-        return vm->makeNil();
+        return 0;
     }
 
     sockaddr_in addr = {0};
@@ -676,7 +676,7 @@ Value native_socket_http_post(Interpreter *vm, int argCount, Value *args)
     {
         closesocket(sock);
         vm->runtimeError("Connection failed");
-        return vm->makeNil();
+        return 0;
     }
 
     // --- BUILD REQUEST ---
@@ -699,7 +699,7 @@ Value native_socket_http_post(Interpreter *vm, int argCount, Value *args)
     if (send(sock, request.c_str(), request.length(), 0) == SOCKET_ERROR)
     {
         closesocket(sock);
-        return vm->makeNil();
+        return 0;
     }
 
     std::string response;
@@ -731,19 +731,21 @@ Value native_socket_http_post(Interpreter *vm, int argCount, Value *args)
     }
     map->table.set(vm->makeString("headers").asString(), headersMap);
 
-    return result;
+    vm->push(result);
+
+    return 1;
 }
 
 //
 // UTILS
 //
 
-Value native_socket_ping(Interpreter *vm, int argCount, Value *args)
+int native_socket_ping(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount < 1 || !args[0].isString())
     {
         vm->runtimeError("ping expects (host, [port], [timeout])");
-        return vm->makeBool(false);
+        return 1;
     }
 
     const char *host = args[0].asStringChars();
@@ -753,7 +755,7 @@ Value native_socket_ping(Interpreter *vm, int argCount, Value *args)
     SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sock == INVALID_SOCKET)
     {
-        return vm->makeBool(false);
+        return 1;
     }
 
     // Set timeout
@@ -767,7 +769,7 @@ Value native_socket_ping(Interpreter *vm, int argCount, Value *args)
     if (!he)
     {
         closesocket(sock);
-        return vm->makeBool(false);
+        return 1;
     }
 
     sockaddr_in addr = {0};
@@ -778,16 +780,17 @@ Value native_socket_ping(Interpreter *vm, int argCount, Value *args)
     bool success = (connect(sock, (sockaddr *)&addr, sizeof(addr)) != SOCKET_ERROR);
     closesocket(sock);
 
-    return vm->makeBool(success);
+    vm->push(vm->makeBool(success));
+    return 1;
 }
 
 // Download de file (Streamed to disk para não encher a RAM)
-Value native_socket_download_file(Interpreter *vm, int argCount, Value *args)
+int native_socket_download_file(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount < 2 || !args[0].isString() || !args[1].isString())
     {
         vm->runtimeError("download_file expects (url, filepath)");
-        return vm->makeBool(false);
+        return 1;
     }
 
     std::string url = args[0].asStringChars();
@@ -796,7 +799,7 @@ Value native_socket_download_file(Interpreter *vm, int argCount, Value *args)
     // 1. Parse URL (Host/Path/Port) - Reutiliza lógica do http_get
     size_t protoEnd = url.find("://");
     if (protoEnd == std::string::npos)
-        return vm->makeBool(false);
+        return 1;
     size_t hostStart = protoEnd + 3;
     size_t pathStart = url.find('/', hostStart);
     std::string host = url.substr(hostStart, pathStart - hostStart);
@@ -812,13 +815,13 @@ Value native_socket_download_file(Interpreter *vm, int argCount, Value *args)
     // 2. Connect
     SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sock == INVALID_SOCKET)
-        return vm->makeBool(false);
+        return 1;
 
     struct hostent *he = gethostbyname(host.c_str());
     if (!he)
     {
         closesocket(sock);
-        return vm->makeBool(false);
+        return 1;
     }
 
     sockaddr_in addr = {0};
@@ -829,7 +832,7 @@ Value native_socket_download_file(Interpreter *vm, int argCount, Value *args)
     if (connect(sock, (sockaddr *)&addr, sizeof(addr)) == SOCKET_ERROR)
     {
         closesocket(sock);
-        return vm->makeBool(false);
+        return 1;
     }
 
     // 3. Send Request
@@ -841,7 +844,7 @@ Value native_socket_download_file(Interpreter *vm, int argCount, Value *args)
     if (!file)
     {
         closesocket(sock);
-        return vm->makeBool(false);
+        return 1;
     }
 
     // 5. Receive & Skip Headers
@@ -877,16 +880,18 @@ Value native_socket_download_file(Interpreter *vm, int argCount, Value *args)
 
     fclose(file);
     closesocket(sock);
-    return vm->makeBool(true);
+
+    vm->push(vm->makeBool(true));
+    return 1;
 }
 
 // Resolver hostname para IP (Ex: "google.com" -> "142.250.184.46")
-Value native_socket_resolve(Interpreter *vm, int argCount, Value *args)
+int native_socket_resolve(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount < 1 || !args[0].isString())
     {
         vm->runtimeError("resolve expects hostname");
-        return vm->makeNil();
+        return 0;
     }
 
 #ifdef _WIN32
@@ -901,7 +906,7 @@ Value native_socket_resolve(Interpreter *vm, int argCount, Value *args)
     if (he == nullptr)
     {
 
-        return vm->makeNil();
+        return 0;
     }
 
     if (he->h_addr_list && he->h_addr_list[0])
@@ -910,41 +915,44 @@ Value native_socket_resolve(Interpreter *vm, int argCount, Value *args)
 
         memcpy(&addr, he->h_addr_list[0], sizeof(struct in_addr));
 
-        return vm->makeString(inet_ntoa(addr));
+        vm->push(vm->makeString(inet_ntoa(addr)));
+        return 1;
     }
 
-    return vm->makeNil();
+    return 0;
 }
 
-Value native_socket_get_local_ip(Interpreter *vm, int argCount, Value *args)
+int native_socket_get_local_ip(Interpreter *vm, int argCount, Value *args)
 {
     char hostname[256];
     if (gethostname(hostname, sizeof(hostname)) == SOCKET_ERROR)
     {
-        return vm->makeNil();
+        return 0;
     }
 
     struct hostent *he = gethostbyname(hostname);
     if (!he || !he->h_addr_list[0])
     {
-        return vm->makeNil();
+        return 0;
     }
 
     struct in_addr addr;
     memcpy(&addr, he->h_addr_list[0], sizeof(struct in_addr));
 
-    return vm->makeString(inet_ntoa(addr));
+    vm->push(vm->makeString(inet_ntoa(addr)));
+
+    return 1;
 }
 //
 // TCP
 //
 
-Value native_socket_tcp_listen(Interpreter *vm, int argCount, Value *args)
+int native_socket_tcp_listen(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount < 1 || !args[0].isInt())
     {
         vm->runtimeError("tcp_listen expects port number");
-        return vm->makeNil();
+        return 0;
     }
 
     int port = args[0].asInt();
@@ -957,7 +965,7 @@ Value native_socket_tcp_listen(Interpreter *vm, int argCount, Value *args)
     if (sock == INVALID_SOCKET)
     {
         vm->runtimeError("Failed to create socket");
-        return vm->makeNil();
+        return 0;
     }
 
     int opt = 1;
@@ -972,14 +980,14 @@ Value native_socket_tcp_listen(Interpreter *vm, int argCount, Value *args)
     {
         closesocket(sock);
         vm->runtimeError("Failed to bind to port %d", port);
-        return vm->makeNil();
+        return 0;
     }
 
     if (listen(sock, backlog) == SOCKET_ERROR)
     {
         closesocket(sock);
         vm->runtimeError("Failed to listen on port %d", port);
-        return vm->makeNil();
+        return 0;
     }
 
     SocketHandle *handle = new SocketHandle();
@@ -990,24 +998,26 @@ Value native_socket_tcp_listen(Interpreter *vm, int argCount, Value *args)
     handle->port = port;
 
     openSockets.push_back(handle);
-    return vm->makeInt(nextSocketId++);
+    vm->push(vm->makeInt(nextSocketId++));
+
+    return 1;
 }
 
-Value native_socket_tcp_accept(Interpreter *vm, int argCount, Value *args)
+int native_socket_tcp_accept(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount < 1 || !args[0].isInt())
-        return vm->makeNil();
+        return 0;
 
     int id = args[0].asInt();
     if (id <= 0 || id > openSockets.size() || !openSockets[id - 1])
-        return vm->makeNil();
+        return 0;
 
     SocketHandle *serverHandle = openSockets[id - 1];
 
     if (serverHandle->type != SocketType::TCP_SERVER)
     {
         vm->runtimeError("Socket is not a TCP server");
-        return vm->makeNil();
+        return 0;
     }
 
     sockaddr_in clientAddr = {0};
@@ -1020,12 +1030,12 @@ Value native_socket_tcp_accept(Interpreter *vm, int argCount, Value *args)
 #ifdef _WIN32
         int err = WSAGetLastError();
         if (err == WSAEWOULDBLOCK)
-            return vm->makeNil();
+            return 0;
 #else
         if (errno == EWOULDBLOCK || errno == EAGAIN)
-            return vm->makeNil();
+            return 0;
 #endif
-        return vm->makeNil();
+        return 0;
     }
 
     SocketHandle *clientHandle = new SocketHandle();
@@ -1037,15 +1047,17 @@ Value native_socket_tcp_accept(Interpreter *vm, int argCount, Value *args)
     clientHandle->host = inet_ntoa(clientAddr.sin_addr);
 
     openSockets.push_back(clientHandle);
-    return vm->makeInt(nextSocketId++);
+    vm->push(vm->makeInt(nextSocketId++));
+
+    return 1;
 }
 
-Value native_socket_tcp_connect(Interpreter *vm, int argCount, Value *args)
+int native_socket_tcp_connect(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount < 2 || !args[0].isString() || !args[1].isInt())
     {
         vm->runtimeError("tcp_connect expects (host, port)");
-        return vm->makeNil();
+        return 0;
     }
 
     const char *host = args[0].asStringChars();
@@ -1055,14 +1067,14 @@ Value native_socket_tcp_connect(Interpreter *vm, int argCount, Value *args)
     if (!he)
     {
         vm->runtimeError("Failed to resolve hostname '%s'", host);
-        return vm->makeNil();
+        return 0;
     }
 
     SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sock == INVALID_SOCKET)
     {
         vm->runtimeError("Failed to create socket");
-        return vm->makeNil();
+        return 0;
     }
 
     sockaddr_in addr = {0};
@@ -1078,14 +1090,14 @@ Value native_socket_tcp_connect(Interpreter *vm, int argCount, Value *args)
         {
             closesocket(sock);
             vm->runtimeError("Failed to connect to %s:%d", host, port);
-            return vm->makeNil();
+            return 0;
         }
 #else
         if (errno != EINPROGRESS)
         {
             closesocket(sock);
             vm->runtimeError("Failed to connect to %s:%d", host, port);
-            return vm->makeNil();
+            return 0;
         }
 #endif
     }
@@ -1099,15 +1111,17 @@ Value native_socket_tcp_connect(Interpreter *vm, int argCount, Value *args)
     handle->host = host;
 
     openSockets.push_back(handle);
-    return vm->makeInt(nextSocketId++);
+    vm->push(vm->makeInt(nextSocketId++));
+
+    return 1;
 }
 
-Value native_socket_udp_create(Interpreter *vm, int argCount, Value *args)
+int native_socket_udp_create(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount < 1 || !args[0].isInt())
     {
         vm->runtimeError("udp_create expects port");
-        return vm->makeNil();
+        return 0;
     }
 
     int port = args[0].asInt();
@@ -1116,7 +1130,7 @@ Value native_socket_udp_create(Interpreter *vm, int argCount, Value *args)
     if (sock == INVALID_SOCKET)
     {
         vm->runtimeError("Failed to create UDP socket");
-        return vm->makeNil();
+        return 0;
     }
 
     int opt = 1;
@@ -1131,7 +1145,7 @@ Value native_socket_udp_create(Interpreter *vm, int argCount, Value *args)
     {
         closesocket(sock);
         vm->runtimeError("Failed to bind UDP socket to port %d", port);
-        return vm->makeNil();
+        return 0;
     }
 
     SocketHandle *handle = new SocketHandle();
@@ -1142,90 +1156,124 @@ Value native_socket_udp_create(Interpreter *vm, int argCount, Value *args)
     handle->port = port;
 
     openSockets.push_back(handle);
-    return vm->makeInt(nextSocketId++);
+    vm->push(vm->makeInt(nextSocketId++));
+
+    return 1;
 }
 
-Value native_socket_set_blocking(Interpreter *vm, int argCount, Value *args)
+int native_socket_set_blocking(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount < 2 || !args[0].isInt() || !args[1].isBool())
-        return vm->makeBool(false);
+    {
+        vm->push(vm->makeBool(false));
+        return 1;
+    }
 
     int id = args[0].asInt();
     bool blocking = args[1].asBool();
 
     if (id <= 0 || id > openSockets.size() || !openSockets[id - 1])
-        return vm->makeBool(false);
+    {
+        vm->push(vm->makeBool(false));
+        return 1;
+    }
 
     SocketHandle *handle = openSockets[id - 1];
 
 #ifdef _WIN32
     u_long mode = blocking ? 0 : 1;
     if (ioctlsocket(handle->socket, FIONBIO, &mode) != 0)
-        return vm->makeBool(false);
+    {
+        vm->push(vm->makeBool(false));
+        return 1;
+    }
 #else
     int flags = fcntl(handle->socket, F_GETFL, 0);
     if (flags == -1)
-        return vm->makeBool(false);
+    {
+        vm->push(vm->makeBool(false));
+        return 1;
+    }
 
     flags = blocking ? (flags & ~O_NONBLOCK) : (flags | O_NONBLOCK);
     if (fcntl(handle->socket, F_SETFL, flags) != 0)
-        return vm->makeBool(false);
+    {
+        vm->push(vm->makeBool(false));
+        return 1;
+    }
 #endif
 
     handle->isBlocking = blocking;
-    return vm->makeBool(true);
+    vm->push(vm->makeBool(true));
+    return 1;
 }
-
-Value native_socket_set_nodelay(Interpreter *vm, int argCount, Value *args)
+int native_socket_set_nodelay(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount < 2 || !args[0].isInt() || !args[1].isBool())
-        return vm->makeBool(false);
+    {
+        vm->push(vm->makeBool(false));
+        return 1;
+    }
 
     int id = args[0].asInt();
     bool nodelay = args[1].asBool();
 
     if (id <= 0 || id > openSockets.size() || !openSockets[id - 1])
-        return vm->makeBool(false);
+    {
+        vm->push(vm->makeBool(false));
+        return 1;
+    }
 
     SocketHandle *handle = openSockets[id - 1];
-
     if (handle->type == SocketType::UDP)
-        return vm->makeBool(false);
+    {
+        vm->push(vm->makeBool(false));
+        return 1;
+    }
 
     int flag = nodelay ? 1 : 0;
-    if (setsockopt(handle->socket, IPPROTO_TCP, TCP_NODELAY,
-                   (char *)&flag, sizeof(flag)) != 0)
-        return vm->makeBool(false);
+    if (setsockopt(handle->socket, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(flag)) != 0)
+    {
+        vm->push(vm->makeBool(false));
+        return 1;
+    }
 
-    return vm->makeBool(true);
+    vm->push(vm->makeBool(true));
+    return 1;
 }
 
-Value native_socket_send(Interpreter *vm, int argCount, Value *args)
+int native_socket_send(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount < 2 || !args[0].isInt() || !args[1].isString())
-        return vm->makeInt(-1);
+    {
+        vm->push(vm->makeInt(-1));
+        return 1;
+    }
 
     int id = args[0].asInt();
     if (id <= 0 || id > openSockets.size() || !openSockets[id - 1])
-        return vm->makeInt(-1);
+    {
+        vm->push(vm->makeInt(-1));
+        return 1;
+    }
 
     SocketHandle *handle = openSockets[id - 1];
-
     if (handle->type == SocketType::UDP)
     {
         vm->runtimeError("Use sendto() for UDP sockets");
-        return vm->makeInt(-1);
+        vm->push(vm->makeInt(-1));
+        return 1;
     }
 
     if (!handle->isConnected)
     {
         vm->runtimeError("Socket not connected");
-        return vm->makeInt(-1);
+        vm->push(vm->makeInt(-1));
+        return 1;
     }
 
     const char *data = args[1].asStringChars();
     int len = args[1].asString()->length();
-
     int sent = send(handle->socket, data, len, 0);
 
     if (sent == SOCKET_ERROR)
@@ -1233,39 +1281,52 @@ Value native_socket_send(Interpreter *vm, int argCount, Value *args)
 #ifdef _WIN32
         int err = WSAGetLastError();
         if (err == WSAEWOULDBLOCK)
-            return vm->makeInt(0);
+        {
+            vm->push(vm->makeInt(0));
+            return 1;
+        }
         handle->isConnected = false;
 #else
         if (errno == EWOULDBLOCK || errno == EAGAIN)
-            return vm->makeInt(0);
+        {
+            vm->push(vm->makeInt(0));
+            return 1;
+        }
         handle->isConnected = false;
 #endif
-        return vm->makeInt(-1);
+        vm->push(vm->makeInt(-1));
+        return 1;
     }
 
-    return vm->makeInt(sent);
+    vm->push(vm->makeInt(sent));
+    return 1;
 }
 
-Value native_socket_receive(Interpreter *vm, int argCount, Value *args)
+int native_socket_receive(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount < 1 || !args[0].isInt())
-        return vm->makeNil();
+    {
+        vm->push(vm->makeNil());
+        return 1;
+    }
 
     int id = args[0].asInt();
     int maxSize = 4096;
-
     if (argCount >= 2 && args[1].isInt())
         maxSize = args[1].asInt();
 
     if (id <= 0 || id > openSockets.size() || !openSockets[id - 1])
-        return vm->makeNil();
+    {
+        vm->push(vm->makeNil());
+        return 1;
+    }
 
     SocketHandle *handle = openSockets[id - 1];
-
     if (handle->type == SocketType::UDP)
     {
         vm->runtimeError("Use recvfrom() for UDP sockets");
-        return vm->makeNil();
+        vm->push(vm->makeNil());
+        return 1;
     }
 
     std::vector<char> buffer(maxSize);
@@ -1276,32 +1337,41 @@ Value native_socket_receive(Interpreter *vm, int argCount, Value *args)
 #ifdef _WIN32
         int err = WSAGetLastError();
         if (err == WSAEWOULDBLOCK)
-            return vm->makeNil();
+        {
+            vm->push(vm->makeNil());
+            return 1;
+        }
         handle->isConnected = false;
 #else
         if (errno == EWOULDBLOCK || errno == EAGAIN)
-            return vm->makeNil();
+        {
+            vm->push(vm->makeNil());
+            return 1;
+        }
         handle->isConnected = false;
 #endif
-        return vm->makeNil();
+        vm->push(vm->makeNil());
+        return 1;
     }
 
     if (received == 0)
     {
         handle->isConnected = false;
-        return vm->makeNil();
+        vm->push(vm->makeNil());
+        return 1;
     }
 
-    return vm->makeString(std::string(buffer.data(), received).c_str());
+    vm->push(vm->makeString(std::string(buffer.data(), received).c_str()));
+    return 1;
 }
 
-Value native_socket_sendto(Interpreter *vm, int argCount, Value *args)
+int native_socket_sendto(Interpreter *vm, int argCount, Value *args)
 {
-    if (argCount < 4 || !args[0].isInt() || !args[1].isString() ||
-        !args[2].isString() || !args[3].isInt())
+    if (argCount < 4 || !args[0].isInt() || !args[1].isString() || !args[2].isString() || !args[3].isInt())
     {
         vm->runtimeError("sendto expects (socketId, data, host, port)");
-        return vm->makeInt(-1);
+        vm->push(vm->makeInt(-1));
+        return 1;
     }
 
     int id = args[0].asInt();
@@ -1310,19 +1380,25 @@ Value native_socket_sendto(Interpreter *vm, int argCount, Value *args)
     int port = args[3].asInt();
 
     if (id <= 0 || id > openSockets.size() || !openSockets[id - 1])
-        return vm->makeInt(-1);
+    {
+        vm->push(vm->makeInt(-1));
+        return 1;
+    }
 
     SocketHandle *handle = openSockets[id - 1];
-
     if (handle->type != SocketType::UDP)
     {
         vm->runtimeError("sendto() is for UDP sockets only");
-        return vm->makeInt(-1);
+        vm->push(vm->makeInt(-1));
+        return 1;
     }
 
     struct hostent *he = gethostbyname(host);
     if (!he)
-        return vm->makeInt(-1);
+    {
+        vm->push(vm->makeInt(-1));
+        return 1;
+    }
 
     sockaddr_in addr = {0};
     addr.sin_family = AF_INET;
@@ -1333,76 +1409,93 @@ Value native_socket_sendto(Interpreter *vm, int argCount, Value *args)
     int sent = sendto(handle->socket, data, len, 0, (sockaddr *)&addr, sizeof(addr));
 
     if (sent == SOCKET_ERROR)
-        return vm->makeInt(-1);
+    {
+        vm->push(vm->makeInt(-1));
+        return 1;
+    }
 
-    return vm->makeInt(sent);
+    vm->push(vm->makeInt(sent));
+    return 1;
 }
 
-Value native_socket_recvfrom(Interpreter *vm, int argCount, Value *args)
+int native_socket_recvfrom(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount < 1 || !args[0].isInt())
-        return vm->makeNil();
+    {
+        vm->push(vm->makeNil());
+        return 1;
+    }
 
     int id = args[0].asInt();
     int maxSize = 4096;
-
     if (argCount >= 2 && args[1].isInt())
         maxSize = args[1].asInt();
 
     if (id <= 0 || id > openSockets.size() || !openSockets[id - 1])
-        return vm->makeNil();
+    {
+        vm->push(vm->makeNil());
+        return 1;
+    }
 
     SocketHandle *handle = openSockets[id - 1];
-
     if (handle->type != SocketType::UDP)
     {
         vm->runtimeError("recvfrom() is for UDP sockets only");
-        return vm->makeNil();
+        vm->push(vm->makeNil());
+        return 1;
     }
 
     std::vector<char> buffer(maxSize);
     sockaddr_in fromAddr = {0};
     socklen_t fromLen = sizeof(fromAddr);
 
-    int received = recvfrom(handle->socket, buffer.data(), maxSize, 0,
-                            (sockaddr *)&fromAddr, &fromLen);
+    int received = recvfrom(handle->socket, buffer.data(), maxSize, 0, (sockaddr *)&fromAddr, &fromLen);
 
     if (received == SOCKET_ERROR)
     {
 #ifdef _WIN32
         if (WSAGetLastError() == WSAEWOULDBLOCK)
-            return vm->makeNil();
+        {
+            vm->push(vm->makeNil());
+            return 1;
+        }
 #else
         if (errno == EWOULDBLOCK || errno == EAGAIN)
-            return vm->makeNil();
+        {
+            vm->push(vm->makeNil());
+            return 1;
+        }
 #endif
-        return vm->makeNil();
+        vm->push(vm->makeNil());
+        return 1;
     }
 
     Value result = vm->makeMap();
     MapInstance *map = result.asMap();
+    map->table.set(vm->makeString("data").asString(), vm->makeString(std::string(buffer.data(), received).c_str()));
+    map->table.set(vm->makeString("host").asString(), vm->makeString(inet_ntoa(fromAddr.sin_addr)));
+    map->table.set(vm->makeString("port").asString(), vm->makeInt(ntohs(fromAddr.sin_port)));
 
-    map->table.set(vm->makeString("data").asString(),
-                   vm->makeString(std::string(buffer.data(), received).c_str()));
-    map->table.set(vm->makeString("host").asString(),
-                   vm->makeString(inet_ntoa(fromAddr.sin_addr)));
-    map->table.set(vm->makeString("port").asString(),
-                   vm->makeInt(ntohs(fromAddr.sin_port)));
-
-    return result;
+    vm->push(result);
+    return 1;
 }
 
-Value native_socket_info(Interpreter *vm, int argCount, Value *args)
+int native_socket_info(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount < 1 || !args[0].isInt())
-        return vm->makeNil();
+    {
+        vm->push(vm->makeNil());
+        return 1;
+    }
 
     int id = args[0].asInt();
     if (id <= 0 || id > openSockets.size() || !openSockets[id - 1])
-        return vm->makeNil();
+    {
+        vm->push(vm->makeNil());
+        return 1;
+    }
 
     SocketHandle *handle = openSockets[id - 1];
-
     Value result = vm->makeMap();
     MapInstance *map = result.asMap();
 
@@ -1422,20 +1515,26 @@ Value native_socket_info(Interpreter *vm, int argCount, Value *args)
     if (!handle->host.empty())
         map->table.set(vm->makeString("host").asString(), vm->makeString(handle->host.c_str()));
 
-    return result;
+    vm->push(result);
+    return 1;
 }
 
-Value native_socket_close(Interpreter *vm, int argCount, Value *args)
+int native_socket_close(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount < 1 || !args[0].isInt())
-        return vm->makeBool(false);
+    {
+        vm->push(vm->makeBool(false));
+        return 1;
+    }
 
     int id = args[0].asInt();
     if (id <= 0 || id > openSockets.size() || !openSockets[id - 1])
-        return vm->makeBool(false);
+    {
+        vm->push(vm->makeBool(false));
+        return 1;
+    }
 
     SocketHandle *handle = openSockets[id - 1];
-
     if (handle->type != SocketType::UDP)
         shutdown(handle->socket, SHUT_RDWR);
 
@@ -1443,20 +1542,28 @@ Value native_socket_close(Interpreter *vm, int argCount, Value *args)
     delete handle;
     openSockets[id - 1] = nullptr;
 
-    return vm->makeBool(true);
+    vm->push(vm->makeBool(true));
+    return 1;
 }
 
-Value native_socket_is_connected(Interpreter *vm, int argCount, Value *args)
+int native_socket_is_connected(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount < 1 || !args[0].isInt())
-        return vm->makeBool(false);
+    {
+        vm->push(vm->makeBool(false));
+        return 1;
+    }
 
     int id = args[0].asInt();
     if (id <= 0 || id > openSockets.size() || !openSockets[id - 1])
-        return vm->makeBool(false);
+    {
+        vm->push(vm->makeBool(false));
+        return 1;
+    }
 
     SocketHandle *handle = openSockets[id - 1];
-    return vm->makeBool(handle->isConnected);
+    vm->push(vm->makeBool(handle->isConnected));
+    return 1;
 }
 
 // No registerSocket():

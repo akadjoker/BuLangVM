@@ -123,8 +123,8 @@ enum class StaticNames : uint8 {
   // endsWith
   // indexOf
 
-  typedef Value(*NativeFunction)(Interpreter * vm, int argCount, Value *args);
-  typedef Value(*NativeMethod)(Interpreter * vm, void *instance, int argCount,
+  typedef int(*NativeFunction)(Interpreter * vm, int argCount, Value *args);
+  typedef int(*NativeMethod)(Interpreter * vm, void *instance, int argCount,
                                Value *args);
   typedef void *(*NativeConstructor)(Interpreter * vm, int argCount, Value *args);
   typedef void(*NativeDestructor)(Interpreter * vm, void *instance);
@@ -624,8 +624,8 @@ class Interpreter
   size_t totalNativeStructs = 0;
   size_t totalNativeClasses = 0;
   size_t nextGC = 1024 * 1024;
-  static constexpr size_t MIN_GC_THRESHOLD = 512 * 1024;        // 256 KB
-  static constexpr size_t MAX_GC_THRESHOLD = 512 * 1024 * 1024; // 128 MB
+  static constexpr size_t MIN_GC_THRESHOLD = 512 * 1024;         
+  static constexpr size_t MAX_GC_THRESHOLD = 512 * 1024 * 1024;  
   static constexpr double GC_GROWTH_FACTOR = 2.0;
   bool gcInProgress = false;
   bool enbaledGC = true;
@@ -1045,6 +1045,13 @@ public:
   bool callFunction(Function *func, int argCount);
   bool callFunction(const char *name, int argCount);
 
+  // Resolve function name with automatic __main__$ prefix fallback
+  // Returns nullptr if function not found
+  Function* getFunction(const char *name);
+
+  // Call function with automatic name resolution (tries name, then __main__$name)
+  bool callFunctionAuto(const char *name, int argCount);
+
   Process *callProcess(ProcessDef *proc, int argCount);
   Process *callProcess(const char *name, int argCount);
 
@@ -1066,6 +1073,12 @@ public:
   size_t getTotalMaps() { return totalMaps; }
   size_t getTotalNativeClasses() { return totalNativeClasses; }
   size_t getTotalNativeStructs() { return totalNativeStructs; }
+
+  // Fiber/Process context (for callbacks from external libraries like GTK)
+  Fiber* getCurrentFiber() { return currentFiber; }
+  void setCurrentFiber(Fiber* fiber) { currentFiber = fiber; }
+  Process* getCurrentProcess() { return currentProcess; }
+  void setCurrentProcess(Process* process) { currentProcess = process; }
 
   uint16 defineModule(const char *name);
   ModuleBuilder addModule(const char *name);
@@ -1090,6 +1103,25 @@ public:
   Value getGlobal(uint32 index);
   bool tryGetGlobal(const char *name, Value *value);
 
+  // ===== ARRAY EXTRACTION HELPERS (for native bindings - no allocation) =====
+  // Extract values from a BuLang array to a C buffer (stack-allocated by caller)
+  // Returns number of elements extracted, or -1 if not an array
+  int getFloats(Value v, float* out, int maxCount);
+  int getInts(Value v, int* out, int maxCount);
+  int getDoubles(Value v, double* out, int maxCount);
+
+  // Convenience for common vector types (returns false if wrong size/type)
+  bool getVec2(Value v, float* out);  // extracts 2 floats
+  bool getVec3(Value v, float* out);  // extracts 3 floats
+  bool getVec4(Value v, float* out);  // extracts 4 floats
+
+  // Matrices (column-major, OpenGL style)
+  bool getMat3(Value v, float* out);  // extracts 9 floats (3x3)
+  bool getMat4(Value v, float* out);  // extracts 16 floats (4x4)
+
+  // Get array length (returns -1 if not array)
+  int getArrayLength(Value v);
+
   // ===== STACK API   =====
   const Value &peek(int index); // -1 = topo, 0 = base
   void push(Value value);
@@ -1098,6 +1130,9 @@ public:
   // ===== PUSH HELPERS =====
 
   void pushInt(int n);
+  void pushFloat(float f);
+  void pushPointer(void *p);
+  void pushByte(uint8 b);
   void pushDouble(double d);
   void pushString(const char *s);
   void pushBool(bool b);

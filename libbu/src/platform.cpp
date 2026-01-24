@@ -328,7 +328,9 @@ bool OsFileDelete(const char *filename)
 
 void* OsLoadLibrary(const char* path)
 {
-    void* handle = dlopen(path, RTLD_NOW | RTLD_LOCAL);
+    // RTLD_GLOBAL: symbols are available to subsequently loaded plugins
+    // This allows bu_rlgl to find glfwGetProcAddress from bu_glfw
+    void* handle = dlopen(path, RTLD_NOW | RTLD_GLOBAL);
     return handle;
 }
 

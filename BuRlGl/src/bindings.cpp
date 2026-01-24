@@ -1,322 +1,610 @@
 #include "bindings.hpp"
+
+#define GRAPHICS_API_OPENGL_33
 #define RLGL_IMPLEMENTATION
 #include "rlgl.h"
 
-namespace SDLBindings
+#ifndef _WIN32
+#include <dlfcn.h>
+#endif
+
+namespace RLGLBindings
 {
 
     // =============================================================
     // 1. LIFECYCLE E UTILITÁRIOS
     // =============================================================
 
-    Value native_rlglInit(Interpreter *vm, int argc, Value *args) {
-        if (argc != 2) return vm->makeNil();
+    // Carrega extensões OpenGL usando glfwGetProcAddress (encontrado via dlsym)
+    int native_rlLoadExtensionsGLFW(Interpreter *vm, int argc, Value *args)
+    {
+#ifndef _WIN32
+        typedef void *(*GLFWloadproc)(const char *);
+        GLFWloadproc loader = (GLFWloadproc)dlsym(RTLD_DEFAULT, "glfwGetProcAddress");
+        if (loader)
+        {
+            rlLoadExtensions((void *)loader);
+            Info("RLGL: OpenGL extensions loaded via GLFW");
+            vm->pushBool(true);
+            return 1;
+        }
+        else
+        {
+            Warning("RLGL: glfwGetProcAddress not found");
+            vm->pushBool(false);
+            return 1;
+        }
+#else
+        // Windows: usar GetProcAddress do kernel32
+        Warning("RLGL: Windows loader not implemented yet");
+        vm->pushBool(false);
+        return 1;
+#endif
+    }
+
+    // Carrega extensões OpenGL usando SDL_GL_GetProcAddress (encontrado via dlsym)
+    int native_rlLoadExtensionsSDL(Interpreter *vm, int argc, Value *args)
+    {
+#ifndef _WIN32
+        typedef void *(*SDLloadproc)(const char *);
+        SDLloadproc loader = (SDLloadproc)dlsym(RTLD_DEFAULT, "SDL_GL_GetProcAddress");
+        if (loader)
+        {
+            rlLoadExtensions((void *)loader);
+            Info("RLGL: OpenGL extensions loaded via SDL");
+            vm->pushBool(true);
+            return 1;
+        }
+        else
+        {
+            Warning("RLGL: SDL_GL_GetProcAddress not found");
+            vm->pushBool(false);
+            return 1;
+        }
+#else
+        Warning("RLGL: Windows loader not implemented yet");
+        vm->pushBool(false);
+        return 1;
+#endif
+    }
+
+    int native_rlglInit(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 2)
+            return 0;
         rlglInit(args[0].asNumber(), args[1].asNumber());
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_rlglClose(Interpreter *vm, int argc, Value *args) {
+    int native_rlglClose(Interpreter *vm, int argc, Value *args)
+    {
         rlglClose();
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_rlGetVersion(Interpreter *vm, int argc, Value *args) {
-        return vm->makeInt(rlGetVersion());
+    int native_rlGetVersion(Interpreter *vm, int argc, Value *args)
+    {
+        vm->pushInt(rlGetVersion());
+        return 1;
     }
 
-    Value native_rlCheckErrors(Interpreter *vm, int argc, Value *args) {
+    int native_rlCheckErrors(Interpreter *vm, int argc, Value *args)
+    {
         rlCheckErrors();
-        return vm->makeNil();
+        return 0;
     }
 
     // =============================================================
     // 2. MATRIZES
     // =============================================================
 
-    Value native_rlMatrixMode(Interpreter *vm, int argc, Value *args) {
-        if (argc != 1) return vm->makeNil();
+    int native_rlMatrixMode(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+            return 0;
         rlMatrixMode(args[0].asNumber());
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_rlPushMatrix(Interpreter *vm, int argc, Value *args) {
+    int native_rlPushMatrix(Interpreter *vm, int argc, Value *args)
+    {
         rlPushMatrix();
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_rlPopMatrix(Interpreter *vm, int argc, Value *args) {
+    int native_rlPopMatrix(Interpreter *vm, int argc, Value *args)
+    {
         rlPopMatrix();
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_rlLoadIdentity(Interpreter *vm, int argc, Value *args) {
+    int native_rlLoadIdentity(Interpreter *vm, int argc, Value *args)
+    {
         rlLoadIdentity();
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_rlTranslatef(Interpreter *vm, int argc, Value *args) {
-        if (argc != 3) return vm->makeNil();
+    int native_rlTranslatef(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 3)
+            return 0;
         rlTranslatef(args[0].asNumber(), args[1].asNumber(), args[2].asNumber());
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_rlRotatef(Interpreter *vm, int argc, Value *args) {
-        if (argc != 4) return vm->makeNil();
+    int native_rlRotatef(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 4)
+            return 0;
         rlRotatef(args[0].asNumber(), args[1].asNumber(), args[2].asNumber(), args[3].asNumber());
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_rlScalef(Interpreter *vm, int argc, Value *args) {
-        if (argc != 3) return vm->makeNil();
+    int native_rlScalef(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 3)
+            return 0;
         rlScalef(args[0].asNumber(), args[1].asNumber(), args[2].asNumber());
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_rlOrtho(Interpreter *vm, int argc, Value *args) {
-        if (argc != 6) return vm->makeNil();
+    int native_rlOrtho(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 6)
+            return 0;
         rlOrtho(args[0].asNumber(), args[1].asNumber(), args[2].asNumber(), args[3].asNumber(), args[4].asNumber(), args[5].asNumber());
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_rlFrustum(Interpreter *vm, int argc, Value *args) {
-        if (argc != 6) return vm->makeNil();
+    int native_rlFrustum(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 6)
+            return 0;
         rlFrustum(args[0].asNumber(), args[1].asNumber(), args[2].asNumber(), args[3].asNumber(), args[4].asNumber(), args[5].asNumber());
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_rlViewport(Interpreter *vm, int argc, Value *args) {
-        if (argc != 4) return vm->makeNil();
+    int native_rlViewport(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 4)
+            return 0;
         rlViewport(args[0].asNumber(), args[1].asNumber(), args[2].asNumber(), args[3].asNumber());
-        return vm->makeNil();
+        return 0;
     }
 
     // =============================================================
     // 3. DESENHO (IMMEDIATE MODE)
     // =============================================================
 
-    Value native_rlBegin(Interpreter *vm, int argc, Value *args) {
-        if (argc != 1) return vm->makeNil();
+    int native_rlBegin(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+            return 0;
         rlBegin(args[0].asNumber());
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_rlEnd(Interpreter *vm, int argc, Value *args) {
+    int native_rlEnd(Interpreter *vm, int argc, Value *args)
+    {
         rlEnd();
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_rlVertex2f(Interpreter *vm, int argc, Value *args) {
-        if (argc != 2) return vm->makeNil();
+    int native_rlVertex2f(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 2)
+            return 0;
         rlVertex2f(args[0].asNumber(), args[1].asNumber());
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_rlVertex3f(Interpreter *vm, int argc, Value *args) {
-        if (argc != 3) return vm->makeNil();
+    int native_rlVertex3f(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 3)
+            return 0;
         rlVertex3f(args[0].asNumber(), args[1].asNumber(), args[2].asNumber());
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_rlTexCoord2f(Interpreter *vm, int argc, Value *args) {
-        if (argc != 2) return vm->makeNil();
+    int native_rlTexCoord2f(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 2)
+            return 0;
         rlTexCoord2f(args[0].asNumber(), args[1].asNumber());
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_rlNormal3f(Interpreter *vm, int argc, Value *args) {
-        if (argc != 3) return vm->makeNil();
+    int native_rlNormal3f(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 3)
+            return 0;
         rlNormal3f(args[0].asNumber(), args[1].asNumber(), args[2].asNumber());
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_rlColor4f(Interpreter *vm, int argc, Value *args) {
-        if (argc != 4) return vm->makeNil();
+    int native_rlColor4f(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 4)
+            return 0;
         rlColor4f(args[0].asNumber(), args[1].asNumber(), args[2].asNumber(), args[3].asNumber());
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_rlColor3f(Interpreter *vm, int argc, Value *args) {
-        if (argc != 3) return vm->makeNil();
+    int native_rlColor3f(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 3)
+            return 0;
         rlColor3f(args[0].asNumber(), args[1].asNumber(), args[2].asNumber());
-        return vm->makeNil();
+        return 0;
     }
 
     // =============================================================
     // 4. ESTADOS DE RENDERIZAÇÃO
     // =============================================================
 
-    Value native_rlEnableDepthTest(Interpreter *vm, int argc, Value *args) { rlEnableDepthTest(); return vm->makeNil(); }
-    Value native_rlDisableDepthTest(Interpreter *vm, int argc, Value *args) { rlDisableDepthTest(); return vm->makeNil(); }
-    Value native_rlEnableDepthMask(Interpreter *vm, int argc, Value *args) { rlEnableDepthMask(); return vm->makeNil(); }
-    Value native_rlDisableDepthMask(Interpreter *vm, int argc, Value *args) { rlDisableDepthMask(); return vm->makeNil(); }
+    int native_rlEnableDepthTest(Interpreter *vm, int argc, Value *args)
+    {
+        rlEnableDepthTest();
+        return 0;
+    }
+    int native_rlDisableDepthTest(Interpreter *vm, int argc, Value *args)
+    {
+        rlDisableDepthTest();
+        return 0;
+    }
+    int native_rlEnableDepthMask(Interpreter *vm, int argc, Value *args)
+    {
+        rlEnableDepthMask();
+        return 0;
+    }
+    int native_rlDisableDepthMask(Interpreter *vm, int argc, Value *args)
+    {
+        rlDisableDepthMask();
+        return 0;
+    }
 
-    Value native_rlEnableBackfaceCulling(Interpreter *vm, int argc, Value *args) { rlEnableBackfaceCulling(); return vm->makeNil(); }
-    Value native_rlDisableBackfaceCulling(Interpreter *vm, int argc, Value *args) { rlDisableBackfaceCulling(); return vm->makeNil(); }
-    Value native_rlSetCullFace(Interpreter *vm, int argc, Value *args) { rlSetCullFace(args[0].asNumber()); return vm->makeNil(); }
+    int native_rlEnableBackfaceCulling(Interpreter *vm, int argc, Value *args)
+    {
+        rlEnableBackfaceCulling();
+        return 0;
+    }
+    int native_rlDisableBackfaceCulling(Interpreter *vm, int argc, Value *args)
+    {
+        rlDisableBackfaceCulling();
+        return 0;
+    }
+    int native_rlSetCullFace(Interpreter *vm, int argc, Value *args)
+    {
+        rlSetCullFace(args[0].asNumber());
+        return 0;
+    }
 
-    Value native_rlEnableScissorTest(Interpreter *vm, int argc, Value *args) { rlEnableScissorTest(); return vm->makeNil(); }
-    Value native_rlDisableScissorTest(Interpreter *vm, int argc, Value *args) { rlDisableScissorTest(); return vm->makeNil(); }
-    Value native_rlScissor(Interpreter *vm, int argc, Value *args) {
-        if (argc != 4) return vm->makeNil();
+    int native_rlEnableScissorTest(Interpreter *vm, int argc, Value *args)
+    {
+        rlEnableScissorTest();
+        return 0;
+    }
+    int native_rlDisableScissorTest(Interpreter *vm, int argc, Value *args)
+    {
+        rlDisableScissorTest();
+        return 0;
+    }
+    int native_rlScissor(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 4)
+            return 0;
         rlScissor(args[0].asNumber(), args[1].asNumber(), args[2].asNumber(), args[3].asNumber());
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_rlEnableWireMode(Interpreter *vm, int argc, Value *args) { rlEnableWireMode(); return vm->makeNil(); }
-    Value native_rlEnablePointMode(Interpreter *vm, int argc, Value *args) { rlEnablePointMode(); return vm->makeNil(); }
-    Value native_rlDisableWireMode(Interpreter *vm, int argc, Value *args) { rlDisableWireMode(); return vm->makeNil(); }
+    int native_rlEnableWireMode(Interpreter *vm, int argc, Value *args)
+    {
+        rlEnableWireMode();
+        return 0;
+    }
+    int native_rlEnablePointMode(Interpreter *vm, int argc, Value *args)
+    {
+        rlEnablePointMode();
+        return 0;
+    }
+    int native_rlDisableWireMode(Interpreter *vm, int argc, Value *args)
+    {
+        rlDisableWireMode();
+        return 0;
+    }
 
-    Value native_rlSetLineWidth(Interpreter *vm, int argc, Value *args) { rlSetLineWidth(args[0].asNumber()); return vm->makeNil(); }
+    int native_rlSetLineWidth(Interpreter *vm, int argc, Value *args)
+    {
+        rlSetLineWidth(args[0].asNumber());
+        return 0;
+    }
 
-    Value native_rlEnableColorBlend(Interpreter *vm, int argc, Value *args) { rlEnableColorBlend(); return vm->makeNil(); }
-    Value native_rlDisableColorBlend(Interpreter *vm, int argc, Value *args) { rlDisableColorBlend(); return vm->makeNil(); }
-    Value native_rlSetBlendMode(Interpreter *vm, int argc, Value *args) { rlSetBlendMode(args[0].asNumber()); return vm->makeNil(); }
+    int native_rlEnableColorBlend(Interpreter *vm, int argc, Value *args)
+    {
+        rlEnableColorBlend();
+        return 0;
+    }
+    int native_rlDisableColorBlend(Interpreter *vm, int argc, Value *args)
+    {
+        rlDisableColorBlend();
+        return 0;
+    }
+    int native_rlSetBlendMode(Interpreter *vm, int argc, Value *args)
+    {
+        rlSetBlendMode(args[0].asNumber());
+        return 0;
+    }
 
-    Value native_rlClearColor(Interpreter *vm, int argc, Value *args) {
-        if (argc != 4) return vm->makeNil();
+    int native_rlClearColor(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 4)
+            return 0;
         rlClearColor((uint8_t)args[0].asNumber(), (uint8_t)args[1].asNumber(), (uint8_t)args[2].asNumber(), (uint8_t)args[3].asNumber());
-        return vm->makeNil();
+        return 0;
     }
-    Value native_rlClearScreenBuffers(Interpreter *vm, int argc, Value *args) { rlClearScreenBuffers(); return vm->makeNil(); }
+    int native_rlClearScreenBuffers(Interpreter *vm, int argc, Value *args)
+    {
+        rlClearScreenBuffers();
+        return 0;
+    }
 
     // =============================================================
     // 5. VERTEX ARRAYS & BUFFERS
     // =============================================================
 
-    Value native_rlLoadVertexArray(Interpreter *vm, int argc, Value *args) {
-        return vm->makeInt(rlLoadVertexArray());
+    int native_rlLoadVertexArray(Interpreter *vm, int argc, Value *args)
+    {
+         vm->pushInt(rlLoadVertexArray());
+        return 1;
     }
 
-    Value native_rlLoadVertexBuffer(Interpreter *vm, int argc, Value *args) {
-        if (argc != 3) return vm->makeNil();
+    int native_rlLoadVertexBuffer(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 3)
+            return 0;
         // buffer (void*), size, dynamic
-        void* ptr = nullptr; 
+        void *ptr = nullptr;
         int size = args[1].asNumber();
         bool dynamic = args[2].asBool();
-        return vm->makeInt(rlLoadVertexBuffer(ptr, size, dynamic));
+         vm->pushInt(rlLoadVertexBuffer(ptr, size, dynamic));
+        return 1;
     }
 
-    Value native_rlEnableVertexArray(Interpreter *vm, int argc, Value *args) { rlEnableVertexArray(args[0].asNumber()); return vm->makeNil(); }
-    Value native_rlDisableVertexArray(Interpreter *vm, int argc, Value *args) { rlDisableVertexArray(); return vm->makeNil(); }
+    int native_rlEnableVertexArray(Interpreter *vm, int argc, Value *args)
+    {
+        rlEnableVertexArray(args[0].asNumber());
+        return 0;
+    }
+    int native_rlDisableVertexArray(Interpreter *vm, int argc, Value *args)
+    {
+        rlDisableVertexArray();
+        return 0;
+    }
 
-    Value native_rlEnableVertexBuffer(Interpreter *vm, int argc, Value *args) { rlEnableVertexBuffer(args[0].asNumber()); return vm->makeNil(); }
-    Value native_rlDisableVertexBuffer(Interpreter *vm, int argc, Value *args) { rlDisableVertexBuffer(); return vm->makeNil(); }
+    int native_rlEnableVertexBuffer(Interpreter *vm, int argc, Value *args)
+    {
+        rlEnableVertexBuffer(args[0].asNumber());
+        return 0;
+    }
+    int native_rlDisableVertexBuffer(Interpreter *vm, int argc, Value *args)
+    {
+        rlDisableVertexBuffer();
+        return 0;
+    }
 
-    Value native_rlUnloadVertexArray(Interpreter *vm, int argc, Value *args) { rlUnloadVertexArray(args[0].asNumber()); return vm->makeNil(); }
-    Value native_rlUnloadVertexBuffer(Interpreter *vm, int argc, Value *args) { rlUnloadVertexBuffer(args[0].asNumber()); return vm->makeNil(); }
+    int native_rlUnloadVertexArray(Interpreter *vm, int argc, Value *args)
+    {
+        rlUnloadVertexArray(args[0].asNumber());
+        return 0;
+    }
+    int native_rlUnloadVertexBuffer(Interpreter *vm, int argc, Value *args)
+    {
+        rlUnloadVertexBuffer(args[0].asNumber());
+        return 0;
+    }
 
     // =============================================================
     // 6. FRAMEBUFFERS & TEXTURAS
     // =============================================================
 
-    Value native_rlLoadFramebuffer(Interpreter *vm, int argc, Value *args) {
-        if (argc != 2) return vm->makeNil();
-        return vm->makeInt(rlLoadFramebuffer(args[0].asNumber(), args[1].asNumber()));
+    int native_rlLoadFramebuffer(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 2)
+            return 0;
+        vm->pushInt(rlLoadFramebuffer(args[0].asNumber(), args[1].asNumber()));
+        return 1;
     }
 
-    Value native_rlFramebufferAttach(Interpreter *vm, int argc, Value *args) {
-        if (argc != 5) return vm->makeNil();
+    int native_rlFramebufferAttach(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 5)
+            return 0;
         rlFramebufferAttach(args[0].asNumber(), args[1].asNumber(), args[2].asNumber(), args[3].asNumber(), args[4].asNumber());
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_rlFramebufferComplete(Interpreter *vm, int argc, Value *args) {
-        if (argc != 1) return vm->makeBool(false);
-        return vm->makeBool(rlFramebufferComplete(args[0].asNumber()));
+    int native_rlFramebufferComplete(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+            return 0;
+        vm->pushBool(rlFramebufferComplete(args[0].asNumber()));
+        return 1;
     }
 
-    Value native_rlUnloadFramebuffer(Interpreter *vm, int argc, Value *args) {
-        if (argc != 1) return vm->makeNil();
+    int native_rlUnloadFramebuffer(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+            return 0;
         rlUnloadFramebuffer(args[0].asNumber());
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_rlEnableFramebuffer(Interpreter *vm, int argc, Value *args) { rlEnableFramebuffer(args[0].asNumber()); return vm->makeNil(); }
-    Value native_rlDisableFramebuffer(Interpreter *vm, int argc, Value *args) { rlDisableFramebuffer(); return vm->makeNil(); }
+    int native_rlEnableFramebuffer(Interpreter *vm, int argc, Value *args)
+    {
+        rlEnableFramebuffer(args[0].asNumber());
+        return 0;
+    }
+    int native_rlDisableFramebuffer(Interpreter *vm, int argc, Value *args)
+    {
+        rlDisableFramebuffer();
+        return 0;
+    }
 
-    Value native_rlActiveTextureSlot(Interpreter *vm, int argc, Value *args) { rlActiveTextureSlot(args[0].asNumber()); return vm->makeNil(); }
-    Value native_rlEnableTexture(Interpreter *vm, int argc, Value *args) { rlEnableTexture(args[0].asNumber()); return vm->makeNil(); }
-    Value native_rlDisableTexture(Interpreter *vm, int argc, Value *args) { rlDisableTexture(); return vm->makeNil(); }
+    int native_rlActiveTextureSlot(Interpreter *vm, int argc, Value *args)
+    {
+        rlActiveTextureSlot(args[0].asNumber());
+        return 0;
+    }
+    int native_rlEnableTexture(Interpreter *vm, int argc, Value *args)
+    {
+        rlEnableTexture(args[0].asNumber());
+        return 0;
+    }
+    int native_rlDisableTexture(Interpreter *vm, int argc, Value *args)
+    {
+        rlDisableTexture();
+        return 0;
+    }
 
-    Value native_rlTextureParameters(Interpreter *vm, int argc, Value *args) {
-        if (argc != 3) return vm->makeNil();
+    int native_rlTextureParameters(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 3)
+            return 0;
         rlTextureParameters(args[0].asNumber(), args[1].asNumber(), args[2].asNumber());
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_rlGenTextureMipmaps(Interpreter *vm, int argc, Value *args) {
-        if (argc != 4) return vm->makeNil();
+    int native_rlGenTextureMipmaps(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 4)
+            return 0;
         int mipmaps = 1;
         rlGenTextureMipmaps(args[0].asNumber(), args[1].asNumber(), args[2].asNumber(), args[3].asNumber(), &mipmaps);
-        return vm->makeInt(mipmaps);
+        vm->pushInt(mipmaps);
+        return 1;
     }
 
     // =============================================================
     // 7. SHADERS (Vertex, Fragment, Compute)
     // =============================================================
 
-    Value native_rlLoadShaderCode(Interpreter *vm, int argc, Value *args) {
-        if (argc != 2) return vm->makeNil();
-        const char* vs = args[0].isString() ? args[0].asStringChars() : nullptr;
-        const char* fs = args[1].isString() ? args[1].asStringChars() : nullptr;
-        return vm->makeInt(rlLoadShaderCode(vs, fs));
+    int native_rlLoadShaderCode(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 2)
+            return 0;
+        const char *vs = args[0].isString() ? args[0].asStringChars() : nullptr;
+        const char *fs = args[1].isString() ? args[1].asStringChars() : nullptr;
+       vm->pushInt(rlLoadShaderCode(vs, fs));
+        return 1;
     }
 
-    Value native_rlCompileShader(Interpreter *vm, int argc, Value *args) {
-        if (argc != 2) return vm->makeNil();
-        return vm->makeInt(rlCompileShader(args[0].asStringChars(), args[1].asNumber()));
+    int native_rlCompileShader(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 2)
+            return 0;
+        vm->pushInt(rlCompileShader(args[0].asStringChars(), args[1].asNumber()));
+        return 1;
     }
 
-    Value native_rlLoadShaderProgram(Interpreter *vm, int argc, Value *args) {
-        if (argc != 2) return vm->makeNil();
-        return vm->makeInt(rlLoadShaderProgram(args[0].asNumber(), args[1].asNumber()));
+    int native_rlLoadShaderProgram(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 2)
+            return 0;
+        vm->pushInt(rlLoadShaderProgram(args[0].asNumber(), args[1].asNumber()));
+        return 1;
     }
 
-    Value native_rlUnloadShaderProgram(Interpreter *vm, int argc, Value *args) { rlUnloadShaderProgram(args[0].asNumber()); return vm->makeNil(); }
-
-    Value native_rlEnableShader(Interpreter *vm, int argc, Value *args) { rlEnableShader(args[0].asNumber()); return vm->makeNil(); }
-    Value native_rlDisableShader(Interpreter *vm, int argc, Value *args) { rlDisableShader(); return vm->makeNil(); }
-
-    Value native_rlGetLocationUniform(Interpreter *vm, int argc, Value *args) {
-        if (argc != 2) return vm->makeInt(-1);
-        return vm->makeInt(rlGetLocationUniform(args[0].asNumber(), args[1].asStringChars()));
+    int native_rlUnloadShaderProgram(Interpreter *vm, int argc, Value *args)
+    {
+        rlUnloadShaderProgram(args[0].asNumber());
+        return 0;
     }
 
-    Value native_rlSetUniform(Interpreter *vm, int argc, Value *args) {
-        // locIndex, value, type, count
-        if (argc < 3) return vm->makeNil();
+    int native_rlEnableShader(Interpreter *vm, int argc, Value *args)
+    {
+        rlEnableShader(args[0].asNumber());
+        return 0;
+    }
+    int native_rlDisableShader(Interpreter *vm, int argc, Value *args)
+    {
+        rlDisableShader();
+        return 0;
+    }
+
+    int native_rlGetLocationUniform(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 2)            
+        {
+            return 0;
+        }
+        vm->pushInt(rlGetLocationUniform(args[0].asNumber(), args[1].asStringChars()));
+        return 1;
+    }
+
+    int native_rlSetUniform(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc < 3)
+            return 0;
         int loc = args[0].asNumber();
         int type = args[2].asNumber();
-        
-        if (type == RL_SHADER_UNIFORM_FLOAT) {
+
+        if (type == RL_SHADER_UNIFORM_FLOAT)
+        {
             float val = args[1].asNumber();
             rlSetUniform(loc, &val, type, 1);
-        } else if (type == RL_SHADER_UNIFORM_INT) {
+        }
+        else if (type == RL_SHADER_UNIFORM_INT)
+        {
             int val = args[1].asNumber();
             rlSetUniform(loc, &val, type, 1);
-        } else if (type == RL_SHADER_UNIFORM_VEC3) {
-            // Se o utilizador passar um array de 3 elementos na VM, teríamos de extrair.
-            // Para simplificar, assumimos que neste binding básico não suportamos passar structs complexas
-            // sem Helpers específicos. Use rlSetUniformVec3 abaixo para isso.
         }
-        return vm->makeNil();
+        else if (type == RL_SHADER_UNIFORM_VEC3)
+        {
+            float vec[3];
+            if (vm->getVec3(args[1], vec))
+            {
+                rlSetUniform(loc, vec, type, 1);
+            }
+        }
+        else if (type == RL_SHADER_UNIFORM_VEC4)
+        {
+            float vec[4];
+            if (vm->getVec4(args[1], vec))
+            {
+                rlSetUniform(loc, vec, type, 1);
+            }
+        }
+        return 0;
     }
 
-    Value native_rlSetUniformSampler(Interpreter *vm, int argc, Value *args) {
-        if (argc != 2) return vm->makeNil();
+    int native_rlSetUniformSampler(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 2)
+            return 0;
         rlSetUniformSampler(args[0].asNumber(), args[1].asNumber());
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_rlLoadComputeShaderProgram(Interpreter *vm, int argc, Value *args) {
-        if (argc != 1) return vm->makeNil();
-        return vm->makeInt(rlLoadComputeShaderProgram(args[0].asNumber()));
+    int native_rlLoadComputeShaderProgram(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 1)
+            return 0;
+        vm->pushInt(rlLoadComputeShaderProgram(args[0].asNumber()));
+        return 1;
     }
 
-    Value native_rlComputeShaderDispatch(Interpreter *vm, int argc, Value *args) {
-        if (argc != 3) return vm->makeNil();
+    int native_rlComputeShaderDispatch(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 3)
+            return 0;
         rlComputeShaderDispatch(args[0].asNumber(), args[1].asNumber(), args[2].asNumber());
-        return vm->makeNil();
+        return 0;
+    }
+
+    int native_rlDrawRenderBatchActive(Interpreter *vm, int argc, Value *args)
+    {
+        rlDrawRenderBatchActive();
+        return 0;
     }
 
     // =============================================================
@@ -327,6 +615,8 @@ namespace SDLBindings
     {
         mod
             // --- LIFECYCLE ---
+            .addFunction("rlLoadExtensionsGLFW", native_rlLoadExtensionsGLFW, 0)
+            .addFunction("rlLoadExtensionsSDL", native_rlLoadExtensionsSDL, 0)
             .addFunction("rlglInit", native_rlglInit, 2)
             .addFunction("rlglClose", native_rlglClose, 0)
             .addFunction("rlGetVersion", native_rlGetVersion, 0)
@@ -374,6 +664,7 @@ namespace SDLBindings
             .addFunction("rlSetBlendMode", native_rlSetBlendMode, 1)
             .addFunction("rlClearColor", native_rlClearColor, 4)
             .addFunction("rlClearScreenBuffers", native_rlClearScreenBuffers, 0)
+            .addFunction("rlDrawRenderBatchActive", native_rlDrawRenderBatchActive, 0)
 
             // --- VERTEX ARRAYS & BUFFERS ---
             .addFunction("rlLoadVertexArray", native_rlLoadVertexArray, 0)
@@ -414,9 +705,9 @@ namespace SDLBindings
             // ---------------- CONSTANTES COMPLETAS ----------------
 
             // Primitives
-            .addInt("RL_LINES", RL_LINES)
-            .addInt("RL_TRIANGLES", RL_TRIANGLES)
-            .addInt("RL_QUADS", RL_QUADS)
+            .addByte("RL_LINES", RL_LINES)
+            .addByte("RL_TRIANGLES", RL_TRIANGLES)
+            .addByte("RL_QUADS", RL_QUADS)
 
             // Matrix Modes
             .addInt("RL_MODELVIEW", RL_MODELVIEW)
@@ -424,8 +715,8 @@ namespace SDLBindings
             .addInt("RL_TEXTURE", RL_TEXTURE)
 
             // Culling
-            .addInt("RL_CULL_FACE_FRONT", RL_CULL_FACE_FRONT)
-            .addInt("RL_CULL_FACE_BACK", RL_CULL_FACE_BACK)
+            .addByte("RL_CULL_FACE_FRONT", RL_CULL_FACE_FRONT)
+            .addByte("RL_CULL_FACE_BACK", RL_CULL_FACE_BACK)
 
             // Texture Parameters
             .addInt("RL_TEXTURE_WRAP_S", RL_TEXTURE_WRAP_S)
@@ -439,54 +730,56 @@ namespace SDLBindings
             .addInt("RL_TEXTURE_FILTER_LINEAR_MIP_NEAREST", RL_TEXTURE_FILTER_LINEAR_MIP_NEAREST)
             .addInt("RL_TEXTURE_FILTER_MIP_LINEAR", RL_TEXTURE_FILTER_MIP_LINEAR)
             .addInt("RL_TEXTURE_FILTER_ANISOTROPIC", RL_TEXTURE_FILTER_ANISOTROPIC)
-            
+
             .addInt("RL_TEXTURE_WRAP_REPEAT", RL_TEXTURE_WRAP_REPEAT)
             .addInt("RL_TEXTURE_WRAP_CLAMP", RL_TEXTURE_WRAP_CLAMP)
             .addInt("RL_TEXTURE_WRAP_MIRROR_REPEAT", RL_TEXTURE_WRAP_MIRROR_REPEAT)
             .addInt("RL_TEXTURE_WRAP_MIRROR_CLAMP", RL_TEXTURE_WRAP_MIRROR_CLAMP)
 
             // Blend Modes
-            .addInt("RL_BLEND_ALPHA", RL_BLEND_ALPHA)
-            .addInt("RL_BLEND_ADDITIVE", RL_BLEND_ADDITIVE)
-            .addInt("RL_BLEND_MULTIPLIED", RL_BLEND_MULTIPLIED)
-            .addInt("RL_BLEND_ADD_COLORS", RL_BLEND_ADD_COLORS)
-            .addInt("RL_BLEND_SUBTRACT_COLORS", RL_BLEND_SUBTRACT_COLORS)
-            .addInt("RL_BLEND_ALPHA_PREMULTIPLY", RL_BLEND_ALPHA_PREMULTIPLY)
-            .addInt("RL_BLEND_CUSTOM", RL_BLEND_CUSTOM)
+            .addByte("RL_BLEND_ALPHA", RL_BLEND_ALPHA)
+            .addByte("RL_BLEND_ADDITIVE", RL_BLEND_ADDITIVE)
+            .addByte("RL_BLEND_MULTIPLIED", RL_BLEND_MULTIPLIED)
+            .addByte("RL_BLEND_ADD_COLORS", RL_BLEND_ADD_COLORS)
+            .addByte("RL_BLEND_SUBTRACT_COLORS", RL_BLEND_SUBTRACT_COLORS)
+            .addByte("RL_BLEND_ALPHA_PREMULTIPLY", RL_BLEND_ALPHA_PREMULTIPLY)
+            .addByte("RL_BLEND_CUSTOM", RL_BLEND_CUSTOM)
 
             // Attachments (COMPLETO)
-            .addInt("RL_ATTACHMENT_COLOR_CHANNEL0", RL_ATTACHMENT_COLOR_CHANNEL0)
-            .addInt("RL_ATTACHMENT_COLOR_CHANNEL1", RL_ATTACHMENT_COLOR_CHANNEL1)
-            .addInt("RL_ATTACHMENT_COLOR_CHANNEL2", RL_ATTACHMENT_COLOR_CHANNEL2)
-            .addInt("RL_ATTACHMENT_DEPTH", RL_ATTACHMENT_DEPTH)
-            .addInt("RL_ATTACHMENT_STENCIL", RL_ATTACHMENT_STENCIL)
-            .addInt("RL_ATTACHMENT_TEXTURE2D", RL_ATTACHMENT_TEXTURE2D)
-            .addInt("RL_ATTACHMENT_RENDERBUFFER", RL_ATTACHMENT_RENDERBUFFER)
-            .addInt("RL_ATTACHMENT_CUBEMAP_POSITIVE_X", RL_ATTACHMENT_CUBEMAP_POSITIVE_X)
-            .addInt("RL_ATTACHMENT_CUBEMAP_NEGATIVE_X", RL_ATTACHMENT_CUBEMAP_NEGATIVE_X)
-            .addInt("RL_ATTACHMENT_CUBEMAP_POSITIVE_Y", RL_ATTACHMENT_CUBEMAP_POSITIVE_Y)
-            .addInt("RL_ATTACHMENT_CUBEMAP_NEGATIVE_Y", RL_ATTACHMENT_CUBEMAP_NEGATIVE_Y)
-            .addInt("RL_ATTACHMENT_CUBEMAP_POSITIVE_Z", RL_ATTACHMENT_CUBEMAP_POSITIVE_Z)
-            .addInt("RL_ATTACHMENT_CUBEMAP_NEGATIVE_Z", RL_ATTACHMENT_CUBEMAP_NEGATIVE_Z)
+            .addByte("RL_ATTACHMENT_COLOR_CHANNEL0", RL_ATTACHMENT_COLOR_CHANNEL0)
+            .addByte("RL_ATTACHMENT_COLOR_CHANNEL1", RL_ATTACHMENT_COLOR_CHANNEL1)
+            .addByte("RL_ATTACHMENT_COLOR_CHANNEL2", RL_ATTACHMENT_COLOR_CHANNEL2)
+            .addByte("RL_ATTACHMENT_DEPTH", RL_ATTACHMENT_DEPTH)
+            .addByte("RL_ATTACHMENT_STENCIL", RL_ATTACHMENT_STENCIL)
+            .addByte("RL_ATTACHMENT_TEXTURE2D", RL_ATTACHMENT_TEXTURE2D)
+            .addByte("RL_ATTACHMENT_RENDERBUFFER", RL_ATTACHMENT_RENDERBUFFER)
+            .addByte("RL_ATTACHMENT_CUBEMAP_POSITIVE_X", RL_ATTACHMENT_CUBEMAP_POSITIVE_X)
+            .addByte("RL_ATTACHMENT_CUBEMAP_NEGATIVE_X", RL_ATTACHMENT_CUBEMAP_NEGATIVE_X)
+            .addByte("RL_ATTACHMENT_CUBEMAP_POSITIVE_Y", RL_ATTACHMENT_CUBEMAP_POSITIVE_Y)
+            .addByte("RL_ATTACHMENT_CUBEMAP_NEGATIVE_Y", RL_ATTACHMENT_CUBEMAP_NEGATIVE_Y)
+            .addByte("RL_ATTACHMENT_CUBEMAP_POSITIVE_Z", RL_ATTACHMENT_CUBEMAP_POSITIVE_Z)
+            .addByte("RL_ATTACHMENT_CUBEMAP_NEGATIVE_Z", RL_ATTACHMENT_CUBEMAP_NEGATIVE_Z)
 
             // Shader Types
             .addInt("RL_FRAGMENT_SHADER", RL_FRAGMENT_SHADER)
             .addInt("RL_VERTEX_SHADER", RL_VERTEX_SHADER)
             .addInt("RL_COMPUTE_SHADER", RL_COMPUTE_SHADER)
-            
+
             // Uniform Types
-            .addInt("RL_SHADER_UNIFORM_FLOAT", RL_SHADER_UNIFORM_FLOAT)
-            .addInt("RL_SHADER_UNIFORM_VEC2", RL_SHADER_UNIFORM_VEC2)
-            .addInt("RL_SHADER_UNIFORM_VEC3", RL_SHADER_UNIFORM_VEC3)
-            .addInt("RL_SHADER_UNIFORM_VEC4", RL_SHADER_UNIFORM_VEC4)
-            .addInt("RL_SHADER_UNIFORM_INT", RL_SHADER_UNIFORM_INT)
-            .addInt("RL_SHADER_UNIFORM_IVEC2", RL_SHADER_UNIFORM_IVEC2)
-            .addInt("RL_SHADER_UNIFORM_IVEC3", RL_SHADER_UNIFORM_IVEC3)
-            .addInt("RL_SHADER_UNIFORM_IVEC4", RL_SHADER_UNIFORM_IVEC4)
-            .addInt("RL_SHADER_UNIFORM_SAMPLER2D", RL_SHADER_UNIFORM_SAMPLER2D);
-            
-            
+            .addByte("RL_SHADER_UNIFORM_FLOAT", RL_SHADER_UNIFORM_FLOAT)
+            .addByte("RL_SHADER_UNIFORM_VEC2", RL_SHADER_UNIFORM_VEC2)
+            .addByte("RL_SHADER_UNIFORM_VEC3", RL_SHADER_UNIFORM_VEC3)
+            .addByte("RL_SHADER_UNIFORM_VEC4", RL_SHADER_UNIFORM_VEC4)
+            .addByte("RL_SHADER_UNIFORM_INT", RL_SHADER_UNIFORM_INT)
+            .addByte("RL_SHADER_UNIFORM_IVEC2", RL_SHADER_UNIFORM_IVEC2)
+            .addByte("RL_SHADER_UNIFORM_IVEC3", RL_SHADER_UNIFORM_IVEC3)
+            .addByte("RL_SHADER_UNIFORM_IVEC4", RL_SHADER_UNIFORM_IVEC4)
+            .addByte("RL_SHADER_UNIFORM_SAMPLER2D", RL_SHADER_UNIFORM_SAMPLER2D);
+    }
 
-  }
-}  
-
+    void registerAll(Interpreter &vm)
+    {
+        ModuleBuilder module = vm.addModule("RLGL");
+        register_rlgl(module);
+    }
+}

@@ -7,122 +7,134 @@ namespace RaylibBindings
     // KEYBOARD
     // ========================================
 
-    static Value native_IsKeyPressed(Interpreter *vm, int argc, Value *args)
+    static int native_IsKeyPressed(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
-            return vm->makeBool(false);
-        return vm->makeBool(IsKeyPressed((int)args[0].asNumber()));
+            return 0;
+        vm->pushBool(IsKeyPressed((int)args[0].asNumber()));
+        return 1;
     }
 
-    static Value native_IsKeyDown(Interpreter *vm, int argc, Value *args)
+    static int native_IsKeyDown(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
-            return vm->makeBool(false);
-        return vm->makeBool(IsKeyDown((int)args[0].asNumber()));
+            return 0;
+        vm->pushBool(IsKeyDown((int)args[0].asNumber()));
+        return 1;
     }
 
-    static Value native_IsKeyReleased(Interpreter *vm, int argc, Value *args)
+    static int native_IsKeyReleased(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
-            return vm->makeBool(false);
-        return vm->makeBool(IsKeyReleased((int)args[0].asNumber()));
+            return 0;
+        vm->pushBool(IsKeyReleased((int)args[0].asNumber()));
+        return 1;
     }
 
-    static Value native_IsKeyUp(Interpreter *vm, int argc, Value *args)
+    static int native_IsKeyUp(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
-            return vm->makeBool(false);
-        return vm->makeBool(IsKeyUp((int)args[0].asNumber()));
+            return 0;
+        vm->pushBool(IsKeyUp((int)args[0].asNumber()));
+        return 1;
     }
 
-    static Value native_GetKeyPressed(Interpreter *vm, int argc, Value *args)
+    static int native_GetKeyPressed(Interpreter *vm, int argc, Value *args)
     {
-        return vm->makeInt(GetKeyPressed());
+        vm->pushInt(GetKeyPressed());
+        return 1;
     }
 
     // ========================================
     // MOUSE
     // ========================================
 
-    static Value native_IsMouseButtonPressed(Interpreter *vm, int argc, Value *args)
+    static int native_IsMouseButtonPressed(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("IsMouseButtonPressed expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isInt())
         {
             Error("IsMouseButtonPressed expects int");
-            return vm->makeNil();
+            return 0;
         }
 
-        return vm->makeBool(IsMouseButtonPressed(args[0].asNumber()));
+        vm->pushBool(IsMouseButtonPressed(args[0].asNumber()));
+        return 1;
     }
 
-    static Value native_IsMouseButtonDown(Interpreter *vm, int argc, Value *args)
+    static int native_IsMouseButtonDown(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("IsMouseButtonDown expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isInt())
         {
             Error("IsMouseButtonDown expects int");
-            return vm->makeNil();
+            return 0;
         }
 
-        return vm->makeBool(IsMouseButtonDown(args[0].asNumber()));
+        vm->pushBool(IsMouseButtonDown(args[0].asNumber()));
+        return 1;
     }
 
-    static Value native_IsMouseButtonReleased(Interpreter *vm, int argc, Value *args)
+    static int native_IsMouseButtonReleased(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("IsMouseButtonReleased expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isInt())
         {
             Error("IsMouseButtonReleased expects int");
-            return vm->makeNil();
+            return 0;
         }
 
-        return vm->makeBool(IsMouseButtonReleased(args[0].asNumber()));
+        vm->pushBool(IsMouseButtonReleased(args[0].asNumber()));
+        return 1;
     }
 
-    static Value native_IsMouseButtonUp(Interpreter *vm, int argc, Value *args)
+    static int native_IsMouseButtonUp(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("IsMouseButtonUp expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isInt())
         {
             Error("IsMouseButtonUp expects int");
-            return vm->makeNil();
+            return 0;
         }
 
-        return vm->makeBool(IsMouseButtonUp(args[0].asNumber()));
+        vm->pushBool(IsMouseButtonUp(args[0].asNumber()));
+        return 1;
     }
 
-    static Value native_GetMouseX(Interpreter *vm, int argc, Value *args)
+    static int native_GetMouseX(Interpreter *vm, int argc, Value *args)
     {
-        return vm->makeInt(GetMouseX());
+        vm->pushInt(GetMouseX());
+        return 1;
     }
 
-    static Value native_GetMouseY(Interpreter *vm, int argc, Value *args)
+    static int native_GetMouseY(Interpreter *vm, int argc, Value *args)
     {
-        return vm->makeInt(GetMouseY());
+        vm->pushInt(GetMouseY());
+        return 1;
     }
 
-    static Value native_GetMousePosition(Interpreter *vm, int argc, Value *args)
+    static int native_GetMousePosition(Interpreter *vm, int argc, Value *args)
     {
         Vector2 v = GetMousePosition();
-        // TODO: Return Vector2 struct instance
-        return vm->makeInt(-1);
+        vm->pushDouble(v.x);
+        vm->pushDouble(v.y);
+        return 2;
     }
 
     // ========================================

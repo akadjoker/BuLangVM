@@ -1,12 +1,11 @@
-// Test raylib plugin with require keyword
-print "Testing raylib plugin...";
+ 
 
 // Load raylib plugin
 require "glfw";
 require "raylib";
 require "rlgl";
 
-print "Raylib plugin loaded!";
+print ("Raylib plugin loaded!");
 
 // // Import the module
  import raylib;
@@ -22,23 +21,23 @@ using GLFW;
  var white = Color(245, 245, 245, 255);
  var darkGray = Color(80, 80, 80, 255);
 
-// // Test window creation
+ 
  InitWindow(800, 600, "BuLang Raylib Test");
-// print "Window created!";
+ 
 
 // // Main loop - just a few frames to test
-// var frameCount = 0;
-// while (!WindowShouldClose() && frameCount < 120)
-// {
-//     BeginDrawing();
-//     ClearBackground(white);
-//     DrawText("Hello from BuLang!", 200, 280, 30, darkGray);
-//     DrawFPS(10, 10);
-//     EndDrawing();
-//     frameCount = frameCount + 1;
-// }
+
+while (!WindowShouldClose())
+{
+    BeginDrawing();
+    ClearBackground(white);
+    DrawText("Hello from BuLang!", 200, 280, 30, darkGray);
+    DrawFPS(10, 10);
+    EndDrawing();
+
+}
 
 CloseWindow();
-// print "Window closed!";
+ 
 
-print "Raylib plugin test passed!";
+print("Raylib plugin test passed!");

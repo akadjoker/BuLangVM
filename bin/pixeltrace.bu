@@ -1,0 +1,276 @@
+require "raylib";
+import math;
+import raylib;
+using raylib;
+
+var screenW = 800;
+var screenH = 600;
+
+InitWindow(screenW, screenH, "DOOM Raycaster");
+SetTargetFPS(60);
+
+var WHITE = Color(255, 255, 255, 255);
+var BLACK = Color(0, 0, 0, 255);
+var RED = Color(255, 0, 0, 255);
+var GRAY = Color(100, 100, 100, 255);
+var DARK_GRAY = Color(50, 50, 50, 255);
+
+// ==========================================
+// MAPA (1 = parede, 0 = vazio)
+// ==========================================
+var mapW = 16;
+var mapH = 16;
+
+var worldMap = [];
+
+// Linha por linha
+var rows = [
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,1,1,1,0,0,0,0,1,1,1,0,0,1],
+    [1,0,0,1,0,0,0,0,0,0,0,0,1,0,0,1],
+    [1,0,0,1,0,0,0,0,0,0,0,0,1,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,1,0,0,0,0,0,0,0,0,1,0,0,1],
+    [1,0,0,1,0,0,0,0,0,0,0,0,1,0,0,1],
+    [1,0,0,1,1,1,0,0,0,0,1,1,1,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+];
+
+for (var y = 0; y < mapH; y = y + 1)
+{
+    var row = rows[y];
+    for (var x = 0; x < mapW; x = x + 1)
+    {
+        worldMap.push(row[x]);
+    }
+}
+
+def getMap(x, y)
+{
+    if (x < 0 || x >= mapW || y < 0 || y >= mapH)
+        return 1;
+    return worldMap[y * mapW + x];
+}
+
+// ==========================================
+// PLAYER
+// ==========================================
+
+var posX = 4.0;
+var posY = 8.0;
+var dirX = -1.0;
+var dirY = 0.0;
+var planeX = 0.0;
+var planeY = 0.66;  // FOV
+
+var moveSpeed = 0.05;
+var rotSpeed = 0.03;
+
+// ==========================================
+// RAYCASTING
+// ==========================================
+def castRays()
+{
+    for (var x = 0; x < screenW; x = x + 1)
+    {
+        var cameraX = 2.0 * x / screenW - 1.0;
+        var rayDirX = dirX + planeX * cameraX;
+        var rayDirY = dirY + planeY * cameraX;
+
+        // --- CORREÇÃO 1: Remover o hack do 0.0001 aqui ---
+        // Não toques no rayDirX/Y aqui para não estragar o sinal (+/-)
+
+        var mapX = floor(posX);
+        var mapY = floor(posY);
+        
+        // --- CORREÇÃO 2: DeltaDist Seguro ---
+        var deltaDistX;
+        var deltaDistY;
+
+        // Se for 0, a distância é "infinita" (número gigante), senão divide
+        if (rayDirX == 0.0) deltaDistX = 10000000.0; 
+        else deltaDistX = abs(1.0 / rayDirX);
+
+        if (rayDirY == 0.0) deltaDistY = 10000000.0;
+        else deltaDistY = abs(1.0 / rayDirY);
+        
+        var stepX, stepY;
+        var sideDistX, sideDistY;
+        
+        if (rayDirX < 0.0)
+        {
+            stepX = -1;
+            sideDistX = (posX - mapX) * deltaDistX;
+        }
+        else
+        {
+            stepX = 1;
+            sideDistX = (mapX + 1.0 - posX) * deltaDistX;
+        }
+        
+        if (rayDirY < 0.0)
+        {
+            stepY = -1;
+            sideDistY = (posY - mapY) * deltaDistY;
+        }
+        else
+        {
+            stepY = 1;
+            sideDistY = (mapY + 1.0 - posY) * deltaDistY;
+        }
+        
+        var hit = 0;
+        var side = 0;
+        
+        // Proteção contra loop infinito (caso o raio fuja do mapa)
+        var steps = 0;
+        while (hit == 0 && steps < 100) 
+        {
+            steps = steps + 1;
+            if (sideDistX < sideDistY)
+            {
+                sideDistX = sideDistX + deltaDistX;
+                mapX = mapX + stepX;
+                side = 0;
+            }
+            else
+            {
+                sideDistY = sideDistY + deltaDistY;
+                mapY = mapY + stepY;
+                side = 1;
+            }
+            
+            // Verifica limites do array antes de ler!
+            if (mapX >= 0 && mapX < mapW && mapY >= 0 && mapY < mapH)
+            {
+                if (getMap(mapX, mapY) > 0) hit = 1;
+            }
+            else
+            {
+                hit = 1; // Saiu do mapa, finge que bateu para parar
+            }
+        }
+        
+        // --- CORREÇÃO 3: PerpWallDist Seguro ---
+        var perpWallDist;
+        if (side == 0)
+        {
+            // Evitar divisão por zero se rayDirX for muito pequeno
+            if (abs(rayDirX) < 0.00001) perpWallDist = 0.00001;
+            else perpWallDist = (mapX - posX + (1 - stepX) / 2) / rayDirX;
+        }
+        else
+        {
+            if (abs(rayDirY) < 0.00001) perpWallDist = 0.00001;
+            else perpWallDist = (mapY - posY + (1 - stepY) / 2) / rayDirY;
+        }
+        
+        // Evitar distâncias negativas ou zero absoluto no cálculo da altura
+        if (perpWallDist <= 0.0001) perpWallDist = 0.0001;
+
+        var lineHeight = floor(screenH / perpWallDist);
+        
+        var drawStart = -lineHeight / 2 + screenH / 2;
+        if (drawStart < 0) drawStart = 0;
+        
+        var drawEnd = lineHeight / 2 + screenH / 2;
+        if (drawEnd >= screenH) drawEnd = screenH - 1;
+        
+        var color;
+        if (side == 1) color = GRAY; else color = WHITE;
+        
+        DrawLine(x, drawStart, x, drawEnd, color);
+    }
+}
+// ==========================================
+// MINIMAP
+// ==========================================
+
+def drawMinimap()
+{
+    var scale = 20;
+    var offsetX = 10;
+    var offsetY = 10;
+    
+    for (var y = 0; y < mapH; y = y + 1)
+    {
+        for (var x = 0; x < mapW; x = x + 1)
+        {
+            if (getMap(x, y) > 0)
+                DrawRectangle(offsetX + x * scale, offsetY + y * scale, scale, scale, WHITE);
+        }
+    }
+    
+    var px = floor(posX * scale);
+    var py = floor(posY * scale);
+    DrawCircle(offsetX + px, offsetY + py, 3, RED);
+}
+
+// ==========================================
+// MAIN LOOP
+// ==========================================
+
+while (!WindowShouldClose())
+{
+    // INPUT
+    if (IsKeyDown(KEY_W))
+    {
+        if (getMap(floor(posX + dirX * moveSpeed), floor(posY)) == 0)
+            posX = posX + dirX * moveSpeed;
+        if (getMap(floor(posX), floor(posY + dirY * moveSpeed)) == 0)
+            posY = posY + dirY * moveSpeed;
+    }
+    
+    if (IsKeyDown(KEY_S))
+    {
+        if (getMap(floor(posX - dirX * moveSpeed), floor(posY)) == 0)
+            posX = posX - dirX * moveSpeed;
+        if (getMap(floor(posX), floor(posY - dirY * moveSpeed)) == 0)
+            posY = posY - dirY * moveSpeed;
+    }
+    
+    if (IsKeyDown(KEY_A))
+    {
+        var oldDirX = dirX;
+        dirX = dirX * cos(rotSpeed) - dirY * sin(rotSpeed);
+        dirY = oldDirX * sin(rotSpeed) + dirY * cos(rotSpeed);
+        
+        var oldPlaneX = planeX;
+        planeX = planeX * cos(rotSpeed) - planeY * sin(rotSpeed);
+        planeY = oldPlaneX * sin(rotSpeed) + planeY * cos(rotSpeed);
+    }
+    
+    if (IsKeyDown(KEY_D))
+    {
+        var oldDirX = dirX;
+        dirX = dirX * cos(-rotSpeed) - dirY * sin(-rotSpeed);
+        dirY = oldDirX * sin(-rotSpeed) + dirY * cos(-rotSpeed);
+        
+        var oldPlaneX = planeX;
+        planeX = planeX * cos(-rotSpeed) - planeY * sin(-rotSpeed);
+        planeY = oldPlaneX * sin(-rotSpeed) + planeY * cos(-rotSpeed);
+    }
+    
+    BeginDrawing();
+    
+    // Céu e chão
+    DrawRectangle(0, 0, screenW, screenH / 2, Color(50, 50, 100, 255));
+    DrawRectangle(0, screenH / 2, screenW, screenH / 2, DARK_GRAY);
+    
+    castRays();
+    drawMinimap();
+    
+    DrawText("WASD = Move/Rotate", 10, screenH - 30, 16, WHITE);
+    DrawFPS(screenW - 100, 10);
+    
+    EndDrawing();
+}
+
+CloseWindow();

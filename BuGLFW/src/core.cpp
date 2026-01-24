@@ -7,156 +7,159 @@ namespace GLFWBindings
     // INITIALIZATION & TERMINATION
     // =============================================================
 
-    Value native_glfwInit(Interpreter *vm, int argc, Value *args)
+    int native_glfwInit(Interpreter *vm, int argc, Value *args)
     {
         int result = glfwInit();
-        return vm->makeInt(result);
+        vm->pushBool(result == GLFW_TRUE);
+        return 1;
     }
 
-    Value native_glfwTerminate(Interpreter *vm, int argc, Value *args)
+    int native_glfwTerminate(Interpreter *vm, int argc, Value *args)
     {
         glfwTerminate();
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_glfwInitHint(Interpreter *vm, int argc, Value *args)
+    int native_glfwInitHint(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 2)
         {
             Error("glfwInitHint expects 2 arguments (hint, value)");
-            return vm->makeNil();
+            return 0;
         }
 
         int hint = args[0].asNumber();
         int value = args[1].asNumber();
         glfwInitHint(hint, value);
-        return vm->makeNil();
+        return 0;
     }
 
     // =============================================================
     // VERSION
     // =============================================================
 
-    Value native_glfwGetVersion(Interpreter *vm, int argc, Value *args)
+    int native_glfwGetVersion(Interpreter *vm, int argc, Value *args)
     {
         int major, minor, revision;
         glfwGetVersion(&major, &minor, &revision);
 
-        Value result = vm->makeMap();
-        MapInstance *map = result.asMap();
-        map->table.set(vm->makeString("major").asString(), vm->makeInt(major));
-        map->table.set(vm->makeString("minor").asString(), vm->makeInt(minor));
-        map->table.set(vm->makeString("revision").asString(), vm->makeInt(revision));
-        return result;
+        vm->pushInt(major);
+        vm->pushInt(minor);
+        vm->pushInt(revision);
+        return 3;
+      
     }
 
-    Value native_glfwGetVersionString(Interpreter *vm, int argc, Value *args)
+    int native_glfwGetVersionString(Interpreter *vm, int argc, Value *args)
     {
         const char *version = glfwGetVersionString();
-        return vm->makeString(version);
+        vm->pushString(version);
+        return 1;
     }
 
     // =============================================================
     // ERROR HANDLING
     // =============================================================
 
-    Value native_glfwGetError(Interpreter *vm, int argc, Value *args)
+    int native_glfwGetError(Interpreter *vm, int argc, Value *args)
     {
         const char *description;
         int error = glfwGetError(&description);
 
-        Value result = vm->makeMap();
-        MapInstance *map = result.asMap();
-        map->table.set(vm->makeString("code").asString(), vm->makeInt(error));
-        map->table.set(vm->makeString("description").asString(), 
-                      description ? vm->makeString(description) : vm->makeNil());
-        return result;
+        vm->pushInt(error);
+        vm->pushString(description);
+        return 2;
     }
 
     // =============================================================
     // TIME
     // =============================================================
 
-    Value native_glfwGetTime(Interpreter *vm, int argc, Value *args)
+    int native_glfwGetTime(Interpreter *vm, int argc, Value *args)
     {
         double time = glfwGetTime();
-        return vm->makeDouble(time);
+         vm->pushDouble(time);
+        return 1;
     }
 
-    Value native_glfwSetTime(Interpreter *vm, int argc, Value *args)
+    int native_glfwSetTime(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("glfwSetTime expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
 
         double time = args[0].asNumber();
         glfwSetTime(time);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_glfwGetTimerValue(Interpreter *vm, int argc, Value *args)
+    int native_glfwGetTimerValue(Interpreter *vm, int argc, Value *args)
     {
         uint64_t value = glfwGetTimerValue();
-        return vm->makeDouble((double)value);
+         vm->pushDouble((double)value);
+         return 1;
     }
 
-    Value native_glfwGetTimerFrequency(Interpreter *vm, int argc, Value *args)
+    int native_glfwGetTimerFrequency(Interpreter *vm, int argc, Value *args)
     {
         uint64_t freq = glfwGetTimerFrequency();
-        return vm->makeDouble((double)freq);
+         vm->pushDouble((double)freq);
+         return 1;
     }
 
     // =============================================================
     // CLIPBOARD
     // =============================================================
 
-    Value native_glfwSetClipboardString(Interpreter *vm, int argc, Value *args)
+    int native_glfwSetClipboardString(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 2)
         {
             Error("glfwSetClipboardString expects 2 arguments (window, string)");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("glfwSetClipboardString expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         GLFWwindow *window = (GLFWwindow *)args[0].asPointer();
         const char *text = args[1].asStringChars();
         glfwSetClipboardString(window, text);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_glfwGetClipboardString(Interpreter *vm, int argc, Value *args)
+    int native_glfwGetClipboardString(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("glfwGetClipboardString expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("glfwGetClipboardString expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         GLFWwindow *window = (GLFWwindow *)args[0].asPointer();
         const char *text = glfwGetClipboardString(window);
-        return text ? vm->makeString(text) : vm->makeString("");
+        vm->pushString(text);
+        return 1;
     }
 
     // =============================================================
     // VULKAN SUPPORT
     // =============================================================
 
-    Value native_glfwVulkanSupported(Interpreter *vm, int argc, Value *args)
+    int native_glfwVulkanSupported(Interpreter *vm, int argc, Value *args)
     {
         int result = glfwVulkanSupported();
-        return vm->makeBool(result == GLFW_TRUE);
+         vm->pushBool(result == GLFW_TRUE);
+        return 1;
     }
 
     void register_core(ModuleBuilder &mod)
@@ -202,7 +205,7 @@ namespace GLFWBindings
             // =============================================================
             // ERROR CODES
             // =============================================================
-            .addInt("GLFW_NO_ERROR", GLFW_NO_ERROR)
+            .addByte("GLFW_NO_ERROR", GLFW_NO_ERROR)
             .addInt("GLFW_NOT_INITIALIZED", GLFW_NOT_INITIALIZED)
             .addInt("GLFW_NO_CURRENT_CONTEXT", GLFW_NO_CURRENT_CONTEXT)
             .addInt("GLFW_INVALID_ENUM", GLFW_INVALID_ENUM)
@@ -216,7 +219,7 @@ namespace GLFWBindings
             // =============================================================
             // BOOLEAN VALUES
             // =============================================================
-            .addInt("GLFW_TRUE", GLFW_TRUE)
-            .addInt("GLFW_FALSE", GLFW_FALSE);
+            .addByte("GLFW_TRUE", GLFW_TRUE)
+            .addByte("GLFW_FALSE", GLFW_FALSE);
     }
 }

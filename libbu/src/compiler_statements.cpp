@@ -189,16 +189,7 @@ void Compiler::printStatement()
 {
     uint8_t argCount = 0;
 
-    // Se não tem parênteses, aceita sintaxe antiga: print x;
-    if (!check(TOKEN_LPAREN))
-    {
-        expression();
-        if (hadError)
-            return;
-        argCount = 1;
-    }
-    else
-    {
+ 
         consume(TOKEN_LPAREN, "Expect '('");
 
         if (!check(TOKEN_RPAREN))
@@ -218,7 +209,7 @@ void Compiler::printStatement()
         }
 
         consume(TOKEN_RPAREN, "Expect ')' after arguments");
-    }
+    
 
     consume(TOKEN_SEMICOLON, "Expect ';'");
 
@@ -249,6 +240,64 @@ void Compiler::expressionStatement()
 
 void Compiler::varDeclaration()
 {
+    // =========================================
+    // MÚLTIPLOS RETORNOS: var (a, b, c) = expr()
+    // =========================================
+    if (match(TOKEN_LPAREN))
+    {
+        std::vector<Token> names;
+        std::vector<uint8_t> globals;
+
+        // Colectar nomes das variáveis
+        do {
+            consume(TOKEN_IDENTIFIER, "Expect variable name in multi-assignment");
+            names.push_back(previous);
+
+            uint8_t global = identifierConstant(previous);
+            globals.push_back(global);
+
+            if (scopeDepth > 0)
+            {
+                declareVariable();
+                validateIdentifierName(previous);
+                if (hadError) return;
+            }
+        } while (match(TOKEN_COMMA));
+
+        consume(TOKEN_RPAREN, "Expect ')' after variable list");
+        consume(TOKEN_EQUAL, "Expect '=' in multi-assignment");
+
+        // Compilar a expressão (deixa N valores na stack)
+        expression();
+        if (hadError) return;
+
+        // Atribuir cada valor (do último para o primeiro - stack é LIFO)
+        // Os valores estão na stack: [v0, v1, v2, ...] com vN-1 no topo
+        // Queremos: names[0]=v0, names[1]=v1, etc.
+        // Então atribuímos de trás para frente
+        for (int i = (int)names.size() - 1; i >= 0; i--)
+        {
+            if (scopeDepth == 0)
+            {
+                int privateIdx = vm_->getProcessPrivateIndex(names[i].lexeme.c_str());
+                if (privateIdx != -1)
+                {
+                    Warning("Global variable '%s' shadows process private variable.",
+                            names[i].lexeme.c_str());
+                }
+                declaredGlobals_.insert(names[i].lexeme);
+            }
+
+            defineVariable(globals[i]);
+        }
+
+        consume(TOKEN_SEMICOLON, "Expect ';' after multi-assignment");
+        return;
+    }
+
+    // =========================================
+    // DECLARAÇÃO NORMAL: var a, var a = x, etc.
+    // =========================================
     do
     {
         consume(TOKEN_IDENTIFIER, "Expect variable name");
@@ -271,8 +320,8 @@ void Compiler::varDeclaration()
             }
         }
 
-        //  Se tem '=' e NÃO tem vírgula depois
-        if (match(TOKEN_EQUAL) && !check(TOKEN_COMMA))
+        // Se tem '=' atribui o valor, senão atribui nil
+        if (match(TOKEN_EQUAL))
         {
             expression();
             if (hadError)
@@ -280,14 +329,6 @@ void Compiler::varDeclaration()
         }
         else
         {
-            // Ignora '=' se tem vírgula, ou não tem '='
-            if (match(TOKEN_EQUAL))
-            {
-                expression(); // Compila mas descarta
-                if (hadError)
-                    return;
-                emitByte(OP_POP);
-            }
             emitByte(OP_NIL);
         }
 
@@ -2163,32 +2204,60 @@ void Compiler::parseImport()
 void Compiler::parseRequire()
 {
     // require "SDL";
-    // require "raylib";
+    // require "glfw,rlgl";      // múltiplos separados por vírgula
+    // require "glfw;rlgl;gtk";  // múltiplos separados por ponto e vírgula
 
     consume(TOKEN_STRING, "Expect plugin name as string after 'require'");
-    std::string pluginName = previous.lexeme;
+    std::string pluginList = previous.lexeme;
 
     // Remove quotes from string literal
-    if (pluginName.size() >= 2 && pluginName.front() == '"' && pluginName.back() == '"')
+    if (pluginList.size() >= 2 && pluginList.front() == '"' && pluginList.back() == '"')
     {
-        pluginName = pluginName.substr(1, pluginName.size() - 2);
+        pluginList = pluginList.substr(1, pluginList.size() - 2);
     }
 
-    // Check if module is already loaded (e.g., via --plugin command line)
-    if (vm_->containsModule(pluginName.c_str()))
-    {
-        // Module already loaded, nothing to do
-        consume(TOKEN_SEMICOLON, "Expect ';' after require");
-        return;
-    }
+    // Parse múltiplos plugins separados por ',' ou ';'
+    size_t start = 0;
+    size_t end = 0;
 
-    // Try to load the plugin
-    if (!vm_->loadPluginByName(pluginName.c_str()))
+    while (start < pluginList.size())
     {
-        fail("Failed to load plugin '%s': %s",
-             pluginName.c_str(),
-             vm_->getLastPluginError());
-        return;
+        // Encontrar o próximo separador (',' ou ';')
+        end = pluginList.find_first_of(",;", start);
+        if (end == std::string::npos)
+        {
+            end = pluginList.size();
+        }
+
+        // Extrair nome do plugin e remover espaços
+        std::string pluginName = pluginList.substr(start, end - start);
+
+        // Trim whitespace
+        size_t first = pluginName.find_first_not_of(" \t");
+        size_t last = pluginName.find_last_not_of(" \t");
+        if (first != std::string::npos && last != std::string::npos)
+        {
+            pluginName = pluginName.substr(first, last - first + 1);
+        }
+
+        // Ignorar strings vazias
+        if (!pluginName.empty())
+        {
+            // Check if module is already loaded
+            if (!vm_->containsModule(pluginName.c_str()))
+            {
+                // Try to load the plugin
+                if (!vm_->loadPluginByName(pluginName.c_str()))
+                {
+                    fail("Failed to load plugin '%s': %s",
+                         pluginName.c_str(),
+                         vm_->getLastPluginError());
+                    return;
+                }
+            }
+        }
+
+        start = end + 1;
     }
 
     consume(TOKEN_SEMICOLON, "Expect ';' after require");

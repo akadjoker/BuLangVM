@@ -6,50 +6,50 @@ namespace GLFWBindings
     // WINDOW HINTS
     // =============================================================
 
-    Value native_glfwDefaultWindowHints(Interpreter *vm, int argc, Value *args)
+    int native_glfwDefaultWindowHints(Interpreter *vm, int argc, Value *args)
     {
         glfwDefaultWindowHints();
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_glfwWindowHint(Interpreter *vm, int argc, Value *args)
+    int native_glfwWindowHint(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 2)
         {
             Error("glfwWindowHint expects 2 arguments (hint, value)");
-            return vm->makeNil();
+            return 0;
         }
 
         int hint = args[0].asNumber();
         int value = args[1].asNumber();
         glfwWindowHint(hint, value);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_glfwWindowHintString(Interpreter *vm, int argc, Value *args)
+    int native_glfwWindowHintString(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 2)
         {
             Error("glfwWindowHintString expects 2 arguments");
-            return vm->makeNil();
+            return 0;
         }
 
         int hint = args[0].asNumber();
         const char *value = args[1].asStringChars();
         glfwWindowHintString(hint, value);
-        return vm->makeNil();
+        return 0;
     }
 
     // =============================================================
     // WINDOW CREATION & DESTRUCTION
     // =============================================================
 
-    Value native_glfwCreateWindow(Interpreter *vm, int argc, Value *args)
+    int native_glfwCreateWindow(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 5)
         {
             Error("glfwCreateWindow expects 5 arguments (width, height, title, monitor, share)");
-            return vm->makeNil();
+            return 0;
         }
 
         int width = args[0].asNumber();
@@ -65,186 +65,184 @@ namespace GLFWBindings
             share = (GLFWwindow *)args[4].asPointer();
 
         GLFWwindow *window = glfwCreateWindow(width, height, title, monitor, share);
-        return window ? vm->makePointer(window) : vm->makeNil();
+        vm->pushPointer(window);
+        return 1;
     }
 
-    Value native_glfwDestroyWindow(Interpreter *vm, int argc, Value *args)
+    int native_glfwDestroyWindow(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("glfwDestroyWindow expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("glfwDestroyWindow expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         GLFWwindow *window = (GLFWwindow *)args[0].asPointer();
         glfwDestroyWindow(window);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_glfwWindowShouldClose(Interpreter *vm, int argc, Value *args)
+    int native_glfwWindowShouldClose(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("glfwWindowShouldClose expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("glfwWindowShouldClose expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         GLFWwindow *window = (GLFWwindow *)args[0].asPointer();
         int result = glfwWindowShouldClose(window);
-        return vm->makeBool(result == GLFW_TRUE);
+        vm->pushBool(result == GLFW_TRUE);
+        return 1;
     }
 
-    Value native_glfwSetWindowShouldClose(Interpreter *vm, int argc, Value *args)
+    int native_glfwSetWindowShouldClose(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 2)
         {
             Error("glfwSetWindowShouldClose expects 2 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("glfwSetWindowShouldClose expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         GLFWwindow *window = (GLFWwindow *)args[0].asPointer();
         int value = args[1].asBool() ? GLFW_TRUE : GLFW_FALSE;
         glfwSetWindowShouldClose(window, value);
-        return vm->makeNil();
+        return 0;
     }
 
     // =============================================================
     // WINDOW PROPERTIES
     // =============================================================
 
-    Value native_glfwSetWindowTitle(Interpreter *vm, int argc, Value *args)
+    int native_glfwSetWindowTitle(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 2)
         {
             Error("glfwSetWindowTitle expects 2 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("glfwSetWindowTitle expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         GLFWwindow *window = (GLFWwindow *)args[0].asPointer();
         const char *title = args[1].asStringChars();
         glfwSetWindowTitle(window, title);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_glfwGetWindowPos(Interpreter *vm, int argc, Value *args)
+    int native_glfwGetWindowPos(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("glfwGetWindowPos expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("glfwGetWindowPos expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         GLFWwindow *window = (GLFWwindow *)args[0].asPointer();
         int x, y;
         glfwGetWindowPos(window, &x, &y);
 
-        Value result = vm->makeMap();
-        MapInstance *map = result.asMap();
-        map->table.set(vm->makeString("x").asString(), vm->makeInt(x));
-        map->table.set(vm->makeString("y").asString(), vm->makeInt(y));
-        return result;
+        vm->pushInt(x);
+        vm->pushInt(y);
+        return 2;
     }
 
-    Value native_glfwSetWindowPos(Interpreter *vm, int argc, Value *args)
+    int native_glfwSetWindowPos(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 3)
         {
             Error("glfwSetWindowPos expects 3 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("glfwSetWindowPos expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         GLFWwindow *window = (GLFWwindow *)args[0].asPointer();
         int x = args[1].asNumber();
         int y = args[2].asNumber();
         glfwSetWindowPos(window, x, y);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_glfwGetWindowSize(Interpreter *vm, int argc, Value *args)
+    int native_glfwGetWindowSize(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("glfwGetWindowSize expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("glfwGetWindowSize expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         GLFWwindow *window = (GLFWwindow *)args[0].asPointer();
         int w, h;
         glfwGetWindowSize(window, &w, &h);
 
-        Value result = vm->makeMap();
-        MapInstance *map = result.asMap();
-        map->table.set(vm->makeString("w").asString(), vm->makeInt(w));
-        map->table.set(vm->makeString("h").asString(), vm->makeInt(h));
-        return result;
+        vm->pushInt(w);
+        vm->pushInt(h);
+        return 2;
     }
 
-    Value native_glfwSetWindowSize(Interpreter *vm, int argc, Value *args)
+    int native_glfwSetWindowSize(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 3)
         {
             Error("glfwSetWindowSize expects 3 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("glfwSetWindowSize expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         GLFWwindow *window = (GLFWwindow *)args[0].asPointer();
         int w = args[1].asNumber();
         int h = args[2].asNumber();
         glfwSetWindowSize(window, w, h);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_glfwSetWindowSizeLimits(Interpreter *vm, int argc, Value *args)
+    int native_glfwSetWindowSizeLimits(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 5)
         {
             Error("glfwSetWindowSizeLimits expects 5 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("glfwSetWindowSizeLimits expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         GLFWwindow *window = (GLFWwindow *)args[0].asPointer();
@@ -253,259 +251,258 @@ namespace GLFWBindings
         int maxW = args[3].asNumber();
         int maxH = args[4].asNumber();
         glfwSetWindowSizeLimits(window, minW, minH, maxW, maxH);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_glfwSetWindowAspectRatio(Interpreter *vm, int argc, Value *args)
+    int native_glfwSetWindowAspectRatio(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 3)
         {
             Error("glfwSetWindowAspectRatio expects 3 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("glfwSetWindowAspectRatio expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         GLFWwindow *window = (GLFWwindow *)args[0].asPointer();
         int numer = args[1].asNumber();
         int denom = args[2].asNumber();
         glfwSetWindowAspectRatio(window, numer, denom);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_glfwGetFramebufferSize(Interpreter *vm, int argc, Value *args)
+    int native_glfwGetFramebufferSize(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("glfwGetFramebufferSize expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("glfwGetFramebufferSize expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         GLFWwindow *window = (GLFWwindow *)args[0].asPointer();
         int w, h;
         glfwGetFramebufferSize(window, &w, &h);
 
-        Value result = vm->makeMap();
-        MapInstance *map = result.asMap();
-        map->table.set(vm->makeString("w").asString(), vm->makeInt(w));
-        map->table.set(vm->makeString("h").asString(), vm->makeInt(h));
-        return result;
+        vm->pushInt(w);
+        vm->pushInt(h);
+        return 2;
     }
 
     // =============================================================
     // WINDOW VISIBILITY & STATE
     // =============================================================
 
-    Value native_glfwIconifyWindow(Interpreter *vm, int argc, Value *args)
+    int native_glfwIconifyWindow(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("glfwIconifyWindow expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("glfwIconifyWindow expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         GLFWwindow *window = (GLFWwindow *)args[0].asPointer();
         glfwIconifyWindow(window);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_glfwRestoreWindow(Interpreter *vm, int argc, Value *args)
+    int native_glfwRestoreWindow(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("glfwRestoreWindow expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("glfwRestoreWindow expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         GLFWwindow *window = (GLFWwindow *)args[0].asPointer();
         glfwRestoreWindow(window);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_glfwMaximizeWindow(Interpreter *vm, int argc, Value *args)
+    int native_glfwMaximizeWindow(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("glfwMaximizeWindow expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("glfwMaximizeWindow expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         GLFWwindow *window = (GLFWwindow *)args[0].asPointer();
         glfwMaximizeWindow(window);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_glfwShowWindow(Interpreter *vm, int argc, Value *args)
+    int native_glfwShowWindow(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("glfwShowWindow expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("glfwShowWindow expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         GLFWwindow *window = (GLFWwindow *)args[0].asPointer();
         glfwShowWindow(window);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_glfwHideWindow(Interpreter *vm, int argc, Value *args)
+    int native_glfwHideWindow(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("glfwHideWindow expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("glfwHideWindow expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         GLFWwindow *window = (GLFWwindow *)args[0].asPointer();
         glfwHideWindow(window);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_glfwFocusWindow(Interpreter *vm, int argc, Value *args)
+    int native_glfwFocusWindow(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("glfwFocusWindow expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("glfwFocusWindow expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         GLFWwindow *window = (GLFWwindow *)args[0].asPointer();
         glfwFocusWindow(window);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_glfwRequestWindowAttention(Interpreter *vm, int argc, Value *args)
+    int native_glfwRequestWindowAttention(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("glfwRequestWindowAttention expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("glfwRequestWindowAttention expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         GLFWwindow *window = (GLFWwindow *)args[0].asPointer();
         glfwRequestWindowAttention(window);
-        return vm->makeNil();
+        return 0;
     }
 
     // =============================================================
     // WINDOW ATTRIBUTES
     // =============================================================
 
-    Value native_glfwGetWindowAttrib(Interpreter *vm, int argc, Value *args)
+    int native_glfwGetWindowAttrib(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 2)
         {
             Error("glfwGetWindowAttrib expects 2 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("glfwGetWindowAttrib expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         GLFWwindow *window = (GLFWwindow *)args[0].asPointer();
         int attrib = args[1].asNumber();
         int value = glfwGetWindowAttrib(window, attrib);
-        return vm->makeInt(value);
+        vm->pushInt(value);
+        return 1;
     }
 
-    Value native_glfwSetWindowAttrib(Interpreter *vm, int argc, Value *args)
+    int native_glfwSetWindowAttrib(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 3)
         {
             Error("glfwSetWindowAttrib expects 3 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("glfwSetWindowAttrib expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         GLFWwindow *window = (GLFWwindow *)args[0].asPointer();
         int attrib = args[1].asNumber();
         int value = args[2].asNumber();
         glfwSetWindowAttrib(window, attrib, value);
-        return vm->makeNil();
+        return 0;
     }
 
     // =============================================================
     // EVENT PROCESSING
     // =============================================================
 
-    Value native_glfwPollEvents(Interpreter *vm, int argc, Value *args)
+    int native_glfwPollEvents(Interpreter *vm, int argc, Value *args)
     {
         glfwPollEvents();
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_glfwWaitEvents(Interpreter *vm, int argc, Value *args)
+    int native_glfwWaitEvents(Interpreter *vm, int argc, Value *args)
     {
         glfwWaitEvents();
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_glfwWaitEventsTimeout(Interpreter *vm, int argc, Value *args)
+    int native_glfwWaitEventsTimeout(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("glfwWaitEventsTimeout expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
 
         double timeout = args[0].asNumber();
         glfwWaitEventsTimeout(timeout);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_glfwPostEmptyEvent(Interpreter *vm, int argc, Value *args)
+    int native_glfwPostEmptyEvent(Interpreter *vm, int argc, Value *args)
     {
         glfwPostEmptyEvent();
-        return vm->makeNil();
+        return 0;
     }
 
     void register_window(ModuleBuilder &mod)

@@ -2,17 +2,17 @@
 
 namespace SDLBindings
 {
-    Value native_SDL_CreateRenderer(Interpreter *vm, int argc, Value *args)
+    int native_SDL_CreateRenderer(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 3)
         {
             Error("SDL_CreateRenderer expects 3 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_CreateRenderer expects window pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Window *window = (SDL_Window *)args[0].asPointer();
@@ -20,38 +20,39 @@ namespace SDLBindings
         Uint32 flags = args[2].asNumber();
 
         SDL_Renderer *renderer = SDL_CreateRenderer(window, index, flags);
-        return vm->makePointer(renderer);
+        vm->push(vm->makePointer(renderer));
+        return 1;
     }
 
-    Value native_SDL_DestroyRenderer(Interpreter *vm, int argc, Value *args)
+    int native_SDL_DestroyRenderer(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_DestroyRenderer expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_DestroyRenderer expects renderer pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
         SDL_DestroyRenderer(renderer);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_SDL_SetRenderDrawColor(Interpreter *vm, int argc, Value *args)
+    int native_SDL_SetRenderDrawColor(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 5)
         {
             Error("SDL_SetRenderDrawColor expects 5 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_SetRenderDrawColor expects renderer pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
@@ -61,56 +62,56 @@ namespace SDLBindings
         Uint8 a = args[4].asNumber();
 
         SDL_SetRenderDrawColor(renderer, r, g, b, a);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_SDL_RenderClear(Interpreter *vm, int argc, Value *args)
+    int native_SDL_RenderClear(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_RenderClear expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_RenderClear expects renderer pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
         SDL_RenderClear(renderer);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_SDL_RenderPresent(Interpreter *vm, int argc, Value *args)
+    int native_SDL_RenderPresent(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_RenderPresent expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_RenderPresent expects renderer pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
         SDL_RenderPresent(renderer);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_SDL_RenderDrawPoint(Interpreter *vm, int argc, Value *args)
+    int native_SDL_RenderDrawPoint(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 3)
         {
             Error("SDL_RenderDrawPoint expects 3 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_RenderDrawPoint expects renderer pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
@@ -118,20 +119,20 @@ namespace SDLBindings
         int y = args[2].asNumber();
 
         SDL_RenderDrawPoint(renderer, x, y);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_SDL_RenderDrawLine(Interpreter *vm, int argc, Value *args)
+    int native_SDL_RenderDrawLine(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 5)
         {
             Error("SDL_RenderDrawLine expects 5 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_RenderDrawLine expects renderer pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
@@ -141,20 +142,20 @@ namespace SDLBindings
         int y2 = args[4].asNumber();
 
         SDL_RenderDrawLine(renderer, x1, y1, x2, y2);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_SDL_RenderDrawRect(Interpreter *vm, int argc, Value *args)
+    int native_SDL_RenderDrawRect(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 5)
         {
             Error("SDL_RenderDrawRect expects 5 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_RenderDrawRect expects renderer pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
@@ -165,20 +166,20 @@ namespace SDLBindings
         rect.h = args[4].asNumber();
 
         SDL_RenderDrawRect(renderer, &rect);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_SDL_RenderFillRect(Interpreter *vm, int argc, Value *args)
+    int native_SDL_RenderFillRect(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 5)
         {
             Error("SDL_RenderFillRect expects 5 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_RenderFillRect expects renderer pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
@@ -189,40 +190,40 @@ namespace SDLBindings
         rect.h = args[4].asNumber();
 
         SDL_RenderFillRect(renderer, &rect);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_SDL_SetRenderDrawBlendMode(Interpreter *vm, int argc, Value *args)
+    int native_SDL_SetRenderDrawBlendMode(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 2)
         {
             Error("SDL_SetRenderDrawBlendMode expects 2 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_SetRenderDrawBlendMode expects renderer pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
         SDL_BlendMode blendMode = (SDL_BlendMode)args[1].asNumber();
 
         SDL_SetRenderDrawBlendMode(renderer, blendMode);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_SDL_RenderSetScale(Interpreter *vm, int argc, Value *args)
+    int native_SDL_RenderSetScale(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 3)
         {
             Error("SDL_RenderSetScale expects 3 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_RenderSetScale expects renderer pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
@@ -230,74 +231,71 @@ namespace SDLBindings
         float scaleY = args[2].asNumber();
 
         SDL_RenderSetScale(renderer, scaleX, scaleY);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_SDL_RenderGetScale(Interpreter *vm, int argc, Value *args)
+    int native_SDL_RenderGetScale(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_RenderGetScale expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_RenderGetScale expects renderer pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
         float scaleX, scaleY;
         SDL_RenderGetScale(renderer, &scaleX, &scaleY);
 
-        Value result = vm->makeMap();
-        MapInstance *map = result.asMap();
-        map->table.set(vm->makeString("x").asString(), vm->makeDouble(scaleX));
-        map->table.set(vm->makeString("y").asString(), vm->makeDouble(scaleY));
-        return result;
+        vm->pushDouble(scaleX);
+        vm->pushDouble(scaleY);
+        return 2;
+        
     }
 
     // =====================================================
     // RENDERER EXTRA FUNCTIONS
     // =====================================================
 
-    Value native_SDL_GetRenderDrawColor(Interpreter *vm, int argc, Value *args)
+    int native_SDL_GetRenderDrawColor(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_GetRenderDrawColor expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_GetRenderDrawColor expects renderer pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
         Uint8 r, g, b, a;
         SDL_GetRenderDrawColor(renderer, &r, &g, &b, &a);
 
-        Value result = vm->makeMap();
-        MapInstance *map = result.asMap();
-        map->table.set(vm->makeString("r").asString(), vm->makeInt(r));
-        map->table.set(vm->makeString("g").asString(), vm->makeInt(g));
-        map->table.set(vm->makeString("b").asString(), vm->makeInt(b));
-        map->table.set(vm->makeString("a").asString(), vm->makeInt(a));
-        return result;
+        vm->pushInt(r);
+        vm->pushInt(g);
+        vm->pushInt(b);
+        vm->pushInt(a);
+        return 4;
     }
 
-    Value native_SDL_RenderSetViewport(Interpreter *vm, int argc, Value *args)
+    int native_SDL_RenderSetViewport(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 5)
         {
             Error("SDL_RenderSetViewport expects 5 arguments (renderer, x, y, w, h)");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_RenderSetViewport expects renderer pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
@@ -308,46 +306,46 @@ namespace SDLBindings
         rect.h = args[4].asNumber();
 
         int result = SDL_RenderSetViewport(renderer, &rect);
-        return vm->makeInt(result);
+        vm->push(vm->makeInt(result));
+        return 1;
     }
 
-    Value native_SDL_RenderGetViewport(Interpreter *vm, int argc, Value *args)
+    int native_SDL_RenderGetViewport(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_RenderGetViewport expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_RenderGetViewport expects renderer pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
         SDL_Rect rect;
         SDL_RenderGetViewport(renderer, &rect);
 
-        Value result = vm->makeMap();
-        MapInstance *map = result.asMap();
-        map->table.set(vm->makeString("x").asString(), vm->makeInt(rect.x));
-        map->table.set(vm->makeString("y").asString(), vm->makeInt(rect.y));
-        map->table.set(vm->makeString("w").asString(), vm->makeInt(rect.w));
-        map->table.set(vm->makeString("h").asString(), vm->makeInt(rect.h));
-        return result;
+        vm->pushInt(rect.x);
+        vm->pushInt(rect.y);
+        vm->pushInt(rect.w);
+        vm->pushInt(rect.h);
+        return 4;
+       
     }
 
-    Value native_SDL_RenderSetClipRect(Interpreter *vm, int argc, Value *args)
+    int native_SDL_RenderSetClipRect(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 5)
         {
             Error("SDL_RenderSetClipRect expects 5 arguments (renderer, x, y, w, h)");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_RenderSetClipRect expects renderer pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
@@ -358,64 +356,65 @@ namespace SDLBindings
         rect.h = args[4].asNumber();
 
         int result = SDL_RenderSetClipRect(renderer, &rect);
-        return vm->makeInt(result);
+        vm->push(vm->makeInt(result));
+        return 1;
     }
 
-    Value native_SDL_RenderGetClipRect(Interpreter *vm, int argc, Value *args)
+    int native_SDL_RenderGetClipRect(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_RenderGetClipRect expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_RenderGetClipRect expects renderer pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
         SDL_Rect rect;
         SDL_RenderGetClipRect(renderer, &rect);
 
-        Value result = vm->makeMap();
-        MapInstance *map = result.asMap();
-        map->table.set(vm->makeString("x").asString(), vm->makeInt(rect.x));
-        map->table.set(vm->makeString("y").asString(), vm->makeInt(rect.y));
-        map->table.set(vm->makeString("w").asString(), vm->makeInt(rect.w));
-        map->table.set(vm->makeString("h").asString(), vm->makeInt(rect.h));
-        return result;
+        vm->pushInt(rect.x);
+        vm->pushInt(rect.y);
+        vm->pushInt(rect.w);
+        vm->pushInt(rect.h);
+        return 4;
     }
 
-    Value native_SDL_RenderIsClipEnabled(Interpreter *vm, int argc, Value *args)
+    int native_SDL_RenderIsClipEnabled(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_RenderIsClipEnabled expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_RenderIsClipEnabled expects renderer pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
         SDL_bool result = SDL_RenderIsClipEnabled(renderer);
-        return vm->makeBool(result == SDL_TRUE);
+
+        vm->push(vm->makeBool(result));
+        return 1;
     }
 
-    Value native_SDL_RenderSetLogicalSize(Interpreter *vm, int argc, Value *args)
+    int native_SDL_RenderSetLogicalSize(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 3)
         {
             Error("SDL_RenderSetLogicalSize expects 3 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_RenderSetLogicalSize expects renderer pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
@@ -423,72 +422,69 @@ namespace SDLBindings
         int h = args[2].asNumber();
 
         int result = SDL_RenderSetLogicalSize(renderer, w, h);
-        return vm->makeInt(result);
+        vm->push(vm->makeInt(result));
+        return 1;
     }
 
-    Value native_SDL_RenderGetLogicalSize(Interpreter *vm, int argc, Value *args)
+    int native_SDL_RenderGetLogicalSize(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_RenderGetLogicalSize expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_RenderGetLogicalSize expects renderer pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
         int w, h;
         SDL_RenderGetLogicalSize(renderer, &w, &h);
 
-        Value result = vm->makeMap();
-        MapInstance *map = result.asMap();
-        map->table.set(vm->makeString("w").asString(), vm->makeInt(w));
-        map->table.set(vm->makeString("h").asString(), vm->makeInt(h));
-        return result;
+        vm->push(vm->makeInt(w));
+        vm->push(vm->makeInt(h));
+        return 2;
     }
 
-    Value native_SDL_GetRendererOutputSize(Interpreter *vm, int argc, Value *args)
+    int native_SDL_GetRendererOutputSize(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_GetRendererOutputSize expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_GetRendererOutputSize expects renderer pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
         int w, h;
         SDL_GetRendererOutputSize(renderer, &w, &h);
 
-        Value result = vm->makeMap();
-        MapInstance *map = result.asMap();
-        map->table.set(vm->makeString("w").asString(), vm->makeInt(w));
-        map->table.set(vm->makeString("h").asString(), vm->makeInt(h));
-        return result;
+        vm->push(vm->makeInt(w));
+        vm->push(vm->makeInt(h));
+        return 2;
     }
 
     // =====================================================
     // TEXTURE FUNCTIONS
     // =====================================================
 
-    Value native_SDL_CreateTexture(Interpreter *vm, int argc, Value *args)
+    int native_SDL_CreateTexture(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 5)
         {
             Error("SDL_CreateTexture expects 5 arguments (renderer, format, access, w, h)");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_CreateTexture expects renderer pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
@@ -498,38 +494,44 @@ namespace SDLBindings
         int h = args[4].asNumber();
 
         SDL_Texture *texture = SDL_CreateTexture(renderer, format, access, w, h);
-        return vm->makePointer(texture);
+        if (!texture)
+        {
+            Error("SDL_CreateTexture failed");
+            return 0;
+        }
+        vm->push(vm->makePointer(texture));
+        return 1;
     }
 
-    Value native_SDL_DestroyTexture(Interpreter *vm, int argc, Value *args)
+    int native_SDL_DestroyTexture(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_DestroyTexture expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_DestroyTexture expects texture pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Texture *texture = (SDL_Texture *)args[0].asPointer();
         SDL_DestroyTexture(texture);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_SDL_SetRenderTarget(Interpreter *vm, int argc, Value *args)
+    int native_SDL_SetRenderTarget(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 2)
         {
             Error("SDL_SetRenderTarget expects 2 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_SetRenderTarget expects renderer pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
@@ -540,40 +542,45 @@ namespace SDLBindings
         }
 
         int result = SDL_SetRenderTarget(renderer, texture);
-        return vm->makeInt(result);
+        vm->push(vm->makeInt(result));
+        return 1;
     }
 
-    Value native_SDL_GetRenderTarget(Interpreter *vm, int argc, Value *args)
+    int native_SDL_GetRenderTarget(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_GetRenderTarget expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_GetRenderTarget expects renderer pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
         SDL_Texture *texture = SDL_GetRenderTarget(renderer);
-        if (texture)
-            return vm->makePointer(texture);
-        return vm->makeNil();
+       if (!texture)
+        {
+            
+            return 1;
+        }
+        vm->push(vm->makePointer(texture));
+        return 1;
     }
 
-    Value native_SDL_QueryTexture(Interpreter *vm, int argc, Value *args)
+    int native_SDL_QueryTexture(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_QueryTexture expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_QueryTexture expects texture pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Texture *texture = (SDL_Texture *)args[0].asPointer();
@@ -581,26 +588,24 @@ namespace SDLBindings
         int access, w, h;
         SDL_QueryTexture(texture, &format, &access, &w, &h);
 
-        Value result = vm->makeMap();
-        MapInstance *map = result.asMap();
-        map->table.set(vm->makeString("format").asString(), vm->makeInt(format));
-        map->table.set(vm->makeString("access").asString(), vm->makeInt(access));
-        map->table.set(vm->makeString("w").asString(), vm->makeInt(w));
-        map->table.set(vm->makeString("h").asString(), vm->makeInt(h));
-        return result;
+        vm->push(vm->makeInt(format));
+        vm->push(vm->makeInt(access));
+        vm->push(vm->makeInt(w));
+        vm->push(vm->makeInt(h));
+        return 4;
     }
 
-    Value native_SDL_SetTextureColorMod(Interpreter *vm, int argc, Value *args)
+    int native_SDL_SetTextureColorMod(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 4)
         {
             Error("SDL_SetTextureColorMod expects 4 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_SetTextureColorMod expects texture pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Texture *texture = (SDL_Texture *)args[0].asPointer();
@@ -609,63 +614,66 @@ namespace SDLBindings
         Uint8 b = args[3].asNumber();
 
         int result = SDL_SetTextureColorMod(texture, r, g, b);
-        return vm->makeInt(result);
+        vm->push(vm->makeInt(result));
+        return 1;
     }
 
-    Value native_SDL_SetTextureAlphaMod(Interpreter *vm, int argc, Value *args)
+    int native_SDL_SetTextureAlphaMod(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 2)
         {
             Error("SDL_SetTextureAlphaMod expects 2 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_SetTextureAlphaMod expects texture pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Texture *texture = (SDL_Texture *)args[0].asPointer();
         Uint8 alpha = args[1].asNumber();
 
         int result = SDL_SetTextureAlphaMod(texture, alpha);
-        return vm->makeInt(result);
+        vm->push(vm->makeInt(result));
+        return 1;
     }
 
-    Value native_SDL_SetTextureBlendMode(Interpreter *vm, int argc, Value *args)
+    int native_SDL_SetTextureBlendMode(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 2)
         {
             Error("SDL_SetTextureBlendMode expects 2 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_SetTextureBlendMode expects texture pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Texture *texture = (SDL_Texture *)args[0].asPointer();
         SDL_BlendMode blendMode = (SDL_BlendMode)args[1].asNumber();
 
         int result = SDL_SetTextureBlendMode(texture, blendMode);
-        return vm->makeInt(result);
+        vm->push(vm->makeInt(result));
+        return 1;
     }
 
     // SDL_RenderCopy(renderer, texture, srcRect, dstRect)
     // srcRect pode ser nil para usar toda a textura
     // dstRect pode ser nil para usar todo o renderer
-    Value native_SDL_RenderCopy(Interpreter *vm, int argc, Value *args)
+    int native_SDL_RenderCopy(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 10)
         {
             Error("SDL_RenderCopy expects 10 arguments (renderer, texture, srcX, srcY, srcW, srcH, dstX, dstY, dstW, dstH)");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer() || !args[1].isPointer())
         {
             Error("SDL_RenderCopy expects renderer and texture pointers");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
@@ -698,21 +706,22 @@ namespace SDLBindings
         }
 
         int result = SDL_RenderCopy(renderer, texture, pSrc, pDst);
-        return vm->makeInt(result);
+        vm->push(vm->makeInt(result));
+        return 1;
     }
 
     // Versão simplificada para desenhar textura inteira numa posição
-    Value native_SDL_RenderCopySimple(Interpreter *vm, int argc, Value *args)
+    int native_SDL_RenderCopySimple(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 4)
         {
             Error("SDL_RenderCopySimple expects 4 arguments (renderer, texture, x, y)");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer() || !args[1].isPointer())
         {
             Error("SDL_RenderCopySimple expects renderer and texture pointers");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
@@ -726,21 +735,22 @@ namespace SDLBindings
 
         SDL_Rect dstRect = {x, y, w, h};
         int result = SDL_RenderCopy(renderer, texture, nullptr, &dstRect);
-        return vm->makeInt(result);
+        vm->push(vm->makeInt(result));
+        return 1;
     }
 
     // SDL_RenderCopyEx com rotação e flip
-    Value native_SDL_RenderCopyEx(Interpreter *vm, int argc, Value *args)
+    int native_SDL_RenderCopyEx(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 14)
         {
             Error("SDL_RenderCopyEx expects 14 arguments (renderer, texture, srcX, srcY, srcW, srcH, dstX, dstY, dstW, dstH, angle, centerX, centerY, flip)");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer() || !args[1].isPointer())
         {
             Error("SDL_RenderCopyEx expects renderer and texture pointers");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
@@ -788,21 +798,22 @@ namespace SDLBindings
         SDL_RendererFlip flip = (SDL_RendererFlip)args[13].asNumber();
 
         int result = SDL_RenderCopyEx(renderer, texture, pSrc, pDst, angle, pCenter, flip);
-        return vm->makeInt(result);
+        vm->push(vm->makeInt(result));
+        return 1;
     }
 
     // Versão simplificada com rotação
-    Value native_SDL_RenderCopyExSimple(Interpreter *vm, int argc, Value *args)
+    int native_SDL_RenderCopyExSimple(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 6)
         {
             Error("SDL_RenderCopyExSimple expects 6 arguments (renderer, texture, x, y, angle, flip)");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer() || !args[1].isPointer())
         {
             Error("SDL_RenderCopyExSimple expects renderer and texture pointers");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
@@ -818,62 +829,69 @@ namespace SDLBindings
 
         SDL_Rect dstRect = {x, y, w, h};
         int result = SDL_RenderCopyEx(renderer, texture, nullptr, &dstRect, angle, nullptr, flip);
-        return vm->makeInt(result);
+        vm->push(vm->makeInt(result));
+        return 1;
     }
 
     // =====================================================
     // SURFACE FUNCTIONS (para carregar imagens)
     // =====================================================
 
-    Value native_SDL_LoadBMP(Interpreter *vm, int argc, Value *args)
+    int native_SDL_LoadBMP(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_LoadBMP expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isString())
         {
             Error("SDL_LoadBMP expects string filename");
-            return vm->makeNil();
+            return 0;
         }
 
         const char *filename = args[0].asStringChars();
         SDL_Surface *surface = SDL_LoadBMP(filename);
         if (surface)
-            return vm->makePointer(surface);
-        return vm->makeNil();
+        {
+            vm->push(vm->makePointer((void *)surface));
+        }else 
+        {
+            vm->push(vm->makeInt(-1));
+        }
+        return 1;
+        
     }
 
-    Value native_SDL_FreeSurface(Interpreter *vm, int argc, Value *args)
+    int native_SDL_FreeSurface(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_FreeSurface expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_FreeSurface expects surface pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Surface *surface = (SDL_Surface *)args[0].asPointer();
         SDL_FreeSurface(surface);
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_SDL_CreateTextureFromSurface(Interpreter *vm, int argc, Value *args)
+    int native_SDL_CreateTextureFromSurface(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 2)
         {
             Error("SDL_CreateTextureFromSurface expects 2 arguments");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer() || !args[1].isPointer())
         {
             Error("SDL_CreateTextureFromSurface expects renderer and surface pointers");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Renderer *renderer = (SDL_Renderer *)args[0].asPointer();
@@ -881,43 +899,48 @@ namespace SDLBindings
 
         SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
         if (texture)
-            return vm->makePointer(texture);
-        return vm->makeNil();
+        {
+            vm->push(vm->makePointer((void *)texture));
+        }else 
+        {
+            vm->push(vm->makeInt(-1));
+        }
+        return 1;
     }
 
-    Value native_SDL_GetSurfaceSize(Interpreter *vm, int argc, Value *args)
+    int native_SDL_GetSurfaceSize(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_GetSurfaceSize expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_GetSurfaceSize expects surface pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Surface *surface = (SDL_Surface *)args[0].asPointer();
 
-        Value result = vm->makeMap();
-        MapInstance *map = result.asMap();
-        map->table.set(vm->makeString("w").asString(), vm->makeInt(surface->w));
-        map->table.set(vm->makeString("h").asString(), vm->makeInt(surface->h));
-        return result;
+        int width = surface->w;
+        int height = surface->h;
+        vm->push(vm->makeInt(width));
+        vm->push(vm->makeInt(height));
+        return 2;
     }
 
-    Value native_SDL_SetColorKey(Interpreter *vm, int argc, Value *args)
+    int native_SDL_SetColorKey(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 5)
         {
             Error("SDL_SetColorKey expects 5 arguments (surface, flag, r, g, b)");
-            return vm->makeNil();
+            return 0;
         }
         if (!args[0].isPointer())
         {
             Error("SDL_SetColorKey expects surface pointer");
-            return vm->makeNil();
+            return 0;
         }
 
         SDL_Surface *surface = (SDL_Surface *)args[0].asPointer();
@@ -928,7 +951,8 @@ namespace SDLBindings
 
         Uint32 key = SDL_MapRGB(surface->format, r, g, b);
         int result = SDL_SetColorKey(surface, flag, key);
-        return vm->makeInt(result);
+        vm->push(vm->makeInt(result));
+        return 1;
     }
 
     void register_renderer(ModuleBuilder &module)

@@ -147,6 +147,21 @@ void Interpreter::pushInt(int n)
     push(makeInt(n));
 }
 
+void Interpreter::pushFloat(float f)
+{
+    push(makeDouble(f));
+}
+
+void Interpreter::pushPointer(void *p)
+{
+    push(makePointer(p));
+}
+
+void Interpreter::pushByte(uint8 b)
+{
+    push(makeInt(b));
+}
+
 void Interpreter::pushDouble(double d)
 {
     push(makeDouble(d));
@@ -408,12 +423,49 @@ bool Interpreter::callFunction(const char *name, int argCount)
 
     if (!functionsMap.get(funcName, &func))
     {
- 
+
         runtimeError("Undefined function: %s", name);
         return false;
     }
 
-  
+
+    return callFunction(func, argCount);
+}
+
+Function* Interpreter::getFunction(const char *name)
+{
+    // Tentar nome directo primeiro
+    String *funcName = createString(name);
+    Function *func = nullptr;
+
+    if (functionsMap.get(funcName, &func))
+    {
+        return func;
+    }
+
+    // Tentar com prefixo __main__$
+    char prefixedName[256];
+    snprintf(prefixedName, sizeof(prefixedName), "__main__$%s", name);
+
+    String *prefixedString = createString(prefixedName);
+    if (functionsMap.get(prefixedString, &func))
+    {
+        return func;
+    }
+
+    return nullptr;
+}
+
+bool Interpreter::callFunctionAuto(const char *name, int argCount)
+{
+    Function *func = getFunction(name);
+
+    if (!func)
+    {
+        runtimeError("Undefined function: %s", name);
+        return false;
+    }
+
     return callFunction(func, argCount);
 }
 
