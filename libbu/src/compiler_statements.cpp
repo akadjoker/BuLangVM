@@ -2163,32 +2163,60 @@ void Compiler::parseImport()
 void Compiler::parseRequire()
 {
     // require "SDL";
-    // require "raylib";
+    // require "glfw,rlgl";      // múltiplos separados por vírgula
+    // require "glfw;rlgl;gtk";  // múltiplos separados por ponto e vírgula
 
     consume(TOKEN_STRING, "Expect plugin name as string after 'require'");
-    std::string pluginName = previous.lexeme;
+    std::string pluginList = previous.lexeme;
 
     // Remove quotes from string literal
-    if (pluginName.size() >= 2 && pluginName.front() == '"' && pluginName.back() == '"')
+    if (pluginList.size() >= 2 && pluginList.front() == '"' && pluginList.back() == '"')
     {
-        pluginName = pluginName.substr(1, pluginName.size() - 2);
+        pluginList = pluginList.substr(1, pluginList.size() - 2);
     }
 
-    // Check if module is already loaded (e.g., via --plugin command line)
-    if (vm_->containsModule(pluginName.c_str()))
-    {
-        // Module already loaded, nothing to do
-        consume(TOKEN_SEMICOLON, "Expect ';' after require");
-        return;
-    }
+    // Parse múltiplos plugins separados por ',' ou ';'
+    size_t start = 0;
+    size_t end = 0;
 
-    // Try to load the plugin
-    if (!vm_->loadPluginByName(pluginName.c_str()))
+    while (start < pluginList.size())
     {
-        fail("Failed to load plugin '%s': %s",
-             pluginName.c_str(),
-             vm_->getLastPluginError());
-        return;
+        // Encontrar o próximo separador (',' ou ';')
+        end = pluginList.find_first_of(",;", start);
+        if (end == std::string::npos)
+        {
+            end = pluginList.size();
+        }
+
+        // Extrair nome do plugin e remover espaços
+        std::string pluginName = pluginList.substr(start, end - start);
+
+        // Trim whitespace
+        size_t first = pluginName.find_first_not_of(" \t");
+        size_t last = pluginName.find_last_not_of(" \t");
+        if (first != std::string::npos && last != std::string::npos)
+        {
+            pluginName = pluginName.substr(first, last - first + 1);
+        }
+
+        // Ignorar strings vazias
+        if (!pluginName.empty())
+        {
+            // Check if module is already loaded
+            if (!vm_->containsModule(pluginName.c_str()))
+            {
+                // Try to load the plugin
+                if (!vm_->loadPluginByName(pluginName.c_str()))
+                {
+                    fail("Failed to load plugin '%s': %s",
+                         pluginName.c_str(),
+                         vm_->getLastPluginError());
+                    return;
+                }
+            }
+        }
+
+        start = end + 1;
     }
 
     consume(TOKEN_SEMICOLON, "Expect ';' after require");

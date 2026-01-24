@@ -1,0 +1,116 @@
+ 
+
+print "=== Exemplo RLGL: Cubo 3D Rotativo ===";
+
+if (glfwInit() == GLFW_TRUE)
+{
+    var width = 800;
+    var height = 600;
+    
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    
+    var window = glfwCreateWindow(width, height, "RLGL - Cubo 3D", nil, nil);
+    
+    if (window != nil)
+    {
+        glfwMakeContextCurrent(window);
+        glfwSwapInterval(1);
+        
+        rlLoadExtensionsGLFW();
+        rlglInit(width, height);
+        rlViewport(0, 0, width, height);
+        
+        // Habilitar teste de profundidade para 3D
+        rlEnableDepthTest();
+        rlEnableBackfaceCulling();
+        rlClearColor(15, 15, 25, 255);
+        
+        var rotX = 0.0;
+        var rotY = 0.0;
+        
+        while (!glfwWindowShouldClose(window))
+        {
+            if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+                glfwSetWindowShouldClose(window, true);
+            
+            rotX = rotX + 0.5;
+            rotY = rotY + 0.7;
+            
+            rlClearScreenBuffers();
+            
+            // Configurar projeção perspectiva
+            rlMatrixMode(RL_PROJECTION);
+            rlLoadIdentity();
+            
+            var aspect = width / height;
+            var fovy = 45.0;
+            var top = 0.1 * 0.41421356; // tan(fovy/2)
+            var right = top * aspect;
+            rlFrustum(-right, right, -top, top, 0.1, 100.0);
+            
+            rlMatrixMode(RL_MODELVIEW);
+            rlLoadIdentity();
+            rlTranslatef(0.0, 0.0, -5.0);
+            rlRotatef(rotX, 1.0, 0.0, 0.0);
+            rlRotatef(rotY, 0.0, 1.0, 0.0);
+            
+            // Desenhar cubo
+            var size = 1.0;
+            
+            rlBegin(RL_QUADS);
+                // Frente (vermelho)
+                rlColor3f(1.0, 0.0, 0.0);
+                rlVertex3f(-size, -size, size);
+                rlVertex3f(size, -size, size);
+                rlVertex3f(size, size, size);
+                rlVertex3f(-size, size, size);
+                
+                // Trás (verde)
+                rlColor3f(0.0, 1.0, 0.0);
+                rlVertex3f(-size, -size, -size);
+                rlVertex3f(-size, size, -size);
+                rlVertex3f(size, size, -size);
+                rlVertex3f(size, -size, -size);
+                
+                // Topo (azul)
+                rlColor3f(0.0, 0.0, 1.0);
+                rlVertex3f(-size, size, -size);
+                rlVertex3f(-size, size, size);
+                rlVertex3f(size, size, size);
+                rlVertex3f(size, size, -size);
+                
+                // Base (amarelo)
+                rlColor3f(1.0, 1.0, 0.0);
+                rlVertex3f(-size, -size, -size);
+                rlVertex3f(size, -size, -size);
+                rlVertex3f(size, -size, size);
+                rlVertex3f(-size, -size, size);
+                
+                // Direita (magenta)
+                rlColor3f(1.0, 0.0, 1.0);
+                rlVertex3f(size, -size, -size);
+                rlVertex3f(size, size, -size);
+                rlVertex3f(size, size, size);
+                rlVertex3f(size, -size, size);
+                
+                // Esquerda (ciano)
+                rlColor3f(0.0, 1.0, 1.0);
+                rlVertex3f(-size, -size, -size);
+                rlVertex3f(-size, -size, size);
+                rlVertex3f(-size, size, size);
+                rlVertex3f(-size, size, -size);
+            rlEnd();
+            rlDrawRenderBatchActive();
+            glfwSwapBuffers(window);
+            glfwPollEvents();
+        }
+        
+        rlglClose();
+        glfwDestroyWindow(window);
+    }
+    
+    glfwTerminate();
+}
+
+print "Programa finalizado!";

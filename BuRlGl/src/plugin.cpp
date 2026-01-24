@@ -7,7 +7,7 @@
 void register_rlgl_module(Interpreter* vm)
 {
     RLGLBindings::registerAll(*vm);
-    Info("Registered rlgl module");
+  
 }
 
 // Plugin cleanup function

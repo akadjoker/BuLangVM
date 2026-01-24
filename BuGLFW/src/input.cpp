@@ -253,9 +253,9 @@ namespace GLFWBindings
             // =============================================================
             // KEY STATES
             // =============================================================
-            .addInt("GLFW_RELEASE", GLFW_RELEASE)
-            .addInt("GLFW_PRESS", GLFW_PRESS)
-            .addInt("GLFW_REPEAT", GLFW_REPEAT)
+            .addByte("GLFW_RELEASE", GLFW_RELEASE)
+            .addByte("GLFW_PRESS", GLFW_PRESS)
+            .addByte("GLFW_REPEAT", GLFW_REPEAT)
 
             // =============================================================
             // INPUT MODES
@@ -276,37 +276,37 @@ namespace GLFWBindings
             // =============================================================
             // MOUSE BUTTONS
             // =============================================================
-            .addInt("GLFW_MOUSE_BUTTON_1", GLFW_MOUSE_BUTTON_1)
-            .addInt("GLFW_MOUSE_BUTTON_2", GLFW_MOUSE_BUTTON_2)
-            .addInt("GLFW_MOUSE_BUTTON_3", GLFW_MOUSE_BUTTON_3)
-            .addInt("GLFW_MOUSE_BUTTON_4", GLFW_MOUSE_BUTTON_4)
-            .addInt("GLFW_MOUSE_BUTTON_5", GLFW_MOUSE_BUTTON_5)
-            .addInt("GLFW_MOUSE_BUTTON_6", GLFW_MOUSE_BUTTON_6)
-            .addInt("GLFW_MOUSE_BUTTON_7", GLFW_MOUSE_BUTTON_7)
-            .addInt("GLFW_MOUSE_BUTTON_8", GLFW_MOUSE_BUTTON_8)
-            .addInt("GLFW_MOUSE_BUTTON_LEFT", GLFW_MOUSE_BUTTON_LEFT)
-            .addInt("GLFW_MOUSE_BUTTON_RIGHT", GLFW_MOUSE_BUTTON_RIGHT)
-            .addInt("GLFW_MOUSE_BUTTON_MIDDLE", GLFW_MOUSE_BUTTON_MIDDLE)
+            .addByte("GLFW_MOUSE_BUTTON_1", GLFW_MOUSE_BUTTON_1)
+            .addByte("GLFW_MOUSE_BUTTON_2", GLFW_MOUSE_BUTTON_2)
+            .addByte("GLFW_MOUSE_BUTTON_3", GLFW_MOUSE_BUTTON_3)
+            .addByte("GLFW_MOUSE_BUTTON_4", GLFW_MOUSE_BUTTON_4)
+            .addByte("GLFW_MOUSE_BUTTON_5", GLFW_MOUSE_BUTTON_5)
+            .addByte("GLFW_MOUSE_BUTTON_6", GLFW_MOUSE_BUTTON_6)
+            .addByte("GLFW_MOUSE_BUTTON_7", GLFW_MOUSE_BUTTON_7)
+            .addByte("GLFW_MOUSE_BUTTON_8", GLFW_MOUSE_BUTTON_8)
+            .addByte("GLFW_MOUSE_BUTTON_LEFT", GLFW_MOUSE_BUTTON_LEFT)
+            .addByte("GLFW_MOUSE_BUTTON_RIGHT", GLFW_MOUSE_BUTTON_RIGHT)
+            .addByte("GLFW_MOUSE_BUTTON_MIDDLE", GLFW_MOUSE_BUTTON_MIDDLE)
 
             // =============================================================
             // JOYSTICK IDS
             // =============================================================
-            .addInt("GLFW_JOYSTICK_1", GLFW_JOYSTICK_1)
-            .addInt("GLFW_JOYSTICK_2", GLFW_JOYSTICK_2)
-            .addInt("GLFW_JOYSTICK_3", GLFW_JOYSTICK_3)
-            .addInt("GLFW_JOYSTICK_4", GLFW_JOYSTICK_4)
-            .addInt("GLFW_JOYSTICK_5", GLFW_JOYSTICK_5)
-            .addInt("GLFW_JOYSTICK_6", GLFW_JOYSTICK_6)
-            .addInt("GLFW_JOYSTICK_7", GLFW_JOYSTICK_7)
-            .addInt("GLFW_JOYSTICK_8", GLFW_JOYSTICK_8)
-            .addInt("GLFW_JOYSTICK_9", GLFW_JOYSTICK_9)
-            .addInt("GLFW_JOYSTICK_10", GLFW_JOYSTICK_10)
-            .addInt("GLFW_JOYSTICK_11", GLFW_JOYSTICK_11)
-            .addInt("GLFW_JOYSTICK_12", GLFW_JOYSTICK_12)
-            .addInt("GLFW_JOYSTICK_13", GLFW_JOYSTICK_13)
-            .addInt("GLFW_JOYSTICK_14", GLFW_JOYSTICK_14)
-            .addInt("GLFW_JOYSTICK_15", GLFW_JOYSTICK_15)
-            .addInt("GLFW_JOYSTICK_16", GLFW_JOYSTICK_16)
+            .addByte("GLFW_JOYSTICK_1", GLFW_JOYSTICK_1)
+            .addByte("GLFW_JOYSTICK_2", GLFW_JOYSTICK_2)
+            .addByte("GLFW_JOYSTICK_3", GLFW_JOYSTICK_3)
+            .addByte("GLFW_JOYSTICK_4", GLFW_JOYSTICK_4)
+            .addByte("GLFW_JOYSTICK_5", GLFW_JOYSTICK_5)
+            .addByte("GLFW_JOYSTICK_6", GLFW_JOYSTICK_6)
+            .addByte("GLFW_JOYSTICK_7", GLFW_JOYSTICK_7)
+            .addByte("GLFW_JOYSTICK_8", GLFW_JOYSTICK_8)
+            .addByte("GLFW_JOYSTICK_9", GLFW_JOYSTICK_9)
+            .addByte("GLFW_JOYSTICK_10", GLFW_JOYSTICK_10)
+            .addByte("GLFW_JOYSTICK_11", GLFW_JOYSTICK_11)
+            .addByte("GLFW_JOYSTICK_12", GLFW_JOYSTICK_12)
+            .addByte("GLFW_JOYSTICK_13", GLFW_JOYSTICK_13)
+            .addByte("GLFW_JOYSTICK_14", GLFW_JOYSTICK_14)
+            .addByte("GLFW_JOYSTICK_15", GLFW_JOYSTICK_15)
+            .addByte("GLFW_JOYSTICK_16", GLFW_JOYSTICK_16)
 
             // =============================================================
             // KEYBOARD KEYS (Common ones)
@@ -398,11 +398,11 @@ namespace GLFWBindings
             // =============================================================
             // MODIFIER KEY FLAGS
             // =============================================================
-            .addInt("GLFW_MOD_SHIFT", GLFW_MOD_SHIFT)
-            .addInt("GLFW_MOD_CONTROL", GLFW_MOD_CONTROL)
-            .addInt("GLFW_MOD_ALT", GLFW_MOD_ALT)
-            .addInt("GLFW_MOD_SUPER", GLFW_MOD_SUPER)
-            .addInt("GLFW_MOD_CAPS_LOCK", GLFW_MOD_CAPS_LOCK)
-            .addInt("GLFW_MOD_NUM_LOCK", GLFW_MOD_NUM_LOCK);
+            .addByte("GLFW_MOD_SHIFT", GLFW_MOD_SHIFT)
+            .addByte("GLFW_MOD_CONTROL", GLFW_MOD_CONTROL)
+            .addByte("GLFW_MOD_ALT", GLFW_MOD_ALT)
+            .addByte("GLFW_MOD_SUPER", GLFW_MOD_SUPER)
+            .addByte("GLFW_MOD_CAPS_LOCK", GLFW_MOD_CAPS_LOCK)
+            .addByte("GLFW_MOD_NUM_LOCK", GLFW_MOD_NUM_LOCK);
     }
 }

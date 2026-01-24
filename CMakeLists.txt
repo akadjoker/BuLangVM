@@ -20,15 +20,19 @@ endif()
 
 add_subdirectory(libbu)
 add_subdirectory(external/raylib)
+add_subdirectory(external/box2d)
+add_subdirectory(external/imgui)
 
 # Enable PIC for raylib and glfw so they can be linked into shared libraries (plugins)
 set_target_properties(raylib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(glfw PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(box2d PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_subdirectory(BuGLFW)
 add_subdirectory(BuRay)
 add_subdirectory(BuSDL)
-add_subdirectory(BuGTK)
+#add_subdirectory(BuGTK)
+add_subdirectory(BuImGui)
 add_subdirectory(BuRlGl)
 add_subdirectory(bu)
 

@@ -48,6 +48,5 @@ namespace SDLBindings
         register_renderer(module);
         register_window(module);
         register_opengl(module);
-        register_rlgl(module);
     }
 }

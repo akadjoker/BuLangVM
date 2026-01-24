@@ -1045,6 +1045,13 @@ public:
   bool callFunction(Function *func, int argCount);
   bool callFunction(const char *name, int argCount);
 
+  // Resolve function name with automatic __main__$ prefix fallback
+  // Returns nullptr if function not found
+  Function* getFunction(const char *name);
+
+  // Call function with automatic name resolution (tries name, then __main__$name)
+  bool callFunctionAuto(const char *name, int argCount);
+
   Process *callProcess(ProcessDef *proc, int argCount);
   Process *callProcess(const char *name, int argCount);
 
@@ -1066,6 +1073,12 @@ public:
   size_t getTotalMaps() { return totalMaps; }
   size_t getTotalNativeClasses() { return totalNativeClasses; }
   size_t getTotalNativeStructs() { return totalNativeStructs; }
+
+  // Fiber/Process context (for callbacks from external libraries like GTK)
+  Fiber* getCurrentFiber() { return currentFiber; }
+  void setCurrentFiber(Fiber* fiber) { currentFiber = fiber; }
+  Process* getCurrentProcess() { return currentProcess; }
+  void setCurrentProcess(Process* process) { currentProcess = process; }
 
   uint16 defineModule(const char *name);
   ModuleBuilder addModule(const char *name);
@@ -1089,6 +1102,25 @@ public:
   Value getGlobal(const char *name);
   Value getGlobal(uint32 index);
   bool tryGetGlobal(const char *name, Value *value);
+
+  // ===== ARRAY EXTRACTION HELPERS (for native bindings - no allocation) =====
+  // Extract values from a BuLang array to a C buffer (stack-allocated by caller)
+  // Returns number of elements extracted, or -1 if not an array
+  int getFloats(Value v, float* out, int maxCount);
+  int getInts(Value v, int* out, int maxCount);
+  int getDoubles(Value v, double* out, int maxCount);
+
+  // Convenience for common vector types (returns false if wrong size/type)
+  bool getVec2(Value v, float* out);  // extracts 2 floats
+  bool getVec3(Value v, float* out);  // extracts 3 floats
+  bool getVec4(Value v, float* out);  // extracts 4 floats
+
+  // Matrices (column-major, OpenGL style)
+  bool getMat3(Value v, float* out);  // extracts 9 floats (3x3)
+  bool getMat4(Value v, float* out);  // extracts 16 floats (4x4)
+
+  // Get array length (returns -1 if not array)
+  int getArrayLength(Value v);
 
   // ===== STACK API   =====
   const Value &peek(int index); // -1 = topo, 0 = base

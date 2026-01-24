@@ -16,6 +16,14 @@ endif()
 
  
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin/modules)
+set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/external/imgui)
+ 
+set(IMGUI_SOURCES
+    ${IMGUI_DIR}/backends/imgui_impl_sdl2.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_sdlrenderer2.cpp
+)
+
 
  
 set(BINDING_SOURCES
@@ -33,9 +41,9 @@ find_package(OpenGL REQUIRED)
 # ============================================
 # libbu_sdl Plugin (shared library)
 # ============================================
-add_library(bu_sdl SHARED src/plugin.cpp ${BINDING_SOURCES})
+add_library(bu_sdl SHARED src/plugin.cpp ${BINDING_SOURCES} ${IMGUI_SOURCES})
 
-target_include_directories(bu_sdl PRIVATE include src ${CMAKE_SOURCE_DIR}/libbu/include)
+target_include_directories(bu_sdl PRIVATE include src ${CMAKE_SOURCE_DIR}/libbu/include ${IMGUI_DIR} ${IMGUI_DIR}/backends ${IMGUI_DIR}/include)
 
 # Plugin-specific compile definitions
 target_compile_definitions(bu_sdl PRIVATE BU_PLUGIN_BUILD)
@@ -63,8 +71,8 @@ set_target_properties(bu_sdl PROPERTIES
 # This avoids duplicate state issues with static libraries
 if (WIN32)
     # On Windows, we need to link libbu since we can't use -rdynamic
-    target_link_libraries(bu_sdl libbu SDL2 OpenGL::GL Winmm.lib)
+    target_link_libraries(bu_sdl libbu SDL2 imgui OpenGL::GL Winmm.lib)
 else()
     # On Unix, symbols will be resolved from the main executable
-    target_link_libraries(bu_sdl SDL2 OpenGL::GL m dl)
+    target_link_libraries(bu_sdl SDL2 imgui OpenGL::GL m dl)
 endif()

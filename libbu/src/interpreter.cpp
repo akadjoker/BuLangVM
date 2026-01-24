@@ -1354,3 +1354,112 @@ Upvalue::Upvalue(Value *loc) : GCObject(GCObjectType::UPVALUE)
   nextOpen = nullptr;
   closed.type = ValueType::NIL;
 }
+
+// ============================================
+// Array Extraction Helpers (for native bindings)
+// ============================================
+
+int Interpreter::getArrayLength(Value v)
+{
+    if (!v.isArray()) return -1;
+    return (int)v.asArray()->values.size();
+}
+
+int Interpreter::getFloats(Value v, float* out, int maxCount)
+{
+    if (!v.isArray()) return -1;
+    ArrayInstance* arr = v.asArray();
+    int count = (int)arr->values.size();
+    if (count > maxCount) count = maxCount;
+
+    for (int i = 0; i < count; i++) {
+        out[i] = (float)arr->values[i].asNumber();
+    }
+    return count;
+}
+
+int Interpreter::getInts(Value v, int* out, int maxCount)
+{
+    if (!v.isArray()) return -1;
+    ArrayInstance* arr = v.asArray();
+    int count = (int)arr->values.size();
+    if (count > maxCount) count = maxCount;
+
+    for (int i = 0; i < count; i++) {
+        out[i] = (int)arr->values[i].asNumber();
+    }
+    return count;
+}
+
+int Interpreter::getDoubles(Value v, double* out, int maxCount)
+{
+    if (!v.isArray()) return -1;
+    ArrayInstance* arr = v.asArray();
+    int count = (int)arr->values.size();
+    if (count > maxCount) count = maxCount;
+
+    for (int i = 0; i < count; i++) {
+        out[i] = arr->values[i].asNumber();
+    }
+    return count;
+}
+
+bool Interpreter::getVec2(Value v, float* out)
+{
+    if (!v.isArray()) return false;
+    ArrayInstance* arr = v.asArray();
+    if (arr->values.size() < 2) return false;
+
+    out[0] = (float)arr->values[0].asNumber();
+    out[1] = (float)arr->values[1].asNumber();
+    return true;
+}
+
+bool Interpreter::getVec3(Value v, float* out)
+{
+    if (!v.isArray()) return false;
+    ArrayInstance* arr = v.asArray();
+    if (arr->values.size() < 3) return false;
+
+    out[0] = (float)arr->values[0].asNumber();
+    out[1] = (float)arr->values[1].asNumber();
+    out[2] = (float)arr->values[2].asNumber();
+    return true;
+}
+
+bool Interpreter::getVec4(Value v, float* out)
+{
+    if (!v.isArray()) return false;
+    ArrayInstance* arr = v.asArray();
+    if (arr->values.size() < 4) return false;
+
+    out[0] = (float)arr->values[0].asNumber();
+    out[1] = (float)arr->values[1].asNumber();
+    out[2] = (float)arr->values[2].asNumber();
+    out[3] = (float)arr->values[3].asNumber();
+    return true;
+}
+
+bool Interpreter::getMat3(Value v, float* out)
+{
+    if (!v.isArray()) return false;
+    ArrayInstance* arr = v.asArray();
+    if (arr->values.size() < 9) return false;
+
+    for (int i = 0; i < 9; i++) {
+        out[i] = (float)arr->values[i].asNumber();
+    }
+    return true;
+}
+
+bool Interpreter::getMat4(Value v, float* out)
+{
+    if (!v.isArray()) return false;
+    ArrayInstance* arr = v.asArray();
+    if (arr->values.size() < 16) return false;
+
+    for (int i = 0; i < 16; i++) {
+        out[i] = (float)arr->values[i].asNumber();
+    }
+    return true;
+}
