@@ -44,4 +44,219 @@
 
 
 //include "plataform.bu";
-include "space_shooter.bu";
+//include "space_shooter.bu";
+
+class Node
+{
+  var name;
+  var url;
+  var next;
+  var prev;
+
+  def init(name, url)
+  {
+    self.name = name;
+    self.url = url;
+    self.next = nil;
+    self.prev = nil;
+  }
+}
+
+def push(head, name, url)
+{
+  var n = Node(name, url);
+
+  if (head != nil)
+  {
+    head.prev = n;
+    n.next = head;
+  }
+
+  return n;
+}
+
+// remove o primeiro elemento e devolve (novoHead, removed)
+def pop(head)
+{
+  if (head == nil) return (nil, nil);
+
+  var removed = head;
+  var newHead = head.next;
+
+  removed.next = nil;
+  removed.prev = nil;
+
+  if (newHead != nil)
+  {
+    newHead.prev = nil;
+  }
+
+  return (newHead, removed);
+}
+
+// procura por name e devolve o nó ou nil
+def find(head, name)
+{
+  var cur = head;
+  while (cur != nil)
+  {
+    if (cur.name == name) return cur;
+    cur = cur.next;
+  }
+  return nil;
+}
+
+// remove um nó qualquer (meio, head, tail). devolve novoHead
+def removeNode(head, node)
+{
+  if (node == nil) return head;
+  if (head == nil) return head;
+
+  var p = node.prev;
+  var n = node.next;
+
+  if (p != nil)
+  {
+    p.next = n;
+  }
+  else
+  {
+    // node é head
+    head = n;
+  }
+
+  if (n != nil)
+  {
+    n.prev = p;
+  }
+
+  node.next = nil;
+  node.prev = nil;
+
+  return head;
+}
+
+// insere depois de "node". devolve head (ou novo head se head era nil)
+def insertAfter(head, node, name, url)
+{
+  var newNode = Node(name, url);
+
+  if (node == nil)
+  {
+    // se não tiveres nó, faz push no head
+    return push(head, name, url);
+  }
+
+  var n = node.next;
+
+  newNode.prev = node;
+  newNode.next = n;
+  node.next = newNode;
+
+  if (n != nil)
+  {
+    n.prev = newNode;
+  }
+
+  return head;
+}
+
+def printForward(head)
+{
+  write("Forward:\n");
+  var cur = head;
+  var tail = nil;
+  while (cur != nil)
+  {
+    write("- {} -> {}\n", cur.name, cur.url);
+    tail = cur;
+    cur = cur.next;
+  }
+  return tail;
+}
+
+def printBackward(tail)
+{
+  write("Backward:\n");
+  var cur = tail;
+  while (cur != nil)
+  {
+    write("- {} -> {}\n", cur.name, cur.url);
+    cur = cur.prev;
+  }
+}
+
+// valida se prev/next estão coerentes (integrity check)
+def checkList(head)
+{
+  var cur = head;
+  var prevNode = nil;
+
+  while (cur != nil)
+  {
+    // Verificar se cur.prev aponta para o nó anterior correto
+    // Nota: comparação com == em instâncias é um bug em BuLang,
+    // então usamos uma abordagem diferente: se prev == nil, cur.prev deve ser nil
+    if (prevNode == nil)
+    {
+      if (cur.prev != nil)
+      {
+        write("[FAIL] First node should have nil prev at {}\n", cur.name);
+        return false;
+      }
+    }
+    else
+    {
+      // Se temos um nó anterior, verificamos se cur.prev.name == prevNode.name
+      if (cur.prev == nil)
+      {
+        write("[FAIL] Non-first node should have prev at {}\n", cur.name);
+        return false;
+      }
+      if (cur.prev.name != prevNode.name)
+      {
+        write("[FAIL] prev mismatch at {}, expected {}, got {}\n", cur.name, prevNode.name, cur.prev.name);
+        return false;
+      }
+    }
+
+    prevNode = cur;
+    cur = cur.next;
+  }
+
+  write("[OK] integrity\n");
+  return true;
+}
+
+// =====================
+// TEST
+// =====================
+
+var head = nil;
+
+head = push(head, "Boids", "./demos/boids/index.html");
+head = push(head, "Doom", "./demos/doom/index.html");
+head = push(head, "Pinball", "./demos/pinball/index.html");
+
+var tail = printForward(head);
+printBackward(tail);
+checkList(head);
+
+// insertAfter Doom
+var doom = find(head, "Doom");
+head = insertAfter(head, doom, "Fireworks", "./demos/fireworks/index.html");
+tail = printForward(head);
+checkList(head);
+
+// remove Pinball
+var pin = find(head, "Pinball");
+head = removeNode(head, pin);
+tail = printForward(head);
+checkList(head);
+
+// pop head
+var (head, removed) = pop(head);
+write("Popped: {}\n", removed.name );
+tail = printForward(head);
+checkList(head);
+

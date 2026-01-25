@@ -1,0 +1,37 @@
+class Node 
+{
+  var name;
+  var url;
+  var next;
+
+  def init(name, url)
+  {
+    self.name = name;
+    self.url = url;
+    self.next = nil;
+  }
+}
+
+def push(head, name, url)
+{
+  var n = Node(name, url);
+  n.next = head;
+  return n;
+}
+
+def printList(head)
+{
+  var cur = head;
+  while (cur != nil)
+  {
+    write("- {} -> {} \n", cur.name, cur.url);
+    cur = cur.next;
+  }
+}
+
+var head = nil;
+head = push(head, "Boids", "./demos/boids/index.html");
+head = push(head, "Doom", "./demos/doom/index.html");
+head = push(head, "Pinball", "./demos/pinball/index.html");
+
+printList(head);

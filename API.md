@@ -14,6 +14,7 @@ Complete documentation of all built-in modules and functions.
 - [Path Module](#-path-module)
 - [OS Module](#-os-module)
 - [Socket Module](#-socket-module)
+- [Multi-Value Returns](#-multi-value-returns)
 
 ---
 
@@ -1141,3 +1142,46 @@ while true {
 - [Language Reference](docs/language.md)
 - [Examples](examples/)
 - [Playground](https://bulang.netlify.app/playground.html)
+
+---
+
+## 🔀 Multi-Value Returns
+
+Functions can return **multiple values** efficiently without overhead.
+
+### Basic Example
+
+```bulang
+def get_position() {
+    return (100, 200);
+}
+
+var (x, y) = get_position();
+```
+
+### In Native Functions
+
+```cpp
+static int native_GetMousePosition(Interpreter *vm, int argc, Value *args)
+{
+    Vector2 pos = GetMousePosition();
+    vm->pushDouble(pos.x);
+    vm->pushDouble(pos.y);
+    return 2;  // Return count
+}
+```
+
+### Use Cases
+
+- **Coordinates**: `return (x, y, z);`
+- **Error Handling**: `return (result, success);`
+- **State Queries**: `return (level, score, hp);`
+
+### Features
+
+- ✅ Zero allocation overhead (stack-based)
+- ✅ Max 255 values per function
+- ✅ Partial unpacking supported
+- ✅ Works with native functions
+
+See [MULTI_RETURN.md](MULTI_RETURN.md) for complete documentation.

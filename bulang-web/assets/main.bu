@@ -7,4 +7,4 @@
 //include "demos/space_shooter.bu";
 //include "demos/verlet.bu";
 //include "demos/fireworks.bu";
-include "demos/cradle.bu";
+//include "demos/cradle.bu";

@@ -73,6 +73,24 @@ class Player {
 - `break` / `continue`
 - Low‑level `goto` and `gosub` for state machines
 
+### 🔀 Multi-Value Returns (New)
+- Functions can return **multiple values** simultaneously
+- Unpack into multiple variables with `var (a, b, c) = func()`
+- Native functions support multi-return natively
+- No tuple overhead, pure stack efficiency
+
+```bulang
+# Function returning 3 values
+def get_position() {
+    return (100, 200, 5);
+}
+
+# Unpack into variables
+var (x, y, z) = get_position();
+
+print(x, y, z);  # 100 200 5
+```
+
 ---
 
 ## 🧹 Optional Garbage Collector (New)
