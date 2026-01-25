@@ -37,6 +37,7 @@ add_subdirectory(BuRlGl)
 # #add_subdirectory(BuGTK)
 # add_subdirectory(BuImGui)
 add_subdirectory(bu)
+add_subdirectory(tests)
 
 
  

@@ -47,4 +47,5 @@
 //include "space_shooter.bu";
 
 
-include "flixel.bu";
+//include "flixe_plataforms.bu";
+include "flixel_shooter.bu"; 

@@ -1,0 +1,15 @@
+// Teste direto: Há bug ou não?
+
+class A { def foo() { print("A.foo"); } }
+class B : A { }  // NÃO override
+class C : B {
+    def bar() { super.foo(); }  // Chama super
+}
+
+print("Test 1: Normal call (sem super)");
+var b = B();
+b.foo();
+
+print("\nTest 2: Super call (com super)");
+var c = C();
+c.bar();
