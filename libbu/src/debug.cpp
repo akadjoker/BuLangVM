@@ -144,6 +144,8 @@ size_t Debug::disassembleInstruction(const Code &chunk, size_t offset)
     return byteInstruction("OP_CALL", chunk, offset);
   case OP_RETURN:
     return simpleInstruction("OP_RETURN", offset);
+  case OP_RETURN_N:
+    return byteInstruction("OP_RETURN_N", chunk, offset);
 
   case OP_CLOSURE:
   {
@@ -202,6 +204,12 @@ size_t Debug::disassembleInstruction(const Code &chunk, size_t offset)
     return byteInstruction("OP_DEFINE_ARRAY", chunk, offset);
   case OP_DEFINE_MAP:
     return byteInstruction("OP_DEFINE_MAP", chunk, offset);
+
+    // ========== EXTENDED COLLECTIONS (89-90) ==========
+  case OP_DEFINE_ARRAY_LONG:
+    return shortInstruction("OP_DEFINE_ARRAY_LONG", chunk, offset);
+  case OP_DEFINE_MAP_LONG:
+    return shortInstruction("OP_DEFINE_MAP_LONG", chunk, offset);
 
     // ========== PROPERTIES (46-49) ==========
   case OP_GET_PROPERTY:
@@ -402,6 +410,20 @@ size_t Debug::byteInstruction(const char *name, const Code &chunk,
   uint8 operand = chunk.code[offset + 1];
   printf("%-20s %4u\n", name, (unsigned)operand);
   return offset + 2;
+}
+
+size_t Debug::shortInstruction(const char *name, const Code &chunk,
+                               size_t offset)
+{
+  if (!hasBytes(chunk, offset, 2))
+  {
+    printf("%s <truncated>\n", name);
+    return chunk.count;
+  }
+
+  uint16 operand = (uint16)(chunk.code[offset + 1] << 8) | (uint16)chunk.code[offset + 2];
+  printf("%-20s %4u\n", name, (unsigned)operand);
+  return offset + 3;
 }
 
 size_t Debug::jumpInstruction(const char *name, int sign, const Code &chunk,

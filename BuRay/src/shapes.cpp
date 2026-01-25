@@ -192,9 +192,9 @@ namespace RaylibBindings
 
     static int native_DrawRectangleLines(Interpreter *vm, int argc, Value *args)    
     {
-        if (argc != 6)
+        if (argc != 5)
         {
-            Error("DrawRectangleLines expects 6 arguments");
+            Error("DrawRectangleLines expects 5 arguments");
             return 0;
         }
         if (!args[4].isNativeStructInstance())

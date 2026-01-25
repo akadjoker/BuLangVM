@@ -186,6 +186,7 @@ struct ClassDef
 
   List<String *, Function *> methods;
   List<String *, uint8> fieldNames;
+  Vector<Value> fieldDefaults;    // Default values for fields (nil if no default)
 
   Function *canRegisterFunction(String *pName);
   ~ClassDef();

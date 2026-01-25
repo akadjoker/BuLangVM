@@ -568,7 +568,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 
             if (!a.isNumber() || !b.isNumber())
             {
-                THROW_RUNTIME_ERROR("Operands must be numbers.");
+                THROW_RUNTIME_ERROR("Operands '%' must be numbers.");
             }
 
 #define THROW_MOD_ZERO()                                             \
@@ -970,10 +970,17 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                 instance->klass = klass;
                 instance->fields.reserve(klass->fieldCount);
 
-                // Inicializa fields com nil
+                // Inicializa fields com valores default ou nil
                 for (int i = 0; i < klass->fieldCount; i++)
                 {
-                    instance->fields.push(makeNil());
+                    if (i < (int)klass->fieldDefaults.size() && !klass->fieldDefaults[i].isNil())
+                    {
+                        instance->fields.push(klass->fieldDefaults[i]);
+                    }
+                    else
+                    {
+                        instance->fields.push(makeNil());
+                    }
                 }
 
                 // Verifica se há NativeClass na cadeia de herança (direta ou indireta)
@@ -1251,6 +1258,103 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
             *fiber->stackTop++ = result;
             LOAD_FRAME();
 
+            break;
+        }
+
+        case OP_RETURN_N:
+        {
+            uint8_t count = READ_BYTE();
+
+            // Save the N return values (they're on top of stack)
+            Value results[256];
+            for (int i = count - 1; i >= 0; i--)
+            {
+                results[i] = POP();
+            }
+
+            if (hasFatalError_)
+            {
+                STORE_FRAME();
+                return {FiberResult::ERROR, instructionsRun, 0, 0};
+            }
+
+            // Close upvalues for this frame
+            if (fiber->frameCount > 0)
+            {
+                CallFrame *returningFrame = &fiber->frames[fiber->frameCount - 1];
+                Value *frameStart = returningFrame->slots;
+                while (openUpvalues != nullptr && openUpvalues->location >= frameStart)
+                {
+                    Upvalue *upvalue = openUpvalues;
+                    upvalue->closed = *upvalue->location;
+                    upvalue->location = &upvalue->closed;
+                    openUpvalues = upvalue->nextOpen;
+                }
+            }
+
+            // Handle try/finally - note: multi-return in finally may not work correctly
+            bool hasFinally = false;
+            if (fiber->tryDepth > 0)
+            {
+                for (int depth = fiber->tryDepth - 1; depth >= 0; depth--)
+                {
+                    TryHandler &handler = fiber->tryHandlers[depth];
+
+                    if (handler.finallyIP != nullptr && !handler.inFinally)
+                    {
+                        // For multi-return, just use first value in finally
+                        handler.pendingReturn = results[0];
+                        handler.hasPendingReturn = true;
+                        handler.inFinally = true;
+                        fiber->tryDepth = depth + 1;
+                        ip = handler.finallyIP;
+                        hasFinally = true;
+                        break;
+                    }
+                }
+            }
+
+            if (hasFinally)
+            {
+                break;
+            }
+
+            fiber->frameCount--;
+
+            if (fiber->frameCount == 0)
+            {
+                fiber->stackTop = fiber->stack;
+                // Push all return values
+                for (int i = 0; i < count; i++)
+                {
+                    *fiber->stackTop++ = results[i];
+                }
+
+                fiber->state = FiberState::DEAD;
+
+                if (fiber == &process->fibers[0])
+                {
+                    for (int i = 0; i < process->nextFiberIndex; i++)
+                    {
+                        process->fibers[i].state = FiberState::DEAD;
+                    }
+                    process->state = FiberState::DEAD;
+                }
+
+                STORE_FRAME();
+                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            }
+
+            CallFrame *finished = &fiber->frames[fiber->frameCount];
+            fiber->stackTop = finished->slots;
+
+            // Push all return values onto the stack
+            for (int i = 0; i < count; i++)
+            {
+                *fiber->stackTop++ = results[i];
+            }
+
+            LOAD_FRAME();
             break;
         }
 
@@ -3843,6 +3947,44 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
         case OP_DEFINE_MAP:
         {
             uint8_t count = READ_BYTE();
+
+            Value map = makeMap();
+            MapInstance *inst = map.asMap();
+
+            for (int i = 0; i < count; i++)
+            {
+                Value value = POP();
+                Value key = POP();
+
+                if (!key.isString())
+                {
+                    runtimeError("Map key must be string");
+                    PUSH(makeNil());
+                    break;
+                }
+
+                inst->table.set(key.asString(), value);
+            }
+
+            PUSH(map);
+            break;
+        }
+        case OP_DEFINE_ARRAY_LONG:
+        {
+            uint16_t count = READ_SHORT();
+            Value array = makeArray();
+            ArrayInstance *instance = array.asArray();
+            instance->values.resize(count);
+            for (int i = count - 1; i >= 0; i--)
+            {
+                instance->values[i] = POP();
+            }
+            PUSH(array);
+            break;
+        }
+        case OP_DEFINE_MAP_LONG:
+        {
+            uint16_t count = READ_SHORT();
 
             Value map = makeMap();
             MapInstance *inst = map.asMap();

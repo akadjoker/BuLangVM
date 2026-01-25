@@ -863,10 +863,17 @@ Value Interpreter::createClassInstance(ClassDef *klass, int argCount, Value *arg
   instance->klass = klass;
   instance->fields.reserve(klass->fieldCount);
 
-  // Inicializa fields com nil
+  // Inicializa fields com valores default ou nil
   for (int i = 0; i < klass->fieldCount; i++)
   {
-    instance->fields.push(makeNil());
+    if (i < (int)klass->fieldDefaults.size() && !klass->fieldDefaults[i].isNil())
+    {
+      instance->fields.push(klass->fieldDefaults[i]);
+    }
+    else
+    {
+      instance->fields.push(makeNil());
+    }
   }
 
   // Se herda de NativeClass, cria os dados nativos

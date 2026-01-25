@@ -1380,6 +1380,46 @@ void Compiler::returnStatement()
     {
         emitReturn();
     }
+    else if (match(TOKEN_LPAREN))
+    {
+        // Multi-return: return (a, b, c);
+        if (currentFunctionType == FunctionType::TYPE_INITIALIZER)
+        {
+            error("Cannot return values from an initializer");
+            return;
+        }
+
+        uint8_t count = 0;
+        if (!check(TOKEN_RPAREN))
+        {
+            do {
+                expression();
+                if (hadError) return;
+                count++;
+                if (count > 255)
+                {
+                    error("Cannot return more than 255 values");
+                    return;
+                }
+            } while (match(TOKEN_COMMA));
+        }
+
+        consume(TOKEN_RPAREN, "Expect ')' after return values");
+        consume(TOKEN_SEMICOLON, "Expect ';' after return statement");
+
+        if (count == 0)
+        {
+            emitReturn(); // return () is same as return;
+        }
+        else if (count == 1)
+        {
+            emitByte(OP_RETURN); // return (a) is same as return a;
+        }
+        else
+        {
+            emitBytes(OP_RETURN_N, count);
+        }
+    }
     else
     {
         if (currentFunctionType == FunctionType::TYPE_INITIALIZER)
@@ -1702,10 +1742,11 @@ void Compiler::compileFunction(Function *func, bool isProcess)
     pendingGotos.clear();
     pendingGosubs.clear();
 
-    if (!function->hasReturn)
-    {
-        emitReturn();
-    }
+    // ALWAYS emit implicit return to handle early returns in conditionals
+    // If function already returned via explicit return, this code is unreachable (dead code)
+    // but ensures all execution paths end with OP_RETURN
+    emitReturn();
+    function->hasReturn = true;
 
     // ========================================
     // GUARDA UPVALUE COUNT
@@ -2754,16 +2795,54 @@ void Compiler::classDeclaration()
 
             classDef->fieldCount++;
 
-            // Ignora inicialização (vai no init)
-            if (match(TOKEN_EQUAL) && !check(TOKEN_COMMA))
+            // Parse default value if present
+            if (match(TOKEN_EQUAL))
             {
-                expression();
-                emitByte(OP_POP);
+                // Check for literal default values
+                if (match(TOKEN_INT))
+                {
+                    // Parse integer literal
+                    int64_t value = std::strtoll(previous.lexeme.c_str(), nullptr, 10);
+                    classDef->fieldDefaults.push(vm_->makeInt(value));
+                }
+                else if (match(TOKEN_FLOAT))
+                {
+                    // Parse float literal
+                    double value = std::strtod(previous.lexeme.c_str(), nullptr);
+                    classDef->fieldDefaults.push(vm_->makeDouble(value));
+                }
+                else if (match(TOKEN_STRING))
+                {
+                    // Parse string literal
+                    String *str = vm_->createString(previous.lexeme.c_str());
+                    classDef->fieldDefaults.push(vm_->makeString(str));
+                }
+                else if (match(TOKEN_TRUE))
+                {
+                    classDef->fieldDefaults.push(vm_->makeBool(true));
+                }
+                else if (match(TOKEN_FALSE))
+                {
+                    classDef->fieldDefaults.push(vm_->makeBool(false));
+                }
+                else if (match(TOKEN_NIL))
+                {
+                    classDef->fieldDefaults.push(vm_->makeNil());
+                }
+                else
+                {
+                    // Non-literal expression - compile and discard, use nil
+                    Warning("Complex expressions as field defaults not supported, using nil for '%s'",
+                            fieldName.lexeme.c_str());
+                    expression();
+                    emitByte(OP_POP);
+                    classDef->fieldDefaults.push(vm_->makeNil());
+                }
             }
-            else if (match(TOKEN_EQUAL))
+            else
             {
-                expression();
-                emitByte(OP_POP);
+                // No default - use nil
+                classDef->fieldDefaults.push(vm_->makeNil());
             }
 
         } while (match(TOKEN_COMMA)); //  Continua se tem vírgula
@@ -2875,11 +2954,13 @@ void Compiler::method(ClassDef *classDef)
         emitByte(OP_RETURN);
         function->hasReturn = true;
     }
-    else if (!function->hasReturn) // sempre retorna ??
+    else
     {
+        // ALWAYS emit implicit return for methods to handle early returns in conditionals
+        // If method already returned via explicit return, this code is unreachable (dead code)
+        // but ensures all execution paths end with OP_RETURN
         emitBytes(OP_GET_LOCAL, 0); // self
         emitByte(OP_RETURN);
-
         function->hasReturn = true;
     }
 
