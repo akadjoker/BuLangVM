@@ -1,7 +1,3 @@
-// ==========================================
-// QUADTREE STRUCTURE - FIXED
-// ==========================================
-
 struct Rect
 {
     var x, y, w, h; // center x/y, half-width, half-height
@@ -86,7 +82,7 @@ def subdivide(qt)
 
 def insertQT(qt, body)
 {
-    // CRÍTICO: Verifica se o AABB do body intersecta o boundary
+    
     if (!intersectsRect(qt.boundary, body.bounds))
     {
         return false;

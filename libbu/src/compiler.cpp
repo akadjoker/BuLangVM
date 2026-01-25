@@ -593,7 +593,7 @@ uint8 Compiler::makeConstant(Value value)
   int constant = currentChunk->addConstant(value);
   if (constant > UINT8_MAX)
   {
-    error("Too many constants in one chunk");
+    error("Function too large (>256 constants). Split code into smaller functions");
     hadError = true;
     return 0;
   }
