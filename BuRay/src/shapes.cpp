@@ -61,6 +61,29 @@ namespace RaylibBindings
         return 0;
     }
 
+    static int native_DrawLineEx(Interpreter *vm, int argc, Value *args)
+    {
+        if (argc != 6)
+        {
+            Error("DrawLineEx expects 6 arguments");
+            return 0;
+        }
+
+        if (!args[5].isNativeStructInstance())
+        {
+            Error("DrawLineEx expects Color");
+            return 0;
+        }
+
+        Vector2 start = {(float)args[0].asNumber(), (float)args[1].asNumber()};
+        Vector2 end = {(float)args[2].asNumber(), (float)args[3].asNumber()};
+
+        auto *inst = args[5].asNativeStructInstance();
+        Color *color = (Color *)inst->data;
+
+        DrawLineEx(start, end, args[4].asNumber(), *color);
+        return 0;
+    }
     // ========================================
     // CIRCLE
     // ========================================
@@ -245,9 +268,9 @@ namespace RaylibBindings
 
     static int native_DrawRectangleGradientH(Interpreter *vm, int argc, Value *args)
     {
-        if (argc != 5)
+        if (argc != 6)
         {
-            Error("DrawRectangleGradientH expects 5 arguments");
+            Error("DrawRectangleGradientH expects 6 arguments");
             return 0;
         }
         if (!args[4].isNativeStructInstance() || !args[5].isNativeStructInstance())
@@ -318,6 +341,7 @@ namespace RaylibBindings
            .addFunction("DrawTriangle", native_DrawTriangle, 4)
 
            .addFunction("DrawLine", native_DrawLine, 5)
+           .addFunction("DrawLineEx", native_DrawLineEx, 6)
            .addFunction("DrawCircle", native_DrawCircle, 4)
            .addFunction("DrawCircleV", native_DrawCircleV, 3)
            .addFunction("DrawCircleLines", native_DrawCircleLines, 4)

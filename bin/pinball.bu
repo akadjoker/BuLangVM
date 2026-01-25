@@ -8,7 +8,7 @@ using raylib;
 include "vec2.bu";
 include "quadtree.bu";
 
-InitWindow(600, 800, "PINBALL - Flippers Potentes");
+InitWindow(600, 800, "BULang PINBALL - Flippers");
 SetTargetFPS(60);
 
 var WHITE = Color(255, 255, 255, 255);
@@ -53,6 +53,11 @@ struct RigidBody
     var id;
     var isBumper;
     var isFlipper;
+    var pivot;
+    var motorSpeed;
+    var maxMotorTorque;
+    var lowerAngleLimit;
+    var upperAngleLimit;
 };
 
 def createCircle(x, y, radius, density)
@@ -70,13 +75,18 @@ def createCircle(x, y, radius, density)
     body.invMass = 1.0 / body.mass;
     body.inertia = body.mass * radius * radius * 0.5;
     body.invInertia = 1.0 / body.inertia;
-    body.restitution = 0.95;
-    body.friction = 0.1;
+    body.restitution = 0.7;
+    body.friction = 0.2;
     body.color = WHITE;
     body.isStatic = false;
     body.bounds = Rect(x, y, radius, radius);
     body.isBumper = false;
     body.isFlipper = false;
+    body.pivot = Vec2(0.0, 0.0);
+    body.motorSpeed = 0.0;
+    body.maxMotorTorque = 0.0;
+    body.lowerAngleLimit = 0.0;
+    body.upperAngleLimit = 0.0;
     return body;
 }
 
@@ -97,19 +107,24 @@ def createBox(x, y, width, height, density)
     body.vertices.push(Vec2(hw, -hh));
     body.vertices.push(Vec2(hw, hh));
     body.vertices.push(Vec2(-hw, hh));
-    body.bounds = Rect(0.0, 0.0, hw, hh);
 
     var area = width * height;
     body.mass = area * density;
     body.invMass = 1.0 / body.mass;
-    body.inertia = body.mass * (width * width + height * height) / 12.0;
+    body.inertia = body.mass * (width * width + height * height) / 12.0 * 3.0;
     body.invInertia = 1.0 / body.inertia;
     body.restitution = 0.0;
     body.friction = 0.7;
     body.color = GRAY;
     body.isStatic = false;
+    body.bounds = Rect(0.0, 0.0, hw, hh);
     body.isBumper = false;
     body.isFlipper = false;
+    body.pivot = Vec2(0.0, 0.0);
+    body.motorSpeed = 0.0;
+    body.maxMotorTorque = 0.0;
+    body.lowerAngleLimit = 0.0;
+    body.upperAngleLimit = 0.0;
     return body;
 }
 
@@ -120,6 +135,79 @@ def createStaticBox(x, y, width, height)
     body.invMass = 0.0;
     body.invInertia = 0.0;
     body.color = GRAY;
+    body.restitution = 0.8;
+    body.friction = 0.1;
+
+    body.bounds = Rect(0.0, 0.0, width, height);
+    return body;
+}
+def createFlipper(pivotX, pivotY, width, height, isLeft)
+{
+    var body = RigidBody();
+    body.type = 1;
+    body.pivot = Vec2(pivotX, pivotY);
+    body.pos = Vec2(pivotX, pivotY);
+    body.vel = Vec2(0.0, 0.0);
+    body.angle = 0.0;
+    body.angularVel = 0.0;
+    body.id = 0;
+
+    var hw = width / 2.0;
+    var hh = height / 2.0;
+
+    body.vertices = [];
+    if (isLeft)
+    {
+        body.vertices.push(Vec2(0.0, -hh));
+        body.vertices.push(Vec2(width, -hh));
+        body.vertices.push(Vec2(width, hh));
+        body.vertices.push(Vec2(0.0, hh));
+
+        // Left flipper: -30° to +30° (ajustado para bater melhor)
+        body.angle = 0.52;  
+        body.lowerAngleLimit = -0.52; 
+        body.upperAngleLimit = 0.52; 
+    }
+    else
+    {
+        body.vertices.push(Vec2(-width, -hh));
+        body.vertices.push(Vec2(0.0, -hh));
+        body.vertices.push(Vec2(0.0, hh));
+        body.vertices.push(Vec2(-width, hh));
+
+        // Right flipper
+        body.angle = -0.52; 
+        body.lowerAngleLimit = -0.52;
+        body.upperAngleLimit = 0.52;  
+    }
+
+    body.bounds = Rect(0.0, 0.0, hw, hh);
+
+    // --- CORREÇÃO DE FÍSICA ---
+    // Usamos uma massa fixa baixa para o jogo ser rápido
+    body.mass = 20.0; 
+    
+    // invMass = 0 diz ao motor de física para NÃO mover a posição (pino)
+    // Mas invInertia > 0 diz que PODE rodar
+    body.invMass = 1.0 / body.mass;
+
+    
+    // Momento de inércia para um retângulo a rodar numa ponta (Axis Theorem seria melhor, mas Box chega)
+    // Inertia = m * (w^2 + h^2) / 12
+    body.inertia = body.mass * (width * width + height * height) / 12.0;
+    body.invInertia = 1.0 / body.inertia;
+
+    body.restitution = 0.9; // Menos elástico para não ser caótico
+    body.friction = 0.8;    // Muita frição para "agarrar" a bola
+    body.color = YELLOW;
+    body.isStatic = false;  
+    body.isBumper = false;
+    body.isFlipper = true;
+
+    
+    body.motorSpeed = 0.0;
+    body.maxMotorTorque = 2000000.0; 
+
     return body;
 }
 
@@ -137,12 +225,25 @@ def getTransformedVertices(body)
     var c = cos(body.angle);
     var s = sin(body.angle);
 
-    for (var i = 0; i < len(body.vertices); i = i + 1)
+    if (body.isFlipper)
     {
-        var v = body.vertices[i];
-        var rx = v.x * c - v.y * s;
-        var ry = v.x * s + v.y * c;
-        transformed.push(Vec2(rx + body.pos.x, ry + body.pos.y));
+        for (var i = 0; i < len(body.vertices); i = i + 1)
+        {
+            var v = body.vertices[i];
+            var rx = v.x * c - v.y * s;
+            var ry = v.x * s + v.y * c;
+            transformed.push(Vec2(rx + body.pivot.x, ry + body.pivot.y));
+        }
+    }
+    else
+    {
+        for (var i = 0; i < len(body.vertices); i = i + 1)
+        {
+            var v = body.vertices[i];
+            var rx = v.x * c - v.y * s;
+            var ry = v.x * s + v.y * c;
+            transformed.push(Vec2(rx + body.pos.x, ry + body.pos.y));
+        }
     }
 
     return transformed;
@@ -160,6 +261,23 @@ def calculateNormals(vertices)
         normals.push(normal);
     }
     return normals;
+}
+
+def getSupport(vertices, dir)
+{
+    var bestProj = -999999.0;
+    var bestVertex = vertices[0];
+    for(var i = 0; i < len(vertices); i = i + 1)
+    {
+        var v = vertices[i];
+        var proj = dot(v, dir);
+        if (proj > bestProj)
+        {
+            bestProj = proj;
+            bestVertex = v;
+        }
+    }
+    return bestVertex;
 }
 
 def projectPolygon(vertices, axis)
@@ -273,8 +391,11 @@ def checkPolygonPolygon(a, b)
     }
 
     manifold.normal = bestAxis;
+    var dirToA = scale(manifold.normal, -1.0);
+    var contactOnB = getSupport(vertsB, dirToA);
+
     manifold.contacts = [];
-    manifold.contacts.push(b.pos);
+    manifold.contacts.push(contactOnB);
     return manifold;
 }
 
@@ -388,8 +509,14 @@ def resolveCollisionImpulse(a, b, manifold)
     for (var c = 0; c < len(manifold.contacts); c = c + 1)
     {
         var contactPoint = manifold.contacts[c];
-        var ra = sub(contactPoint, a.pos);
-        var rb = sub(contactPoint, b.pos);
+
+        var centerA = a.pos;
+        var centerB = b.pos;
+        if (a.isFlipper) centerA = a.pivot;
+        if (b.isFlipper) centerB = b.pivot;
+
+        var ra = sub(contactPoint, centerA);
+        var rb = sub(contactPoint, centerB);
 
         var vaLinear = a.vel;
         var vbLinear = b.vel;
@@ -409,10 +536,9 @@ def resolveCollisionImpulse(a, b, manifold)
 
         var e = min(a.restitution, b.restitution);
 
-        // BUMPER: bounce forte
         if (a.isBumper || b.isBumper)
         {
-            e = 1.3;
+            e = 1.5;
         }
         else if (abs(velAlongNormal) < 50.0)
         {
@@ -489,6 +615,51 @@ def resolveCollisionImpulse(a, b, manifold)
 }
 
 // ==========================================
+// MOTOR SIMULATION 
+// ==========================================
+def applyMotor(flipper, dt)
+{
+    if (!flipper.isFlipper) return;
+
+    var targetAngle = flipper.motorSpeed;
+    
+    var angleError = targetAngle - flipper.angle;
+    var desiredAngularVel = angleError * 60.0; 
+    var angularError = desiredAngularVel - flipper.angularVel;
+    
+    var torque = angularError * flipper.inertia * 150.0;
+    
+    // Clamp torque
+    if (torque > flipper.maxMotorTorque) torque = flipper.maxMotorTorque;
+    if (torque < -flipper.maxMotorTorque) torque = -flipper.maxMotorTorque;
+    
+    // Apply torque
+    flipper.angularVel = flipper.angularVel + torque * flipper.invInertia * dt;
+    
+    // Limites (SEM zerar angularVel!)
+    if (flipper.angle < flipper.lowerAngleLimit)
+    {
+        flipper.angle = flipper.lowerAngleLimit;
+    }
+    if (flipper.angle > flipper.upperAngleLimit)
+    {
+        flipper.angle = flipper.upperAngleLimit;
+    }
+}
+
+
+
+// Constraint para manter flipper no pivot
+def constrainFlipperToPivot(flipper)
+{
+    if (!flipper.isFlipper) return;
+
+    // Flipper NÃO se move linearmente! Apenas roda
+    flipper.pos = flipper.pivot;
+    flipper.vel = Vec2(0.0, 0.0);
+}
+
+// ==========================================
 // HELPERS
 // ==========================================
 def min(a, b)
@@ -537,11 +708,17 @@ def updateAABB(body)
 }
 
 // ==========================================
-// PINBALL SETUP
+// WORLD SETUP
 // ==========================================
-var bodies = [];
 var IDS = 0;
+var bodies = [];
 var score = 0;
+var ball;
+var flipperLeft;
+var flipperRight;
+
+def createWorld()
+{
 
 // Paredes
 IDS = IDS + 1;
@@ -559,11 +736,6 @@ var topWall = createStaticBox(300, 15, 600, 30);
 topWall.id = IDS;
 bodies.push(topWall);
 
-IDS = IDS + 1;
-var bottomWall = createStaticBox(300, 785, 600, 30);
-bottomWall.id = IDS;
-bodies.push(bottomWall);
-
 // Paredes inclinadas
 IDS = IDS + 1;
 var leftSlant = createStaticBox(100, 100, 140, 15);
@@ -577,23 +749,16 @@ rightSlant.angle = -0.6;
 rightSlant.id = IDS;
 bodies.push(rightSlant);
 
-// Flippers (MAIORES e mais POTENTES!)
+// Flippers CORRIGIDOS!
 IDS = IDS + 1;
-var flipperLeft = createStaticBox(180, 680, 180, 18);
-flipperLeft.angle = 0.5;
+flipperLeft = createFlipper(170, 700, 120, 16, true);
 flipperLeft.id = IDS;
-flipperLeft.color = YELLOW;
-flipperLeft.isFlipper = true;
-flipperLeft.restitution = 1.0;
 bodies.push(flipperLeft);
 
+
 IDS = IDS + 1;
-var flipperRight = createStaticBox(420, 680, 180, 18);
-flipperRight.angle = -0.5;
+flipperRight = createFlipper(430, 700, 120, 16, false);
 flipperRight.id = IDS;
-flipperRight.color = YELLOW;
-flipperRight.isFlipper = true;
-flipperRight.restitution = 1.0;
 bodies.push(flipperRight);
 
 // Bumpers
@@ -624,6 +789,7 @@ bumper3.invMass = 0.0;
 bumper3.invInertia = 0.0;
 bumper3.color = RED;
 bumper3.isBumper = true;
+
 bumper3.id = IDS;
 bodies.push(bumper3);
 
@@ -632,26 +798,72 @@ IDS = IDS + 1;
 var obstacle1 = createStaticBox(150, 500, 50, 12);
 obstacle1.angle = 0.5;
 obstacle1.id = IDS;
+obstacle1.restitution = 0.9;
 obstacle1.color = PURPLE;
+ 
 bodies.push(obstacle1);
 
 IDS = IDS + 1;
 var obstacle2 = createStaticBox(450, 500, 50, 12);
 obstacle2.angle = -0.5;
+obstacle2.restitution = 0.9;
 obstacle2.id = IDS;
 obstacle2.color = PURPLE;
+ 
 bodies.push(obstacle2);
 
 // Bola
 IDS = IDS + 1;
-var ball = createCircle(550, 600, 10, 1.0);
+ball = createCircle(300, 200, 12, 1.0);
 ball.id = IDS;
 ball.color = CYAN;
-ball.restitution = 0.6;
-ball.friction = 0.2;
+ball.restitution = 0.9;
+ball.friction = 0.02;
+ball.mass = 1.0;
+ball.invMass = 1.0 / ball.mass; 
 bodies.push(ball);
+}
 
-var ballRef = ball;
+def renderWorld()
+{
+      for (var i = 0; i < len(bodies); i = i + 1)
+    {
+        var body = bodies[i];
+        if (body.type == 0)
+        {
+            DrawCircle(body.pos.x, body.pos.y, body.radius, body.color);
+
+            if (body.isBumper)
+            {
+                DrawCircleLines(body.pos.x, body.pos.y, body.radius + 5, ORANGE);
+                DrawCircleLines(body.pos.x, body.pos.y, body.radius + 8, ORANGE);
+            }
+            else
+            {
+                DrawCircleLines(body.pos.x, body.pos.y, body.radius, WHITE);
+            }
+        }
+        else
+        {
+            var verts = getTransformedVertices(body);
+            for (var j = 0; j < len(verts); j = j + 1)
+            {
+                var v1 = verts[j];
+                var v2 = verts[(j + 1) % len(verts)];
+                DrawLineEx(v1.x, v1.y      ,v2.x, v2.y, 5.0, body.color);
+            }
+
+            if (body.isFlipper)
+            {
+                DrawCircle(body.pivot.x, body.pivot.y, 7, GREEN);
+                DrawCircleLines(body.pivot.x, body.pivot.y, 10, WHITE);
+            }
+        }
+    }
+}
+
+
+
 
 // ==========================================
 // MAIN LOOP
@@ -661,56 +873,36 @@ screenRect.x = 300;
 screenRect.y = 400;
 screenRect.w = 300;
 screenRect.h = 400;
-
-var flipperLeftRestAngle = 0.5;
-var flipperRightRestAngle = -0.5;
-var flipperSpeed = 30.0;  // MUITO MAIS RÁPIDO!
-var maxVelocity = 800.0;
+createWorld();
+var ballRef = ball;
 
 while (!WindowShouldClose())
 {
     var dt = 1.0 / 60.0;
 
-    // Controle dos flippers - MAIOR RANGE!
-    if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A))
-    {
-        if (flipperLeft.angle > -1.0)  // Range aumentado!
-        {
-            flipperLeft.angle = flipperLeft.angle - flipperSpeed * dt;
-        }
-    }
-    else
-    {
-        if (flipperLeft.angle < flipperLeftRestAngle)
-        {
-            flipperLeft.angle = flipperLeft.angle + flipperSpeed * dt * 3.5;
-            if (flipperLeft.angle > flipperLeftRestAngle)
-            {
-                flipperLeft.angle = flipperLeftRestAngle;
-            }
-        }
-    }
+   // Motor control
+ 
+if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT))
+{
+    flipperLeft.motorSpeed = flipperLeft.lowerAngleLimit;  
+}
+else
+{
+    flipperLeft.motorSpeed = flipperLeft.upperAngleLimit;  
+}
 
-    if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D))
-    {
-        if (flipperRight.angle < 1.0)  // Range aumentado!
-        {
-            flipperRight.angle = flipperRight.angle + flipperSpeed * dt;
-        }
-    }
-    else
-    {
-        if (flipperRight.angle > flipperRightRestAngle)
-        {
-            flipperRight.angle = flipperRight.angle - flipperSpeed * dt * 3.5;
-            if (flipperRight.angle < flipperRightRestAngle)
-            {
-                flipperRight.angle = flipperRightRestAngle;
-            }
-        }
-    }
+if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT))
+{
+    flipperRight.motorSpeed = flipperRight.upperAngleLimit;   
+}
+else
+{
+    flipperRight.motorSpeed = flipperRight.lowerAngleLimit;   
+}
 
-    // Lançar nova bola
+
+
+    // Nova bola
     if (IsKeyPressed(KEY_SPACE))
     {
         ballRef.pos.x = 550.0;
@@ -723,20 +915,27 @@ while (!WindowShouldClose())
     for (var i = 0; i < len(bodies); i = i + 1)
     {
         var body = bodies[i];
-        if (!body.isStatic)
+
+        if (body.isFlipper)
+        {
+            // Apply motor
+            applyMotor(body, dt);
+
+            // Update rotation
+            body.angle = body.angle + body.angularVel * dt;
+
+            // Damping
+            body.angularVel = body.angularVel * 0.98;
+
+            // Constraint ao pivot
+            constrainFlipperToPivot(body);
+        }
+        else if (!body.isStatic)
         {
             body.vel.y = body.vel.y + GRAVITY * dt;
-
-            // Limita velocidade máxima
-            var velSq = lengthSq(body.vel);
-            if (velSq > maxVelocity * maxVelocity)
-            {
-                body.vel = scale(normalize(body.vel), maxVelocity);
-            }
-
             body.pos = add(body.pos, scale(body.vel, dt));
             body.angle = body.angle + body.angularVel * dt;
-            body.vel = scale(body.vel, 0.999);
+            body.vel = scale(body.vel, 0.998);
             body.angularVel = body.angularVel * 0.98;
 
             if (abs(body.angularVel) < 0.02)
@@ -744,6 +943,7 @@ while (!WindowShouldClose())
                 body.angularVel = 0.0;
             }
         }
+
         updateAABB(body);
     }
 
@@ -791,7 +991,7 @@ while (!WindowShouldClose())
         }
     }
 
-    // Positional correction
+ 
     for (var i = 0; i < len(contacts); i = i + 1)
     {
         var c = contacts[i];
@@ -799,20 +999,32 @@ while (!WindowShouldClose())
         var b = c.bodyB;
         var manifold = c.manifold;
 
-        if (!a.isStatic || !b.isStatic)
+        // Flippers não movem linearmente!
+        var aCanMove = !a.isStatic ;
+        var bCanMove = !b.isStatic ;
+
+        if (aCanMove || bCanMove)
         {
             var percent = 0.4;
             var slop = 0.05;
-            var correctionMag = max(manifold.penetration - slop, 0.0) / (a.invMass + b.invMass) * percent;
-            var correction = scale(manifold.normal, correctionMag);
 
-            if (!a.isStatic)
+            var totalInvMass = 0.0;
+            if (aCanMove) totalInvMass = totalInvMass + a.invMass;
+            if (bCanMove) totalInvMass = totalInvMass + b.invMass;
+
+            if (totalInvMass > 0.0001)
             {
-                a.pos = sub(a.pos, scale(correction, a.invMass));
-            }
-            if (!b.isStatic)
-            {
-                b.pos = add(b.pos, scale(correction, b.invMass));
+                var correctionMag = max(manifold.penetration - slop, 0.0) / totalInvMass * percent;
+                var correction = scale(manifold.normal, correctionMag);
+
+                if (aCanMove)
+                {
+                    a.pos = sub(a.pos, scale(correction, a.invMass));
+                }
+                if (bCanMove)
+                {
+                    b.pos = add(b.pos, scale(correction, b.invMass));
+                }
             }
         }
     }
@@ -831,46 +1043,17 @@ while (!WindowShouldClose())
     // Render
     BeginDrawing();
     ClearBackground(Color(10, 10, 20, 255));
-
-    // Desenhar bodies
-    for (var i = 0; i < len(bodies); i = i + 1)
-    {
-        var body = bodies[i];
-        if (body.type == 0)
-        {
-            DrawCircle(body.pos.x, body.pos.y, body.radius, body.color);
-
-            if (body.isBumper)
-            {
-                DrawCircleLines(body.pos.x, body.pos.y, body.radius + 5, ORANGE);
-                DrawCircleLines(body.pos.x, body.pos.y, body.radius + 8, ORANGE);
-            }
-            else
-            {
-                DrawCircleLines(body.pos.x, body.pos.y, body.radius, WHITE);
-            }
-        }
-        else
-        {
-            var verts = getTransformedVertices(body);
-            for (var j = 0; j < len(verts); j = j + 1)
-            {
-                var v1 = verts[j];
-                var v2 = verts[(j + 1) % len(verts)];
-                //DrawLineEx(Vector2(v1.x, v1.y), Vector2(v2.x, v2.y), 5.0, body.color);
-                     DrawLine(v1.x, v1.y, v2.x, v2.y, body.color);
-            }
-        }
-    }
+   
+    renderWorld();
+  
 
     // UI
-    DrawText("PINBALL", 20, 20, 40, YELLOW);
-    DrawText(format("SCORE: {}", score), 20, 70, 30, GREEN);
-    DrawText("A/LEFT - Left Flipper", 330, 730, 18, WHITE);
-    DrawText("D/RIGHT - Right Flipper", 330, 755, 18, WHITE);
-    DrawText("SPACE - Launch Ball", 20, 730, 18, CYAN);
-
-    DrawFPS(10, 755);
+    DrawText("FLIPPER!", 20, 20, 32, YELLOW);
+    DrawText(format("SCORE: {}", score), 20, 60, 28, GREEN);
+    DrawText("A/LEFT - Left Flipper", 350, 20, 18, WHITE);
+    DrawText("D/RIGHT - Right Flipper", 350, 45, 18, WHITE);
+    DrawText("SPACE - Launch Ball", 350, 70, 18, CYAN);
+    DrawFPS(10, 95);
 
     EndDrawing();
 }

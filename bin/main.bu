@@ -34,9 +34,10 @@
 //include "realtime_raytrace.bu";
 //include "pixeltrace.bu";
 //include "pixeltrace2.bu";
-//include "doom.bu";
+include "doom.bu";
 //include "physics.bu";
 //include "physics2.bu";
 //include "physics3.bu";
 //include "physics4.bu";
-include "pinball.bu";
+//include "physics5.bu";
+//include "pinball.bu";

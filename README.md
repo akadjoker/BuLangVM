@@ -124,6 +124,16 @@ Jump, collect coins, and reach the goal! Navigate challenging platforms with pre
 - Arrow Keys or WASD to move
 - SPACE to jump
 
+ 
+
+| Demo | Demo | Demo |
+|------|------|------|
+| ![Boids](gifs/boids.gif) | ![Cast Light](gifs/castlight.gif) | ![Doom](gifs/doom.gif) |
+| ![Mandelbrot](gifs/mandelbrot.gif) | ![Matrix](gifs/matrix.gif) | ![Particles](gifs/particles.gif) |
+| ![Pendulum](gifs/pendum.gif) | ![Physics](gifs/physcs.gif) | ![Pinball](gifs/pinball.gif) |
+| ![Plasma](gifs/plasma.gif) | ![Starfield](gifs/starfiled.gif) |  |
+
+
 ---
 
 ## 🚀 Quick Start

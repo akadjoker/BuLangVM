@@ -583,15 +583,27 @@ void Interpreter::runtimeError(const char *format, ...)
   va_end(args);
   OsPrintf("\n");
 
-#ifdef WDIV_DEBUG
-  if (currentFiber->frameCount > 0)
+  // Print stack trace with line numbers
+  if (currentFiber && currentFiber->frameCount > 0)
   {
-    // CallFrame *frame = &currentFiber->frames[currentFiber->frameCount - 1];
-    // Debug::dumpFunction(frame->func);
-  }
-#endif
+    OsPrintf("\nStack trace:\n");
+    for (int i = currentFiber->frameCount - 1; i >= 0; i--)
+    {
+      CallFrame *frame = &currentFiber->frames[i];
+      Function *func = frame->func;
 
-  
+      if (func && func->chunk->code && frame->ip >= func->chunk->code)
+      {
+        size_t instruction = frame->ip - func->chunk->code;
+        if (instruction > 0) instruction--;
+
+        int line = func->chunk->lines[instruction];
+        const char *funcName = func->name ? func->name->chars() : "<script>";
+
+        OsPrintf("  [%d] %s() at line %d\n", i, funcName, line);
+      }
+    }
+  }
 }
 bool Interpreter::throwException(Value error)
 {
