@@ -70,99 +70,109 @@ public:
     }
 };
 
-Value native_seed(Interpreter *vm, int argCount, Value *args)
+int native_seed(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount == 1 && args[0].isInt())
     {
         RandomGenerator::instance().setSeed((unsigned int)args[0].asNumber());
     }
-    return vm->makeNil();
+    return 0;
 }
 
-Value native_rand(Interpreter *vm, int argCount, Value *args)
+int native_rand(Interpreter *vm, int argCount, Value *args)
 {
 
     if (argCount == 0)
     {
-        return vm->makeDouble(RandomGenerator::instance().randFloat());
+        vm->push(vm->makeDouble(RandomGenerator::instance().randFloat()));
+        return 1;
     }
     else if (argCount == 1)
     {
         double value = args[0].asDouble();
-        return vm->makeDouble(RandomGenerator::instance().randFloat(0, value));
+        vm->push(vm->makeDouble(RandomGenerator::instance().randFloat(0, value)));
+        return 1;
     }
     else
     {
         double min = args[0].asDouble();
         double max = args[1].asDouble();
-        return vm->makeDouble(RandomGenerator::instance().randFloat(min, max));
+        vm->push(vm->makeDouble(RandomGenerator::instance().randFloat(min, max)));
+        return 1;
     }
-    return vm->makeNil();
+    return 0;
 }
 
-Value native_irand(Interpreter *vm, int argCount, Value *args)
+int native_irand(Interpreter *vm, int argCount, Value *args)
 {
 
     if (argCount == 0)
     {
-        return vm->makeInt(RandomGenerator::instance().rand());
+        vm->push(vm->makeInt(RandomGenerator::instance().rand()));
+        return 1;
     }
     else if (argCount == 1)
     {
         int value = args[0].asInt();
-        return vm->makeInt(RandomGenerator::instance().rand(0, value));
+        vm->push(vm->makeInt(RandomGenerator::instance().rand(0, value)));
+        return 1;
     }
     else
     {
         int min = args[0].asInt();
         int max = args[1].asInt();
-        return vm->makeInt(RandomGenerator::instance().rand(min, max));
+        vm->push(vm->makeInt(RandomGenerator::instance().rand(min, max)));
+        return 1;
     }
-    return vm->makeNil();
+    return 0;
 }
 
-Value native_min(Interpreter *vm, int argCount, Value *args)
+int native_min(Interpreter *vm, int argCount, Value *args)
 {
 
     if (argCount != 2)
     {
         vm->runtimeError("min expects 2 arguments");
-        return vm->makeNil();
+        return 0;
     }
 
     bool isInt = args[0].isInt() && args[1].isInt();
     if (isInt)
     {
-        return vm->makeInt(std::min(args[0].asInt(), args[1].asInt()));
+        vm->push(vm->makeInt(std::min(args[0].asInt(), args[1].asInt())));
+        return 1;
     }
 
-    return vm->makeDouble(std::min(args[0].asNumber(), args[1].asNumber()));
+    vm->push(vm->makeDouble(std::min(args[0].asNumber(), args[1].asNumber())));
+    return 1;
 }
 
-Value native_max(Interpreter *vm, int argCount, Value *args)
+int native_max(Interpreter *vm, int argCount, Value *args)
 {
 
     if (argCount != 2)
     {
         vm->runtimeError("max expects 2 arguments");
-        return vm->makeNil();
+        return 0;
     }
 
     bool isInt = args[0].isInt() && args[1].isInt();
     if (isInt)
     {
-        return vm->makeInt(std::max(args[0].asInt(), args[1].asInt()));
+        vm->push(vm->makeInt(std::max(args[0].asInt(), args[1].asInt())));
+        return 1;
     }
 
-    return vm->makeDouble(std::max(args[0].asNumber(), args[1].asNumber()));
+    vm->push(vm->makeDouble(std::max(args[0].asNumber(), args[1].asNumber())));
+    return 1;
 }
 
-Value native_clamp(Interpreter *vm, int argCount, Value *args)
+int native_clamp(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount != 3)
     {
         vm->runtimeError("clamp expects 3 arguments");
-        return vm->makeNil();
+        return 0;
     }
 
     if (args[0].isInt() && args[1].isInt() && args[2].isInt())
@@ -170,22 +180,32 @@ Value native_clamp(Interpreter *vm, int argCount, Value *args)
         int v = args[0].asInt();
         int lo = args[1].asInt();
         int hi = args[2].asInt();
-        if (v < lo)
-            return vm->makeInt(lo);
-        if (v > hi)
-            return vm->makeInt(hi);
-        return vm->makeInt(v);
+        if (v < lo) {
+            vm->push(vm->makeInt(lo));
+            return 1;
+        }
+        if (v > hi) {
+            vm->push(vm->makeInt(hi));
+            return 1;
+        }
+        vm->push(vm->makeInt(v));
+        return 1;
     }
 
     double v = args[0].asNumber();
     double lo = args[1].asNumber();
     double hi = args[2].asNumber();
 
-    if (v < lo)
-        return vm->makeDouble(lo);
-    if (v > hi)
-        return vm->makeDouble(hi);
-    return vm->makeDouble(v);
+    if (v < lo) {
+        vm->push(vm->makeDouble(lo));
+        return 1;
+    }
+    if (v > hi) {
+        vm->push(vm->makeDouble(hi));
+        return 1;
+    }
+    vm->push(vm->makeDouble(v));
+    return 1;
 }
 
 // ==========================================
@@ -193,26 +213,27 @@ Value native_clamp(Interpreter *vm, int argCount, Value *args)
 // ==========================================
 
 // lerp(start, end, t) -> Interpolação Linear
-Value native_math_lerp(Interpreter *vm, int argCount, Value *args)
+int native_math_lerp(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount != 3)
     {
         vm->runtimeError("lerp expects 3 arguments");
-        return vm->makeDouble(0);
+        return 0;
     }
     double a = args[0].asNumber();
     double b = args[1].asNumber();
     double t = args[2].asNumber();
-    return vm->makeDouble(a + t * (b - a));
+    vm->push(vm->makeDouble(a + t * (b - a)));
+    return 1;
 }
 
 // map(value, inMin, inMax, outMin, outMax) -> Remapeia valores
-Value native_math_map(Interpreter *vm, int argCount, Value *args)
+int native_math_map(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount != 5)
     {
         vm->runtimeError("map expects 5 arguments");
-        return vm->makeDouble(0);
+        return 0;
     }
     double x = args[0].asNumber();
     double in_min = args[1].asNumber();
@@ -220,24 +241,30 @@ Value native_math_map(Interpreter *vm, int argCount, Value *args)
     double out_min = args[3].asNumber();
     double out_max = args[4].asNumber();
 
-    return vm->makeDouble((x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min);
+    vm->push(vm->makeDouble((x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min));
+    return 1;
 }
 
 // sign(x) -> Retorna -1, 0, ou 1
-Value native_math_sign(Interpreter *vm, int argCount, Value *args)
+int native_math_sign(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount != 1)
     {
         vm->runtimeError("sign expects 1 argument");
-        return vm->makeDouble(0);
+        return 0;
     }
 
     double val = args[0].asNumber();
-    if (val > 0)
-        return vm->makeInt(1);
-    if (val < 0)
-        return vm->makeInt(-1);
-    return vm->makeInt(0);
+    if (val > 0) {
+        vm->push(vm->makeInt(1));
+        return 1;
+    }
+    if (val < 0) {
+        vm->push(vm->makeInt(-1));
+        return 1;
+    }
+    vm->push(vm->makeInt(0));
+    return 1;
 }
 
 // ==========================================
@@ -245,14 +272,15 @@ Value native_math_sign(Interpreter *vm, int argCount, Value *args)
 // ==========================================
 
 // hypot(dx, dy) -> sqrt(x*x + y*y) (Seguro contra overflow)
-Value native_math_hypot(Interpreter *vm, int argCount, Value *args)
+int native_math_hypot(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount != 2)
     {
         vm->runtimeError("hypot expects 2 arguments");
-        return vm->makeDouble(0);
+        return 0;
     }
-    return vm->makeDouble(std::hypot(args[0].asNumber(), args[1].asNumber()));
+    vm->push(vm->makeDouble(std::hypot(args[0].asNumber(), args[1].asNumber())));
+    return 1;
 }
 
 // ==========================================
@@ -260,49 +288,54 @@ Value native_math_hypot(Interpreter *vm, int argCount, Value *args)
 // ==========================================
 
 // log10(x)
-Value native_math_log10(Interpreter *vm, int argCount, Value *args)
+int native_math_log10(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount != 1)
-        return vm->makeDouble(0);
-    return vm->makeDouble(std::log10(args[0].asNumber()));
+        return 0;
+    vm->push(vm->makeDouble(std::log10(args[0].asNumber())));
+    return 1;
 }
 
 // log2(x)
-Value native_math_log2(Interpreter *vm, int argCount, Value *args)
+int native_math_log2(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount != 1)
-        return vm->makeDouble(0);
-    return vm->makeDouble(std::log2(args[0].asNumber()));
+        return 0;
+    vm->push(vm->makeDouble(std::log2(args[0].asNumber())));
+    return 1;
 }
 
 // sinh(x)
-Value native_math_sinh(Interpreter *vm, int argCount, Value *args)
+int native_math_sinh(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount != 1)
-        return vm->makeDouble(0);
-    return vm->makeDouble(std::sinh(args[0].asNumber()));
+        return 0;
+    vm->push(vm->makeDouble(std::sinh(args[0].asNumber())));
+    return 1;
 }
 
 // cosh(x)
-Value native_math_cosh(Interpreter *vm, int argCount, Value *args)
+int native_math_cosh(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount != 1)
-        return vm->makeDouble(0);
-    return vm->makeDouble(std::cosh(args[0].asNumber()));
+        return 0;
+    vm->push(vm->makeDouble(std::cosh(args[0].asNumber())));
+    return 1;
 }
 
 // tanh(x)
-Value native_math_tanh(Interpreter *vm, int argCount, Value *args)
+int native_math_tanh(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount != 1)
-        return vm->makeDouble(0);
-    return vm->makeDouble(std::tanh(args[0].asNumber()));
+        return 0;
+    vm->push(vm->makeDouble(std::tanh(args[0].asNumber())));
+    return 1;
 }
 
 
 static double CLAMP(double x, double min, double max) { return x < min ? min : x > max ? max : x; }
 
-Value native_math_smoothstep(Interpreter *vm, int argCount, Value *args)
+int native_math_smoothstep(Interpreter *vm, int argCount, Value *args)
 {
     // Suporta 1 argumento (t normalizado 0..1) ou 3 argumentos (range GLSL)
     double t, edge0 = 0.0, edge1 = 1.0;
@@ -320,19 +353,20 @@ Value native_math_smoothstep(Interpreter *vm, int argCount, Value *args)
     else
     {
         vm->runtimeError("smoothstep expects 1 or 3 arguments");
-        return vm->makeDouble(0);
+        return 0;
     }
 
     // Clamp e normalização
     t = CLAMP((t - edge0) / (edge1 - edge0), 0.0, 1.0);
 
     // Fórmula: t * t * (3 - 2 * t)
-    return vm->makeDouble(t * t * (3.0 - 2.0 * t));
+    vm->push(vm->makeDouble(t * t * (3.0 - 2.0 * t)));
+    return 1;
 }
 
 // smootherstep(edge0, edge1, x)
 // Versão do Ken Perlin, transição ainda mais suave que o smoothstep.
-Value native_math_smootherstep(Interpreter *vm, int argCount, Value *args)
+int native_math_smootherstep(Interpreter *vm, int argCount, Value *args)
 {
     double t, edge0 = 0.0, edge1 = 1.0;
 
@@ -349,14 +383,15 @@ Value native_math_smootherstep(Interpreter *vm, int argCount, Value *args)
     else
     {
         vm->runtimeError("smootherstep expects 1 or 3 arguments");
-        return vm->makeDouble(0);
-       
+        return 0;
+
     }
 
     t = CLAMP((t - edge0) / (edge1 - edge0), 0.0, 1.0);
 
     // Fórmula: t * t * t * (t * (t * 6 - 15) + 10)
-    return vm->makeDouble(t * t * t * (t * (t * 6.0 - 15.0) + 10.0));
+    vm->push(vm->makeDouble(t * t * t * (t * (t * 6.0 - 15.0) + 10.0)));
+    return 1;
 }
 
 double hermite(double value1, double tangent1, double value2, double tangent2, double amount)
@@ -394,34 +429,37 @@ double ping_pong(double t, double length)
 }
 
 
-Value native_math_hermite(Interpreter *vm, int argCount, Value *args)
+int native_math_hermite(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount != 5)
     {
         vm->runtimeError("hermite expects 5 arguments");
-        return vm->makeDouble(0);
+        return 0;
     }
-    return vm->makeDouble(hermite(args[0].asNumber(), args[1].asNumber(), args[2].asNumber(), args[3].asNumber(), args[4].asNumber()));
+    vm->push(vm->makeDouble(hermite(args[0].asNumber(), args[1].asNumber(), args[2].asNumber(), args[3].asNumber(), args[4].asNumber())));
+    return 1;
 }
 
-Value native_math_repeat(Interpreter *vm, int argCount, Value *args)
+int native_math_repeat(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount != 2)
     {
         vm->runtimeError("repeat expects 2 arguments");
-        return vm->makeDouble(0);
+        return 0;
     }
-    return vm->makeDouble(repeat(args[0].asNumber(), args[1].asNumber()));
+    vm->push(vm->makeDouble(repeat(args[0].asNumber(), args[1].asNumber())));
+    return 1;
 }
 
-Value native_math_ping_pong(Interpreter *vm, int argCount, Value *args)
+int native_math_ping_pong(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount != 2)
     {
         vm->runtimeError("ping_pong expects 2 arguments");
-        return vm->makeDouble(0);
+        return 0;
     }
-    return vm->makeDouble(ping_pong(args[0].asNumber(), args[1].asNumber()));
+    vm->push(vm->makeDouble(ping_pong(args[0].asNumber(), args[1].asNumber())));
+    return 1;
 }
 
 

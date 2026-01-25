@@ -1,0 +1,102 @@
+
+
+
+
+
+
+
+// Initialize GLFW
+var result = glfwInit();
+print "glfwInit() returned: " + result;
+
+if (result == GLFW_TRUE)
+{
+    // Get version
+    var version = glfwGetVersionString();
+    print "GLFW Version: " + version;
+
+    // Get primary monitor info
+    var monitor = glfwGetPrimaryMonitor();
+    if (monitor != nil)
+    {
+        var name = glfwGetMonitorName(monitor);
+        print "Primary Monitor: " + name;
+
+        var videoMode = glfwGetVideoMode(monitor);
+        print "Resolution: " + videoMode["width"] + "x" + videoMode["height"];
+        print "Refresh Rate: " + videoMode["refreshRate"] + " Hz";
+    }
+
+    var width = 800;
+    var height = 600;
+    var title = "BuLang 3D - GLFW + RLGL";
+
+    // Create window
+    glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+
+    var window = glfwCreateWindow( width,height,title, nil, nil);
+
+    if (window != nil)
+    {
+        print "Window created!";
+
+        var lastTime = glfwGetTime();
+
+        // Make context current
+        glfwMakeContextCurrent(window);
+        glfwSwapInterval(1);
+
+        // Load OpenGL extensions via GLFW (MUST be after MakeContextCurrent)
+        print "Loading OpenGL extensions...";
+        rlLoadExtensionsGLFW();
+
+        print "Iniciando RLGL...";
+        rlglInit(width, height);
+        rlViewport(0, 0, width, height);
+
+        // Configurar estado inicial
+        rlEnableDepthTest();
+        rlClearColor(30, 30, 30, 255); // Fundo Cinzento Escuro
+
+
+        var frameCount = 0;
+        while (!glfwWindowShouldClose(window))
+        {
+             if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+                glfwSetWindowShouldClose(window, true);
+
+            var currentTime = glfwGetTime();
+            var deltaTime = currentTime - lastTime;
+            lastTime = currentTime;
+
+            rlClearScreenBuffers();
+
+            glfwPollEvents();
+            glfwSwapBuffers(window);
+            frameCount = frameCount + 1;
+        }
+
+        print "A fechar...";
+        rlglClose();       // Limpa buffers do RLGL
+        glfwDestroyWindow(window);
+        print "Window destroyed!";
+    }
+    else
+    {
+        print "Failed to create window!";
+        var error = glfwGetError();
+        print "Error: " + error["description"];
+    }
+
+    glfwTerminate();
+    print "GLFW terminated!";
+}
+else
+{
+    print "Failed to initialize GLFW!";
+}
+
+print "GLFW plugin test completed!";

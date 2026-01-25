@@ -1,0 +1,211 @@
+require "raylib";
+import math;
+import raylib;
+using raylib;
+
+InitWindow(800, 600, "BuLang Boids");
+SetTargetFPS(60);
+
+var RED= Color(255, 50, 50, 255);    // Red
+var GREEN=    Color(50, 255, 50, 255);    // Green
+var BLUE=    Color(50, 50, 255, 255);    // Blue
+var YELLOW=    Color(255, 255, 50, 255);   // Yellow
+var MAGENTA =    Color(255, 50, 255, 255);   // Magenta
+var CYAN =    Color(50, 255, 255, 255);   // Cyan
+var ORANGE =    Color(255, 150, 50, 255);   // Orange
+var WHITE  =  Color(255, 255, 255, 255);   // White
+var NICE = Color(100, 100, 255, 200);   // NICE
+
+class Boid
+{
+    var x, y, vx, vy;
+    var color;
+    
+    def init()
+    {
+        self.x = math.rand(800);
+        self.y = math.rand(600);
+        self.vx = (math.rand(10) - 5);
+        self.vy = (math.rand(10) - 5);
+        self.color = Color(50 + math.rand(200), 100, 255, 255);
+    }
+    
+    def update(others)
+    {
+        var sepX = 0; 
+        var sepY = 0;
+        var aliX = 0; 
+        var aliY = 0;
+        var cohX = 0; 
+        var cohY = 0;
+        var count = 0;
+        
+        // Loop através de todos os outros boids
+        for (var i = 0; i < len(others); i = i + 1)
+        {
+            var other = others[i];
+            
+            // Pular a si mesmo (comparação por índice seria mais rápida, mas isto funciona)
+            var dx = other.x - self.x;
+            var dy = other.y - self.y;
+            
+            // Se dx e dy são ambos 0, é o mesmo boid
+            if (dx == 0 && dy == 0 && other.vx == self.vx && other.vy == self.vy)
+            {
+                continue;
+            }
+            
+            var distSq = dx * dx + dy * dy;
+            
+            if (distSq < 2500 && distSq > 0) { // Raio de visão 50px
+                // Cohesion - mover para centro do grupo
+                cohX = cohX + other.x;
+                cohY = cohY + other.y;
+                
+                // Alignment - copiar direção do grupo
+                aliX = aliX + other.vx;
+                aliY = aliY + other.vy;
+                
+                // Separation - evitar colisões
+                if (distSq < 400) { // Muito perto (20px)
+                    sepX = sepX - dx;
+                    sepY = sepY - dy;
+                }
+                
+                count = count + 1;
+            }
+        }
+        
+        if (count > 0)
+        {
+            // Cohesion - ir para o centro
+            cohX = (cohX / count) - self.x;
+            cohY = (cohY / count) - self.y;
+            self.vx = self.vx + (cohX * 0.005);
+            self.vy = self.vy + (cohY * 0.005);
+            
+            // Alignment - alinhar velocidade
+            self.vx = self.vx + ((aliX / count) - self.vx) * 0.05;
+            self.vy = self.vy + ((aliY / count) - self.vy) * 0.05;
+            
+            // Separation - afastar
+            self.vx = self.vx + (sepX * 0.1);
+            self.vy = self.vy + (sepY * 0.1);
+        }
+        
+        // Limites suaves da tela
+        var margin = 100;
+        var turnFactor = 0.5;
+        
+        if (self.x < margin) self.vx = self.vx + turnFactor;
+        if (self.x > 800 - margin) self.vx = self.vx - turnFactor;
+        if (self.y < margin) self.vy = self.vy + turnFactor;
+        if (self.y > 600 - margin) self.vy = self.vy - turnFactor;
+        
+        // Limitar velocidade máxima
+        var maxSpeed = 6;
+        var speedSq = self.vx * self.vx + self.vy * self.vy;
+        
+        if (speedSq > maxSpeed * maxSpeed)
+        {
+            var speed = sqrt(speedSq);
+            self.vx = (self.vx / speed) * maxSpeed;
+            self.vy = (self.vy / speed) * maxSpeed;
+        }
+        
+        // Velocidade mínima (evitar boids parados)
+        var minSpeed = 2;
+        if (speedSq < minSpeed * minSpeed)
+        {
+            var speed = sqrt(speedSq);
+            if (speed > 0)
+            {
+                self.vx = (self.vx / speed) * minSpeed;
+                self.vy = (self.vy / speed) * minSpeed;
+            } else
+            {
+                // Se totalmente parado, dar impulso aleatório
+                self.vx = (math.rand(10) - 5);
+                self.vy = (math.rand(10) - 5);
+            }
+        }
+        
+        // Atualizar posição
+        self.x = self.x + self.vx;
+        self.y = self.y + self.vy;
+    }
+    
+    def draw()
+    {
+        // Triângulo orientado na direção do movimento
+        var angle = atan2(self.vy, self.vx);
+        var size = 8;
+        
+        var x1 = self.x + cos(angle) * size;
+        var y1 = self.y + sin(angle) * size;
+        
+        var x2 = self.x + cos(angle + 2.5) * (size * 0.6);
+        var y2 = self.y + sin(angle + 2.5) * (size * 0.6);
+        
+        var x3 = self.x + cos(angle - 2.5) * (size * 0.6);
+        var y3 = self.y + sin(angle - 2.5) * (size * 0.6);
+
+        // DrawLine(x1, y1, x2, y2, self.color);
+        // DrawLine(x1, y1, x3, y3, self.color);
+        // DrawLine(x2, y2, x3, y3, self.color);
+        
+        DrawTriangle(
+            Vector2(x1, y1),
+            Vector2(x3, y3),
+            Vector2(x2, y2),
+            self.color
+        );
+    }
+}
+
+// Criar flock
+var flock = [];
+var numBoids = 150;
+
+for (var i = 0; i < numBoids; i = i + 1)
+{
+    flock.push(Boid());
+}
+
+// Cores de fundo gradiente (opcional)
+var bgTop = Color(5, 5, 20, 255);
+var bgBottom = Color(10, 10, 40, 255);
+
+while (!WindowShouldClose())
+{
+    BeginDrawing();
+    
+    // Fundo gradiente simples
+    ClearBackground(bgTop);
+    DrawRectangleGradientV(0, 300, 800, 300, bgTop, bgBottom);
+    
+    // Atualizar e desenhar todos os boids
+    for (var i = 0; i < len(flock); i = i + 1)
+    {
+       flock[i].update(flock);
+    }
+    
+    for (var i = 0; i < len(flock); i = i + 1)
+    {
+        flock[i].draw();
+    }
+    
+    // UI Info
+    DrawFPS(10, 10);
+    DrawText(format("Boids: {}", len(flock)), 10, 30, 20, WHITE);
+    DrawText("Flocking Simulation", 10, 550, 20, NICE);
+    
+        DrawStats(800 - 350, 20);
+ 
+
+
+
+    EndDrawing();
+}
+
+CloseWindow();

@@ -1,7 +1,7 @@
 /**
  * @file interpreter_runtime_goto.cpp
  * @brief VM runtime interpreter using computed goto for opcode dispatch
- * 
+ *
  * Implements the core execution engine for the BuLang virtual machine using
  * computed goto optimization for fast opcode dispatch. Handles:
  * - Stack-based operations (push, pop, duplicate, swap)
@@ -18,17 +18,17 @@
  * - Process/Fiber management and concurrency primitives
  * - Native class/struct integration
  * - Module function calls
- * 
+ *
  * The interpreter uses a dispatch table with computed goto for O(1) opcode
  * routing, avoiding switch statement overhead. Each opcode is implemented
  * as a labeled block that reads operands, performs the operation, and
  * dispatches to the next instruction.
- * 
+ *
  * @note Compiled only when USE_COMPUTED_GOTO is defined
  * @note Uses macro-based stack manipulation for performance
  * @note Manages call frames for nested function invocations
  * @note Handles both user-defined and native functions/classes
- * 
+ *
  * @param fiber The current fiber to execute
  * @param process The parent process context
  * @return FiberResult containing status, instruction count, and optional metrics
@@ -60,7 +60,6 @@ bool toNumberPair(const Value &a, const Value &b, double &da, double &db)
     db = b.isInt() ? static_cast<double>(b.asInt()) : b.asDouble();
     return true;
 }
-
 
 FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 {
@@ -242,7 +241,48 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
         &&op_get_upvalue,
         &&op_set_upvalue,
         &&op_close_upvalue,
+
+        // Multi-return (88)
+        &&op_return_n,
+
+        // Extended collections (89-90)
+        &&op_define_array_long,
+        &&op_define_map_long,
     };
+
+#define SAFE_CALL_NATIVE(fiber, argCount, callFunc)                                    \
+    do                                                                                 \
+    {                                                                                  \
+        /* 1. Calcular o OFFSET (Índice seguro) */                                     \
+        size_t _slot = ((fiber)->stackTop - (fiber)->stack) - (argCount) - 1;          \
+                                                                                       \
+        /* 2. Definir _args para ser usado dentro da 'callFunc' */                     \
+        Value *_args = &(fiber)->stack[_slot + 1];                                     \
+                                                                                       \
+        /* 3. CHAMADA (Aqui o _args é passado implicitamente na expressão callFunc) */ \
+        int _rets = (callFunc);                                                        \
+                                                                                       \
+        /* 4. RECALCULAR DESTINO (Seguro contra realloc) */                            \
+        Value *_dest = &(fiber)->stack[_slot];                                         \
+                                                                                       \
+        /* 5. Processar Retornos */                                                    \
+        if (_rets > 0)                                                                 \
+        {                                                                              \
+            Value *_src = (fiber)->stackTop - _rets;                                   \
+            if (_src != _dest)                                                         \
+            {                                                                          \
+                /* memmove é necessário se houver overlap, copy se não houver */       \
+                std::memmove(_dest, _src, _rets * sizeof(Value));                      \
+            }                                                                          \
+            (fiber)->stackTop = _dest + _rets;                                         \
+        }                                                                              \
+        else                                                                           \
+        {                                                                              \
+            /* Retornar nil se for void */                                             \
+            *_dest = makeNil();                                                        \
+            (fiber)->stackTop = _dest + 1;                                             \
+        }                                                                              \
+    } while (0)
 
 #define DISPATCH()                         \
     do                                     \
@@ -525,28 +565,22 @@ op_multiply:
 {
     BINARY_OP_PREP();
 
-    if (a.isInt() && b.isInt())
-    {
-        PUSH(makeInt(a.asInt() * b.asInt()));
-        DISPATCH();
-    }
-    if (a.isInt() && b.isDouble())
-    {
-        PUSH(makeDouble(a.asInt() * b.asDouble()));
-        DISPATCH();
-    }
-    if (a.isDouble() && b.isInt())
-    {
-        PUSH(makeDouble(a.asDouble() * b.asInt()));
-        DISPATCH();
-    }
-    if (a.isDouble() && b.isDouble())
-    {
-        PUSH(makeDouble(a.asDouble() * b.asDouble()));
-        DISPATCH();
-    }
+            if (a.isNumber() && b.isNumber())
+            {
+                if (a.isInt() && b.isInt())
+                {
+                    PUSH(makeInt(a.asInt() * b.asInt()));
+                }
+                else
+                {
+                    double da = a.isInt() ? (double)a.asInt() : a.asDouble();
+                    double db = b.isInt() ? (double)b.asInt() : b.asDouble();
+                    PUSH(makeDouble(da * db));
+                }
+                DISPATCH();
+            }
 
-    THROW_RUNTIME_ERROR("Operands must be numbers.");
+    THROW_RUNTIME_ERROR("Operands '*' must be numbers.");
 }
 
 // ============================================
@@ -648,7 +682,7 @@ op_modulo:
 
     if (!a.isNumber() || !b.isNumber())
     {
-        runtimeError("Operands must be numbers.");
+        runtimeError("Operands '%' must be numbers.");
         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
     }
 
@@ -945,11 +979,8 @@ op_call:
             return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
         }
 
-        Value result = nativeFunc.func(this, argCount, fiber->stackTop - argCount);
-        fiber->stackTop -= (argCount + 1);
-        PUSH(result);
+        SAFE_CALL_NATIVE(fiber, argCount, nativeFunc.func(this, argCount, _args));
 
-        //  Não criou frame!
         DISPATCH();
     }
 
@@ -1066,10 +1097,17 @@ op_call:
         instance->klass = klass;
         instance->fields.reserve(klass->fieldCount);
 
-        // Inicializa fields com nil
+        // Inicializa fields com valores default ou nil
         for (int i = 0; i < klass->fieldCount; i++)
         {
-            instance->fields.push(makeNil());
+            if (i < (int)klass->fieldDefaults.size() && !klass->fieldDefaults[i].isNil())
+            {
+                instance->fields.push(klass->fieldDefaults[i]);
+            }
+            else
+            {
+                instance->fields.push(makeNil());
+            }
         }
 
         // Verifica se há NativeClass na cadeia de herança (direta ou indireta)
@@ -1231,11 +1269,7 @@ op_call:
                          funcName->chars(), argCount);
             return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
         }
-
-        Value result = func.ptr(this, argCount, fiber->stackTop - argCount);
-        fiber->stackTop -= (argCount + 1);
-        PUSH(result);
-
+        SAFE_CALL_NATIVE(fiber, argCount, func.ptr(this, argCount, _args));
         //  Não criou frame!
         DISPATCH();
     }
@@ -1638,7 +1672,7 @@ op_get_property:
                 PUSH(instance->fields[fieldIdx]);
                 DISPATCH();
             }
-            
+
             // Verifica propriedades herdadas da NativeClass
             NativeProperty nativeProp;
             if (instance->getNativeProperty(nameValue.asString(), &nativeProp))
@@ -1649,7 +1683,7 @@ op_get_property:
                 PUSH(result);
                 DISPATCH();
             }
-            
+
             runtimeError("Undefined property '%s'", name);
             PUSH(makeNil());
             return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
@@ -1858,8 +1892,8 @@ op_set_property:
         }
 
         // Stack: [obj, value] -> queremos [value]
-        DROP(); // Remove value
-        DROP(); // Remove object
+        DROP();      // Remove value
+        DROP();      // Remove object
         PUSH(value); // Push value back - assignment returns the assigned value
 
         DISPATCH();
@@ -1874,8 +1908,8 @@ op_set_property:
         {
             instance->fields[fieldIdx] = value;
             // Stack: [obj, value] -> queremos [value]
-            DROP(); // Remove value
-            DROP(); // Remove object
+            DROP();      // Remove value
+            DROP();      // Remove object
             PUSH(value); // Push value back
             DISPATCH();
         }
@@ -1892,8 +1926,8 @@ op_set_property:
             }
             // Chama setter nativo
             nativeProp.setter(this, instance->nativeUserData, value);
-            DROP(); // Remove value
-            DROP(); // Remove object
+            DROP();      // Remove value
+            DROP();      // Remove object
             PUSH(value); // Push value back
             DISPATCH();
         }
@@ -1956,9 +1990,8 @@ op_set_property:
         {
             if (!value.isByte())
             {
-                runtimeError("Field expects byte");
-                DROP();
-                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+               *(uint8 *)ptr = (uint8)value.asNumber();
+               break;
             }
             *(uint8 *)ptr = (uint8)value.asByte();
             break;
@@ -2874,26 +2907,49 @@ op_invoke:
 
             DISPATCH();
         }
-        
+
         // Verifica métodos herdados da NativeClass
         NativeMethod nativeMethod;
         if (instance->getNativeMethod(nameValue.asString(), &nativeMethod))
         {
-            Value *args = fiber->stackTop - argCount;
-            Value result = nativeMethod(this, instance->nativeUserData, argCount, args);
-            fiber->stackTop -= (argCount + 1);
-            PUSH(result);
+            // 1. Calcular OFFSET (seguro contra realloc)
+            size_t _slot = (fiber->stackTop - fiber->stack) - argCount - 1;
+
+            // 2. Calcular args via offset
+            Value *_args = &fiber->stack[_slot + 1];
+
+            // 3. Chamada
+            int _rets = nativeMethod(this, instance->nativeUserData, argCount, _args);
+
+            // 4. RECALCULAR destino (seguro contra realloc)
+            Value *_dest = &fiber->stack[_slot];
+
+            // 5. Processar retornos
+            if (_rets > 0)
+            {
+                Value *_src = fiber->stackTop - _rets;
+                if (_src != _dest)
+                {
+                    std::memmove(_dest, _src, _rets * sizeof(Value));
+                }
+                fiber->stackTop = _dest + _rets;
+            }
+            else
+            {
+                *_dest = makeNil();
+                fiber->stackTop = _dest + 1;
+            }
             DISPATCH();
         }
-        
+
         runtimeError("Instance '%s' has no method '%s'", instance->klass->name->chars(), name);
         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
     }
 
     if (receiver.isNativeClassInstance())
     {
-        printValueNl(receiver);
-        printValueNl(nameValue);
+        // printValueNl(receiver);
+        // printValueNl(nameValue);
 
         NativeClassInstance *instance = receiver.asNativeClassInstance();
         NativeClassDef *klass = instance->klass;
@@ -2905,10 +2961,24 @@ op_invoke:
             return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
         }
 
-        Value *args = fiber->stackTop - argCount;
-        Value result = method(this, instance->userData, argCount, args);
-        fiber->stackTop -= (argCount + 1);
-        PUSH(result);
+        size_t calleeSlot = (fiber->stackTop - fiber->stack) - argCount - 1;
+        Value *argsPtr = &fiber->stack[calleeSlot + 1];
+        int numReturns = method(this, instance->userData, argCount, argsPtr);
+        Value *dest = &fiber->stack[calleeSlot];
+        if (numReturns > 0)
+        {
+            Value *src = fiber->stackTop - numReturns;
+            if (src != dest)
+            {
+                std::memmove(dest, src, numReturns * sizeof(Value));
+            }
+            fiber->stackTop = dest + numReturns;
+        }
+        else
+        {
+            *dest = makeNil();
+            fiber->stackTop = dest + 1;
+        }
 
         DISPATCH();
     }
@@ -3930,6 +4000,44 @@ op_define_array:
 op_define_map:
 {
     uint8_t count = READ_BYTE();
+
+    Value map = makeMap();
+    MapInstance *inst = map.asMap();
+
+    for (int i = 0; i < count; i++)
+    {
+        Value value = POP();
+        Value key = POP();
+
+        if (!key.isString())
+        {
+            runtimeError("Map key must be string");
+            PUSH(makeNil());
+            DISPATCH();
+        }
+
+        inst->table.set(key.asString(), value);
+    }
+
+    PUSH(map);
+    DISPATCH();
+}
+op_define_array_long:
+{
+    uint16_t count = READ_SHORT();
+    Value array = makeArray();
+    ArrayInstance *instance = array.asArray();
+    instance->values.resize(count);
+    for (int i = count - 1; i >= 0; i--)
+    {
+        instance->values[i] = POP();
+    }
+    PUSH(array);
+    DISPATCH();
+}
+op_define_map_long:
+{
+    uint16_t count = READ_SHORT();
 
     Value map = makeMap();
     MapInstance *inst = map.asMap();
@@ -5099,6 +5207,103 @@ op_close_upvalue:
         openUpvalues = upvalue->nextOpen;
     }
     DROP();
+    DISPATCH();
+}
+
+op_return_n:
+{
+    uint8_t count = READ_BYTE();
+
+    // Save the N return values (they're on top of stack)
+    Value results[256];
+    for (int i = count - 1; i >= 0; i--)
+    {
+        results[i] = POP();
+    }
+
+    if (hasFatalError_)
+    {
+        STORE_FRAME();
+        return {FiberResult::ERROR, instructionsRun, 0, 0};
+    }
+
+    // Close upvalues for this frame
+    if (fiber->frameCount > 0)
+    {
+        CallFrame *returningFrame = &fiber->frames[fiber->frameCount - 1];
+        Value *frameStart = returningFrame->slots;
+        while (openUpvalues != nullptr && openUpvalues->location >= frameStart)
+        {
+            Upvalue *upvalue = openUpvalues;
+            upvalue->closed = *upvalue->location;
+            upvalue->location = &upvalue->closed;
+            openUpvalues = upvalue->nextOpen;
+        }
+    }
+
+    // Handle try/finally - note: multi-return in finally may not work correctly
+    bool hasFinally = false;
+    if (fiber->tryDepth > 0)
+    {
+        for (int depth = fiber->tryDepth - 1; depth >= 0; depth--)
+        {
+            TryHandler &handler = fiber->tryHandlers[depth];
+
+            if (handler.finallyIP != nullptr && !handler.inFinally)
+            {
+                // For multi-return, just use first value in finally
+                handler.pendingReturn = results[0];
+                handler.hasPendingReturn = true;
+                handler.inFinally = true;
+                fiber->tryDepth = depth + 1;
+                fiber->stackTop = handler.stackRestore;
+                ip = handler.finallyIP;
+                hasFinally = true;
+                break;
+            }
+        }
+    }
+
+    if (hasFinally)
+    {
+        DISPATCH();
+    }
+
+    fiber->frameCount--;
+
+    if (fiber->frameCount == 0)
+    {
+        fiber->stackTop = fiber->stack;
+        // Push all return values
+        for (int i = 0; i < count; i++)
+        {
+            *fiber->stackTop++ = results[i];
+        }
+
+        fiber->state = FiberState::DEAD;
+
+        if (fiber == &process->fibers[0])
+        {
+            for (int i = 0; i < process->nextFiberIndex; i++)
+            {
+                process->fibers[i].state = FiberState::DEAD;
+            }
+            process->state = FiberState::DEAD;
+        }
+
+        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    }
+
+    CallFrame *finished = &fiber->frames[fiber->frameCount];
+    fiber->stackTop = finished->slots;
+
+    // Push all return values onto the stack
+    for (int i = 0; i < count; i++)
+    {
+        *fiber->stackTop++ = results[i];
+    }
+
+    LOAD_FRAME();
     DISPATCH();
 }
 

@@ -1,0 +1,43 @@
+ 
+
+// Load raylib plugin
+require "glfw";
+require "raylib";
+require "rlgl";
+
+print ("Raylib plugin loaded!");
+
+// // Import the module
+ import raylib;
+ import GLFW;
+
+
+ using raylib;
+using GLFW;
+
+// print "Raylib module imported!";
+
+// // Create colors (raylib colors are structs)
+ var white = Color(245, 245, 245, 255);
+ var darkGray = Color(80, 80, 80, 255);
+
+ 
+ InitWindow(800, 600, "BuLang Raylib Test");
+ 
+
+// // Main loop - just a few frames to test
+
+while (!WindowShouldClose())
+{
+    BeginDrawing();
+    ClearBackground(white);
+    DrawText("Hello from BuLang!", 200, 280, 30, darkGray);
+    DrawFPS(10, 10);
+    EndDrawing();
+
+}
+
+CloseWindow();
+ 
+
+print("Raylib plugin test passed!");

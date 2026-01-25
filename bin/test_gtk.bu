@@ -1,0 +1,36 @@
+
+print "=== BuLang Plugin System Test ===";
+ 
+require "gtk";
+
+// Import and use the SDL module
+import gtk;
+using gtk;
+
+print "GTK plugin loaded successfully!";
+
+
+def click() 
+{
+    print("Foda-se, finalmente funciona!");
+}
+
+gtkInit();
+
+// 2. Janela
+var win = gtkWindowNew();
+gtkSetTitle(win, "BuLang GTK");
+gtkSetSize(win, 400, 300);
+
+// // 3. Botão
+var btn = gtkButtonNew("Clica-me caralho");
+gtkContainerAdd(win, btn);
+
+// // 4. Ligar o evento "clicked" à função "onClick"
+gSignalConnect(btn, "clicked", "click");
+
+// 5. Rodar
+gtkWidgetShowAll(win);
+gtkMain();
+ 
+print "=== Test Complete ===";

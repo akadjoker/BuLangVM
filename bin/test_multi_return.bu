@@ -1,0 +1,57 @@
+
+
+// Test 1: Basic multi-return
+def getCoords() {
+    return (10, 20, 30);
+}
+
+var (x, y, z) = getCoords();
+print("Test 1: x=" + x + " y=" + y + " z=" + z);
+
+// Test 2: Multi-return in class method
+class Point 
+{
+    var x, y;
+    
+    def init(px, py) 
+    {
+        self.x = px;
+        self.y = py;
+    }
+    
+    def getXY() 
+    {
+        return (self.x, self.y);
+    }
+}
+
+var p = Point(100, 200);
+var (px, py) = p.getXY();
+print("Test 2: px=" + px + " py=" + py);
+
+// Test 3: Return expressions
+def compute(a, b) 
+{
+    return (a + b, a - b, a * b);
+}
+
+var (sum, diff, prod) = compute(5, 3);
+print("Test 3: sum=" + sum + " diff=" + diff + " prod=" + prod);
+
+// Test 4: Single value in tuple (should work same as normal return)
+def single() 
+{
+    return (42);
+}
+var result = single();
+print("Test 4: result=" + result);
+
+// Test 5: Empty tuple (should be like return;)
+def empty() 
+{
+    return ();
+}
+var e = empty();
+print("Test 5: e=" + e);
+
+print("All tests passed!");

@@ -1,43 +1,42 @@
-// Test: Script class inheriting from NativeClass
-// This file tests the hybrid inheritance feature
+//include "test_plugin.bu";
+//include "test_glfw.bu";
+//include "test_sdl.bu";
+//include "test_raylib_3d.bu";
+//include "test_raylib.bu";
 
-// Nota: Este teste requer que exista uma NativeClass registada
-// Por exemplo, se o engine tiver "Sprite" ou "Vector2" como NativeClass
+//include "test_gtk.bu";
+//include "test_edgecase.bu";
 
-// Teste simples de class normal para garantir que não quebrámos nada
-class Animal {
-    var name;
-    
-    def init(n) {
-        self.name = n;
-    }
-    
-    def speak() {
-        return "...";
-    }
-}
-
-class Dog : Animal {
-    var breed;
-    
-    def init(n, b) {
-        super.init(n);
-        self.breed = b;
-    }
-    
-    def speak() {
-        return "Woof!";
-    }
-}
-
-// Testes básicos
-var dog = Dog("Rex", "German Shepherd");
-print("Dog name: " + dog.name);
-print("Dog breed: " + dog.breed);
-print("Dog says: " + dog.speak());
-
-assert_eq(dog.name, "Rex");
-assert_eq(dog.breed, "German Shepherd");
-assert_eq(dog.speak(), "Woof!");
-
-print("=== Basic class inheritance tests passed ===");
+//include "mod_file.bu";
+//include "mod_fs.bu";
+//include "mod_os.bu";
+//include "mod_path.bu";
+//include "mod_time.bu";
+//include "mod_socket.bu";
+  
+//include "fireworks.bu";
+//include "particles.bu";
+//include "matrix_rain.bu";
+//include "boids.bu";
+//include "verlet.bu";
+//include "cradle.bu";
+//include "cloth.bu";
+//include "starfield.bu";
+//include "autoMandelbrot.bu";
+//include "fire.bu";
+//include "explosion.bu";
+//include "plasma.bu";
+//include "tunnel.bu";
+//include "cast.bu";
+//include "glow.bu";
+//include "metaballs.bu";
+//include "bolt.bu";
+//include "realtime_raytrace.bu";
+//include "pixeltrace.bu";
+//include "pixeltrace2.bu";
+//include "doom.bu";
+//include "physics.bu";
+//include "physics2.bu";
+//include "physics3.bu";
+//include "physics4.bu";
+include "pinball.bu";

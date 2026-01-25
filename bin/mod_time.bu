@@ -19,23 +19,23 @@ var custom = time.ftime(now, "%d/%m/%Y");
 print(custom);  // "17/01/2026"
 
 
-// Parse
-var ts = time.parse("2026-01-17 12:00:00", "%Y-%m-%d %H:%M:%S");
-print(ts);
+// // Parse
+ var ts = time.parse("2026-01-17 12:00:00", "%Y-%m-%d %H:%M:%S");
+ print(ts);
 
-var start =time.now();
+ var start =time.now();
 
-// Sleep
+// // Sleep
 time.sleep(1.5);      // Pausa 1.5 segundos
 
-var elapsed = time.diff(time.now(), start);
-print(elapsed);
+// var elapsed = time.diff(time.now(), start);
+// print(elapsed);
 
-// Medir performance
-var start = time.current();
+// // Medir performance
+// var start = time.current();
 
-time.sleep_ms(500);   // Pausa 500ms
+ time.sleep_ms(500);   // Pausa 500ms
 
-// Diferença
-var duration = time.current() - start;
-write("Took {} seconds\n", duration);
+// // Diferença
+// var duration = time.current() - start;
+// write("Took {} seconds\n", duration);

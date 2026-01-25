@@ -1,0 +1,833 @@
+require "raylib";
+
+import math;
+import raylib;
+using raylib;
+
+include "vec2.bu";
+include "quadtree.bu";
+
+InitWindow(800, 600, "Physics Engine - Full Rotation");
+SetTargetFPS(60);
+
+var WHITE = Color(255, 255, 255, 255);
+var BLACK = Color(0, 0, 0, 255);
+var RED = Color(255, 100, 100, 255);
+var GREEN = Color(100, 255, 100, 255);
+var BLUE = Color(100, 100, 255, 255);
+var YELLOW = Color(255, 255, 100, 255);
+var GRAY = Color(80, 80, 80, 255);
+var LIME = Color(0, 158, 47, 255);
+
+var GRAVITY = 500.0;
+
+// ==========================================
+// RIGID BODY
+// ==========================================
+
+struct RigidBody
+{
+    var type;
+    var pos;
+    var vel;
+    var angle;
+    var angularVel;
+    
+    var mass;
+    var invMass;
+    var inertia;
+    var invInertia;
+    
+    var restitution;
+    var friction;
+    
+    var radius;
+    var vertices;
+    
+    var color;
+    var isStatic;
+    var bounds;
+    var id;
+};
+
+def createCircle(x, y, radius, density)
+{
+    var body = RigidBody();
+    body.type = 0;
+    body.pos = Vec2(x, y);
+    body.vel = Vec2(0.0, 0.0);
+    body.angle = 0.0;
+    body.angularVel = 0.0;
+    body.id=0;
+    body.radius = radius;
+    
+    var area = 3.14159 * radius * radius;
+    body.mass = area * density;
+    body.invMass = 1.0 / body.mass;
+    body.inertia = body.mass * radius * radius * 0.5;
+    body.invInertia = 1.0 / body.inertia;
+    
+    body.restitution = 0.2;
+    body.friction = 0.6;
+    
+    body.color = Color(100 + math.rand(155), 100 + math.rand(155), 100 + math.rand(155), 255);
+    body.isStatic = false;
+    body.bounds= Rect(x,y,radius,radius);
+    
+    return body;
+}
+
+def createBox(x, y, width, height, density)
+{
+    var body = RigidBody();
+    body.type = 1;
+    body.id=0;
+    body.pos = Vec2(x, y);
+    body.vel = Vec2(0.0, 0.0);
+    body.angle = 0.0;
+    body.angularVel = 0.0;
+    var hw = width / 2.0;
+    var hh = height / 2.0;
+    
+    body.vertices = [];
+    body.vertices.push(Vec2(-hw, -hh));
+    body.vertices.push(Vec2(hw, -hh));
+    body.vertices.push(Vec2(hw, hh));
+    body.vertices.push(Vec2(-hw, hh));
+    
+    body.bounds= Rect(-hw,-hh,hw,hh);
+    var area = width * height;
+    body.mass = area * density;
+    body.invMass = 1.0 / body.mass;
+    
+   
+    body.inertia = body.mass * (width * width + height * height) / 12.0 * 3.0;
+    body.invInertia = 1.0 / body.inertia;
+    
+    body.restitution = 0.15;
+    body.friction = 0.7;
+    
+    body.color = Color(100 + math.rand(155), 100 + math.rand(155), 100 + math.rand(155), 255);
+    body.isStatic = false;
+    
+    return body;
+}
+
+def createStaticBox(x, y, width, height)
+{
+    var body = createBox(x, y, width, height, 1.0);
+    body.isStatic = true;
+    body.invMass = 0.0;
+    body.invInertia = 0.0;
+    body.color = GRAY;
+    return body;
+}
+
+// ==========================================
+// POLYGON HELPERS
+// ==========================================
+
+def getTransformedVertices(body)
+{
+    if (body.type != 1)
+    {
+        return [];
+    }
+    
+    var transformed = [];
+    var c = cos(body.angle);
+    var s = sin(body.angle);
+    
+    for (var i = 0; i < len(body.vertices); i = i + 1)
+    {
+        var v = body.vertices[i];
+        var rx = v.x * c - v.y * s;
+        var ry = v.x * s + v.y * c;
+        transformed.push(Vec2(rx + body.pos.x, ry + body.pos.y));
+    }
+    
+    return transformed;
+}
+
+def calculateNormals(vertices)
+{
+    var normals = [];
+    
+    for (var i = 0; i < len(vertices); i = i + 1)
+    {
+        var v1 = vertices[i];
+        var v2 = vertices[(i + 1) % len(vertices)];
+        
+        var edge = sub(v2, v1);
+        var normal = normalize(perp(edge));
+        normals.push(normal);
+    }
+    
+    return normals;
+}
+
+// ==========================================
+// CLIPPING (encontrar pontos de contacto REAIS!)
+// ==========================================
+
+def findContactPoints(vertsA, vertsB, normal)
+{
+    // Encontra a aresta de referência (mais perpendicular à normal)
+    var maxProj = -999999.0;
+    var refEdgeIdx = 0;
+    var normalsA = calculateNormals(vertsA);
+    
+    for (var i = 0; i < len(normalsA); i = i + 1)
+    {
+        var proj = dot(normalsA[i], normal);
+        if (proj > maxProj)
+        {
+            maxProj = proj;
+            refEdgeIdx = i;
+        }
+    }
+    
+    var v1 = vertsA[refEdgeIdx];
+    var v2 = vertsA[(refEdgeIdx + 1) % len(vertsA)];
+    
+    // Encontra os vértices de B que estão "dentro" (por trás da normal)
+    var contacts = [];
+    
+    for (var i = 0; i < len(vertsB); i = i + 1)
+    {
+        var v = vertsB[i];
+        var toV = sub(v, v1);
+        var dist = dot(toV, normal);
+        
+        if (dist <= 0.01) // Pequena tolerância
+        {
+            contacts.push(v);
+        }
+    }
+    
+    // Se não encontrou nenhum vértice, tenta arestas
+    if (len(contacts) == 0)
+    {
+        // Simplificação: usa o ponto mais próximo da aresta
+        var midPoint = Vec2((v1.x + v2.x) / 2.0, (v1.y + v2.y) / 2.0);
+        contacts.push(midPoint);
+    }
+    
+    return contacts;
+}
+
+// ==========================================
+// SAT COLLISION DETECTION
+// ==========================================
+
+struct Manifold
+{
+    var hasCollision;
+    var normal;
+    var penetration;
+    var contacts; // AGORA É ARRAY!
+};
+
+
+// Encontra o vértice mais extremo numa direção
+def getSupport(vertices, dir)
+{
+    var bestProj = -999999.0;
+    var bestVertex = vertices[0];
+    
+    for(var i = 0; i < len(vertices); i = i + 1)
+    {
+         var v = vertices[i];
+         var proj = dot(v, dir);
+         
+         if (proj > bestProj) 
+         { 
+            bestProj = proj; 
+            bestVertex = v; 
+         }
+    }
+    return bestVertex;
+}
+
+def projectPolygon(vertices, axis)
+{
+    var min = dot(vertices[0], axis);
+    var max = min;
+    
+    for (var i = 1; i < len(vertices); i = i + 1)
+    {
+        var p = dot(vertices[i], axis);
+        if (p < min) min = p;
+        if (p > max) max = p;
+    }
+    
+    return [min, max];
+}
+
+def projectCircle(center, radius, axis)
+{
+    var p = dot(center, axis);
+    return [p - radius, p + radius];
+}
+
+def checkCircleCircle(a, b)
+{
+    var manifold = Manifold();
+    manifold.hasCollision = false;
+    
+    var delta = sub(b.pos, a.pos);
+    var distSq = lengthSq(delta);
+    var radiusSum = a.radius + b.radius;
+    
+    if (distSq >= radiusSum * radiusSum)
+    {
+        return manifold;
+    }
+    
+    var dist = sqrt(distSq);
+    
+    manifold.hasCollision = true;
+    manifold.penetration = radiusSum - dist;
+    
+    if (dist > 0.0001)
+    {
+        manifold.normal = normalize(delta);
+    }
+    else
+    {
+        manifold.normal = Vec2(1.0, 0.0);
+    }
+    
+    manifold.contacts = [];
+    manifold.contacts.push(add(a.pos, scale(manifold.normal, a.radius)));
+    
+    return manifold;
+}
+def checkPolygonPolygon(a, b)
+{
+    var manifold = Manifold();
+    manifold.hasCollision = false;
+    
+    var vertsA = getTransformedVertices(a);
+    var vertsB = getTransformedVertices(b);
+    
+    var normalsA = calculateNormals(vertsA);
+    var normalsB = calculateNormals(vertsB);
+    
+    var minOverlap = 999999.0;
+    var bestAxis = Vec2(0.0, 0.0);
+    
+    // 1. Testar eixos de A
+    for (var i = 0; i < len(normalsA); i = i + 1)
+    {
+        var axis = normalsA[i];
+        var projA = projectPolygon(vertsA, axis);
+        var projB = projectPolygon(vertsB, axis);
+        
+        if (projA[1] < projB[0] || projB[1] < projA[0]) return manifold;
+        
+        var overlap = min(projA[1], projB[1]) - max(projA[0], projB[0]);
+        if (overlap < minOverlap)
+        {
+            minOverlap = overlap;
+            bestAxis = axis;
+        }
+    }
+    
+    // 2. Testar eixos de B
+    for (var i = 0; i < len(normalsB); i = i + 1)
+    {
+        var axis = normalsB[i];
+        var projA = projectPolygon(vertsA, axis);
+        var projB = projectPolygon(vertsB, axis);
+        
+        if (projA[1] < projB[0] || projB[1] < projA[0]) return manifold;
+        
+        var overlap = min(projA[1], projB[1]) - max(projA[0], projB[0]);
+        if (overlap < minOverlap)
+        {
+            minOverlap = overlap;
+            bestAxis = axis;
+        }
+    }
+    
+    manifold.hasCollision = true;
+    manifold.penetration = minOverlap;
+    
+    // 3. Orientar a normal de A para B
+    var delta = sub(b.pos, a.pos);
+    if (dot(delta, bestAxis) < 0.0)
+    {
+        bestAxis = scale(bestAxis, -1.0);
+    }
+    manifold.normal = bestAxis;
+    
+
+    
+    var dirToA = scale(manifold.normal, -1.0);
+    var contactOnB = getSupport(vertsB, dirToA);
+    
+    // Opcional: Para ser mais estável, podemos ver se o ponto de A furou B
+    // Mas para começar, apenas 1 ponto no array chega!
+    manifold.contacts = [];
+    manifold.contacts.push(contactOnB);
+    
+    return manifold;
+}
+
+def checkCirclePolygon(circle, poly)
+{
+    var manifold = Manifold();
+    manifold.hasCollision = false;
+    
+    var verts = getTransformedVertices(poly);
+    var normals = calculateNormals(verts);
+    
+    var minOverlap = 999999.0;
+    var bestAxis = Vec2(0.0, 0.0);
+    
+    for (var i = 0; i < len(normals); i = i + 1)
+    {
+        var axis = normals[i];
+        
+        var projCircle = projectCircle(circle.pos, circle.radius, axis);
+        var projPoly = projectPolygon(verts, axis);
+        
+        if (projCircle[1] < projPoly[0] || projPoly[1] < projCircle[0])
+        {
+            return manifold;
+        }
+        
+        var overlap = min(projCircle[1], projPoly[1]) - max(projCircle[0], projPoly[0]);
+        
+        if (overlap < minOverlap)
+        {
+            minOverlap = overlap;
+            bestAxis = axis;
+        }
+    }
+    
+    var closestDist = 999999.0;
+    var closestVert = verts[0];
+    
+    for (var i = 0; i < len(verts); i = i + 1)
+    {
+        var dist = lengthSq(sub(verts[i], circle.pos));
+        if (dist < closestDist)
+        {
+            closestDist = dist;
+            closestVert = verts[i];
+        }
+    }
+    
+    var toClosest = sub(closestVert, circle.pos);
+    if (lengthSq(toClosest) > 0.0001)
+    {
+        var axis = normalize(toClosest);
+        
+        var projCircle = projectCircle(circle.pos, circle.radius, axis);
+        var projPoly = projectPolygon(verts, axis);
+        
+        if (projCircle[1] < projPoly[0] || projPoly[1] < projCircle[0])
+        {
+            return manifold;
+        }
+        
+        var overlap = min(projCircle[1], projPoly[1]) - max(projCircle[0], projPoly[0]);
+        
+        if (overlap < minOverlap)
+        {
+            minOverlap = overlap;
+            bestAxis = axis;
+        }
+    }
+    
+    manifold.hasCollision = true;
+    manifold.penetration = minOverlap;
+    
+    var delta = sub(poly.pos, circle.pos);
+    if (dot(delta, bestAxis) < 0.0)
+    {
+        bestAxis = scale(bestAxis, -1.0);
+    }
+    
+    manifold.normal = bestAxis;
+    manifold.contacts = [];
+    manifold.contacts.push(add(circle.pos, scale(bestAxis, circle.radius)));
+    
+    return manifold;
+}
+
+def checkCollision(a, b)
+{
+    if (a.type == 0 && b.type == 0)
+    {
+        return checkCircleCircle(a, b);
+    }
+    else if (a.type == 1 && b.type == 1)
+    {
+        return checkPolygonPolygon(a, b);
+    }
+    else if (a.type == 0 && b.type == 1)
+    {
+        return checkCirclePolygon(a, b);
+    }
+    else
+    {
+        var m = checkCirclePolygon(b, a);
+        if (m.hasCollision)
+        {
+            m.normal = scale(m.normal, -1.0);
+        }
+        return m;
+    }
+}
+
+// ==========================================
+// COLLISION RESOLUTION
+// ==========================================
+
+def resolveCollision(a, b, manifold)
+{
+    if (a.isStatic && b.isStatic)
+    {
+        return;
+    }
+    
+    // Positional correction
+    var correction = scale(manifold.normal, manifold.penetration / (a.invMass + b.invMass) * 0.8);
+    
+    if (!a.isStatic)
+    {
+        a.pos = sub(a.pos, scale(correction, a.invMass));
+    }
+    if (!b.isStatic)
+    {
+        b.pos = add(b.pos, scale(correction, b.invMass));
+    }
+    
+    // Resolver para CADA ponto de contacto!
+    for (var c = 0; c < len(manifold.contacts); c = c + 1)
+    {
+        var contactPoint = manifold.contacts[c];
+        
+        var ra = sub(contactPoint, a.pos);
+        var rb = sub(contactPoint, b.pos);
+        
+        var vaLinear = a.vel;
+        var vbLinear = b.vel;
+        
+        var vaAngular = Vec2(-a.angularVel * ra.y, a.angularVel * ra.x);
+        var vbAngular = Vec2(-b.angularVel * rb.y, b.angularVel * rb.x);
+        
+        var va = add(vaLinear, vaAngular);
+        var vb = add(vbLinear, vbAngular);
+        
+        var rv = sub(vb, va);
+        
+        var velAlongNormal = dot(rv, manifold.normal);
+        
+        if (velAlongNormal > 0.0)
+        {
+            continue;
+        }
+        
+        var e = min(a.restitution, b.restitution);
+        
+        var raCrossN = cross(ra, manifold.normal);
+        var rbCrossN = cross(rb, manifold.normal);
+        
+        var invMassSum = a.invMass + b.invMass + 
+                         raCrossN * raCrossN * a.invInertia + 
+                         rbCrossN * rbCrossN * b.invInertia;
+        
+        var j = -(1.0 + e) * velAlongNormal;
+        j = j / invMassSum;
+        j = j / len(manifold.contacts); // Dividir impulso pelos contactos!
+        
+        var impulse = scale(manifold.normal, j);
+        
+        if (!a.isStatic)
+        {
+            a.vel = sub(a.vel, scale(impulse, a.invMass));
+            a.angularVel = a.angularVel - cross(ra, impulse) * a.invInertia;
+        }
+        if (!b.isStatic)
+        {
+            b.vel = add(b.vel, scale(impulse, b.invMass));
+            b.angularVel = b.angularVel + cross(rb, impulse) * b.invInertia;
+        }
+        
+        // Fricção
+        rv = sub(add(vbLinear, Vec2(-b.angularVel * rb.y, b.angularVel * rb.x)),
+                 add(vaLinear, Vec2(-a.angularVel * ra.y, a.angularVel * ra.x)));
+        
+        var tangent = sub(rv, scale(manifold.normal, dot(rv, manifold.normal)));
+        
+        if (lengthSq(tangent) > 0.0001)
+        {
+            tangent = normalize(tangent);
+            
+            var raCrossT = cross(ra, tangent);
+            var rbCrossT = cross(rb, tangent);
+            
+            var invMassSumT = a.invMass + b.invMass + 
+                              raCrossT * raCrossT * a.invInertia + 
+                              rbCrossT * rbCrossT * b.invInertia;
+            
+            var jt = -dot(rv, tangent);
+            jt = jt / invMassSumT;
+            jt = jt / len(manifold.contacts);
+            
+            var mu = sqrt(a.friction * a.friction + b.friction * b.friction);
+            
+            var frictionImpulse;
+            if (abs(jt) < j * mu)
+            {
+                frictionImpulse = scale(tangent, jt);
+            }
+            else
+            {
+                frictionImpulse = scale(tangent, -j * mu);
+            }
+            
+            if (!a.isStatic)
+            {
+                a.vel = sub(a.vel, scale(frictionImpulse, a.invMass));
+                a.angularVel = a.angularVel - cross(ra, frictionImpulse) * a.invInertia;
+            }
+            if (!b.isStatic)
+            {
+                b.vel = add(b.vel, scale(frictionImpulse, b.invMass));
+                b.angularVel = b.angularVel + cross(rb, frictionImpulse) * b.invInertia;
+            }
+        }
+    }
+}
+
+// ==========================================
+// WORLD
+// ==========================================
+
+var bodies = [];
+
+bodies.push(createStaticBox(400, 580, 800, 40));
+bodies.push(createStaticBox(10, 300, 20, 600));
+bodies.push(createStaticBox(790, 300, 20, 600));
+
+var ramp = createStaticBox(300, 450, 200, 20);
+ramp.angle = -0.3;
+bodies.push(ramp);
+
+// ==========================================
+// HELPERS
+// ==========================================
+
+def min(a, b)
+{
+    if (a < b) return a;
+    return b;
+}
+
+def max(a, b)
+{
+    if (a > b) return a;
+    return b;
+}
+
+def updateAABB(body)
+{
+    if (body.type == 0) // CIRCLE
+    {
+        
+      //  body.bounds = Rect();
+        body.bounds.x = body.pos.x - body.radius;
+        body.bounds.y = body.pos.y - body.radius;
+        body.bounds.w = body.radius * 2.0;
+        body.bounds.h = body.radius * 2.0;
+    }
+    else // BOX / POLYGON
+    {
+  
+        var verts = getTransformedVertices(body);
+        
+ 
+        var minX = 999999.0;
+        var maxX = -999999.0;
+        var minY = 999999.0;
+        var maxY = -99999.0;
+        
+ 
+        for(var i=0; i<len(verts); i=i+1)
+        {
+            var v = verts[i];
+            if (v.x < minX) minX = v.x;
+            if (v.x > maxX) maxX = v.x;
+            if (v.y < minY) minY = v.y;
+            if (v.y > maxY) maxY = v.y;
+        }
+        
+        body.bounds = Rect();
+        
+ 
+        body.bounds.x = minX;
+        body.bounds.y = minY;
+        body.bounds.w = maxX - minX;
+        body.bounds.h = maxY - minY;
+    }
+}
+
+
+// ==========================================
+// MAIN LOOP
+// ==========================================
+
+var screenRect = Rect();
+screenRect.x = 400; screenRect.y = 300;
+screenRect.w = 400; screenRect.h = 300;
+var candidates = [];
+var IDS=0;
+
+while (!WindowShouldClose())
+{
+    var dt = 1.0 / 60.0;
+    
+    if (IsMouseButtonPressed(0))
+    {
+        var mx = GetMouseX();
+        var my = GetMouseY();
+        IDS=IDS+1;
+        
+       
+            var c = createCircle(mx, my, 15 + math.rand(25), 1.0);
+            c.id=IDS;
+            c.angularVel = (math.rand(100) - 50) / 50.0;
+            bodies.push(c);
+      
+    }
+     if (IsMouseButtonPressed(1))
+    {
+        var mx = GetMouseX();
+        var my = GetMouseY();
+        IDS=IDS+1;
+        
+        
+            var b = createBox(mx, my, 30 + math.rand(40), 30 + math.rand(40), 1.0);
+            b.id=IDS;
+            b.angle = (math.rand(360) / 360.0) * 6.28;
+            b.angularVel = (math.rand(100) - 50) / 50.0;
+            bodies.push(b);
+        
+        }
+        
+    var qt = createQuadTree(screenRect, 4); 
+    // Physics
+    for (var i = 0; i < len(bodies); i = i + 1)
+    {
+        var body = bodies[i];
+        
+        if (!body.isStatic)
+        {
+            body.vel.y = body.vel.y + GRAVITY * dt;
+            
+            body.pos = add(body.pos, scale(body.vel, dt));
+            body.angle = body.angle + body.angularVel * dt;
+            
+            // Damping
+            body.vel = scale(body.vel, 0.998);
+            body.angularVel = body.angularVel * 0.98;
+            
+            if (abs(body.angularVel) < 0.02)
+            {
+                body.angularVel = 0.0;
+            }
+        }
+         updateAABB(body);
+         insert(qt, body);
+    }
+
+    
+    // Collisions
+    var solverIterations = 2;
+//     for (var iter = 0; iter < solverIterations; iter = iter + 1)
+//     {
+//     for (var i = 0; i < len(bodies); i = i + 1)
+//     {
+//         for (var j = i + 1; j < len(bodies); j = j + 1)
+//         {
+//             var manifold = checkCollision(bodies[i], bodies[j]);
+            
+//             if (manifold.hasCollision)
+//             {
+//                 resolveCollision(bodies[i], bodies[j], manifold);
+//             }
+//         }
+//     }
+// }
+
+    // 3. Verificar Colisões
+    for (var i = 0; i < len(bodies); i = i + 1)
+    {
+        var bodyA = bodies[i];
+        
+        candidates.clear();
+        
+        query(qt, bodyA.bounds, candidates);
+        
+ 
+        for (var j = 0; j < len(candidates); j = j + 1)
+        {
+            var bodyB = candidates[j];
+            if (bodyA.id != bodyB.id) 
+            {
+                var manifold = checkCollision(bodyA, bodyB);
+                if (manifold.hasCollision)
+                {
+                    resolveCollision(bodyA, bodyB, manifold);
+                }
+            }
+        }
+    }
+    
+    // Render
+    BeginDrawing();
+    ClearBackground(Color(20, 20, 30, 255));
+
+    drawQuadTree(qt);
+    
+    for (var i = 0; i < len(bodies); i = i + 1)
+    {
+        var body = bodies[i];
+        
+        if (body.type == 0)
+        {
+            DrawCircle(body.pos.x, body.pos.y, body.radius, body.color);
+            DrawCircleLines(body.pos.x, body.pos.y, body.radius, WHITE);
+            
+            var ex = body.pos.x + cos(body.angle) * body.radius;
+            var ey = body.pos.y + sin(body.angle) * body.radius;
+            DrawLine(body.pos.x, body.pos.y, ex, ey, WHITE);
+        }
+        else
+        {
+            var verts = getTransformedVertices(body);
+            
+            for (var j = 0; j < len(verts); j = j + 1)
+            {
+                var v1 = verts[j];
+                var v2 = verts[(j + 1) % len(verts)];
+                
+                DrawLine(v1.x, v1.y, v2.x, v2.y, body.color);
+            }
+        }
+        DrawRectangleLines(body.bounds.x, body.bounds.y, body.bounds.w, body.bounds.h, LIME);
+    }
+    
+    DrawText("Click! ", 10, 10, 20, WHITE);
+    DrawText(format("Bodies: {}", len(bodies)), 10, 35, 16, GREEN);
+    DrawFPS(700, 10);
+    
+    EndDrawing();
+}
+
+CloseWindow();
