@@ -4,6 +4,7 @@ require "glfw,rlgl";
 import GLFW,RLGL;
 using GLFW,RLGL;
 
+<<<<<<< HEAD
  include "rlgl/grid.bu";
 
 
@@ -102,3 +103,8 @@ using GLFW,RLGL;
 //     glfwTerminate();
 //     print "GLFW terminated!";
  
+=======
+include "rlgl/grid.bu";
+
+
+>>>>>>> 3259eabd937ab3f6e8960dc52def38e4847ebcde

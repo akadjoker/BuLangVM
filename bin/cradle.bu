@@ -37,8 +37,8 @@ class Pendulum
     
     def update()
     {
-        if (!self.dragging)
-        {
+        if (self.dragging) return;
+        
             var vx = (self.x - self.oldx) * FRICTION;
             var vy = (self.y - self.oldy) * FRICTION;
             
@@ -61,7 +61,7 @@ class Pendulum
                 self.x = self.x + dx * percent;
                 self.y = self.y + dy * percent;
             }
-        }
+        
     }
     
     def drag(mx, my)

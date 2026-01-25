@@ -1,0 +1,378 @@
+// Edge Case Test - Early Returns in Classes and Game Loops
+// Tests various patterns that can cause stack corruption
+
+require "raylib";
+import raylib;
+using raylib;
+
+InitWindow(800, 600, "Edge Case Tests");
+SetTargetFPS(60);
+
+var BLACK = Color(0, 0, 0, 255);
+var WHITE = Color(255, 255, 255, 255);
+var GREEN = Color(0, 255, 0, 255);
+var RED = Color(255, 0, 0, 255);
+var YELLOW = Color(255, 255, 0, 255);
+
+// ============================================
+// TEST 1: Early return with value in method
+// ============================================
+class EarlyReturnValue
+{
+    var value;
+
+    def init(v)
+    {
+        self.value = v;
+    }
+
+    def check()
+    {
+        if (self.value > 100) return "too_high";
+        if (self.value < 0) return "negative";
+
+        // This path must work - variables after early returns
+        var a = self.value * 2;
+        var b = a + 10;
+        var c = b / 2;
+        return c;
+    }
+}
+
+// ============================================
+// TEST 2: Early return without value (void)
+// ============================================
+class EarlyReturnVoid
+{
+    var counter;
+    var active;
+
+    def init()
+    {
+        self.counter = 0;
+        self.active = true;
+    }
+
+    def update()
+    {
+        if (!self.active) return;
+
+        // Code after early return
+        var delta = 1;
+        var mult = 2;
+        self.counter = self.counter + delta * mult;
+    }
+
+    def deactivate()
+    {
+        self.active = false;
+    }
+}
+
+// ============================================
+// TEST 3: Multiple early returns in chain
+// ============================================
+class MultiReturn
+{
+    var state;
+
+    def init()
+    {
+        self.state = 0;
+    }
+
+    def compute(input)
+    {
+        if (input == 0) return "zero";
+        if (input == 1) return "one";
+        if (input == 2) return "two";
+        if (input < 0) return "negative";
+        if (input > 1000) return "huge";
+
+        // Complex code after many early returns
+        var x = input * 2;
+        var y = x + input;
+        var z = y * y;
+        self.state = z;
+        return z;
+    }
+}
+
+// ============================================
+// TEST 4: Early return inside nested conditions
+// ============================================
+class NestedConditions
+{
+    var x, y;
+    var broken;
+
+    def init(px, py)
+    {
+        self.x = px;
+        self.y = py;
+        self.broken = false;
+    }
+
+    def update()
+    {
+        // Pattern that caused the original bug
+        if (self.broken) return false;
+
+        // Nested conditions after early return
+        if (self.x > 0)
+        {
+            if (self.y > 0)
+            {
+                var dist = self.x + self.y;
+                if (dist > 500)
+                {
+                    self.broken = true;
+                    return true;
+                }
+            }
+        }
+
+        // More code with local vars
+        var vx = self.x * 0.1;
+        var vy = self.y * 0.1;
+        self.x = self.x + vx;
+        self.y = self.y + vy;
+        return false;
+    }
+}
+
+// ============================================
+// TEST 5: Early return in loop inside method
+// ============================================
+class LoopReturn
+{
+    var items;
+
+    def init()
+    {
+        self.items = [10, 20, 30, 40, 50];
+    }
+
+    def findFirst(target)
+    {
+        for (var i = 0; i < len(self.items); i = i + 1)
+        {
+            if (self.items[i] == target) return i;
+        }
+
+        // After loop early return
+        var notFound = -1;
+        return notFound;
+    }
+
+    def sumUntil(limit)
+    {
+        var total = 0;
+        for (var i = 0; i < len(self.items); i = i + 1)
+        {
+            total = total + self.items[i];
+            if (total > limit) return total;
+        }
+        return total;
+    }
+}
+
+// ============================================
+// TEST 6: Interacting objects with early returns
+// ============================================
+class Particle
+{
+    var x, y, vx, vy;
+    var alive;
+    var age;
+
+    def init(px, py)
+    {
+        self.x = px;
+        self.y = py;
+        self.vx = (px % 10) - 5;
+        self.vy = (py % 10) - 5;
+        self.alive = true;
+        self.age = 0;
+    }
+
+    def update()
+    {
+        if (!self.alive) return;
+
+        self.age = self.age + 1;
+        if (self.age > 100)
+        {
+            self.alive = false;
+            return;
+        }
+
+        // Physics after early returns
+        var ax = 0;
+        var ay = 0.1;
+        self.vx = self.vx + ax;
+        self.vy = self.vy + ay;
+        self.x = self.x + self.vx;
+        self.y = self.y + self.vy;
+
+        // Bounds check with early return
+        if (self.x < 0 || self.x > 800)
+        {
+            self.alive = false;
+            return;
+        }
+        if (self.y > 600)
+        {
+            self.alive = false;
+            return;
+        }
+    }
+
+    def draw()
+    {
+        if (!self.alive) return;
+
+        var alpha = 255 - (self.age * 2);
+        if (alpha < 0) alpha = 0;
+        DrawCircle(self.x, self.y, 3, WHITE);
+    }
+}
+
+// ============================================
+// STANDALONE FUNCTION TESTS
+// ============================================
+def funcEarlyReturn(val)
+{
+    if (val == 0) return "zero";
+    if (val < 0) return "neg";
+
+    var a = val * 2;
+    var b = a + 1;
+    return b;
+}
+
+def funcNestedReturn(a, b)
+{
+    if (a > 0)
+    {
+        if (b > 0)
+        {
+            return a + b;
+        }
+        return a;
+    }
+    return 0;
+}
+
+// ============================================
+// MAIN TEST LOOP
+// ============================================
+var test1 = EarlyReturnValue(50);
+var test2 = EarlyReturnVoid();
+var test3 = MultiReturn();
+var test4 = NestedConditions(100, 100);
+var test5 = LoopReturn();
+
+var particles = [];
+var frameCount = 0;
+var allTestsPassed = true;
+var errorMsg = "";
+
+// Pre-check some tests
+var r1 = test1.check();
+if (r1 != 55) { allTestsPassed = false; errorMsg = "Test1 failed: " + r1; }
+
+var r2 = EarlyReturnValue(200).check();
+if (r2 != "too_high") { allTestsPassed = false; errorMsg = "Test1b failed"; }
+
+var r3 = test3.compute(5);
+if (r3 != 225) { allTestsPassed = false; errorMsg = "Test3 failed: " + r3; }
+
+var r4 = test3.compute(0);
+if (r4 != "zero") { allTestsPassed = false; errorMsg = "Test3b failed"; }
+
+var r5 = test5.findFirst(30);
+if (r5 != 2) { allTestsPassed = false; errorMsg = "Test5 failed: " + r5; }
+
+var r6 = test5.findFirst(99);
+if (r6 != -1) { allTestsPassed = false; errorMsg = "Test5b failed: " + r6; }
+
+var r7 = funcEarlyReturn(10);
+if (r7 != 21) { allTestsPassed = false; errorMsg = "FuncTest failed: " + r7; }
+
+var r8 = funcNestedReturn(5, 3);
+if (r8 != 8) { allTestsPassed = false; errorMsg = "FuncTest2 failed: " + r8; }
+
+while (!WindowShouldClose())
+{
+    frameCount = frameCount + 1;
+
+    // Test 2: void early return
+    test2.update();
+    if (frameCount == 30) test2.deactivate();
+
+    // Test 4: nested conditions (the original bug pattern)
+    var changed = test4.update();
+
+    // Create particles every 5 frames
+    if (frameCount % 5 == 0)
+    {
+        var p = Particle(400, 300);
+        particles.push(p);
+    }
+
+    // Update all particles (tests early returns in loop)
+    for (var i = 0; i < len(particles); i = i + 1)
+    {
+        particles[i].update();
+    }
+
+    // Clean dead particles every 60 frames
+    if (frameCount % 60 == 0)
+    {
+        var newList = [];
+        for (var i = 0; i < len(particles); i = i + 1)
+        {
+            if (particles[i].alive)
+            {
+                newList.push(particles[i]);
+            }
+        }
+        particles = newList;
+    }
+
+    // Drawing
+    BeginDrawing();
+    ClearBackground(BLACK);
+
+    // Draw particles
+    for (var i = 0; i < len(particles); i = i + 1)
+    {
+        particles[i].draw();
+    }
+
+    // Status display
+    if (allTestsPassed)
+    {
+        DrawText("All pre-tests PASSED", 10, 10, 20, GREEN);
+    }
+    else
+    {
+        DrawText("FAILED: " + errorMsg, 10, 10, 20, RED);
+    }
+
+    DrawText("Frame: " + frameCount, 10, 40, 16, WHITE);
+    DrawText("Particles: " + len(particles), 10, 60, 16, WHITE);
+    DrawText("Test2 counter: " + test2.counter, 10, 80, 16, WHITE);
+    DrawText("Test4 broken: " + test4.broken, 10, 100, 16, WHITE);
+    DrawText("Test4 x: " + test4.x, 10, 120, 16, WHITE);
+
+    DrawText("Early return edge case test", 10, 560, 16, YELLOW);
+    DrawText("If running without crash = SUCCESS", 10, 580, 12, YELLOW);
+
+    DrawFPS(700, 10);
+    EndDrawing();
+}
+
+CloseWindow();
+print("Test completed successfully after " + frameCount + " frames");

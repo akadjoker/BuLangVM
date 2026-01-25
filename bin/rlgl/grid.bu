@@ -1,11 +1,16 @@
  
 print "=== Exemplo RLGL: Grid 3D ===";
 
+<<<<<<< HEAD
 
 
 
 glfwInit();
 
+=======
+if (glfwInit() == GLFW_TRUE)
+{
+>>>>>>> 3259eabd937ab3f6e8960dc52def38e4847ebcde
     var width = 800;
     var height = 600;
     
@@ -183,4 +188,10 @@ glfwInit();
     }
     
     glfwTerminate();
+<<<<<<< HEAD
  
+=======
+}
+
+print "Programa finalizado!";
+>>>>>>> 3259eabd937ab3f6e8960dc52def38e4847ebcde
