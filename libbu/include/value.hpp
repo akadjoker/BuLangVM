@@ -384,15 +384,15 @@ void valueToBuffer(const Value &v, char *out, size_t size);
 
 static FORCE_INLINE bool valuesEqual(const Value &a, const Value &b)
 {
-
-  if (a.isNumber()  && b.isNumber())
+  // Numbers: allow cross-type comparison (int == double)
+  if (a.isNumber() && b.isNumber())
   {
     double da = a.asNumber();
     double db = b.asNumber();
     return da == db;
   }
 
-  // Resto precisa tipos iguais
+  // Rest require exact type match
   if (a.type != b.type)
     return false;
 
@@ -400,14 +400,43 @@ static FORCE_INLINE bool valuesEqual(const Value &a, const Value &b)
   {
   case ValueType::BOOL:
     return a.asBool() == b.asBool();
+  
   case ValueType::NIL:
     return true;
+  
   case ValueType::STRING:
-  {
     return compare_strings(a.asString(), b.asString());
-  }
+  
+  // Object types: compare by pointer (identity)
+  case ValueType::ARRAY:
+    return a.asArray() == b.asArray();
+  
+  case ValueType::MAP:
+    return a.asMap() == b.asMap();
+  
+  case ValueType::BUFFER:
+    return a.asBuffer() == b.asBuffer();
+  
+  case ValueType::CLASSINSTANCE:
+    return a.asClassInstance() == b.asClassInstance();
+  
+  case ValueType::STRUCTINSTANCE:
+    return a.asStructInstance() == b.asStructInstance();
+  
+  case ValueType::NATIVECLASSINSTANCE:
+    return a.asNativeClassInstance() == b.asNativeClassInstance();
+  
+  case ValueType::NATIVESTRUCTINSTANCE:
+    return a.asNativeStructInstance() == b.asNativeStructInstance();
+  
+  case ValueType::CLOSURE:
+    return a.asClosure() == b.asClosure();
+  
+  case ValueType::POINTER:
+    return a.asPointer() == b.asPointer();
 
   default:
+    // Other types (functions, classes, natives, etc.) don't support equality
     return false;
   }
 }

@@ -1,0 +1,58 @@
+// Test nil
+var result = nil == nil
+print(result)
+
+// Test primitives
+var r1 = 5 == 5
+print(r1)
+
+var r2 = 5 == 5.0
+print(r2)
+
+// Test arrays
+var arr1 = [1, 2, 3]
+var arr2 = [1, 2, 3]
+var arr3 = arr1
+var r3 = arr1 == arr1
+print(r3)
+
+var r4 = arr1 == arr2
+print(r4)
+
+var r5 = arr1 == arr3
+print(r5)
+
+// Test maps
+var map1 = {"a": 1, "b": 2}
+var map2 = {"a": 1, "b": 2}
+var map3 = map1
+var r6 = map1 == map1
+print(r6)
+
+var r7 = map1 == map2
+print(r7)
+
+var r8 = map1 == map3
+print(r8)
+
+// Test classes
+class Point
+  x
+  y
+  
+var p1 = Point()
+p1.x = 10
+p1.y = 20
+var p2 = Point()
+p2.x = 10
+p2.y = 20
+var p3 = p1
+
+var r9 = p1 == p1
+print(r9)
+
+var r10 = p1 == p2
+print(r10)
+
+var r11 = p1 == p3
+print(r11)
