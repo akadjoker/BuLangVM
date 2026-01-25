@@ -130,14 +130,14 @@ Jump, collect coins, and reach the goal! Navigate challenging platforms with pre
 |------|------|------|
 | ![Boids](gifs/boids.gif) | ![Cast Light](gifs/castlight.gif) | ![Doom](gifs/doom.gif) |
 | ![Mandelbrot](gifs/mandelbrot.gif) | ![Matrix](gifs/matrix.gif) | ![Particles](gifs/particles.gif) |
-| ![Pendulum](gifs/pendum.gif) | ![Physics](gifs/physcs.gif) | ![Pinball](gifs/pinball.gif) |
-| ![Plasma](gifs/plasma.gif) | ![Starfield](gifs/starfiled.gif) |  |
+| ![Pendulum](gifs/pendum.gif) | ![Physics](gifs/physcs.gif) | ![Galax](gifs/galax.gif) |
+| ![Plasma](gifs/plasma.gif) | ![Starfield](gifs/starfiled.gif) |  ![Plataform](gifs/plataform.gif) |
 
-
+ ![Plataform](gifs/pinabll.gif)
 ---
 
 ## 🚀 Quick Start
-
+ 
 ### Installation
 
 ```bash

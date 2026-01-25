@@ -1,0 +1,78 @@
+// ============================================
+// BULANG PLATFORMER - Main Game
+// ============================================
+require "raylib";
+import math;
+import raylib;
+using raylib;
+
+include "plataform/consts.bu";
+include "plataform/platform.bu";
+include "plataform/player.bu";
+
+
+// ============================================
+// GAME INITIALIZATION
+// ============================================
+
+InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "BuLang Platformer Engine");
+SetTargetFPS(60);
+
+// Create player
+var player = Player(100, 100);
+
+// Create platforms
+var platforms = [];
+
+// Ground
+platforms.push(Platform(0, 410, 800, 40));
+
+// Stairs
+platforms.push(Platform(150, 360, 100, 15));
+platforms.push(Platform(280, 310, 100, 15));
+platforms.push(Platform(410, 260, 100, 15));
+
+// Upper platforms
+platforms.push(Platform(550, 210, 140, 15));
+platforms.push(Platform(100, 180, 120, 15));
+platforms.push(Platform(350, 130, 90, 15));
+
+// Floating islands
+platforms.push(Platform(600, 80, 80, 15));
+
+// ============================================
+// GAME LOOP
+// ============================================
+
+while (!WindowShouldClose()) 
+{
+    // UPDATE
+    player.update(platforms);
+    
+    // DRAW
+    BeginDrawing();
+    ClearBackground(BLUE);
+    
+    // Draw platforms
+    for (var i = 0; i < platforms.length(); i++) 
+    {
+        platforms[i].draw();
+    }
+    
+    // Draw player
+    player.draw();
+    
+    // UI
+    DrawText("BuLang Platformer Engine", 10, 10, 18, WHITE);
+    DrawText("WASD / Arrow Keys - Move", 10, 32, 14, WHITE);
+    DrawText("SPACE - Jump (double jump!)", 10, 50, 14, WHITE);
+    
+    //DrawFps(SCREEN_WIDTH - 80, 10);
+    
+    EndDrawing();
+}
+
+CloseWindow();
+
+
+ 
