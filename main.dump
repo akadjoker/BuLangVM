@@ -7,18 +7,6 @@ GLOBAL FUNCTIONS
 ========================================
 
 
->>> Function: __main__
-    Arity: 0
-    Has return: no
-    Index: 0
-
-  Constants (0):
-
-  Bytecode:
-    0000    1 OP_NIL              
-    0001    | OP_RETURN           
-
-
 ========================================
 CLASSES
 ========================================

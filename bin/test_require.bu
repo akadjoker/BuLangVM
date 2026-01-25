@@ -1,0 +1,21 @@
+// Simple test of the require keyword
+print "Testing require keyword...";
+
+// Load SDL plugin
+require "sdl";
+
+print "SDL plugin loaded!";
+
+// Import the module
+import SDL;
+
+print "SDL module imported!";
+
+// Use the module with qualified names
+var result = SDL.SDL_Init(0);
+print "SDL_Init(0) returned: " + result;
+
+SDL.SDL_Quit();
+print "SDL_Quit called";
+
+print "Test passed!";

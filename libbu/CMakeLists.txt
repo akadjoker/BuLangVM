@@ -22,7 +22,10 @@ file(GLOB SOURCES "src/*.cpp")
 # Targets
 # ============================================
 add_library(libbu STATIC ${SOURCES})
- 
+
+# Enable PIC so libbu can be linked into shared libraries (plugins)
+set_target_properties(libbu PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 target_include_directories(libbu PUBLIC include  src)
 
 # ============================================

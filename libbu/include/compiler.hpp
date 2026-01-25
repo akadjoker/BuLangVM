@@ -401,6 +401,7 @@ private:
   void includeStatement();
   void parseImport();
   void parseUsing();
+  void parseRequire();
 
   FileLoaderCallback fileLoader = nullptr;
   void *fileLoaderUserdata = nullptr;

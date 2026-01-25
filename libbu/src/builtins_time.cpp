@@ -15,40 +15,42 @@
 // TIME.NOW - Timestamp atual (segundos desde epoch)
 // ============================================
 
-Value native_time_now(Interpreter *vm, int argCount, Value *args)
+int native_time_now(Interpreter *vm, int argCount, Value *args)
 {
     auto now = std::chrono::system_clock::now();
     auto seconds = std::chrono::duration_cast<std::chrono::seconds>(
         now.time_since_epoch()
     ).count();
     
-    return vm->makeInt((int)seconds);
+    vm->push(vm->makeInt((int)seconds));
+    return 1;
 }
 
 // ============================================
 // TIME.NOW_MS - Timestamp em milissegundos
 // ============================================
 
-Value native_time_now_ms(Interpreter *vm, int argCount, Value *args)
+int native_time_now_ms(Interpreter *vm, int argCount, Value *args)
 {
     auto now = std::chrono::system_clock::now();
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
         now.time_since_epoch()
     ).count();
     
-    return vm->makeInt((int)ms);
+    vm->push(vm->makeInt((int)ms));
+    return 1;
 }
 
 // ============================================
 // TIME.SLEEP - Pausa execução (segundos)
 // ============================================
 
-Value native_time_sleep(Interpreter *vm, int argCount, Value *args)
+int native_time_sleep(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount < 1)
     {
         vm->runtimeError("time.sleep expects at least 1 argument");
-        return vm->makeNil();
+        return 0;
     }
     
     double seconds = args[0].isInt() 
@@ -56,55 +58,57 @@ Value native_time_sleep(Interpreter *vm, int argCount, Value *args)
         : args[0].asDouble();
     
     if (seconds < 0)
-        return vm->makeNil();
+        {
+            return 0;
+        }
     
     auto duration = std::chrono::duration<double>(seconds);
     std::this_thread::sleep_for(duration);
     
-    return vm->makeNil();
+    return 0;
 }
 
 // ============================================
 // TIME.SLEEP_MS - Pausa em milissegundos
 // ============================================
 
-Value native_time_sleep_ms(Interpreter *vm, int argCount, Value *args)
+int native_time_sleep_ms(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount < 1 || !args[0].isInt())
     {
         vm->runtimeError("time.sleep_ms expects integer milliseconds");
-        return vm->makeNil();
+        return 0;
     }
     
     int ms = args[0].asInt();
     if (ms < 0)
-        return vm->makeNil();
+        return 0;
     
     std::this_thread::sleep_for(std::chrono::milliseconds(ms));
     
-    return vm->makeNil();
+    return 0;
 }
 
 // ============================================
 // TIME.CLOCK - Tempo de CPU (high precision)
 // ============================================
 
-Value native_time_clock(Interpreter *vm, int argCount, Value *args)
+int native_time_clock(Interpreter *vm, int argCount, Value *args)
 {
     auto now = std::chrono::high_resolution_clock::now();
     auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
         now.time_since_epoch()
     ).count();
     
-    // Retorna em segundos (double para precisão)
-    return vm->makeDouble((double)ns / 1e9);
+    vm->push(vm->makeDouble((double)ns / 1e9));
+    return 1;
 }
 
 // ============================================
 // TIME.DATE - Decompõe timestamp em componentes
 // ============================================
 
-Value native_time_date(Interpreter *vm, int argCount, Value *args)
+int native_time_date(Interpreter *vm, int argCount, Value *args)
 {
     time_t timestamp;
     
@@ -119,15 +123,17 @@ Value native_time_date(Interpreter *vm, int argCount, Value *args)
     else
     {
         vm->runtimeError("time.date expects optional integer timestamp");
-        return vm->makeNil();
+        return 0;
     }
     
     struct tm *timeinfo = localtime(&timestamp);
     
     if (!timeinfo)
-        return vm->makeNil();
+        {
+            vm->runtimeError("time.date failed");
+            return 0;
+        }
     
-    // Retorna map com componentes
     Value result = vm->makeMap();
     MapInstance *map = result.asMap();
     
@@ -140,25 +146,25 @@ Value native_time_date(Interpreter *vm, int argCount, Value *args)
     map->table.set(vm->makeString("weekday").asString(), vm->makeInt(timeinfo->tm_wday));
     map->table.set(vm->makeString("yearday").asString(), vm->makeInt(timeinfo->tm_yday));
     
-    return result;
+    vm->push(result);
+    return 1;
 }
 
 // ============================================
 // TIME.FORMAT - Formata timestamp
 // ============================================
 
-Value native_time_format(Interpreter *vm, int argCount, Value *args)
+int native_time_format(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount < 1)
     {
         vm->runtimeError("time.format expects at least timestamp");
-        return vm->makeNil();
+        return 0;
     }
     
     time_t timestamp;
-    const char *format = "%Y-%m-%d %H:%M:%S";  // Default ISO format
+    const char *format = "%Y-%m-%d %H:%M:%S";
     
-    // Primeiro argumento: timestamp
     if (args[0].isInt())
     {
         timestamp = (time_t)args[0].asInt();
@@ -168,7 +174,6 @@ Value native_time_format(Interpreter *vm, int argCount, Value *args)
         timestamp = time(nullptr);
     }
     
-    // Segundo argumento opcional: formato
     if (argCount >= 2 && args[1].isString())
     {
         format = args[1].asStringChars();
@@ -176,27 +181,34 @@ Value native_time_format(Interpreter *vm, int argCount, Value *args)
     
     struct tm *timeinfo = localtime(&timestamp);
     if (!timeinfo)
-        return vm->makeNil();
+        {
+            vm->runtimeError("time.format failed");
+            return 0;
+        }
     
     char buffer[256];
     size_t len = strftime(buffer, sizeof(buffer), format, timeinfo);
     
     if (len == 0)
-        return vm->makeNil();
+        {
+            vm->runtimeError("time.format failed");
+            return 0;
+        }
     
-    return vm->makeString(buffer);
+    vm->push(vm->makeString(buffer));
+    return 1;
 }
 
 // ============================================
 // TIME.PARSE - Parse string para timestamp
 // ============================================
 
-Value native_time_parse(Interpreter *vm, int argCount, Value *args)
+int native_time_parse(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount < 2 || !args[0].isString() || !args[1].isString())
     {
         vm->runtimeError("time.parse expects (dateString, formatString)");
-        return vm->makeNil();
+        return 0;
     }
     
     const char *dateStr = args[0].asStringChars();
@@ -205,8 +217,6 @@ Value native_time_parse(Interpreter *vm, int argCount, Value *args)
     struct tm timeinfo = {0};
     
 #ifdef _WIN32
-    // Windows não tem strptime, usa sscanf básico
-    // Formato simplificado: "YYYY-MM-DD HH:MM:SS"
     if (sscanf(dateStr, "%d-%d-%d %d:%d:%d",
                &timeinfo.tm_year, &timeinfo.tm_mon, &timeinfo.tm_mday,
                &timeinfo.tm_hour, &timeinfo.tm_min, &timeinfo.tm_sec) >= 3)
@@ -214,36 +224,42 @@ Value native_time_parse(Interpreter *vm, int argCount, Value *args)
         timeinfo.tm_year -= 1900;
         timeinfo.tm_mon -= 1;
         time_t timestamp = mktime(&timeinfo);
-        return vm->makeInt((int)timestamp);
+        vm->push(vm->makeInt((int)timestamp));
+        return 1;
     }
 #else
     if (strptime(dateStr, formatStr, &timeinfo) != nullptr)
     {
         time_t timestamp = mktime(&timeinfo);
-        return vm->makeInt((int)timestamp);
+        vm->push(vm->makeInt((int)timestamp));
+        return 1;
     }
 #endif
     
-    return vm->makeNil();
+    vm->runtimeError("time.parse failed");
+    return 0;
 }
 
 // ============================================
 // TIME.DIFF - Diferença entre timestamps
 // ============================================
 
-Value native_time_diff(Interpreter *vm, int argCount, Value *args)
+int native_time_diff(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount < 2 || !args[0].isInt() || !args[1].isInt())
     {
         vm->runtimeError("time.diff expects two timestamps");
-        return vm->makeNil();
+        return 0;
     }
     
     int t1 = args[0].asInt();
     int t2 = args[1].asInt();
     
-    return vm->makeInt(t1 - t2);
+    vm->push(vm->makeInt(t1 - t2));
+    return 1;
 }
+
+ 
 
 // ============================================
 // Registo do módulo

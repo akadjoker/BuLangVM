@@ -1,18 +1,39 @@
+ 
+require "sdl";
+
+// Import and use the SDL module
 import SDL;
 using SDL;
+ 
 
-print("start");
-
-if(SDL_Init(SDL_INIT_EVERYTHING)<0)
+ 
+var result = SDL_Init(SDL_INIT_VIDEO);
+if (result < 0)
 {
-      write("Couldn't initialize SDL:{}\n", SDL_GetError());
-      return;
+    print ("SDL_Init failed: " ,SDL_GetError());
 }
+else
+{
+    
 
-var win = SDL_CreateWindow("Bulang SDL Test", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 800, 600, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
-var ren = SDL_CreateRenderer(win, -1, 0);
-
-var e = SDL_Event();
+    // Create a window
+    var window = SDL_CreateWindow("BuLang Plugin Test", 100, 100, 640, 480, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+    if (window == nil)
+    {
+        print("Window creation failed: " , SDL_GetError());
+    }
+    else
+    {
+        // Create renderer
+        var renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+        if (renderer == nil)
+        {
+            print("Renderer creation failed: " , SDL_GetError());
+        }
+        else
+        {
+            
+            var e = SDL_Event();
 var running = true;
 var rectX = 400;
 var rectY = 300;
@@ -20,7 +41,7 @@ var rectSize = 50;
 
 while (running) 
 {
-    
+  
 
     while (SDL_PollEvent(e)) 
     {
@@ -52,7 +73,7 @@ while (running)
             if (e.button == 3) 
             {
                 print("Clique Direito!");
-                print_stack("mouse");
+      
 
             }
              
@@ -88,17 +109,28 @@ while (running)
         }
          
     }
- 
-    SDL_SetRenderDrawColor(ren, 0, 0, 45, 255); // Azul
-    SDL_RenderClear(ren);
-    SDL_SetRenderDrawColor(ren, 255, 255, 255, 255); // Azul
-    SDL_RenderDrawPoint(ren,rectX,rectY);
-    SDL_RenderPresent(ren);
+
+            // Draw something
+            SDL_SetRenderDrawColor(renderer, 100, 149, 237, 255); // Cornflower blue
+            SDL_RenderClear(renderer);
+
+            // Draw a red rectangle
+            SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+            SDL_RenderFillRect(renderer, 100, 100, 200, 150);
+
+            // Present
+            SDL_RenderPresent(renderer);
+
+}
+         
+
+            SDL_DestroyRenderer(renderer);
+        }
+
+        SDL_DestroyWindow(window);
+    }
+
+    SDL_Quit();
 }
 
-SDL_DestroyRenderer(ren);
-SDL_DestroyWindow(win);
-SDL_Quit();
-
-
-print("end");
+ 

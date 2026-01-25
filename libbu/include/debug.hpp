@@ -35,6 +35,11 @@ private:
         const Code &chunk,
         size_t offset);
 
+    static size_t shortInstruction(
+        const char *name,
+        const Code &chunk,
+        size_t offset);
+
     static size_t jumpInstruction(
         const char *name,
         int sign,

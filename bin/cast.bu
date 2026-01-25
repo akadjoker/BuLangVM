@@ -1,0 +1,119 @@
+require "raylib";
+import math;
+import raylib;
+using raylib;
+
+InitWindow(800, 600, "Raycasting Light");
+SetTargetFPS(60);
+
+var BLACK = Color(0, 0, 0, 255);
+var WHITE = Color(255, 255, 255, 255);
+var YELLOW = Color(255, 255, 100, 100);
+
+class Wall
+{
+    var x1, y1, x2, y2;
+    
+    def init(x1, y1, x2, y2)
+    {
+        self.x1 = x1;
+        self.y1 = y1;
+        self.x2 = x2;
+        self.y2 = y2;
+    }
+    
+    def draw()
+    {
+        DrawLine(self.x1, self.y1, self.x2, self.y2, WHITE);
+    }
+}
+
+def raycast(x1, y1, x2, y2, walls)
+{
+    var closestDist = 999999.0;
+    var hitX = x2;
+    var hitY = y2;
+    
+    for(var i=0; i<len(walls); i=i+1)
+    {
+        var w = walls[i];
+        
+        var x3 = w.x1;
+        var y3 = w.y1;
+        var x4 = w.x2;
+        var y4 = w.y2;
+        
+        var den = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+        
+        if (den != 0)
+        {
+            var t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / den;
+            var u = ((x1 - x3) * (y1 - y2) - (y1 - y3) * (x1 - x2)) / den;
+            
+            if (t > 0 && t < 1 && u > 0 && u < 1)
+            {
+                var px = x1 + t * (x2 - x1);
+                var py = y1 + t * (y2 - y1);
+                
+                var dist = sqrt((px - x1)*(px - x1) + (py - y1)*(py - y1));
+                
+                if (dist < closestDist)
+                {
+                    closestDist = dist;
+                    hitX = px;
+                    hitY = py;
+                }
+            }
+        }
+    }
+    
+    return [hitX, hitY];
+}
+
+var walls = [];
+walls.push(Wall(100, 100, 700, 100));
+walls.push(Wall(700, 100, 700, 500));
+walls.push(Wall(700, 500, 100, 500));
+walls.push(Wall(100, 500, 100, 100));
+walls.push(Wall(300, 200, 500, 200));
+walls.push(Wall(500, 200, 500, 400));
+walls.push(Wall(500, 400, 300, 400));
+walls.push(Wall(300, 400, 300, 200));
+
+while (!WindowShouldClose())
+{
+    var mx = GetMouseX();
+    var my = GetMouseY();
+    
+    BeginDrawing();
+    ClearBackground(BLACK);
+    
+    // Desenhar raios
+    var numRays = 360;
+    for(var i=0; i<numRays; i=i+1)
+    {
+        var angle = (i / numRays) * 6.28318;
+        var endX = mx + cos(angle) * 1000;
+        var endY = my + sin(angle) * 1000;
+        
+        var hit = raycast(mx, my, endX, endY, walls);
+        
+        DrawLine(mx, my, hit[0], hit[1], YELLOW);
+    }
+    
+    // Desenhar paredes
+    for(var i=0; i<len(walls); i=i+1)
+    {
+        walls[i].draw();
+    }
+    
+    // Luz central
+    DrawCircle(mx, my, 10, Color(255, 255, 0, 255));
+    
+    DrawText("Move o rato!", 10, 10, 20, WHITE);
+    DrawFPS(700, 10);
+    
+    EndDrawing();
+}
+
+CloseWindow();

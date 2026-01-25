@@ -1,0 +1,197 @@
+ 
+print "=== Exemplo RLGL: Grid 3D ===";
+
+<<<<<<< HEAD
+
+
+
+glfwInit();
+
+=======
+if (glfwInit() == GLFW_TRUE)
+{
+>>>>>>> 3259eabd937ab3f6e8960dc52def38e4847ebcde
+    var width = 800;
+    var height = 600;
+    
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    
+    var window = glfwCreateWindow(width, height, "RLGL - Grid 3D", nil, nil);
+    
+    if (window != nil)
+    {
+        glfwMakeContextCurrent(window);
+        glfwSwapInterval(1);
+        
+        rlLoadExtensionsGLFW();
+        rlglInit(width, height);
+        rlViewport(0, 0, width, height);
+        
+        rlEnableDepthTest();
+        rlClearColor(10, 10, 15, 255);
+        
+        var cameraAngle = 0.0;
+        var cameraDistance = 15.0;
+        var cameraHeight = 8.0;
+        
+        while (!glfwWindowShouldClose(window))
+        {
+            if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+                glfwSetWindowShouldClose(window, true);
+            
+            // Controles de câmera
+            if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+                cameraAngle = cameraAngle - 1.0;
+            if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+                cameraAngle = cameraAngle + 1.0;
+            if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+                cameraHeight = cameraHeight + 0.1;
+            if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+                cameraHeight = cameraHeight - 0.1;
+            
+            rlClearScreenBuffers();
+            
+            // Projeção
+            rlMatrixMode(RL_PROJECTION);
+            rlLoadIdentity();
+            var aspect = width / height;
+            var top = 0.1 * 0.41421356;
+            var right = top * aspect;
+            rlFrustum(-right, right, -top, top, 0.1, 100.0);
+            
+            // Câmera
+            rlMatrixMode(RL_MODELVIEW);
+            rlLoadIdentity();
+            
+            // Posição da câmera orbital
+            var camX = cameraDistance * 0.01745329 * cameraAngle; // sin aproximado
+            var camZ = cameraDistance * 0.9998477 * cameraAngle; // cos aproximado
+            
+            rlTranslatef(0.0, -cameraHeight, -cameraDistance);
+            rlRotatef(30.0, 1.0, 0.0, 0.0);
+            rlRotatef(cameraAngle, 0.0, 1.0, 0.0);
+            
+            // Desenhar grid no plano XZ
+            var gridSize = 10;
+            var spacing = 1.0;
+            
+            rlBegin(RL_LINES);
+                // Linhas paralelas ao eixo X
+                var i = -gridSize;
+                while (i <= gridSize)
+                {
+                    if (i == 0)
+                        rlColor3f(0.0, 0.5, 1.0);  // Azul para o centro
+                    else
+                        rlColor3f(0.3, 0.3, 0.3);  // Cinza para outras linhas
+                    
+                    rlVertex3f(-gridSize * spacing, 0.0, i * spacing);
+                    rlVertex3f(gridSize * spacing, 0.0, i * spacing);
+                    i = i + 1;
+                }
+                
+                // Linhas paralelas ao eixo Z
+                i = -gridSize;
+                while (i <= gridSize)
+                {
+                    if (i == 0)
+                        rlColor3f(1.0, 0.0, 0.0);  // Vermelho para o centro
+                    else
+                        rlColor3f(0.3, 0.3, 0.3);
+                    
+                    rlVertex3f(i * spacing, 0.0, -gridSize * spacing);
+                    rlVertex3f(i * spacing, 0.0, gridSize * spacing);
+                    i = i + 1;
+                }
+            rlEnd();
+            
+            // Desenhar eixos Y (verde)
+            rlBegin(RL_LINES);
+                rlColor3f(0.0, 1.0, 0.0);
+                rlVertex3f(0.0, 0.0, 0.0);
+                rlVertex3f(0.0, 5.0, 0.0);
+            rlEnd();
+            
+            // Desenhar alguns cubos no grid
+            var cubes = [
+                [-2.0, 0.5, -2.0],
+                [2.0, 0.5, 2.0],
+                [-3.0, 0.5, 3.0],
+                [0.0, 0.5, 0.0]
+            ];
+            
+            var idx = 0;
+            while (idx < 4)
+            {
+                var pos = cubes[idx];
+                
+                rlPushMatrix();
+                rlTranslatef(pos[0], pos[1], pos[2]);
+                
+                  var size = 1.0;
+            
+            rlBegin(RL_QUADS);
+                // Frente (vermelho)
+                rlColor3f(1.0, 0.0, 0.0);
+                rlVertex3f(-size, -size, size);
+                rlVertex3f(size, -size, size);
+                rlVertex3f(size, size, size);
+                rlVertex3f(-size, size, size);
+                
+                // Trás (verde)
+                rlColor3f(0.0, 1.0, 0.0);
+                rlVertex3f(-size, -size, -size);
+                rlVertex3f(-size, size, -size);
+                rlVertex3f(size, size, -size);
+                rlVertex3f(size, -size, -size);
+                
+                // Topo (azul)
+                rlColor3f(0.0, 0.0, 1.0);
+                rlVertex3f(-size, size, -size);
+                rlVertex3f(-size, size, size);
+                rlVertex3f(size, size, size);
+                rlVertex3f(size, size, -size);
+                
+                // Base (amarelo)
+                rlColor3f(1.0, 1.0, 0.0);
+                rlVertex3f(-size, -size, -size);
+                rlVertex3f(size, -size, -size);
+                rlVertex3f(size, -size, size);
+                rlVertex3f(-size, -size, size);
+                
+                // Direita (magenta)
+                rlColor3f(1.0, 0.0, 1.0);
+                rlVertex3f(size, -size, -size);
+                rlVertex3f(size, size, -size);
+                rlVertex3f(size, size, size);
+                rlVertex3f(size, -size, size);
+                
+                // Esquerda (ciano)
+                rlColor3f(0.0, 1.0, 1.0);
+                rlVertex3f(-size, -size, -size);
+                rlVertex3f(-size, -size, size);
+                rlVertex3f(-size, size, size);
+                rlVertex3f(-size, size, -size);
+            rlEnd();
+                
+                rlPopMatrix();
+                idx = idx + 1;
+            }
+            rlDrawRenderBatchActive();
+            glfwSwapBuffers(window);
+            glfwPollEvents();
+        }
+        
+        rlglClose();
+        glfwDestroyWindow(window);
+    }
+    
+    glfwTerminate();
+<<<<<<< HEAD
+ 
+=======
+}
+
+print "Programa finalizado!";
+>>>>>>> 3259eabd937ab3f6e8960dc52def38e4847ebcde

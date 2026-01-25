@@ -43,6 +43,10 @@ void Compiler::declaration()
     {
         parseUsing();
     }
+    else if (match(TOKEN_REQUIRE))
+    {
+        parseRequire();
+    }
     else
     {
         statement();
@@ -185,16 +189,7 @@ void Compiler::printStatement()
 {
     uint8_t argCount = 0;
 
-    // Se não tem parênteses, aceita sintaxe antiga: print x;
-    if (!check(TOKEN_LPAREN))
-    {
-        expression();
-        if (hadError)
-            return;
-        argCount = 1;
-    }
-    else
-    {
+ 
         consume(TOKEN_LPAREN, "Expect '('");
 
         if (!check(TOKEN_RPAREN))
@@ -214,7 +209,7 @@ void Compiler::printStatement()
         }
 
         consume(TOKEN_RPAREN, "Expect ')' after arguments");
-    }
+    
 
     consume(TOKEN_SEMICOLON, "Expect ';'");
 
@@ -245,6 +240,64 @@ void Compiler::expressionStatement()
 
 void Compiler::varDeclaration()
 {
+    // =========================================
+    // MÚLTIPLOS RETORNOS: var (a, b, c) = expr()
+    // =========================================
+    if (match(TOKEN_LPAREN))
+    {
+        std::vector<Token> names;
+        std::vector<uint8_t> globals;
+
+        // Colectar nomes das variáveis
+        do {
+            consume(TOKEN_IDENTIFIER, "Expect variable name in multi-assignment");
+            names.push_back(previous);
+
+            uint8_t global = identifierConstant(previous);
+            globals.push_back(global);
+
+            if (scopeDepth > 0)
+            {
+                declareVariable();
+                validateIdentifierName(previous);
+                if (hadError) return;
+            }
+        } while (match(TOKEN_COMMA));
+
+        consume(TOKEN_RPAREN, "Expect ')' after variable list");
+        consume(TOKEN_EQUAL, "Expect '=' in multi-assignment");
+
+        // Compilar a expressão (deixa N valores na stack)
+        expression();
+        if (hadError) return;
+
+        // Atribuir cada valor (do último para o primeiro - stack é LIFO)
+        // Os valores estão na stack: [v0, v1, v2, ...] com vN-1 no topo
+        // Queremos: names[0]=v0, names[1]=v1, etc.
+        // Então atribuímos de trás para frente
+        for (int i = (int)names.size() - 1; i >= 0; i--)
+        {
+            if (scopeDepth == 0)
+            {
+                int privateIdx = vm_->getProcessPrivateIndex(names[i].lexeme.c_str());
+                if (privateIdx != -1)
+                {
+                    Warning("Global variable '%s' shadows process private variable.",
+                            names[i].lexeme.c_str());
+                }
+                declaredGlobals_.insert(names[i].lexeme);
+            }
+
+            defineVariable(globals[i]);
+        }
+
+        consume(TOKEN_SEMICOLON, "Expect ';' after multi-assignment");
+        return;
+    }
+
+    // =========================================
+    // DECLARAÇÃO NORMAL: var a, var a = x, etc.
+    // =========================================
     do
     {
         consume(TOKEN_IDENTIFIER, "Expect variable name");
@@ -267,8 +320,8 @@ void Compiler::varDeclaration()
             }
         }
 
-        //  Se tem '=' e NÃO tem vírgula depois
-        if (match(TOKEN_EQUAL) && !check(TOKEN_COMMA))
+        // Se tem '=' atribui o valor, senão atribui nil
+        if (match(TOKEN_EQUAL))
         {
             expression();
             if (hadError)
@@ -276,14 +329,6 @@ void Compiler::varDeclaration()
         }
         else
         {
-            // Ignora '=' se tem vírgula, ou não tem '='
-            if (match(TOKEN_EQUAL))
-            {
-                expression(); // Compila mas descarta
-                if (hadError)
-                    return;
-                emitByte(OP_POP);
-            }
             emitByte(OP_NIL);
         }
 
@@ -315,16 +360,23 @@ void Compiler::variable(bool canAssign)
 
     // =====================================================
     // PASSO 1: Procura em módulos USING (flat access)
+    // Com detecção de conflitos
     // =====================================================
-    bool foundInUsing = false;
+
+    struct UsingMatch {
+        uint16 moduleId;
+        uint16 id;
+        std::string moduleName;
+        bool isFunction;
+    };
+    std::vector<UsingMatch> matches;
 
     for (const auto &modName : usingModules)
     {
-
         uint16 moduleId;
         if (!vm_->getModuleId(modName.c_str(), &moduleId))
         {
-            continue; // Módulo não existe (não deve acontecer)
+            continue;
         }
 
         ModuleDef *mod = vm_->getModule(moduleId);
@@ -337,6 +389,37 @@ void Compiler::variable(bool canAssign)
         uint16 funcId;
         if (mod->getFunctionId(nameStr.c_str(), &funcId))
         {
+            matches.push_back({moduleId, funcId, modName, true});
+        }
+
+        // Tenta como constante
+        uint16 constId;
+        if (mod->getConstantId(nameStr.c_str(), &constId))
+        {
+            matches.push_back({moduleId, constId, modName, false});
+        }
+    }
+
+    // Verifica conflitos
+    if (matches.size() > 1)
+    {
+        std::string modules = matches[0].moduleName;
+        for (size_t i = 1; i < matches.size(); i++)
+        {
+            modules += ", " + matches[i].moduleName;
+        }
+        fail("Ambiguous: '%s' found in multiple modules: %s. Use qualified name (module.%s)",
+             nameStr.c_str(), modules.c_str(), nameStr.c_str());
+        return;
+    }
+
+    // Único match encontrado
+    if (matches.size() == 1)
+    {
+        const UsingMatch &m = matches[0];
+
+        if (m.isFunction)
+        {
             // É função! Deve ser chamada
             if (!match(TOKEN_LPAREN))
             {
@@ -345,27 +428,22 @@ void Compiler::variable(bool canAssign)
             }
 
             // Emite ModuleRef
-            Value ref = vm_->makeModuleRef(moduleId, funcId);
+            Value ref = vm_->makeModuleRef(m.moduleId, m.id);
             emitConstant(ref);
 
             // Compila argumentos e CALL
             call(false);
-
-            foundInUsing = true;
-            return; //  Encontrou!
+            return;
         }
-
-        // Tenta como constante
-        uint16 constId;
-        if (mod->getConstantId(nameStr.c_str(), &constId))
+        else
         {
             // É constante! Emite valor direto
-            Value *value = mod->getConstant(constId);
+            ModuleDef *mod = vm_->getModule(m.moduleId);
+            Value *value = mod->getConstant(m.id);
             if (value)
             {
                 emitConstant(*value);
-                foundInUsing = true;
-                return; //  Encontrou!
+                return;
             }
         }
     }
@@ -1302,6 +1380,46 @@ void Compiler::returnStatement()
     {
         emitReturn();
     }
+    else if (match(TOKEN_LPAREN))
+    {
+        // Multi-return: return (a, b, c);
+        if (currentFunctionType == FunctionType::TYPE_INITIALIZER)
+        {
+            error("Cannot return values from an initializer");
+            return;
+        }
+
+        uint8_t count = 0;
+        if (!check(TOKEN_RPAREN))
+        {
+            do {
+                expression();
+                if (hadError) return;
+                count++;
+                if (count > 255)
+                {
+                    error("Cannot return more than 255 values");
+                    return;
+                }
+            } while (match(TOKEN_COMMA));
+        }
+
+        consume(TOKEN_RPAREN, "Expect ')' after return values");
+        consume(TOKEN_SEMICOLON, "Expect ';' after return statement");
+
+        if (count == 0)
+        {
+            emitReturn(); // return () is same as return;
+        }
+        else if (count == 1)
+        {
+            emitByte(OP_RETURN); // return (a) is same as return a;
+        }
+        else
+        {
+            emitBytes(OP_RETURN_N, count);
+        }
+    }
     else
     {
         if (currentFunctionType == FunctionType::TYPE_INITIALIZER)
@@ -1624,10 +1742,11 @@ void Compiler::compileFunction(Function *func, bool isProcess)
     pendingGotos.clear();
     pendingGosubs.clear();
 
-    if (!function->hasReturn)
-    {
-        emitReturn();
-    }
+    // ALWAYS emit implicit return to handle early returns in conditionals
+    // If function already returned via explicit return, this code is unreachable (dead code)
+    // but ensures all execution paths end with OP_RETURN
+    emitReturn();
+    function->hasReturn = true;
 
     // ========================================
     // GUARDA UPVALUE COUNT
@@ -2123,6 +2242,68 @@ void Compiler::parseImport()
     consume(TOKEN_SEMICOLON, "Expect ';' after import");
 }
 
+void Compiler::parseRequire()
+{
+    // require "SDL";
+    // require "glfw,rlgl";      // múltiplos separados por vírgula
+    // require "glfw;rlgl;gtk";  // múltiplos separados por ponto e vírgula
+
+    consume(TOKEN_STRING, "Expect plugin name as string after 'require'");
+    std::string pluginList = previous.lexeme;
+
+    // Remove quotes from string literal
+    if (pluginList.size() >= 2 && pluginList.front() == '"' && pluginList.back() == '"')
+    {
+        pluginList = pluginList.substr(1, pluginList.size() - 2);
+    }
+
+    // Parse múltiplos plugins separados por ',' ou ';'
+    size_t start = 0;
+    size_t end = 0;
+
+    while (start < pluginList.size())
+    {
+        // Encontrar o próximo separador (',' ou ';')
+        end = pluginList.find_first_of(",;", start);
+        if (end == std::string::npos)
+        {
+            end = pluginList.size();
+        }
+
+        // Extrair nome do plugin e remover espaços
+        std::string pluginName = pluginList.substr(start, end - start);
+
+        // Trim whitespace
+        size_t first = pluginName.find_first_not_of(" \t");
+        size_t last = pluginName.find_last_not_of(" \t");
+        if (first != std::string::npos && last != std::string::npos)
+        {
+            pluginName = pluginName.substr(first, last - first + 1);
+        }
+
+        // Ignorar strings vazias
+        if (!pluginName.empty())
+        {
+            // Check if module is already loaded
+            if (!vm_->containsModule(pluginName.c_str()))
+            {
+                // Try to load the plugin
+                if (!vm_->loadPluginByName(pluginName.c_str()))
+                {
+                    fail("Failed to load plugin '%s': %s",
+                         pluginName.c_str(),
+                         vm_->getLastPluginError());
+                    return;
+                }
+            }
+        }
+
+        start = end + 1;
+    }
+
+    consume(TOKEN_SEMICOLON, "Expect ';' after require");
+}
+
 void Compiler::yieldStatement()
 {
 
@@ -2614,16 +2795,54 @@ void Compiler::classDeclaration()
 
             classDef->fieldCount++;
 
-            // Ignora inicialização (vai no init)
-            if (match(TOKEN_EQUAL) && !check(TOKEN_COMMA))
+            // Parse default value if present
+            if (match(TOKEN_EQUAL))
             {
-                expression();
-                emitByte(OP_POP);
+                // Check for literal default values
+                if (match(TOKEN_INT))
+                {
+                    // Parse integer literal
+                    int64_t value = std::strtoll(previous.lexeme.c_str(), nullptr, 10);
+                    classDef->fieldDefaults.push(vm_->makeInt(value));
+                }
+                else if (match(TOKEN_FLOAT))
+                {
+                    // Parse float literal
+                    double value = std::strtod(previous.lexeme.c_str(), nullptr);
+                    classDef->fieldDefaults.push(vm_->makeDouble(value));
+                }
+                else if (match(TOKEN_STRING))
+                {
+                    // Parse string literal
+                    String *str = vm_->createString(previous.lexeme.c_str());
+                    classDef->fieldDefaults.push(vm_->makeString(str));
+                }
+                else if (match(TOKEN_TRUE))
+                {
+                    classDef->fieldDefaults.push(vm_->makeBool(true));
+                }
+                else if (match(TOKEN_FALSE))
+                {
+                    classDef->fieldDefaults.push(vm_->makeBool(false));
+                }
+                else if (match(TOKEN_NIL))
+                {
+                    classDef->fieldDefaults.push(vm_->makeNil());
+                }
+                else
+                {
+                    // Non-literal expression - compile and discard, use nil
+                    Warning("Complex expressions as field defaults not supported, using nil for '%s'",
+                            fieldName.lexeme.c_str());
+                    expression();
+                    emitByte(OP_POP);
+                    classDef->fieldDefaults.push(vm_->makeNil());
+                }
             }
-            else if (match(TOKEN_EQUAL))
+            else
             {
-                expression();
-                emitByte(OP_POP);
+                // No default - use nil
+                classDef->fieldDefaults.push(vm_->makeNil());
             }
 
         } while (match(TOKEN_COMMA)); //  Continua se tem vírgula
@@ -2735,11 +2954,13 @@ void Compiler::method(ClassDef *classDef)
         emitByte(OP_RETURN);
         function->hasReturn = true;
     }
-    else if (!function->hasReturn) // sempre retorna ??
+    else
     {
+        // ALWAYS emit implicit return for methods to handle early returns in conditionals
+        // If method already returned via explicit return, this code is unreachable (dead code)
+        // but ensures all execution paths end with OP_RETURN
         emitBytes(OP_GET_LOCAL, 0); // self
         emitByte(OP_RETURN);
-
         function->hasReturn = true;
     }
 

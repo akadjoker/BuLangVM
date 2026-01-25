@@ -284,8 +284,8 @@ bool Interpreter::getModuleId(const char *name, uint16 *outId)
 bool Interpreter::containsModule(const char *name)
 {
     bool found = false;
-    
-    moduleNames.forEachWhile([&](String *key, uint16 value) 
+
+    moduleNames.forEachWhile([&](String *key, uint16 value)
     {
         if (strcmp(key->chars(), name) == 0)
         {
@@ -294,6 +294,6 @@ bool Interpreter::containsModule(const char *name)
         }
         return true;  // Continua
     });
-    
-    return found;  
+
+    return found;
 }

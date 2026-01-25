@@ -1,4 +1,3 @@
-
 #include "interpreter.hpp"
 
 #ifdef BU_ENABLE_OS
@@ -16,80 +15,101 @@
 #include <sys/wait.h>
 #endif
 
-Value native_os_execute(Interpreter *vm, int argCount, Value *args)
+int native_os_execute(Interpreter *vm, int argCount, Value *args)
 {
     if (!args[0].isString())
-        return vm->makeInt(-1);
+    {
+        vm->push(vm->makeInt(-1));
+        return 1;
+    }
 
     int result = system(args[0].asStringChars());
-    return vm->makeInt(result);
+    vm->push(vm->makeInt(result));
+    return 1;
 }
 
-Value native_os_getenv(Interpreter *vm, int argCount, Value *args)
+int native_os_getenv(Interpreter *vm, int argCount, Value *args)
 {
     if (!args[0].isString())
-        return vm->makeNil();
+        return 0;
 
     const char *value = getenv(args[0].asStringChars());
-    return value ? vm->makeString(value) : vm->makeNil();
+    if (value)
+    {
+        vm->push(vm->makeString(value));
+        return 1;
+    }
+    return 0;
 }
 
-Value native_os_setenv(Interpreter *vm, int argCount, Value *args)
+int native_os_setenv(Interpreter *vm, int argCount, Value *args)
 {
     if (!args[0].isString() || !args[1].isString())
-        return vm->makeBool(false);
+    {
+        vm->push(vm->makeBool(false));
+        return 1;
+    }
 
 #ifdef _WIN32
-    return vm->makeBool(_putenv_s(args[0].asStringChars(),
-                                  args[1].asStringChars()) == 0);
+    vm->push(vm->makeBool(_putenv_s(args[0].asStringChars(),
+                                    args[1].asStringChars()) == 0));
 #else
-    return vm->makeBool(setenv(args[0].asStringChars(),
-                               args[1].asStringChars(), 1) == 0);
+    vm->push(vm->makeBool(setenv(args[0].asStringChars(),
+                                 args[1].asStringChars(), 1) == 0));
 #endif
+    return 1;
 }
 
-Value native_os_getcwd(Interpreter *vm, int argCount, Value *args)
+int native_os_getcwd(Interpreter *vm, int argCount, Value *args)
 {
     char buffer[4096];
     if (getcwd(buffer, sizeof(buffer)))
-        return vm->makeString(buffer);
-    return vm->makeNil();
+    {
+        vm->push(vm->makeString(buffer));
+        return 1;
+    }
+    return 0;
 }
 
-Value native_os_chdir(Interpreter *vm, int argCount, Value *args)
+int native_os_chdir(Interpreter *vm, int argCount, Value *args)
 {
     if (!args[0].isString())
-        return vm->makeBool(false);
+    {
+        vm->push(vm->makeBool(false));
+        return 1;
+    }
 
-    return vm->makeBool(chdir(args[0].asStringChars()) == 0);
+    vm->push(vm->makeBool(chdir(args[0].asStringChars()) == 0));
+    return 1;
 }
 
-Value native_os_exit(Interpreter *vm, int argCount, Value *args)
+int native_os_exit(Interpreter *vm, int argCount, Value *args)
 {
     int code = args[0].isInt() ? args[0].asInt() : 0;
     exit(code);
-    return vm->makeNil();
+    return 0;
 }
 
 // ============================================
 // OS.SPAWN - Versão Completa
 // ============================================
 
-Value native_os_spawn(Interpreter *vm, int argCount, Value *args)
+int native_os_spawn(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount < 1 || !args[0].isString())
     {
         vm->runtimeError("os.spawn expects at least command string");
-        return vm->makeInt(-1);
+        vm->push(vm->makeInt(-1));
+        return 1;
     }
 
     const char *command = args[0].asStringChars();
 
-    // Valida que o comando existe
     if (!command || strlen(command) == 0)
     {
         vm->runtimeError("os.spawn: empty command");
-        return vm->makeInt(-1);
+        vm->push(vm->makeInt(-1));
+        return 1;
     }
 
 #ifdef _WIN32
@@ -97,16 +117,13 @@ Value native_os_spawn(Interpreter *vm, int argCount, Value *args)
     si.cb = sizeof(si);
     PROCESS_INFORMATION pi = {0};
 
-    // Constrói command line com proteção de aspas
     std::string cmdLine;
     cmdLine.reserve(1024);
 
-    // Comando principal sempre entre aspas
     cmdLine += "\"";
     cmdLine += command;
     cmdLine += "\"";
 
-    // Adiciona argumentos
     for (int i = 1; i < argCount; i++)
     {
         if (!args[i].isString())
@@ -115,7 +132,6 @@ Value native_os_spawn(Interpreter *vm, int argCount, Value *args)
         const char *arg = args[i].asStringChars();
         cmdLine += " \"";
 
-        // Escapa aspas internas
         for (const char *p = arg; *p; p++)
         {
             if (*p == '"')
@@ -127,57 +143,45 @@ Value native_os_spawn(Interpreter *vm, int argCount, Value *args)
         cmdLine += "\"";
     }
 
-    // Usa vector para buffer mutável
     std::vector<char> cmdBuf(cmdLine.begin(), cmdLine.end());
     cmdBuf.push_back(0);
 
     BOOL success = CreateProcessA(
-        NULL,             // lpApplicationName
-        cmdBuf.data(),    // lpCommandLine
-        NULL,             // lpProcessAttributes
-        NULL,             // lpThreadAttributes
-        FALSE,            // bInheritHandles
-        CREATE_NO_WINDOW, // dwCreationFlags
-        NULL,             // lpEnvironment
-        NULL,             // lpCurrentDirectory
-        &si,              // lpStartupInfo
-        &pi               // lpProcessInformation
-    );
+        NULL, cmdBuf.data(), NULL, NULL, FALSE,
+        CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
 
     if (!success)
     {
         DWORD error = GetLastError();
         vm->runtimeError("os.spawn failed: error code %lu", error);
-        return vm->makeInt(-1);
+        vm->push(vm->makeInt(-1));
+        return 1;
     }
 
     DWORD pid = pi.dwProcessId;
 
-    // Fecha handles (não precisamos deles)
     CloseHandle(pi.hProcess);
     CloseHandle(pi.hThread);
 
-    return vm->makeInt((int)pid);
+    vm->push(vm->makeInt((int)pid));
+    return 1;
 
 #else
-    // Unix: fork + execvp
     pid_t pid = fork();
 
     if (pid == -1)
     {
         vm->runtimeError("os.spawn: fork failed");
-        return vm->makeInt(-1);
+        vm->push(vm->makeInt(-1));
+        return 1;
     }
     else if (pid == 0)
     {
-        // Processo filho
         std::vector<char *> argv;
         argv.reserve(argCount + 1);
 
-        // Adiciona comando
         argv.push_back((char *)command);
 
-        // Adiciona argumentos
         for (int i = 1; i < argCount; i++)
         {
             if (args[i].isString())
@@ -186,17 +190,15 @@ Value native_os_spawn(Interpreter *vm, int argCount, Value *args)
 
         argv.push_back(NULL);
 
-        // Executa
         execvp(command, argv.data());
 
-        // Se chegou aqui, execvp falhou
         perror("execvp");
         _exit(127);
     }
     else
     {
-        // Processo pai - retorna PID
-        return vm->makeInt((int)pid);
+        vm->push(vm->makeInt((int)pid));
+        return 1;
     }
 #endif
 }
@@ -205,12 +207,13 @@ Value native_os_spawn(Interpreter *vm, int argCount, Value *args)
 // OS.SPAWN_SHELL - Executa via shell
 // ============================================
 
-Value native_os_spawn_shell(Interpreter *vm, int argCount, Value *args)
+int native_os_spawn_shell(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount < 1 || !args[0].isString())
     {
         vm->runtimeError("os.spawn_shell expects command string");
-        return vm->makeInt(-1);
+        vm->push(vm->makeInt(-1));
+        return 1;
     }
 
     const char *command = args[0].asStringChars();
@@ -220,7 +223,6 @@ Value native_os_spawn_shell(Interpreter *vm, int argCount, Value *args)
     si.cb = sizeof(si);
     PROCESS_INFORMATION pi = {0};
 
-    // Usa cmd.exe /C
     std::string cmdLine = "cmd.exe /C \"";
     cmdLine += command;
     cmdLine += "\"";
@@ -231,29 +233,34 @@ Value native_os_spawn_shell(Interpreter *vm, int argCount, Value *args)
     if (!CreateProcessA(NULL, cmdBuf.data(), NULL, NULL, FALSE,
                         CREATE_NO_WINDOW, NULL, NULL, &si, &pi))
     {
-        return vm->makeInt(-1);
+        vm->push(vm->makeInt(-1));
+        return 1;
     }
 
     DWORD pid = pi.dwProcessId;
     CloseHandle(pi.hProcess);
     CloseHandle(pi.hThread);
 
-    return vm->makeInt((int)pid);
+    vm->push(vm->makeInt((int)pid));
+    return 1;
 
 #else
     pid_t pid = fork();
 
     if (pid == -1)
-        return vm->makeInt(-1);
+    {
+        vm->push(vm->makeInt(-1));
+        return 1;
+    }
     else if (pid == 0)
     {
-        // Usa sh -c
         execl("/bin/sh", "sh", "-c", command, (char *)NULL);
         _exit(127);
     }
     else
     {
-        return vm->makeInt((int)pid);
+        vm->push(vm->makeInt((int)pid));
+        return 1;
     }
 #endif
 }
@@ -262,21 +269,24 @@ Value native_os_spawn_shell(Interpreter *vm, int argCount, Value *args)
 // OS.SPAWN_CAPTURE - Executa e captura output
 // ============================================
 
-Value native_os_spawn_capture(Interpreter *vm, int argCount, Value *args)
+int native_os_spawn_capture(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount < 1 || !args[0].isString())
     {
         vm->runtimeError("os.spawn_capture expects command");
-        return vm->makeNil();
+        return 0;
     }
 
     const char *command = args[0].asStringChars();
 
 #ifdef _WIN32
-    // Windows: usa popen
     FILE *pipe = _popen(command, "r");
     if (!pipe)
-        return vm->makeNil();
+        
+        {
+            vm->push(vm->makeInt(-1));
+            return 1;
+        }
 
     std::string output;
     char buffer[4096];
@@ -288,19 +298,22 @@ Value native_os_spawn_capture(Interpreter *vm, int argCount, Value *args)
 
     int exitCode = _pclose(pipe);
 
-    // Retorna map com {output: string, code: int}
     Value result = vm->makeMap();
     MapInstance *map = result.asMap();
 
-    map->table.set(vm->makeString("output"), vm->makeString(output.c_str()));
-    map->table.set(vm->makeString("code"), vm->makeInt(exitCode));
+    map->table.set(vm->makeString("output").asString(), vm->makeString(output.c_str()));
+    map->table.set(vm->makeString("code").asString(), vm->makeInt(exitCode));
 
-    return result;
+    vm->push(result);
+    return 1;
 
 #else
     FILE *pipe = popen(command, "r");
     if (!pipe)
-        return vm->makeNil();
+        {
+            vm->push(vm->makeInt(-1));
+            return 1;
+        }
 
     std::string output;
     char buffer[4096];
@@ -313,8 +326,6 @@ Value native_os_spawn_capture(Interpreter *vm, int argCount, Value *args)
     int status = pclose(pipe);
     int exitCode = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
 
-    
-
     Value result = vm->makeMap();
     MapInstance *map = result.asMap();
 
@@ -322,7 +333,8 @@ Value native_os_spawn_capture(Interpreter *vm, int argCount, Value *args)
     map->table.set(vm->makeString("code").asString(), vm->makeInt(exitCode));
     map->table.set(vm->makeString("status").asString(), vm->makeInt(status));
 
-    return result;
+    vm->push(result);
+    return 1;
 #endif
 }
 
@@ -330,12 +342,13 @@ Value native_os_spawn_capture(Interpreter *vm, int argCount, Value *args)
 // OS.KILL - Termina processo
 // ============================================
 
-Value native_os_kill(Interpreter *vm, int argCount, Value *args)
+int native_os_kill(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount < 1 || !args[0].isInt())
     {
         vm->runtimeError("os.kill expects process ID");
-        return vm->makeBool(false);
+        vm->push(vm->makeBool(false));
+        return 1;
     }
 
     int pid = args[0].asInt();
@@ -343,22 +356,30 @@ Value native_os_kill(Interpreter *vm, int argCount, Value *args)
 #ifdef _WIN32
     HANDLE hProcess = OpenProcess(PROCESS_TERMINATE, FALSE, pid);
     if (!hProcess)
-        return vm->makeBool(false);
+    {
+        vm->push(vm->makeBool(false));
+        return 1;
+    }
 
     BOOL result = TerminateProcess(hProcess, 1);
     CloseHandle(hProcess);
 
-    return vm->makeBool(result != 0);
+    vm->push(vm->makeBool(result != 0));
+    return 1;
 
 #else
-    return vm->makeBool(kill(pid, SIGTERM) == 0);
+    vm->push(vm->makeBool(kill(pid, SIGTERM) == 0));
+    return 1;
 #endif
 }
 
-Value native_os_wait(Interpreter *vm, int argCount, Value *args)
+int native_os_wait(Interpreter *vm, int argCount, Value *args)
 {
     if (argCount < 1 || !args[0].isInt())
-        return vm->makeInt(-1);
+    {
+        vm->push(vm->makeInt(-1));
+        return 1;
+    }
 
     int pid = args[0].asInt();
 
@@ -366,7 +387,10 @@ Value native_os_wait(Interpreter *vm, int argCount, Value *args)
     HANDLE hProcess = OpenProcess(SYNCHRONIZE | PROCESS_QUERY_INFORMATION,
                                   FALSE, pid);
     if (!hProcess)
-        return vm->makeInt(-1);
+    {
+        vm->push(vm->makeInt(-1));
+        return 1;
+    }
 
     WaitForSingleObject(hProcess, INFINITE);
 
@@ -374,16 +398,24 @@ Value native_os_wait(Interpreter *vm, int argCount, Value *args)
     GetExitCodeProcess(hProcess, &exitCode);
     CloseHandle(hProcess);
 
-    return vm->makeInt((int)exitCode);
+    vm->push(vm->makeInt((int)exitCode));
+    return 1;
 #else
     int status;
     if (waitpid(pid, &status, 0) == -1)
-        return vm->makeInt(-1);
+    {
+        vm->push(vm->makeInt(-1));
+        return 1;
+    }
 
     if (WIFEXITED(status))
-        return vm->makeInt(WEXITSTATUS(status));
+    {
+        vm->push(vm->makeInt(WEXITSTATUS(status)));
+        return 1;
+    }
 
-    return vm->makeInt(-1);
+    vm->push(vm->makeInt(-1));
+    return 1;
 #endif
 }
 
@@ -410,7 +442,7 @@ void Interpreter::registerOS()
         .addFunction("spawn_capture", native_os_spawn_capture, 1) // Captura output
         .addFunction("wait", native_os_wait, 1)                   // Espera processo
         .addFunction("kill", native_os_kill, 1)                   // Termina processo
-        .addFunction("execute", native_os_execute, 1) 
+        .addFunction("execute", native_os_execute, 1)
         .addFunction("getenv", native_os_getenv, 1)
         .addFunction("setenv", native_os_setenv, 2)
         .addFunction("getcwd", native_os_getcwd, 0)

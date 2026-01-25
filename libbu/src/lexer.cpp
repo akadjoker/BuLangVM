@@ -83,6 +83,7 @@ void Lexer::initKeywords()
         {"include", TOKEN_INCLUDE},
         {"import", TOKEN_IMPORT},
         {"using", TOKEN_USING},
+        {"require", TOKEN_REQUIRE},
         {"try", TOKEN_TRY},
         {"catch", TOKEN_CATCH},
         {"finally", TOKEN_FINALLY},

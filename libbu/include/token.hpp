@@ -117,6 +117,7 @@ enum TokenType
     TOKEN_INCLUDE,
     TOKEN_IMPORT,
     TOKEN_USING,
+    TOKEN_REQUIRE,
 
     // Exceptions
     TOKEN_TRY,

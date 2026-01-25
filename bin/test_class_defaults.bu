@@ -1,0 +1,90 @@
+// Test class field default values
+
+class Point {
+    var x = 0;
+    var y = 0;
+
+    def init() {
+        // Fields already have defaults!
+    }
+
+    def show() {
+        print("Point(" + self.x + ", " + self.y + ")");
+    }
+}
+
+class PointWithArgs {
+    var x = 100;
+    var y = 200;
+
+    def init(x, y) {
+        self.x = x;
+        self.y = y;
+    }
+
+    def show() {
+        print("Point(" + self.x + ", " + self.y + ")");
+    }
+}
+
+class Config {
+    var name = "default";
+    var count = 42;
+    var enabled = true;
+    var ratio = 3.14;
+
+    def init() {
+    }
+}
+
+// Test 1: Point with defaults
+print("Test 1: Point with defaults");
+var p1 = Point();
+p1.show();
+if (p1.x == 0) {
+    if (p1.y == 0) {
+        print("PASS: Point defaults work!");
+    } else {
+        print("FAIL: p1.y should be 0");
+    }
+} else {
+    print("FAIL: p1.x should be 0");
+}
+
+// Test 2: Point with init values
+print("");
+print("Test 2: PointWithArgs overwrites defaults");
+var p2 = PointWithArgs(10, 20);
+p2.show();
+if (p2.x == 10) {
+    if (p2.y == 20) {
+        print("PASS: PointWithArgs init works!");
+    } else {
+        print("FAIL: p2.y should be 20");
+    }
+} else {
+    print("FAIL: p2.x should be 10");
+}
+
+// Test 3: Config with various types
+print("");
+print("Test 3: Config with various defaults");
+var cfg = Config();
+print("name: " + cfg.name);
+print("count: " + cfg.count);
+print("enabled: " + cfg.enabled);
+print("ratio: " + cfg.ratio);
+
+if (cfg.name == "default") {
+    if (cfg.count == 42) {
+        if (cfg.enabled == true) {
+            print("PASS: Config defaults work!");
+        } else {
+            print("FAIL: enabled should be true");
+        }
+    } else {
+        print("FAIL: count should be 42");
+    }
+} else {
+    print("FAIL: name should be 'default'");
+}

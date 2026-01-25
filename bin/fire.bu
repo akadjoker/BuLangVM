@@ -1,0 +1,95 @@
+require "raylib";
+import math;
+import raylib;
+using raylib;
+
+InitWindow(400, 300, "Fire Effect");
+SetTargetFPS(60);
+
+var WIDTH = 400;
+var HEIGHT = 300;
+var BLACK = Color(0, 0, 0, 255);
+
+var fire = [];
+for(var i=0; i<WIDTH*HEIGHT; i=i+1)
+{
+    fire.push(0);
+}
+
+def getPixel(x, y)
+{
+    if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT)
+    {
+        return 0;
+    }
+    return fire[y * WIDTH + x];
+}
+
+def setPixel(x, y, value)
+{
+    if (x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT)
+    {
+        fire[y * WIDTH + x] = value;
+    }
+}
+
+while (!WindowShouldClose())
+{
+    // Criar fogo na base
+    for(var x=0; x<WIDTH; x=x+1)
+    {
+        if (math.rand(100) < 80)
+        {
+            setPixel(x, HEIGHT-1, 255);
+        }
+    }
+    
+    // Propagar fogo
+    for(var y=0; y<HEIGHT-1; y=y+1)
+    {
+        for(var x=0; x<WIDTH; x=x+1)
+        {
+            var value = getPixel(x, y+1);
+            var decay = math.rand(3);
+            
+            var newValue = value - decay;
+            if (newValue < 0) newValue = 0;
+            
+            var offset = math.rand(3) - 1;
+            setPixel(x + offset, y, newValue);
+        }
+    }
+    
+    BeginDrawing();
+    ClearBackground(BLACK);
+    
+    // Desenhar pixels
+    for(var y=0; y<HEIGHT; y=y+1)
+    {
+        for(var x=0; x<WIDTH; x=x+1)
+        {
+            var heat = getPixel(x, y);
+            var color = BLACK;
+            
+            if (heat > 200)
+            {
+                color = Color(255, 255, heat, 255);
+            }
+            else if (heat > 100)
+            {
+                color = Color(255, heat * 2, 0, 255);
+            }
+            else if (heat > 0)
+            {
+                color = Color(heat * 2, 0, 0, 255);
+            }
+            
+            DrawPixel(x, y, color);
+        }
+    }
+    
+    DrawFPS(10, 10);
+    EndDrawing();
+}
+
+CloseWindow();

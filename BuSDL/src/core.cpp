@@ -1,44 +1,46 @@
-#include "bidings.hpp"
+#include "bindings.hpp"
 
 namespace SDLBindings
 {
 
-    Value native_SDL_Init(Interpreter *vm, int argc, Value *args)
+    int native_SDL_Init(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_Init expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
 
         Uint32 flags = args[0].asNumber();
         int result = SDL_Init(flags);
-        return vm->makeInt(result);
+        vm->push(vm->makeInt(result));
+        return 1;
     }
 
-    Value native_SDL_Quit(Interpreter *vm, int argc, Value *args)
+    int native_SDL_Quit(Interpreter *vm, int argc, Value *args)
     {
         SDL_Quit();
-        return vm->makeNil();
+        return 0;
     }
 
-    Value native_SDL_GetError(Interpreter *vm, int argc, Value *args)
+    int native_SDL_GetError(Interpreter *vm, int argc, Value *args)
     {
         const char *error = SDL_GetError();
-        return vm->makeString(error);
+         vm->push(vm->makeString(error));
+        return 1;
     }
 
-    Value native_SDL_Delay(Interpreter *vm, int argc, Value *args)
+    int native_SDL_Delay(Interpreter *vm, int argc, Value *args)
     {
         if (argc != 1)
         {
             Error("SDL_Delay expects 1 argument");
-            return vm->makeNil();
+            return 0;
         }
 
         Uint32 ms = args[0].asNumber();
         SDL_Delay(ms);
-        return vm->makeNil();
+        return 0;
     }
 
     void register_core(ModuleBuilder &mod)

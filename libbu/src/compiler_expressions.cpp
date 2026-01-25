@@ -413,9 +413,9 @@ void Compiler::arrayLiteral(bool canAssign)
                 return;
             count++;
 
-            if (count > 255)
+            if (count > 65535)
             {
-                error("Cannot have more than 255 array elements on initialize.");
+                error("Cannot have more than 65535 array elements on initialize.");
 
                 while (!check(TOKEN_RBRACKET) && !check(TOKEN_EOF))
                 {
@@ -439,7 +439,17 @@ void Compiler::arrayLiteral(bool canAssign)
 
     if (!hadError)
     {
-        emitBytes(OP_DEFINE_ARRAY, count);
+        if (count <= 255)
+        {
+            emitBytes(OP_DEFINE_ARRAY, count);
+        }
+        else
+        {
+            // Use long version for >255 elements (16-bit count)
+            emitByte(OP_DEFINE_ARRAY_LONG);
+            emitByte((count >> 8) & 0xff);
+            emitByte(count & 0xff);
+        }
     }
 }
 
@@ -479,9 +489,9 @@ void Compiler::mapLiteral(bool canAssign)
 
             count++;
 
-            if (count > 255)
+            if (count > 65535)
             {
-                error("Cannot have more than 255 map entries");
+                error("Cannot have more than 65535 map entries");
 
                 while (!check(TOKEN_RBRACE) && !check(TOKEN_EOF))
                 {
@@ -510,6 +520,16 @@ void Compiler::mapLiteral(bool canAssign)
 
     if (!hadError)
     {
-        emitBytes(OP_DEFINE_MAP, count);
+        if (count <= 255)
+        {
+            emitBytes(OP_DEFINE_MAP, count);
+        }
+        else
+        {
+            // Use long version for >255 entries (16-bit count)
+            emitByte(OP_DEFINE_MAP_LONG);
+            emitByte((count >> 8) & 0xff);
+            emitByte(count & 0xff);
+        }
     }
 }
