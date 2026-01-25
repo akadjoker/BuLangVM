@@ -114,18 +114,6 @@ Clean syntax, comprehensive documentation, interactive playground, and working g
 
 Try these fully playable games built with BuLang directly in your browser:
 
-### [🚀 Space Shooter](https://bulang.netlify.app/demos.html#space-shooter)
-Classic arcade action! Control your spaceship, dodge enemies, and rack up points.
-- WASD or Arrow Keys to move
-- SPACE to shoot
-
-### [🏃 Platformer](https://bulang.netlify.app/demos.html#platformer)
-Jump, collect coins, and reach the goal! Navigate challenging platforms with precise timing.
-- Arrow Keys or WASD to move
-- SPACE to jump
-
- 
-
 | Demo | Demo | Demo |
 |------|------|------|
 | ![Boids](gifs/boids.gif) | ![Cast Light](gifs/castlight.gif) | ![Doom](gifs/doom.gif) |

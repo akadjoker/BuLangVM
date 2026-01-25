@@ -1,0 +1,34 @@
+// ============================================
+// CONSTANTS - Game Configuration
+// ============================================
+
+// Colors
+var WHITE = Color(255, 255, 255, 255);
+var BLACK = Color(0, 0, 0, 255);
+var RED = Color(255, 50, 50, 255);
+var GREEN = Color(50, 220, 80, 255);
+var BLUE = Color(100, 150, 255, 255);
+var GRAY = Color(120, 120, 120, 255);
+var DARK_GRAY = Color(80, 80, 80, 255);
+
+// Keyboard Keys
+var KEY_RIGHT = 262;
+var KEY_LEFT = 263;
+var KEY_UP = 265;
+var KEY_DOWN = 264;
+var KEY_SPACE = 32;
+var KEY_W = 87;
+var KEY_A = 65;
+var KEY_S = 83;
+var KEY_D = 68;
+
+// Physics Constants
+var GRAVITY = 0.6;
+var MAX_FALL_SPEED = 20.0;
+var JUMP_FORCE = -13.0;
+var MOVE_SPEED = 4.5;
+var FRICTION = 0.85;
+
+// Screen
+var SCREEN_WIDTH = 800;
+var SCREEN_HEIGHT = 450;

@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BuLang Playground</title>
+    <link rel="stylesheet" href="css/shared.css">
+    <style>
+        .playground-container {
+            padding: 6rem 2rem 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            min-height: calc(100vh - 80px);
+        }
+
+        .editor-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .editor-panel {
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .editor-header {
+            background: var(--bg-darker);
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+            color: var(--accent-primary);
+            font-size: 0.95rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .editor-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 500px;
+        }
+
+        #code-editor {
+            flex: 1;
+            padding: 1rem;
+            background: var(--bg-darker);
+            color: var(--accent-primary);
+            border: none;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            resize: none;
+            outline: none;
+            line-height: 1.6;
+        }
+
+        #output {
+            flex: 1;
+            padding: 1rem;
+            background: var(--bg-darker);
+            color: var(--accent-primary);
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            overflow-y: auto;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .output-empty {
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .btn-run {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .example-select-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .example-select-wrapper label {
+            color: var(--accent-primary);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        #example-select {
+            flex: 1;
+            min-width: 250px;
+            padding: 0.75rem 1rem;
+            background: var(--bg-card);
+            color: var(--accent-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        #example-select:hover {
+            border-color: var(--accent-primary);
+            background: rgba(0, 217, 255, 0.05);
+        }
+
+        #example-select:focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.1);
+        }
+
+        #example-select option {
+            background: var(--bg-darker);
+            color: var(--accent-primary);
+            padding: 0.5rem;
+        }
+
+        #example-select optgroup {
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-left: auto;
+        }
+
+        .loading {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: rgba(255, 165, 0, 0.2);
+            color: #ffa500;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-left: auto;
+        }
+
+        .error-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: rgba(255, 68, 68, 0.2);
+            color: #ff4444;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-left: auto;
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 1024px) {
+            .editor-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .editor-content {
+                min-height: 350px;
+            }
+
+            .playground-container {
+                padding: 5rem 1rem 2rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .editor-content {
+                min-height: 300px;
+            }
+
+            #code-editor,
+            #output {
+                font-size: 0.8rem;
+                padding: 0.75rem;
+            }
+
+            .controls {
+                gap: 0.75rem;
+            }
+
+            .btn-run {
+                min-width: 100%;
+            }
+
+            .example-select-wrapper {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            #example-select {
+                min-width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .playground-container {
+                padding: 4rem 0.75rem 1.5rem;
+            }
+
+            .section-title {
+                font-size: 1.75rem;
+            }
+
+            .section-subtitle {
+                font-size: 0.95rem;
+            }
+
+            .editor-panel {
+                border-radius: 8px;
+            }
+
+            #code-editor,
+            #output {
+                font-size: 0.75rem;
+                padding: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <a href="index.html" class="logo">BuLang</a>
+            <button class="menu-toggle" id="menu-toggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-links" id="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="docs.html">Docs</a></li>
+                <li><a href="playground.html" class="active">Playground</a></li>
+                <li><a href="demos.html">Demos</a></li>
+                <li><a href="roadmap.html">Roadmap</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="playground-container">
+        <h1 class="section-title">BuLang Playground</h1>
+        <p class="section-subtitle">Write and execute BuLang code in your browser</p>
+
+        <div class="editor-grid">
+            <!-- Code Editor -->
+            <div class="editor-panel">
+                <div class="editor-header">
+                    <span>Code Editor</span>
+                    <span id="status-badge" class="loading">Loading WASM...</span>
+                </div>
+                <div class="editor-content">
+                    <textarea id="code-editor" placeholder="// Write BuLang code here...
+write('Hello, BuLang!')">// Welcome to BuLang Playground!
+// Loading examples...</textarea>
+                </div>
+            </div>
+
+            <!-- Output Panel -->
+            <div class="editor-panel">
+                <div class="editor-header">Output</div>
+                <div class="editor-content">
+                    <div id="output" class="output-empty">Waiting for WASM to load...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button class="btn btn-primary btn-run" id="run-btn" onclick="runCode()" disabled>▶ Run Code</button>
+            <button class="btn btn-secondary" onclick="clearOutput()">Clear Output</button>
+            <button class="btn btn-secondary" onclick="resetCode()">Reset Code</button>
+        </div>
+
+        <!-- Example Selector -->
+        <div class="example-select-wrapper">
+            <label for="example-select">Load Example:</label>
+            <select id="example-select" onchange="loadSelectedExample()">
+                <option value="">-- Loading examples... --</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="social-links">
+                <a href="https://github.com/akadjoker/bulang" target="_blank">GitHub</a>
+            </div>
+            <p>&copy; 2025 BuLang. Made with ❤️ for game developers. MIT License.</p>
+        </div>
+    </footer>
+ 
+    <!-- WASM Module -->
+    <script src="bulang.js"></script>
+
+    <script>
+        // Mobile menu toggle
+        const menuToggle = document.getElementById('menu-toggle');
+        const navLinks = document.getElementById('nav-links');
+
+        menuToggle.addEventListener('click', () => {
+            menuToggle.classList.toggle('active');
+            navLinks.classList.toggle('active');
+        });
+
+        // Close menu when clicking a link
+        navLinks.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                menuToggle.classList.remove('active');
+                navLinks.classList.remove('active');
+            });
+        });
+
+        // Global variables
+        let BuLangModule = null;
+        let exampleCategories = {};
+        let defaultExample = '';
+
+        // Load examples from JSON
+        fetch('examples.json')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                exampleCategories = data;
+                console.log('✓ Examples loaded:', Object.keys(data).length, 'categories');
+                
+                // Set default example (first one)
+                const firstCategory = Object.values(data)[0];
+                const firstExample = Object.values(firstCategory.examples)[0];
+                defaultExample = firstExample.code;
+                
+                populateExamples();
+                
+                // Load default example
+                document.getElementById('code-editor').value = defaultExample;
+            })
+            .catch(err => {
+                console.error('✗ Error loading examples:', err);
+                document.getElementById('example-select').innerHTML = 
+                    '<option value="">✗ Failed to load examples</option>';
+            });
+
+        // Populate select with examples
+        function populateExamples() {
+            const select = document.getElementById('example-select');
+            select.innerHTML = '<option value="">-- Select an example --</option>';
+            
+            for (const [categoryKey, category] of Object.entries(exampleCategories)) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = category.label;
+                
+                for (const [exampleKey, example] of Object.entries(category.examples)) {
+                    const option = document.createElement('option');
+                    option.value = `${categoryKey}.${exampleKey}`;
+                    option.textContent = example.title;
+                    optgroup.appendChild(option);
+                }
+                
+                select.appendChild(optgroup);
+            }
+        }
+
+        // Load selected example
+        function loadSelectedExample() {
+            const select = document.getElementById('example-select');
+            const value = select.value;
+            
+            if (!value) return;
+            
+            const [categoryKey, exampleKey] = value.split('.');
+            const example = exampleCategories[categoryKey]?.examples[exampleKey];
+            
+            if (example) {
+                document.getElementById('code-editor').value = example.code;
+                clearOutput();
+                document.getElementById('code-editor').focus();
+            }
+        }
+
+        // Initialize WASM
+        createBuLangModule().then(module => {
+            BuLangModule = module;
+            console.log("✓ BuLang WASM loaded!");
+            
+            document.getElementById('status-badge').className = 'status-badge';
+            document.getElementById('status-badge').textContent = '✓ Ready';
+            document.getElementById('run-btn').disabled = false;
+            document.getElementById('output').innerHTML = '<div class="output-empty">Ready to execute!</div>';
+        }).catch(err => {
+            console.error("✗ Error loading WASM:", err);
+            document.getElementById('status-badge').className = 'error-badge';
+            document.getElementById('status-badge').textContent = '✗ WASM Failed';
+            document.getElementById('output').innerHTML = 
+                `<div style="color: #ff4444;">✗ Failed to load WASM module<br>${err}</div>`;
+        });
+
+        // Run code
+        function runCode() {
+            if (!BuLangModule) {
+                showOutput("✗ WASM module not loaded yet!", true);
+                return;
+            }
+
+            const code = document.getElementById('code-editor').value;
+
+            try {
+                const result = BuLangModule.executeCode(code);
+                showOutput(result, false);
+            } catch (e) {
+                showOutput(`✗ Error: ${e.message}`, true);
+                console.error(e);
+            }
+        }
+
+        // Show output
+        function showOutput(text, isError) {
+            const out = document.getElementById('output');
+
+            const line = document.createElement('div');
+            line.style.whiteSpace = 'pre-wrap';
+            line.style.color = isError ? '#ff4444' : 'var(--accent-primary)';
+            line.textContent = text;
+
+            out.appendChild(line); 
+        }
+
+        // Clear output
+        function clearOutput() {
+            document.getElementById('output').innerHTML = '<div class="output-empty">Output cleared</div>';
+        }
+
+        // Reset code
+        function resetCode() {
+            document.getElementById('code-editor').value = defaultExample;
+            document.getElementById('example-select').value = '';
+            clearOutput();
+        }
+
+        // Support Ctrl+Enter or Cmd+Enter to run
+        document.getElementById('code-editor').addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                runCode();
+            }
+        });
+    </script>
+</body>
+</html>

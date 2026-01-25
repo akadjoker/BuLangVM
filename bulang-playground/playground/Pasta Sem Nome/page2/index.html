@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BuLang - High-Performance Game Scripting Language</title>
+    <link rel="stylesheet" href="css/shared.css">
+    <style>
+        /* ============ HERO SECTION ============ */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(15, 20, 25, 1) 0%, rgba(20, 25, 35, 1) 100%);
+            position: relative;
+            overflow: hidden;
+            padding-top: 80px;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(0, 217, 255, 0.15) 0%, transparent 70%);
+            border-radius: 50%;
+            top: -200px;
+            right: -200px;
+            animation: float 8s ease-in-out infinite;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(255, 0, 110, 0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            bottom: -150px;
+            left: -150px;
+            animation: float 10s ease-in-out infinite reverse;
+        }
+
+        .hero-content {
+            text-align: center;
+            z-index: 10;
+            max-width: 900px;
+            padding: 0 2rem;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hero h1 {
+            font-size: 4.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+            line-height: 1.1;
+            letter-spacing: -1px;
+        }
+
+        .hero-subtitle {
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            line-height: 1.6;
+            animation: fadeInUp 0.8s ease-out 0.2s backwards;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            animation: fadeInUp 0.8s ease-out 0.4s backwards;
+        }
+
+        .btn {
+            padding: 1rem 2.5rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 700;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-primary) 0%, #00b8cc 100%);
+            color: var(--bg-dark);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(0, 217, 255, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--accent-primary);
+            border: 2px solid var(--accent-primary);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(0, 217, 255, 0.1);
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(0, 217, 255, 0.2);
+        }
+
+        /* ============ DEMO SHOWCASE ============ */
+        .demo-showcase {
+            padding: 6rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            background: linear-gradient(180deg, rgba(15, 20, 25, 0.5) 0%, rgba(20, 25, 35, 0.5) 100%);
+            border-top: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .demo-showcase h2 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .demo-showcase-subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            margin-bottom: 3rem;
+            font-size: 1.1rem;
+        }
+
+        .demos-carousel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+        }
+
+        .demo-showcase-card {
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: all 0.4s ease;
+            cursor: pointer;
+        }
+
+        .demo-showcase-card:hover {
+            transform: translateY(-15px);
+            border-color: var(--accent-primary);
+            box-shadow: 0 30px 60px rgba(0, 217, 255, 0.2);
+        }
+
+        .demo-header {
+            height: 250px;
+            background: linear-gradient(135deg, rgba(0, 217, 255, 0.1) 0%, rgba(255, 0, 110, 0.05) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 5rem;
+            border-bottom: 2px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-header::before {
+            content: '';
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(0, 217, 255, 0.2), transparent);
+            animation: pulse 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(0.8); opacity: 0.5; }
+            50% { transform: scale(1.2); opacity: 1; }
+        }
+
+        .demo-emoji {
+            position: relative;
+            z-index: 2;
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .demo-info {
+            padding: 2rem;
+        }
+
+        .demo-title {
+            font-size: 1.5rem;
+            color: var(--accent-primary);
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .demo-description {
+            color: var(--text-secondary);
+            line-height: 1.8;
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+        }
+
+        .demo-features {
+            list-style: none;
+            margin-bottom: 1.5rem;
+        }
+
+        .demo-features li {
+            color: var(--text-secondary);
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+        }
+
+        .demo-features li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: var(--accent-primary);
+            font-weight: bold;
+        }
+
+        .demo-play-btn {
+            width: 100%;
+            padding: 0.9rem;
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+            color: var(--bg-dark);
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .demo-play-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 217, 255, 0.3);
+        }
+
+        /* ============ STATS SECTION ============ */
+        .stats-section {
+            padding: 6rem 2rem;
+            background: linear-gradient(180deg, rgba(15, 20, 25, 1) 0%, rgba(20, 25, 35, 1) 100%);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .stat-box {
+            text-align: center;
+            padding: 2rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .stat-box:hover {
+            border-color: var(--accent-primary);
+            transform: translateY(-5px);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        /* ============ FEATURES SECTION ============ */
+        .features-section {
+            padding: 6rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .features-title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .features-subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            margin-bottom: 3rem;
+            font-size: 1.1rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-8px);
+            border-color: var(--accent-primary);
+            box-shadow: 0 15px 40px rgba(0, 217, 255, 0.15);
+        }
+
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* ============ CTA SECTION ============ */
+        .final-cta {
+            padding: 4rem 2rem;
+            text-align: center;
+            background: linear-gradient(135deg, rgba(0, 217, 255, 0.05) 0%, rgba(255, 0, 110, 0.02) 100%);
+            border: 2px solid var(--border-color);
+            border-radius: 16px;
+            max-width: 800px;
+            margin: 3rem auto;
+        }
+
+        .final-cta h2 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .final-cta p {
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+
+        /* ============ RESPONSIVE ============ */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 3rem;
+            }
+
+            .hero-subtitle {
+                font-size: 1.2rem;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+
+            .demos-carousel {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .feature-card {
+                padding: 1.5rem;
+            }
+
+            .section-title {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <a href="index.html" class="logo">BuLang</a>
+            <button class="menu-toggle" id="menu-toggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-links" id="nav-links">
+                <li><a href="index.html" class="active">Home</a></li>
+                <li><a href="docs.html">Docs</a></li>
+                <li><a href="playground.html">Playground</a></li>
+                <li><a href="demos.html">Demos</a></li>
+                <li><a href="roadmap.html">Roadmap</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>🚀 BuLang</h1>
+            <p class="hero-subtitle">A high-performance stack-based scripting language designed for game engines and concurrent systems. Write game logic fast, execute faster.</p>
+            
+            <div class="cta-buttons">
+                <a href="demos.html" class="btn btn-primary">▶ Play Demos</a>
+                <a href="docs.html" class="btn btn-secondary">📚 Learn More</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Demo Showcase -->
+    <section class="demo-showcase">
+        <h2>🎮 Play Now</h2>
+        <p class="demo-showcase-subtitle">Two incredible games built with BuLang - fully playable in your browser</p>
+
+        <div class="demos-carousel">
+            <!-- Space Shooter -->
+            <div class="demo-showcase-card">
+                <div class="demo-header">
+                    <div class="demo-emoji">🚀</div>
+                </div>
+                <div class="demo-info">
+                    <h3 class="demo-title">Space Shooter</h3>
+                    <p class="demo-description">Classic arcade action! Control your spaceship, dodge enemies, and rack up points. Simple controls, endless fun.</p>
+                    
+                    <ul class="demo-features">
+                        <li>WASD or Arrow Keys to move</li>
+                        <li>SPACE to shoot</li>
+                        <li>60 FPS performance</li>
+                        <li>Wave-based enemies</li>
+                    </ul>
+
+                    <a href="demos.html#space-shooter" class="demo-play-btn">▶ Play Now</a>
+                </div>
+            </div>
+
+            <!-- Platformer -->
+            <div class="demo-showcase-card">
+                <div class="demo-header">
+                    <div class="demo-emoji">🏃</div>
+                </div>
+                <div class="demo-info">
+                    <h3 class="demo-title">Platformer</h3>
+                    <p class="demo-description">Jump, collect coins, and reach the goal! Navigate challenging platforms and master precise timing for the ultimate score.</p>
+                    
+                    <ul class="demo-features">
+                        <li>Arrow Keys or WASD to move</li>
+                        <li>SPACE to jump</li>
+                        <li>Collect power-ups</li>
+                        <li>Multiple levels</li>
+                    </ul>
+
+                    <a href="demos.html#platformer" class="demo-play-btn">▶ Play Now</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats-section">
+        <div class="stats-grid">
+           
+            <div class="stat-box">
+                <div class="stat-number">50K+</div>
+                <div class="stat-label">Concurrent Processes</div>
+            </div>
+
+            <div class="stat-box">
+                <div class="stat-number">0.2ms</div>
+                <div class="stat-label">Frame Time</div>
+            </div>
+
+            <div class="stat-box">
+                <div class="stat-number">200KB</div>
+                <div class="stat-label">Runtime Size</div>
+            </div>
+
+            <div class="stat-box">
+                <div class="stat-number">80+</div>
+                <div class="stat-label">Bytecode Opcodes</div>
+            </div>
+
+            <div class="stat-box">
+                <div class="stat-number">MIT</div>
+                <div class="stat-label">Open Source License</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features-section">
+        <h2 class="features-title">Why BuLang?</h2>
+        <p class="features-subtitle">Built for performance, designed for simplicity</p>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3>Stack-Based VM</h3>
+                <p>Efficient bytecode execution with a proven stack-based architecture optimized for game scripting and rapid execution.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🔄</div>
+                <h3>Cooperative Multitasking</h3>
+                <p>Handle 50,000+ concurrent processes without the overhead of OS-level threading. Perfect for game logic.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">💾</div>
+                <h3>Smart Memory Management</h3>
+                <p>Reference counting with exception-free design patterns for predictable performance and zero surprises.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🎮</div>
+                <h3>Game-Ready</h3>
+                <p>Seamlessly integrated with Raylib, Canvas 2D, and custom engines. Graph-based scene systems included.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🚀</div>
+                <h3>High Performance</h3>
+                <p>Significantly faster than comparable scripting engines with continuous optimization and profiling support.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">📚</div>
+                <h3>Easy to Learn</h3>
+                <p>Clean syntax, comprehensive documentation, interactive playground, and two working game examples to learn from.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="final-cta">
+        <h2>Ready to Build Your Game?</h2>
+        <p>Start with our interactive playground or dive into the documentation. Two complete games show what's possible.</p>
+        
+        <div class="cta-buttons">
+            <a href="playground.html" class="btn btn-primary">💻 Open Playground</a>
+            <a href="docs.html" class="btn btn-secondary">📖 Read Docs</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="social-links">
+                <a href="https://github.com/akadjoker/bulang" target="_blank">GitHub</a>
+            </div>
+            <p>&copy; 2025 BuLang. Made with ❤️ for game developers. MIT License.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Mobile menu toggle
+        const menuToggle = document.getElementById('menu-toggle');
+        const navLinks = document.getElementById('nav-links');
+
+        menuToggle.addEventListener('click', () => {
+            menuToggle.classList.toggle('active');
+            navLinks.classList.toggle('active');
+        });
+
+        // Close menu when clicking a link
+        navLinks.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                menuToggle.classList.remove('active');
+                navLinks.classList.remove('active');
+            });
+        });
+
+        // Mark active nav link
+        document.querySelectorAll('.nav-links a').forEach(link => {
+            if (link.getAttribute('href') === 'index.html' || window.location.pathname.endsWith('/')) {
+                link.classList.add('active');
+            }
+        });
+
+        // Smooth scroll for demo buttons
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                const href = this.getAttribute('href');
+                if (href !== '#') {
+                    e.preventDefault();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

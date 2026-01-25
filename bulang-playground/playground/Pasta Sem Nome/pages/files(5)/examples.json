@@ -1,0 +1,168 @@
+{
+    "basics": {
+        "label": "Basics",
+        "examples": {
+            "hello": {
+                "title": "Hello World (Canvas)",
+                "code": "// Welcome to BuLang Playground!\n\nvar id = canvas_in_output(640, 360);\nprint(id);\n\ncanvas_clear(id);\ncanvas_set_fill_style(id, \"#222\");\ncanvas_fill_rect(id, 0, 0, 1024, 360);\n\ncanvas_set_fill_style(id, \"#00d9ff\");\ncanvas_fill_rect(id, 550, 50, 120, 80);\n\ncanvas_set_fill_style(id, \"white\");\ncanvas_set_font(id, \"20px sans-serif\");\ncanvas_fill_text(id, \"Hello, BuLang :D\", 30, 30);"
+            },
+            "functions": {
+                "title": "Functions",
+                "code": "// Functions\ndef greet(name) \n{\n    return \"Hello, \" + name;\n}\n\nwrite(greet(\"BuLang\"));\n\ndef apply(f, x) \n{\n    return f(x);\n}\n\ndef double(n) \n{\n    return n * 2;\n}\n\nwrite(\"double(21) = {} \\n\", apply(double, 21));"
+            },
+            "classes": {
+                "title": "Classes & Objects",
+                "code": "// Classes\nclass Point \n{\n    var x, y;\n    def init(x, y) \n    {\n        self.x = x;\n        self.y = y;\n    }\n    \n    def display() \n    {\n        write(\"Point({}, {})\", self.x, self.y);\n    }\n}\n\np = Point(10, 20);\np.display();"
+            }
+        }
+    },
+    "controlflow": {
+        "label": "Control Flow",
+        "examples": {
+            "loops": {
+                "title": "Loops (for, while, do-while)",
+                "code": "// Loops\nfor (var i = 0; i < 3; i++)\n{\n    write(\"Loop iteration: {}\\n\", i);\n}\n\n// While loop\ncount = 0;\nwhile (count < 3 )\n{\n    write(\"Count: {}\\n\", count);\n    count = count + 1;\n}\n\n// Do-while loop\ncount = 0;\ndo \n{\n    write(\"Count: {}\\n\", count);\n    count = count + 1;\n} while (count < 3);"
+            }
+        }
+    },
+    "recursion": {
+        "label": "Recursion",
+        "examples": {
+            "fibonacci": {
+                "title": "Fibonacci Performance",
+                "code": "// Fibonacci recursivo\ndef get(n) \n{\n    if (n < 2) return n;\n    return get(n - 1) + get(n - 2);\n}\n\nvar start = clock();\nfor(var i=1; i<5; i=i+1)\n{\n    print(get(28));\n}\nwrite(\"elapsed: {} ms\\n\", clock() - start);"
+            }
+        }
+    },
+    "concurrency": {
+        "label": "Concurrency (Processes & Fibers)",
+        "examples": {
+            "basic_process": {
+                "title": "Basic Process",
+                "code": "// Processes - Cooperative multitasking\nvar counter = 0;\n\nprocess myProcess() \n{\n    var i = 0;\n    loop \n    {\n        counter = counter + 1;\n        write(\"Process tick: {}\\n\", i);\n        frame;  // Yield control\n        i = i + 1;\n        if (i >= 5) break;\n    }\n    write(\"Process finished!\\n\");\n}\n\n// Spawn the process\nmyProcess();\n\n// Run some frames\nfor (var f = 0; f < 10; f = f + 1) \n{\n    frame(1);\n}\n\nwrite(\"Final counter: {}\\n\", counter);"
+            },
+            "multiple_processes": {
+                "title": "Multiple Concurrent Processes",
+                "code": "// Multiple processes running concurrently\nvar process1Done = false;\nvar process2Done = false;\n\nprocess worker1() \n{\n    var i = 0;\n    loop \n    {\n        write(\"Worker 1: step {}\\n\", i);\n        frame;\n        i = i + 1;\n        if (i >= 3) \n        {\n            process1Done = true;\n            break;\n        }\n    }\n}\n\nprocess worker2() \n{\n    var i = 0;\n    loop \n    {\n        write(\"Worker 2: step {}\\n\", i);\n        frame;\n        i = i + 1;\n        if (i >= 3) \n        {\n            process2Done = true;\n            break;\n        }\n    }\n}\n\n// Spawn both\nworker1();\nworker2();\n\n// Let them run\nframe(100);\n\nwrite(\"Both processes done!\\n\");"
+            },
+            "fibers": {
+                "title": "Fibers with Yield",
+                "code": "// Fibers - Lightweight cooperative threads\nvar result = 0;\n\ndef worker(n) \n{\n    write(\"Worker starting with n={}\\n\", n);\n    yield;  // Pause execution\n    \n    write(\"Worker resumed!\\n\");\n    result = n * 2;\n    yield;\n    \n    write(\"Worker final step\\n\");\n    result = result + 10;\n}\n\nprocess main() \n{\n    fiber worker(5);\n    \n    // Run several frames to let fiber execute\n    frame; frame; frame; frame;\n    \n    write(\"Final result: {}\\n\", result);\n}\n\nmain();\nframe(100);"
+            },
+            "gosub_goto": {
+                "title": "Gosub & Goto (DIV Style)",
+                "code": "// Old-school DIV Games Studio style!\nvar score = 0;\n\nprocess game() \n{\n    score = 100;\n    gosub add_bonus;\n    score = score + 50;\n    goto finish;\n    \nadd_bonus:\n    write(\"Adding bonus!\\n\");\n    score = score + 25;\n    return;\n    \nfinish:\n    write(\"Final score: {}\\n\", score);\n}\n\ngame();\nframe(100);"
+            }
+        }
+    },
+    "controlflow_advanced": {
+        "label": "Advanced Control Flow",
+        "examples": {
+            "foreach_loop": {
+                "title": "Foreach Loop (Native)",
+                "code": "// Native foreach loop\nvar numbers = [10, 20, 30, 40, 50];\nvar sum = 0;\n\nforeach (num in numbers) \n{\n    write(\"Processing: {}\\n\", num);\n    sum = sum + num;\n}\n\nwrite(\"Total sum: {}\\n\", sum);\n\n// Foreach with break\nvar words = [\"Hello\", \"World\", \"BuLang\", \"Rocks\"];\nvar found = \"\";\n\nforeach (word in words) \n{\n    write(\"Checking: {}\\n\", word);\n    if (word == \"BuLang\") \n    {\n        found = word;\n        break;\n    }\n}\n\nwrite(\"Found: {}\\n\", found);"
+            },
+            "try_catch": {
+                "title": "Try-Catch Error Handling",
+                "code": "// Exception handling\ndef risky_division(a, b) \n{\n    if (b == 0) \n    {\n        throw \"Division by zero!\";\n    }\n    return a / b;\n}\n\n// Safe call with try-catch\ntry \n{\n    var result = risky_division(10, 2);\n    write(\"Result: {}\\n\", result);\n    \n    // This will throw\n    result = risky_division(10, 0);\n    write(\"This won't print\\n\");\n} \ncatch (error) \n{\n    write(\"Caught error: {}\\n\", error);\n}\n\nwrite(\"Program continues!\\n\");"
+            }
+        }
+    },
+    "buffers": {
+        "label": "Typed Buffers (Binary Data)",
+        "examples": {
+            "basic_buffers": {
+                "title": "Creating & Using Buffers",
+                "code": "// Typed buffers for binary data\nwrite(\"=== BUFFER CREATION ===\\n\");\n\n// Create buffers with different types\nvar b8 = @(4, TYPE_UINT8);   // 4 bytes\nvar b16 = @(100, TYPE_INT16); // 100 int16s\nvar floats = @(10, TYPE_FLOAT); // 10 floats\n\nwrite(\"Created buffers\\n\");\n\n// Indexing and assignment\nb8[0] = 255;\nb8[1] = 128;\nb8[2] = 64;\n\nwrite(\"b8[0] = {}\\n\", b8[0]);\nwrite(\"b8[1] = {}\\n\", b8[1]);\nwrite(\"b8[2] = {}\\n\", b8[2]);\n\n// Fill with value\nfloats.fill(3.14);\nwrite(\"floats[0] = {}\\n\", floats[0]);\nwrite(\"floats[5] = {}\\n\", floats[5]);\n\n// Get length\nwrite(\"Buffer length: {}\\n\", b8.length());"
+            },
+            "buffer_operations": {
+                "title": "Buffer Methods (fill, clear, slice)",
+                "code": "// Buffer operations\nvar buffer = @(10, TYPE_UINT8);\n\nwrite(\"=== FILL ===\\n\");\nbuffer.fill(42);\nwrite(\"buffer[0] = {}\\n\", buffer[0]);\nwrite(\"buffer[9] = {}\\n\", buffer[9]);\n\nwrite(\"\\n=== CLEAR ===\\n\");\nbuffer.clear();\nwrite(\"After clear: {}\\n\", buffer[0]);\n\nwrite(\"\\n=== SLICE ===\\n\");\nvar original = @(10, TYPE_INT32);\noriginal.fill(100);\n\n// Create sub-buffer [2, 3, 4]\nvar slice = original.slice(2, 5);\nwrite(\"Slice length: {}\\n\", slice.length());\nwrite(\"slice[0] = {}\\n\", slice[0]);\n\n// Modify slice\nslice.fill(999);\nwrite(\"Modified slice[0] = {}\\n\", slice[0]);"
+            },
+            "buffer_copy": {
+                "title": "Copying Between Buffers",
+                "code": "// Buffer copy operations\nvar src = @(5, TYPE_UINT8);\nvar dst = @(10, TYPE_UINT8);\n\n// Fill source\nfor (var i = 0; i < 5; i = i + 1) {\n    src[i] = i * 10;\n}\n\nwrite(\"Source: \");\nfor (var i = 0; i < 5; i = i + 1) {\n    write(\"{} \", src[i]);\n}\nwrite(\"\\n\");\n\n// Copy src to dst[3]\n// copy(dst_offset, src, src_offset, count)\ndst.copy(3, src, 0, 5);\n\nwrite(\"Destination: \");\nfor (var i = 0; i < 10; i = i + 1) {\n    write(\"{} \", dst[i]);\n}\nwrite(\"\\n\");\n\nwrite(\"dst[3] = {}\\n\", dst[3]);\nwrite(\"dst[4] = {}\\n\", dst[4]);\nwrite(\"dst[5] = {}\\n\", dst[5]);"
+            },
+            "image_processing": {
+                "title": "Image Processing Example",
+                "code": "// Image buffer processing\nwrite(\"Creating 10x10 RGB image...\\n\");\n\nvar width = 10;\nvar height = 10;\nvar image = @(width * height * 3, TYPE_UINT8);\n\n// Fill with gradient\nfor (var y = 0; y < height; y = y + 1) {\n    for (var x = 0; x < width; x = x + 1) {\n        var i = (y * width + x) * 3;\n        image[i + 0] = x * 25;     // R\n        image[i + 1] = y * 25;     // G\n        image[i + 2] = 128;        // B (constant)\n    }\n}\n\nwrite(\"Image created: {} bytes\\n\", image.length());\nwrite(\"First pixel RGB: ({}, {}, {})\\n\", \n    image[0], image[1], image[2]);\n\n// Create thumbnail (5x5)\nvar thumb = @(5 * 5 * 3, TYPE_UINT8);\nthumb.fill(255); // White background\n\nwrite(\"Thumbnail: {} bytes\\n\", thumb.length());"
+            },
+            "type_overflow": {
+                "title": "Type Safety & Overflow",
+                "code": "// Type checking and overflow behavior\nwrite(\"=== UINT8 Overflow ===\\n\");\nvar b8 = @(4, TYPE_UINT8);\n\nb8[0] = 255;   // Max value\nb8[1] = -1;    // Wraps to 255\nb8[2] = 256;   // Wraps to 0\nb8[3] = 300;   // Wraps to 44\n\nwrite(\"b8[0] (255) = {}\\n\", b8[0]);\nwrite(\"b8[1] (-1) = {}\\n\", b8[1]);\nwrite(\"b8[2] (256) = {}\\n\", b8[2]);\nwrite(\"b8[3] (300) = {}\\n\", b8[3]);\n\nwrite(\"\\n=== INT16 Range ===\\n\");\nvar i16 = @(2, TYPE_INT16);\ni16[0] = -32768;  // Min\ni16[1] = 32767;   // Max\n\nwrite(\"i16[0] = {}\\n\", i16[0]);\nwrite(\"i16[1] = {}\\n\", i16[1]);\n\nwrite(\"\\n=== FLOAT Precision ===\\n\");\nvar f32 = @(3, TYPE_FLOAT);\nf32[0] = 3.14159;\nf32[1] = -2.71828;\nf32[2] = 1.41421;\n\nwrite(\"PI: {}\\n\", f32[0]);\nwrite(\"e: {}\\n\", f32[1]);\nwrite(\"sqrt(2): {}\\n\", f32[2]);"
+            }
+        }
+    },
+    "builtin": {
+        "label": "Built-in Math Opcodes",
+        "examples": {
+            "math_trig": {
+                "title": "Trigonometry (sin, cos, tan)",
+                "code": "// Trigonometric functions (native opcodes!)\nwrite(\"=== TRIGONOMETRY ===\\n\");\n\n// Radians\nvar angle_rad = 1.5708;  // ~90 degrees\n\nwrite(\"sin(90°) = {}\\n\", sin(angle_rad));\nwrite(\"cos(90°) = {}\\n\", cos(angle_rad));\nwrite(\"tan(45°) = {}\\n\", tan(0.7854));\n\n// Convert degrees → radians\nvar angle_deg = 45;\nvar angle = rad(angle_deg);\nwrite(\"45° in radians = {}\\n\", angle);\n\n// Circular motion\nvar radius = 100;\nvar x = radius * cos(angle);\nvar y = radius * sin(angle);\nwrite(\"Circle point: ({}, {})\\n\", floor(x), floor(y));"
+            },
+            "math_distance": {
+                "title": "Distance & Angles (atan2, sqrt, pow)",
+                "code": "// Calculate distance and angle between points\nwrite(\"=== DISTANCE & ANGLES ===\\n\");\n\n// Two points\nvar x1 = 100;\nvar y1 = 100;\nvar x2 = 200;\nvar y2 = 150;\n\nvar dx = x2 - x1;\nvar dy = y2 - y1;\n\n// Distance: sqrt(dx² + dy²)\nvar dist = sqrt(pow(dx, 2) + pow(dy, 2));\nwrite(\"Distance: {}\\n\", dist);\n\n// Angle to target (atan2 handles all quadrants)\nvar angle_rad = atan2(dy, dx);\nvar angle_deg = deg(angle_rad);\nwrite(\"Angle: {} degrees\\n\", floor(angle_deg));\n\n// Power function\nwrite(\"2^8 = {}\\n\", pow(2, 8));\nwrite(\"3^3 = {}\\n\", pow(3, 3));"
+            },
+            "math_rounding": {
+                "title": "Rounding & Absolute Value",
+                "code": "// Rounding functions\nwrite(\"=== ROUNDING ===\\n\");\n\nvar value = 3.7;\n\nwrite(\"Original: {}\\n\", value);\nwrite(\"floor: {}\\n\", floor(value));  // 3.0\nwrite(\"ceil: {}\\n\", ceil(value));    // 4.0\n\nvar negative = -42.5;\nwrite(\"\\nabs(-42.5) = {}\\n\", abs(negative));  // 42.5\n\n// Practical use: grid snapping\nvar player_x = 123.456;\nvar grid_size = 32;\nvar snapped_x = floor(player_x / grid_size) * grid_size;\nwrite(\"\\nPlayer X: {}\\n\", player_x);\nwrite(\"Snapped to grid: {}\\n\", snapped_x);"
+            },
+            "math_logarithm": {
+                "title": "Logarithm & Exponential",
+                "code": "// Logarithm and exponential functions\nwrite(\"=== LOG & EXP ===\\n\");\n\n// Natural logarithm (base e)\nwrite(\"log(1) = {}\\n\", log(1));      // 0\nwrite(\"log(e) = {}\\n\", log(exp(1)));  // 1\nwrite(\"log(10) = {}\\n\", log(10));   // ~2.3\n\n// Exponential (e^x)\nwrite(\"\\nexp(0) = {}\\n\", exp(0));    // 1\nwrite(\"exp(1) = {}\\n\", exp(1));      // e (~2.718)\nwrite(\"exp(2) = {}\\n\", exp(2));      // e² (~7.389)\n\n// Practical: exponential decay\nvar initial = 100;\nvar decay_rate = 0.1;\nvar time = 5;\nvar remaining = initial * exp(-decay_rate * time);\nwrite(\"\\nAfter {} seconds: {}\\n\", time, floor(remaining));"
+            },
+            "physics_projectile": {
+                "title": "Physics - Projectile Trajectory",
+                "code": "// Projectile motion using native math opcodes\nwrite(\"=== PROJECTILE MOTION ===\\n\");\n\ndef calculate_trajectory(velocity, angle_deg, time) {\n    var angle = rad(angle_deg);\n    var vx = velocity * cos(angle);\n    var vy = velocity * sin(angle);\n    \n    var gravity = -9.81;\n    var x = vx * time;\n    var y = vy * time + 0.5 * gravity * pow(time, 2);\n    \n    return {x: x, y: y};\n}\n\n// Simulate projectile at 45° angle\nvar velocity = 50;  // m/s\nvar angle = 45;     // degrees\n\nwrite(\"Launch: {} m/s at {}°\\n\", velocity, angle);\nwrite(\"\\nTrajectory:\\n\");\n\nfor (var t = 0.0; t <= 2.0; t = t + 0.5) {\n    var pos = calculate_trajectory(velocity, angle, t);\n    write(\"t={}: x={}, y={}\\n\", \n        t, floor(pos.x), floor(pos.y));\n}"
+            }
+        }
+    },
+    "advanced": {
+        "label": "Advanced Features",
+        "examples": {
+            "hex_unicode": {
+                "title": "Hex Numbers & Unicode",
+                "code": "// Hex numbers\nvar hex1 = 0xFF;\nvar hex2 = 0x1A;\nvar hex3 = 0x00;\n\n// Unicode escapes\nvar str1 = \"Hello\\u263A\";           // Emoji ☺️\nvar str2 = \"Rocket\\U0001F680\";      // Emoji 🚀\nvar str3 = \"Tab\\there\";             // Tab normal\nvar str4 = \"Hex\\x41\";               // \\x41 = 'A'\n\nprint(hex1);\nprint(hex2);\nprint(hex3);\nprint(str1);\nprint(str2);\nprint(str4);"
+            }
+        }
+    },
+    "arrays": {
+        "label": "Arrays & Higher-Order Functions",
+        "examples": {
+            "sort": {
+                "title": "Custom Sort",
+                "code": "// Sort with custom comparator\ndef asc(a, b)\n{\n    return a < b;\n}\n\ndef desc(a, b)\n{\n    return a > b;\n}\n\ndef sort_array(a, cmp)\n{\n    var r = [];\n    for (var i = 0; i < a.length(); i = i + 1)\n        r.push(a[i]);\n    \n    for (var i = 0; i < r.length(); i = i + 1)\n    {\n        for (var j = i + 1; j < r.length(); j = j + 1)\n        {\n            if (!cmp(r[i], r[j]))\n            {\n                var t = r[i];\n                r[i] = r[j];\n                r[j] = t;\n            }\n        }\n    }\n    return r;\n}\n\nvar list = [5, 1, 4, 2, 8];\nprint(sort_array(list, asc));\nprint(sort_array(list, desc));"
+            },
+            "foreach": {
+                "title": "For Each",
+                "code": "// for_each example\ndef for_each(a, fn)\n{\n    for (var i = 0; i < a.length(); i = i + 1)\n        fn(a[i]);\n}\n\ndef show(x)\n{\n    write(\"value = {}\\n\", x);\n}\n\nvar nums = [10, 20, 30];\nfor_each(nums, show);"
+            },
+            "filter": {
+                "title": "Filter",
+                "code": "// Filter example\ndef filter(a, pred)\n{\n    var r = [];\n    for (var i = 0; i < a.length(); i = i + 1)\n    {\n        if (pred(a[i]))\n            r.push(a[i]);\n    }\n    return r;\n}\n\ndef is_even(n)\n{\n    return n % 2 == 0;\n}\n\nprint(filter([1,2,3,4,5,6], is_even));"
+            },
+            "map": {
+                "title": "Map",
+                "code": "// Map example\ndef map(a, fn)\n{\n    var r = [];\n    for (var i = 0; i < a.length(); i = i + 1)\n        r.push(fn(a[i]));\n    return r;\n}\n\ndef square(x)\n{\n    return x * x;\n}\n\nprint(map([1,2,3,4], square));"
+            }
+        }
+    },
+    "canvas": {
+        "label": "Canvas Graphics",
+        "examples": {
+            "bars": {
+                "title": "Bar Chart",
+                "code": "// Bar Chart - Sales by Month\nvar id = canvas_in_output(500, 300);\ncanvas_set_fill_style(id, \"#fff\");\ncanvas_fill_rect(id, 0, 0, 500, 300);\n\nvar values = [120, 80, 200, 150, 90];\nvar colors = [\"#e74c3c\", \"#3498db\", \"#2ecc71\", \"#f39c12\", \"#9b59b6\"];\n\nvar i = 0;\nwhile (i < 5) \n{\n    var x = 50 + i * 90;\n    var height = values[i];\n    var y = 250 - height;\n    \n    // Bar\n    canvas_set_fill_style(id, colors[i]);\n    canvas_fill_rect(id, x, y, 60, height);\n    \n    // Outline\n    canvas_set_stroke_style(id, \"#333\");\n    canvas_set_line_width(id, 2);\n    canvas_stroke_rect(id, x, y, 60, height);\n    \n    i = i + 1;\n}\n\n// Title\ncanvas_set_fill_style(id, \"#000\");\ncanvas_set_font(id, \"bold 20px sans-serif\");\ncanvas_fill_text(id, \"Sales by Month\", 150, 30);"
+            },
+            "grid": {
+                "title": "Grid with Circle",
+                "code": "// Grid with Circle\nvar id = canvas_in_output(400, 400);\ncanvas_clear(id);\n\n// Background\ncanvas_set_fill_style(id, \"#111\");\ncanvas_fill_rect(id, 0, 0, 400, 400);\n\n// Grid\ncanvas_set_stroke_style(id, \"#333\");\ncanvas_set_line_width(id, 1);\n\nvar i = 0;\nwhile (i < 400) \n{\n    // Vertical\n    canvas_begin_path(id);\n    canvas_move_to(id, i, 0);\n    canvas_line_to(id, i, 400);\n    canvas_stroke(id);\n    \n    // Horizontal\n    canvas_begin_path(id);\n    canvas_move_to(id, 0, i);\n    canvas_line_to(id, 400, i);\n    canvas_stroke(id);\n    \n    i = i + 40;\n}\n\n// Draw circle in center\ncanvas_set_fill_style(id, \"#0f0\");\ncanvas_fill_circle(id, 200, 200, 50);\n\ncanvas_set_stroke_style(id, \"#fff\");\ncanvas_set_line_width(id, 2);\ncanvas_stroke_circle(id, 200, 200, 50);"
+            },
+            "shapes": {
+                "title": "Shapes & Strokes",
+                "code": "// Shapes and Strokes\nvar id = canvas_in_output(400, 300);\n\n// Rectangle with stroke\ncanvas_set_stroke_style(id, \"#ff0\");\ncanvas_set_line_width(id, 3);\ncanvas_stroke_rect(id, 50, 50, 100, 80);\n\n// Line\ncanvas_set_stroke_style(id, \"#0ff\");\ncanvas_set_line_width(id, 2);\ncanvas_begin_path(id);\ncanvas_move_to(id, 10, 10);\ncanvas_line_to(id, 200, 50);\ncanvas_line_to(id, 200, 200);\ncanvas_stroke(id);\n\n// Filled circle\ncanvas_set_fill_style(id, \"#f0f\");\ncanvas_fill_circle(id, 300, 150, 40);\n\n// Circle stroke\ncanvas_set_stroke_style(id, \"#0f0\");\ncanvas_set_line_width(id, 3);\ncanvas_stroke_circle(id, 300, 150, 50);"
+            }
+        }
+    }
+}

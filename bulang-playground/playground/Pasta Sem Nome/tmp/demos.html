@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BuLang Demos & Games</title>
+    <link rel="stylesheet" href="css/shared.css">
+    <style>
+        .demo-hero {
+            background: linear-gradient(135deg, rgba(0, 217, 255, 0.1) 0%, rgba(255, 0, 110, 0.05) 100%);
+            padding: 4rem 2rem;
+            text-align: center;
+            margin-top: 70px;
+        }
+
+        .demo-hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .demos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 4rem auto;
+            padding: 0 2rem;
+        }
+
+        .demo-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .demo-card:hover {
+            transform: translateY(-10px);
+            border-color: var(--accent-primary);
+            box-shadow: 0 15px 40px rgba(0, 217, 255, 0.2);
+        }
+
+        .demo-thumbnail {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, rgba(0, 217, 255, 0.1) 0%, rgba(255, 0, 110, 0.05) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .demo-content {
+            padding: 1.5rem;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .demo-title {
+            font-size: 1.3rem;
+            color: var(--accent-primary);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .demo-description {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+            flex: 1;
+        }
+
+        .demo-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .demo-tag {
+            background: rgba(0, 217, 255, 0.1);
+            color: var(--accent-primary);
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .demo-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .demo-btn {
+            flex: 1;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--accent-primary);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .demo-btn:hover {
+            background: rgba(0, 217, 255, 0.1);
+            border-color: var(--accent-primary);
+        }
+
+        .demo-btn.play {
+            background: var(--accent-primary);
+            color: var(--bg-dark);
+            border-color: var(--accent-primary);
+        }
+
+        .demo-btn.play:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 217, 255, 0.3);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(4px);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: #000;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: none;
+            animation: slideUp 0.3s ease;
+            border: none;
+            border-radius: 0;
+            position: relative;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            position: absolute;
+            top: 0;
+            right: 0;
+            z-index: 100;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 3rem;
+            cursor: pointer;
+            padding: 0;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: var(--accent-primary);
+            transform: scale(1.1);
+        }
+
+        .modal-body {
+            flex: 1;
+            overflow: auto;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .game-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+            .demo-hero {
+                padding: 3rem 1.5rem;
+                margin-top: 60px;
+            }
+
+            .demo-hero h1 {
+                font-size: 2rem;
+            }
+
+            .demos-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+                margin: 2rem auto;
+                padding: 0 1rem;
+            }
+
+            .demo-thumbnail {
+                height: 180px;
+                font-size: 3.5rem;
+            }
+
+            .demo-content {
+                padding: 1.25rem;
+            }
+
+            .demo-title {
+                font-size: 1.2rem;
+            }
+
+            .demo-description {
+                font-size: 0.85rem;
+            }
+
+            .demo-btn {
+                padding: 0.65rem;
+                font-size: 0.85rem;
+            }
+
+            .modal-close {
+                font-size: 2.5rem;
+                width: 40px;
+                height: 40px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .demo-hero {
+                padding: 2.5rem 1rem;
+            }
+
+            .demo-hero h1 {
+                font-size: 1.75rem;
+            }
+
+            .demos-grid {
+                padding: 0 0.75rem;
+                margin: 1.5rem auto;
+            }
+
+            .demo-thumbnail {
+                height: 160px;
+                font-size: 3rem;
+            }
+
+            .demo-content {
+                padding: 1rem;
+            }
+
+            .demo-tag {
+                font-size: 0.7rem;
+                padding: 0.2rem 0.6rem;
+            }
+        }
+
+        /* Tablet adjustments */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .demos-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <a href="index.html" class="logo">BuLang</a>
+            <button class="menu-toggle" id="menu-toggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-links" id="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="docs.html">Docs</a></li>
+                <li><a href="playground.html">Playground</a></li>
+                <li><a href="demos.html" class="active">Demos</a></li>
+                <li><a href="roadmap.html">Roadmap</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <div class="demo-hero">
+        <h1>🎮 BuLang Demos & Games</h1>
+        <p style="color: var(--text-secondary); font-size: 1.1rem;">Play games and demos built with BuLang</p>
+    </div>
+
+    <!-- Demos Grid -->
+    <section>
+        <div class="demos-grid" id="demos-grid">
+            <!-- Demos will be loaded here -->
+        </div>
+    </section>
+
+    <!-- Game Modal -->
+    <div class="modal" id="game-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button class="modal-close" onclick="closeGameModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <iframe id="game-iframe" class="game-iframe" src=""></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="social-links">
+                <a href="https://github.com/akadjoker/bulang" target="_blank">GitHub</a>
+            </div>
+            <p>&copy; 2025 BuLang. Made with ❤️ for game developers. MIT License.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Mobile menu toggle
+        const menuToggle = document.getElementById('menu-toggle');
+        const navLinks = document.getElementById('nav-links');
+
+        menuToggle.addEventListener('click', () => {
+            menuToggle.classList.toggle('active');
+            navLinks.classList.toggle('active');
+        });
+
+        // Close menu when clicking a link
+        navLinks.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                menuToggle.classList.remove('active');
+                navLinks.classList.remove('active');
+            });
+        });
+
+        // Demo data
+        const DEMOS = [
+            {
+                "id": "space-shooter",
+                "name": "Space Shooter",
+                "emoji": "🚀",
+                "description": "A classic 2D space shooter game. Control your ship with WASD or Arrow Keys, shoot with SPACE!",
+                "shellUrl": "./demos/shooter/bulang.html",
+                "tags": ["2D", "Action", "Classic"],
+                "featured": true
+            },
+            {
+                "id": "platformer",
+                "name": "Platformer",
+                "emoji": "🏃",
+                "description": "A classic platformer game with jumping, collecting coins, and reaching goals!",
+                "shellUrl": "./demos/plataform/bulang.html",
+                "tags": ["2D", "Platformer", "Adventure"],
+                "featured": true
+            }
+        ];
+
+        // Render demos
+        function renderDemos() {
+            const grid = document.getElementById('demos-grid');
+
+            grid.innerHTML = DEMOS.map(demo => `
+                <div class="demo-card" data-id="${demo.id}">
+                    <div class="demo-thumbnail">${demo.emoji}</div>
+                    <div class="demo-content">
+                        <h3 class="demo-title">${demo.name}</h3>
+                        <p class="demo-description">${demo.description}</p>
+                        
+                        <div class="demo-tags">
+                            ${demo.tags.map(tag => `<span class="demo-tag">${tag}</span>`).join('')}
+                        </div>
+                        
+                        <div class="demo-actions">
+                            <button class="demo-btn play" onclick="playGame('${demo.id}')">▶ Play</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Play game
+        function playGame(demoId) {
+            const demo = DEMOS.find(d => d.id === demoId);
+
+            if (!demo) {
+                alert('Demo not found');
+                return;
+            }
+
+            document.getElementById('game-iframe').src = demo.shellUrl;
+            document.getElementById('game-modal').classList.add('active');
+            
+            // Prevent body scroll when modal is open
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Close modal
+        function closeGameModal() {
+            const modal = document.getElementById('game-modal');
+            document.getElementById('game-iframe').src = '';
+            modal.classList.remove('active');
+            
+            // Restore body scroll
+            document.body.style.overflow = '';
+        }
+
+        // Close modal on background click
+        document.getElementById('game-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeGameModal();
+            }
+        });
+
+        // Escape key to close modal
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeGameModal();
+            }
+        });
+
+        // Auto-play if hash is present
+        window.addEventListener('load', () => {
+            const hash = window.location.hash.substring(1);
+            if (hash) {
+                const demo = DEMOS.find(d => d.id === hash);
+                if (demo) {
+                    setTimeout(() => playGame(hash), 500);
+                }
+            }
+        });
+
+        // Initial render
+        renderDemos();
+    </script>
+</body>
+</html>

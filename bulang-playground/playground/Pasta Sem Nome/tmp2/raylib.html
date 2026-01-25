@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BuLang Playground + Raylib</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #00d9ff;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 500px 1fr;
+            gap: 20px;
+        }
+
+        .panel {
+            background: #252526;
+            border: 1px solid #3e3e42;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .panel h2 {
+            color: #00d9ff;
+            font-size: 18px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #3e3e42;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 500px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border: 1px solid #3e3e42;
+            border-radius: 4px;
+            padding: 12px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            resize: vertical;
+            line-height: 1.5;
+        }
+
+        button {
+            background: #0e639c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin-right: 10px;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #1177bb;
+        }
+
+        .example-btn {
+            background: #3e3e42;
+            padding: 8px 12px;
+            font-size: 12px;
+            margin: 5px 5px 5px 0;
+        }
+
+        .example-btn:hover {
+            background: #505050;
+        }
+
+        .buttons {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        #canvas-container {
+            background: #000;
+            border: 2px solid #3e3e42;
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 700px;
+        }
+
+        canvas {
+            border-radius: 4px;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .status.loading {
+            background: #264f78;
+            color: #9cdcfe;
+        }
+
+        .status.ready {
+            background: #1e3a20;
+            color: #4ec9b0;
+        }
+
+        .status.error {
+            background: #5a1d1d;
+            color: #f48771;
+        }
+
+        .examples {
+            margin-bottom: 15px;
+        }
+
+        #output {
+            background: #1e1e1e;
+            border: 1px solid #3e3e42;
+            border-radius: 4px;
+            padding: 12px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            max-height: 150px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+
+        .info {
+            background: #264f78;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            color: #9cdcfe;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 BuLang Playground + Raylib</h1>
+
+        <div id="status" class="status loading">
+            ⏳ Loading BuLang + Raylib WASM module...
+        </div>
+
+        <div class="info">
+            ℹ️ <strong>Note:</strong> Game loop runs automatically. Use BeginDrawing/EndDrawing in your code.
+        </div>
+
+        <div class="grid">
+            <!-- Code Editor -->
+            <div class="panel">
+                <h2>📝 BuLang Code</h2>
+                
+                <div class="examples">
+                    <button class="example-btn" onclick="loadExample('hello')">Hello</button>
+                    <button class="example-btn" onclick="loadExample('shapes')">Shapes</button>
+                    <button class="example-btn" onclick="loadExample('circle')">Circle</button>
+                    <button class="example-btn" onclick="loadExample('text')">Text</button>
+                    <button class="example-btn" onclick="loadExample('animation')">Animation</button>
+                </div>
+
+                <textarea id="code" spellcheck="false">// BuLang + Raylib Demo
+InitWindow(800, 600, "BuLang Playground");
+SetTargetFPS(60);
+
+// Game loop
+while (!WindowShouldClose())
+{
+    BeginDrawing();
+    ClearBackground();
+    
+    DrawText("Hello from BuLang + Raylib!", 200, 280, 30);
+    DrawCircle(400, 150, 50);
+    DrawRectangle(350, 400, 100, 80);
+    
+    EndDrawing();
+}
+
+CloseWindow();</textarea>
+
+                <div class="buttons">
+                    <button onclick="runCode()">▶️ Run Code</button>
+                    <button onclick="stopCode()">⏹️ Stop</button>
+                </div>
+
+                <h2 style="margin-top: 20px;">📤 Console</h2>
+                <div id="output">Ready...</div>
+            </div>
+
+            <!-- Canvas Area -->
+            <div class="panel">
+                <h2>🎨 Raylib Canvas</h2>
+                <div id="canvas-container">
+                    <!-- Raylib canvas will be created here -->
+                    <canvas id="canvas" width="800" height="600"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let BuLangModule = null;
+        let isRunning = false;
+
+        // Load WASM module
+        async function loadBuLang() {
+            try {
+                const script = document.createElement('script');
+                script.src = 'bulang.js';
+                script.onload = async () => {
+                    BuLangModule = await createBuLangModule({
+                        canvas: document.getElementById('canvas'),
+                        print: (text) => {
+                            log(text);
+                        },
+                        printErr: (text) => {
+                            logError(text);
+                        }
+                    });
+                    
+                    updateStatus('ready', '✅ BuLang + Raylib loaded and ready!');
+                    
+                    log('Module initialized');
+                };
+                script.onerror = () => {
+                    updateStatus('error', '❌ Failed to load bulang.js');
+                };
+                document.body.appendChild(script);
+            } catch (error) {
+                updateStatus('error', '❌ Error: ' + error.message);
+                console.error('Load error:', error);
+            }
+        }
+
+        function updateStatus(type, message) {
+            const status = document.getElementById('status');
+            status.className = 'status ' + type;
+            status.textContent = message;
+        }
+
+        function log(msg) {
+            const output = document.getElementById('output');
+            const div = document.createElement('div');
+            div.style.color = '#d4d4d4';
+            div.style.marginBottom = '3px';
+            div.textContent = '> ' + msg;
+            output.appendChild(div);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function logError(msg) {
+            const output = document.getElementById('output');
+            const div = document.createElement('div');
+            div.style.color = '#f48771';
+            div.style.marginBottom = '3px';
+            div.textContent = '❌ ' + msg;
+            output.appendChild(div);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function runCode() {
+            if (!BuLangModule) {
+                alert('Module not loaded yet!');
+                return;
+            }
+
+            const code = document.getElementById('code').value;
+            
+            try {
+                log('Running code...');
+                BuLangModule.executeCode(code);
+                isRunning = true;
+                log('✓ Execution started');
+            } catch (error) {
+                logError('Error: ' + error.message);
+                console.error('Execution error:', error);
+            }
+        }
+
+        function stopCode() {
+            // Para parar, seria necessário implementar mecanismo de stop no C++
+            log('Stop not implemented yet - refresh page to reset');
+        }
+
+        // Examples
+        const examples = {
+            hello: `// Hello Raylib
+InitWindow(800, 600, "Hello BuLang");
+SetTargetFPS(60);
+
+while (!WindowShouldClose())
+{
+    BeginDrawing();
+    ClearBackground();
+    
+    DrawText("Hello from BuLang + Raylib!", 180, 280, 35);
+    
+    EndDrawing();
+}
+
+CloseWindow();`,
+
+            shapes: `// Shapes Demo
+InitWindow(800, 600, "Shapes");
+SetTargetFPS(60);
+
+while (!WindowShouldClose())
+{
+    BeginDrawing();
+    ClearBackground();
+    
+    // Rectangle
+    DrawRectangle(100, 100, 150, 100);
+    
+    // Circle
+    DrawCircle(500, 150);
+    
+    // Text
+    DrawText("BuLang Shapes", 300, 50, 30);
+    DrawText("Rectangle", 110, 220, 15);
+    DrawText("Circle", 470, 220, 15);
+    
+    EndDrawing();
+}
+
+CloseWindow();`,
+
+            circle: `// Circle Demo
+InitWindow(800, 600, "Circle");
+SetTargetFPS(60);
+
+while (!WindowShouldClose())
+{
+    BeginDrawing();
+    ClearBackground();
+    
+    DrawCircle(400, 300, 100);
+    DrawText("BuLang Circle", 320, 280, 25);
+    
+    EndDrawing();
+}
+
+CloseWindow();`,
+
+            text: `// Text Demo
+InitWindow(800, 600, "Text");
+SetTargetFPS(60);
+
+while (!WindowShouldClose())
+{
+    BeginDrawing();
+    ClearBackground();
+    
+    DrawText("BuLang", 100, 100, 60);
+    DrawText("Powered by Raylib", 100, 180, 30);
+    DrawText("WASM + C++", 100, 230, 25);
+    
+    DrawText("Small text", 100, 400, 15);
+    DrawText("Medium text", 100, 430, 20);
+    DrawText("Large text", 100, 470, 35);
+    
+    EndDrawing();
+}
+
+CloseWindow();`,
+
+            animation: `// Animation Demo
+InitWindow(800, 600, "Animation");
+SetTargetFPS(60);
+
+var x = 100;
+var speed = 2;
+
+while (!WindowShouldClose())
+{
+    // Update
+    x = x + speed;
+    if (x > 700 or x < 100) {
+        speed = -speed;
+    }
+    
+    // Draw
+    BeginDrawing();
+    ClearBackground();
+    
+    DrawCircle(x, 300, 40);
+    DrawText("Bouncing Circle", 280, 50, 30);
+    
+    EndDrawing();
+}
+
+CloseWindow();`
+        };
+
+        function loadExample(name) {
+            if (examples[name]) {
+                document.getElementById('code').value = examples[name];
+            }
+        }
+
+        // Initialize
+        window.addEventListener('DOMContentLoaded', () => {
+            loadBuLang();
+        });
+    </script>
+</body>
+</html>

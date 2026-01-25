@@ -1,0 +1,212 @@
+{
+  "../external/raylib/src/Makefile": {
+    "hash": "b98fdbda71d117fff6705636c27b7ffa",
+    "output": "../external/raylib/src/libraylib.a",
+    "timestamp": 1769362764.0816877
+  },
+  "src/web_stubs.cpp": {
+    "hash": "92ecc9f163d60c416cebad72e8821d05",
+    "output": "build/obj/src_web_stubs.o",
+    "timestamp": 1769362764.5339453
+  },
+  "../libbu/src/interpreter_process.cpp": {
+    "hash": "edf741ae22b6d3854a4282644c26aa14",
+    "output": "build/obj/src_interpreter_process.o",
+    "timestamp": 1769362764.6001034
+  },
+  "../libbu/src/interpreter_runtime_switch.cpp": {
+    "hash": "21c5598e31e427fe8813d21dc1ab6dc7",
+    "output": "build/obj/src_interpreter_runtime_switch.o",
+    "timestamp": 1769362764.9959617
+  },
+  "src/main.cpp": {
+    "hash": "7c1ed211bebbd607e15dfc27f3efb8be",
+    "output": "build/obj/src_main.o",
+    "timestamp": 1769362765.2995846
+  },
+  "../libbu/src/interpreter_runtime_goto.cpp": {
+    "hash": "a874d522afedf014a52775edc1db1060",
+    "output": "build/obj/src_interpreter_runtime_goto.o",
+    "timestamp": 1769362765.7108312
+  },
+  "../libbu/src/interpreter_stack.cpp": {
+    "hash": "1818f0b68769da81fd2d435c4deabf8f",
+    "output": "build/obj/src_interpreter_stack.o",
+    "timestamp": 1769362765.7704504
+  },
+  "../libbu/src/plugin.cpp": {
+    "hash": "30f21f1c1c2965de2e0e78daa3862546",
+    "output": "build/obj/src_plugin.o",
+    "timestamp": 1769362766.243293
+  },
+  "../libbu/src/platform.cpp": {
+    "hash": "7ba4bd93ef8d6f36e4dfcf63779eee1f",
+    "output": "build/obj/src_platform.o",
+    "timestamp": 1769362766.7524252
+  },
+  "../libbu/src/lexer.cpp": {
+    "hash": "8a1f20fd15331930e5374ed184427705",
+    "output": "build/obj/src_lexer.o",
+    "timestamp": 1769362766.8289955
+  },
+  "../libbu/src/pool.cpp": {
+    "hash": "e1d7e1c3409c6a5b53ea76169448998a",
+    "output": "build/obj/src_pool.o",
+    "timestamp": 1769362766.831514
+  },
+  "../libbu/src/module.cpp": {
+    "hash": "96e9591c2ee914ea95b7ca5c86dd6847",
+    "output": "build/obj/src_module.o",
+    "timestamp": 1769362766.8858938
+  },
+  "../libbu/src/utils.cpp": {
+    "hash": "cddb26713ce091d018480c0fa5fb4550",
+    "output": "build/obj/src_utils.o",
+    "timestamp": 1769362767.2056963
+  },
+  "../libbu/src/arena.cpp": {
+    "hash": "f738c3cac8acff90ebba270545c1d52f",
+    "output": "build/obj/src_arena.o",
+    "timestamp": 1769362767.253672
+  },
+  "../libbu/src/value.cpp": {
+    "hash": "3efa40b416228bdec8da534eb52c19a3",
+    "output": "build/obj/src_value.o",
+    "timestamp": 1769362767.3094988
+  },
+  "../libbu/src/array.cpp": {
+    "hash": "a3f55c2d64e189bcd94a61e189ce6e54",
+    "output": "build/obj/src_array.o",
+    "timestamp": 1769362767.6397789
+  },
+  "../libbu/src/token.cpp": {
+    "hash": "204ddecdf2e8ca673af5e62a08f84a36",
+    "output": "build/obj/src_token.o",
+    "timestamp": 1769362768.2330093
+  },
+  "../libbu/src/builtins_base.cpp": {
+    "hash": "16d188756908e0ef84047157cef20007",
+    "output": "build/obj/src_builtins_base.o",
+    "timestamp": 1769362768.354389
+  },
+  "../libbu/src/builtins_file.cpp": {
+    "hash": "98b09f841af7832411d918569cbdb772",
+    "output": "build/obj/src_builtins_file.o",
+    "timestamp": 1769362768.6224012
+  },
+  "../libbu/src/builtins_fs.cpp": {
+    "hash": "1a248ffadebed5a3fff3a5def1a7df1b",
+    "output": "build/obj/src_builtins_fs.o",
+    "timestamp": 1769362768.7740204
+  },
+  "../libbu/src/builtins_os.cpp": {
+    "hash": "16d4ee628afd8ce8096a592e5a837e8c",
+    "output": "build/obj/src_builtins_os.o",
+    "timestamp": 1769362769.768075
+  },
+  "../libbu/src/builtins_math.cpp": {
+    "hash": "0a76925272937ffe91023ef5d8d6160b",
+    "output": "build/obj/src_builtins_math.o",
+    "timestamp": 1769362769.8684225
+  },
+  "../libbu/src/builtins_path.cpp": {
+    "hash": "26fa487da5cb1b2fe18024445f458465",
+    "output": "build/obj/src_builtins_path.o",
+    "timestamp": 1769362770.053556
+  },
+  "../libbu/src/code.cpp": {
+    "hash": "bf606637efa18d077e236e6fd5ee2556",
+    "output": "build/obj/src_code.o",
+    "timestamp": 1769362770.2580173
+  },
+  "../libbu/src/builtins_time.cpp": {
+    "hash": "8be98fa757b2f5a0f364ad3b88f8aba6",
+    "output": "build/obj/src_builtins_time.o",
+    "timestamp": 1769362770.4541202
+  },
+  "../libbu/src/debug.cpp": {
+    "hash": "6f651d94949ff46f6e12f2efdf8d51db",
+    "output": "build/obj/src_debug.o",
+    "timestamp": 1769362771.0277195
+  },
+  "../libbu/src/function.cpp": {
+    "hash": "4129da9a3dd88eda12ab1236ef49972c",
+    "output": "build/obj/src_function.o",
+    "timestamp": 1769362771.6190586
+  },
+  "../libbu/src/compiler.cpp": {
+    "hash": "0c87cd0012128a7724c36e4deade4ae0",
+    "output": "build/obj/src_compiler.o",
+    "timestamp": 1769362771.66847
+  },
+  "../libbu/src/compiler_expressions.cpp": {
+    "hash": "5385b4d923a8ddc8e572e177e2971a2e",
+    "output": "build/obj/src_compiler_expressions.o",
+    "timestamp": 1769362771.7001226
+  },
+  "../BuRay/src/audio.cpp": {
+    "hash": "ff19d74594257433d841c06c907dd90d",
+    "output": "build/obj/src_audio.o",
+    "timestamp": 1769362772.2747765
+  },
+  "../libbu/src/gc.cpp": {
+    "hash": "511ba631aaa26352c7744c95adad05d9",
+    "output": "build/obj/src_gc.o",
+    "timestamp": 1769362772.322776
+  },
+  "../BuRay/src/bindings.cpp": {
+    "hash": "6163ef04c6f619dbe0cc02fdbc2d3448",
+    "output": "build/obj/src_bindings.o",
+    "timestamp": 1769362772.8571074
+  },
+  "../libbu/src/compiler_statements.cpp": {
+    "hash": "ef9cd49227138596a5e3c98883322398",
+    "output": "build/obj/src_compiler_statements.o",
+    "timestamp": 1769362772.904078
+  },
+  "../BuRay/src/camera.cpp": {
+    "hash": "43e2a59b669f71534fa88e3347b1bf62",
+    "output": "build/obj/src_camera.o",
+    "timestamp": 1769362772.9336386
+  },
+  "../BuRay/src/input.cpp": {
+    "hash": "5cbbc32301eca22970bc2181b6c5c132",
+    "output": "build/obj/src_input.o",
+    "timestamp": 1769362773.412106
+  },
+  "../BuRay/src/core.cpp": {
+    "hash": "844e2398c2512933b917a17e385e920d",
+    "output": "build/obj/src_core.o",
+    "timestamp": 1769362773.4143636
+  },
+  "../BuRay/src/models.cpp": {
+    "hash": "a3d1e4ce3f5417f1dfe7c5a6a497f409",
+    "output": "build/obj/src_models.o",
+    "timestamp": 1769362773.4851854
+  },
+  "../libbu/src/interpreter.cpp": {
+    "hash": "0835c154e7219de7ce5f6612db0c68d7",
+    "output": "build/obj/src_interpreter.o",
+    "timestamp": 1769362773.6630826
+  },
+  "../BuRay/src/structs.cpp": {
+    "hash": "cc0e3eea25384e43569719b02feb550b",
+    "output": "build/obj/src_structs.o",
+    "timestamp": 1769362773.9192271
+  },
+  "../BuRay/src/shapes.cpp": {
+    "hash": "2a45ddf784ca7d4c9bfb02c73ce1660f",
+    "output": "build/obj/src_shapes.o",
+    "timestamp": 1769362773.9364097
+  },
+  "../BuRay/src/text.cpp": {
+    "hash": "b7988f1603bb5aa6ff541ffa2d365b0b",
+    "output": "build/obj/src_text.o",
+    "timestamp": 1769362773.9899776
+  },
+  "../BuRay/src/textures.cpp": {
+    "hash": "0f44e24ebb5f948e3fbb2e9a9a3fb1ef",
+    "output": "build/obj/src_textures.o",
+    "timestamp": 1769362774.137937
+  }
+}

@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BuLang Documentation</title>
+    <link rel="stylesheet" href="css/shared.css">
+    <style>
+        .docs-container {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 3rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 6rem 2rem;
+        }
+
+        .docs-sidebar {
+            position: sticky;
+            top: 80px;
+            height: fit-content;
+        }
+
+        .docs-nav {
+            list-style: none;
+        }
+
+        .docs-nav > li > a {
+            display: block;
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 0.5rem 0;
+            transition: color 0.3s ease;
+            border-left: 2px solid transparent;
+            padding-left: 1rem;
+        }
+
+        .docs-nav > li > a:hover {
+            color: var(--accent-primary);
+        }
+
+        .docs-nav > li > a.active {
+            color: var(--accent-primary);
+            border-left-color: var(--accent-primary);
+        }
+
+        .docs-nav ul {
+            list-style: none;
+            margin-left: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .docs-nav ul li a {
+            display: block;
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 0.3rem 0;
+            font-size: 0.9rem;
+            transition: color 0.3s ease;
+        }
+
+        .docs-nav ul li a:hover {
+            color: var(--accent-primary);
+        }
+
+        .docs-content h2 {
+            font-size: 2rem;
+            margin-top: 3rem;
+            margin-bottom: 1rem;
+            color: var(--accent-primary);
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .docs-content h3 {
+            font-size: 1.5rem;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .docs-content h4 {
+            font-size: 1.1rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .docs-content p {
+            margin-bottom: 1rem;
+            line-height: 1.8;
+            color: var(--text-secondary);
+        }
+
+        .docs-content > *:first-child {
+            margin-top: 0;
+        }
+
+        .code-example {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+
+        .code-example code {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: var(--accent-primary);
+            line-height: 1.6;
+            display: block;
+            white-space: pre;
+        }
+
+        .example-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            display: block;
+            font-style: italic;
+        }
+
+        .code-inline {
+            background: var(--bg-card);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: var(--accent-primary);
+        }
+
+        .note {
+            background: rgba(16, 185, 129, 0.1);
+            border-left: 4px solid var(--success);
+            padding: 1rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .note strong {
+            color: var(--success);
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background: var(--bg-card);
+            color: var(--accent-primary);
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: rgba(0, 217, 255, 0.05);
+        }
+
+        @media (max-width: 1024px) {
+            .docs-container {
+                grid-template-columns: 1fr;
+            }
+
+            .docs-sidebar {
+                position: relative;
+                top: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <a href="index.html" class="logo">BuLang</a>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="docs.html" class="active">Docs</a></li>
+                <li><a href="playground.html">Playground</a></li>
+                <li><a href="demos.html">Demos</a></li>
+                <li><a href="roadmap.html">Roadmap</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="docs-container">
+        <!-- Sidebar -->
+        <aside class="docs-sidebar">
+            <ul class="docs-nav">
+                <li><a href="#introduction">Introduction</a></li>
+                <li><a href="#getting-started">Getting Started</a>
+                    <ul>
+                        <li><a href="#hello-world">Hello World</a></li>
+                        <li><a href="#variables">Variables</a></li>
+                    </ul>
+                </li>
+                <li><a href="#language-basics">Language Basics</a>
+                    <ul>
+                        <li><a href="#data-types">Data Types</a></li>
+                        <li><a href="#operators">Operators</a></li>
+                        <li><a href="#control-flow">Control Flow</a></li>
+                        <li><a href="#goto-gosub">Goto & Gosub</a></li>
+                    </ul>
+                </li>
+                <li><a href="#functions">Functions</a></li>
+                <li><a href="#classes">Classes & OOP</a></li>
+                <li><a href="#processes">Processes</a></li>
+                <li><a href="#raylib">Raylib Integration</a></li>
+                <li><a href="#api-reference">API Reference</a></li>
+            </ul>
+        </aside>
+
+        <!-- Content -->
+        <main class="docs-content">
+            <h2 id="introduction">Introduction to BuLang</h2>
+            <p>BuLang is a stack-based bytecode virtual machine designed specifically for game development. It provides high-performance script execution with support for object-oriented programming, first-class functions, and a unique process system for cooperative multitasking.</p>
+
+            <p>The language combines simplicity with power, allowing you to write game logic, AI behaviors, and interactive systems that run efficiently even with thousands of concurrent processes.</p>
+
+            <h2 id="getting-started">Getting Started</h2>
+            <p>BuLang is designed to be easy to learn for developers coming from any programming background.</p>
+
+            <h3 id="hello-world">Hello World</h3>
+            <p>Start with the simplest program:</p>
+            <pre class="code-example"><code><span class="example-label">// Hello World</span>
+print("Hello, BuLang!")</code></pre>
+
+            <p>The <span class="code-inline">print()</span> function outputs text to the console. That's all you need to get started!</p>
+
+            <h3 id="variables">Variables and Basic Types</h3>
+            <p>BuLang uses dynamic typing - you don't need to declare variable types:</p>
+            <pre class="code-example"><code><span class="example-label">// Variables</span>
+var name = "BuLang";
+var version = 1.0;
+version = "ola";
+var count = 42;
+var is_active = true;
+
+print(name);
+print(count);
+</code></pre>
+
+            <h2 id="language-basics">Language Basics</h2>
+
+            <h3 id="data-types">Data Types</h3>
+            <p>BuLang supports the following primitive types:</p>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Example</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Number</td>
+                            <td><span class="code-inline">42, 3.14</span></td>
+                            <td>Integer or floating-point numbers</td>
+                        </tr>
+                        <tr>
+                            <td>String</td>
+                            <td><span class="code-inline">"hello"</span></td>
+                            <td>Text values</td>
+                        </tr>
+                        <tr>
+                            <td>Boolean</td>
+                            <td><span class="code-inline">true, false</span></td>
+                            <td>Truth values</td>
+                        </tr>
+                        <tr>
+                            <td>Null</td>
+                            <td><span class="code-inline">nil</span></td>
+                            <td>Absence of value</td>
+                        </tr>
+                        <tr>
+                            <td>Array</td>
+                            <td><span class="code-inline">[1, 2, 3]</span></td>
+                            <td>Collections of values</td>
+                        </tr>
+                        <tr>
+                            <td>Map</td>
+                            <td><span class="code-inline">{x: 10, y: 20}</span></td>
+                            <td>Key-value pairs</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 id="operators">Operators</h3>
+            <pre class="code-example"><code><span class="example-label"></span>
+// Arithmetic
+a = 10 + 5    // 15
+b = 10 - 5    // 5
+c = 10 * 5    // 50
+d = 10 / 5    // 2
+e = 10 % 3    // 1
+
+// Comparison
+a == b        // false
+a != b        // true
+a > b         // true
+a >= b        // true
+
+// Logical
+true && false    // false
+true || false     // true
+! true          // false
+
+Bitwise Operations
+
+a & 0b1010    // 0b1000  AND
+a | 0b1010    // 0b1110 OR
+a ^ 0b1010    // 0b0100  XOR
+
+a << 2    // 40 Left Shift
+a >> 2    // 2 Right Shift
+
+(~0) == -1 Bitwise NOT
+
+// Assignment
+a = 10
+a += 5    // a = a + 5
+a -= 5    // a = a - 5
+a *= 5    // a = a * 5
+a /= 5    // a = a / 5
+a %= 5    // a = a % 5
+
+// Increment and Decrement
+a++    // a = a + 1
+a--    // a = a - 1
+</code></pre>
+
+
+<h3 id="operators">Arrays</h3>
+<pre class="code-example"><code><span class="example-label"></span>
+
+var arr = [1, 2, 3];
+var empty = [];
+var mixed = [1, "hello", true, nil,v];
+
+print(mixed);
+
+// Acesso
+print(arr[0]);     // 1
+print(arr[-1]);    // 3 (Python-style!)
+
+// Modificar
+arr[1] = 10;
+print(arr[1]);     // 10
+
+// Métodos
+arr.push(4);
+print(arr.len());  // 4 or lenght()
+
+var x = arr.pop();
+print(x);          // 4
+
+arr.clear();
+print(arr.len());  // 0
+
+// Loop
+var nums = [10, 20, 30];
+for (var i = 0; i < nums.len(); i++) {
+    print(nums[i]);
+}
+
+// 2D arrays
+var matrix = [
+    [1, 2, 3],
+    [4, 5, 6],
+    [7, 8, 9]
+];
+
+print(matrix[1][2]);  // 6
+</code></pre>
+
+
+
+<h3 id="operators">Maps</h3>
+<pre class="code-example"><code><span class="example-label"></span>
+ //Create
+var player = {
+    name: "Hero",
+    hp: 100,
+    level: 5
+};
+
+var empty = {};
+
+// Acess
+print(player["name"]);  // "Hero"
+player["hp"] = 80;
+print(player["hp"]);    // 80
+
+// Methods
+print(player.len());    // 3
+
+if (player.has("level")) {
+    print("Has level");
+}
+
+
+var keys = player.keys();
+print(keys);  // ["name", "hp", "level"]
+
+var values = player.values();
+print(values);  // ["Hero", 80, 5]
+
+player.remove("level");
+print(player.len());  // 2
+
+player.clear();
+print(player.len());  // 0
+
+// Nested
+var game = {
+    player: {
+        x: 100,
+        y: 200
+    },
+    enemies: [
+        {x: 50, y: 50},
+        {x: 150, y: 150}
+    ]
+};
+
+print(game["player"]["x"]);     // 100
+print(game["enemies"][0]["y"]); // 50
+
+// Loop sobre keys
+var config = {width: 800, height: 600, fps: 60};
+var keys = config.keys();
+
+print(keys);
+
+for (var i = 0; i < keys.len(); i++) 
+{
+    var key = keys[i];
+    var value = config[key];
+    write(" key {}   : value {}\n", key,value);
+}
+ 
+</code></pre>
+
+<h3 id="strings">String Methods</h3>
+<pre class="code-example"><code><span class="example-label">// String operations</span>
+var text = "Hello, BuLang!";
+
+// Length & Access
+print(text.len());        // 14
+print(text[0]);           // "H"
+print(text[-1]);          // "!"
+
+// Methods
+text.upper();             // "HELLO, BULANG!"
+text.lower();             // "hello, bulang!"
+text.contains("BuLang");  // true
+text.indexOf("Lang");     // 8
+text.split(", ");         // ["Hello", "BuLang!"]
+text.trim();              // Remove whitespace
+
+// Concatenation
+var greeting = "Hello" + " " + "World";
+</code></pre>
+
+<h3 id="operators">Structs</h3>
+<pre class="code-example"><code><span class="example-label"></span>
+struct Point {
+   x,y;
+};
+
+var point = Point(1,2);
+
+print(point.x);
+print(point.y);
+</code></pre>
+
+<h3 id="control-flow">Control Flow</h3>
+<pre class="code-example"><code><span class="example-label"></span>
+// If statements
+x = 10
+if x > 5 {
+    print("x is greater than 5")
+} elif x == 5 {
+    print("x is 5")
+} else {
+    print("x is less than 5")
+}
+
+// Loops
+for i = 0; i < 5; i = i + 1 {
+    print(i)
+}
+
+// While loop
+count = 0
+while count < 3 
+{
+    print(count)
+    count = count + 1
+}
+
+
+// do while loop
+count = 0
+do 
+{
+    print(count)
+    count = count + 1
+} while (count < 3)
+
+
+// Switch statement no fallthrough
+switch x {
+    case 1:
+        print("x is 1")
+    case 2:
+        print("x is 2")
+    default:
+        print("x is not 1 or 2")
+}
+
+//continue and break
+for i = 0; i < 5; i = i + 1 )
+{
+    if (i == 2 )
+    {
+        continue;
+    }
+
+    if (i == 3 )
+    {
+        break;
+    }
+
+    print(i);
+}
+
+ </code></pre>
+
+
+<h3 id="goto-gosub">Goto & Gosub</h3>
+<p>BuLang supports low-level control flow with <code class="code-inline">goto</code> and <code class="code-inline">gosub</code> statements. These are useful for implementing state machines, custom loops, and subroutines within processes.</p>
+
+<div class="note" style="background: rgba(255, 165, 0, 0.1); border-left: 4px solid #ffa500; padding: 1rem; margin: 1.5rem 0;">
+    <strong style="color: #ffa500;">⚠️ Use with Caution</strong>
+    <p style="margin: 0.5rem 0 0 0; color: var(--text-secondary);">While powerful, <code class="code-inline">goto</code> and <code class="code-inline">gosub</code> can make code harder to understand. Use them primarily in processes where they provide clear benefits.</p>
+</div>
+
+<h4>Goto - Unconditional Jump</h4>
+<p>The <code class="code-inline">goto</code> statement jumps to a labeled position in the code. Labels are defined with <code class="code-inline">label_name:</code></p>
+
+<pre class="code-example"><code><span class="example-label">// Simple goto example</span>
+process loop_test() 
+{
+    var i = 0;
+loop_start:
+    write("loop {} \n", i);
+    i += 1;
+    if (i < 5) goto loop_start;
+    
+    print("Loop finished!");
+    exit;
+}
+
+loop_test();</code></pre>
+
+<h4>Gosub - Subroutine Call</h4>
+<p>The <code class="code-inline">gosub</code> statement jumps to a label and expects a <code class="code-inline">return</code> to come back to the next instruction.</p>
+
+<pre class="code-example"><code><span class="example-label">// Gosub example</span>
+process teste() {
+    print("A");
+    gosub sub;
+    print("C");
+    exit;
+    
+sub:
+    print("B");
+    return;
+}
+
+teste();
+// Output: A, B, C</code></pre>
+
+<h4>Combining Goto and Gosub</h4>
+<p>You can combine both for complex control flow:</p>
+
+<pre class="code-example"><code><span class="example-label">// Loop with subroutine</span>
+process loop_with_sub() 
+{
+    var i = 0;
+    
+mainloop:
+    gosub body;
+    i += 1;
+    if (i < 5) goto mainloop;
+    exit;
+    
+body:
+    write("iteration {} \n", i);
+    return;
+}
+
+loop_with_sub();</code></pre>
+
+<h4>Nested Gosub Calls</h4>
+<p>You can nest <code class="code-inline">gosub</code> calls - each <code class="code-inline">return</code> goes back to the caller:</p>
+
+<pre class="code-example"><code><span class="example-label">// Nested gosub</span>
+process nested_example() {
+    print("start");
+    gosub a;
+    print("end");
+    exit;
+    
+a:
+    print("A");
+    gosub b;
+    print("A return");
+    return;
+    
+b:
+    print("B");
+    return;
+}
+
+nested_example();
+// Output: start, A, B, A return, end</code></pre>
+
+<h4>Include External Files</h4>
+<p>You can include external BuLang files using the <code class="code-inline">include</code> directive:</p>
+
+<pre class="code-example"><code><span class="example-label">// Include example</span>
+include "strings.cc";
+
+// Now you can use functions from strings.cc
+str = "hello";
+upper_str = to_upper(str);
+print(upper_str);</code></pre>
+
+<h4>Best Practices</h4>
+<ul style="color: var(--text-secondary); line-height: 1.8; margin: 1rem 0;">
+    <li><strong>Use within processes:</strong> <code class="code-inline">goto</code> and <code class="code-inline">gosub</code> work best inside <code class="code-inline">process</code> blocks</li>
+    <li><strong>Clear labels:</strong> Use descriptive label names like <code class="code-inline">mainloop:</code>, <code class="code-inline">cleanup:</code>, <code class="code-inline">error_handler:</code></li>
+    <li><strong>Forward jumps:</strong> Prefer jumping forward to avoid creating unreadable code</li>
+    <li><strong>Subroutines:</strong> Use <code class="code-inline">gosub</code> for repeated code blocks within a process</li>
+    <li><strong>Always exit:</strong> Make sure to use <code class="code-inline">exit</code> to properly terminate processes</li>
+</ul>
+
+<h4>Common Use Cases</h4>
+<div class="table-responsive">
+    <table>
+        <thead>
+            <tr>
+                <th>Use Case</th>
+                <th>Recommended Statement</th>
+                <th>Example</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Game loops</td>
+                <td><code class="code-inline">goto</code></td>
+                <td>Main game loop, frame updates</td>
+            </tr>
+            <tr>
+                <td>State machines</td>
+                <td><code class="code-inline">goto</code></td>
+                <td>AI behavior states, UI states</td>
+            </tr>
+            <tr>
+                <td>Reusable code blocks</td>
+                <td><code class="code-inline">gosub</code></td>
+                <td>Drawing routines, cleanup code</td>
+            </tr>
+            <tr>
+                <td>Error handling</td>
+                <td><code class="code-inline">goto</code></td>
+                <td>Jump to error handler label</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+
+
+
+            <h2 id="functions">Functions</h2>
+            <p>Functions in BuLang are first-class citizens. You can define them and pass them as arguments:</p>
+            <pre class="code-example"><code><span class="example-label">// Function definition</span>
+def add(a, b) {
+    return a + b
+}
+
+result = add(5, 3)
+print(result)  // 8
+
+def apply(func, x, y) {
+    return func(x, y)
+}
+
+print(apply(add, 10, 20))  // 30
+
+def fib(n) 
+{
+    if (n <= 1) return n;
+    return fib(n-1) + fib(n-2);
+}
+
+
+var start = clock();
+fib(31);
+var end = clock();
+var ms = end - start;
+assert(ms < 50, "fib perf");
+pass("performance");
+
+</code></pre>
+
+
+            <h2 id="functions">Fibers</h2>
+                    <pre class="code-example"><code><span class="example-label"></span>
+def patrol() {
+    var count = 0;
+    while (count < 10) {
+        write("Patrol tick {}\n", count);
+        yield(100);  // Suspende 100ms
+        count++;
+    }
+    print("Patrol done!");
+}
+
+def attack() {
+    var count = 0;
+    while (count < 5) 
+    {
+        write("Attack tick {}\n", count);
+        yield(200);  // Suspende 200ms
+        count++;
+    }
+    print("Attack done!");
+}
+
+process enemy() {
+    x = 100;
+    
+    fiber patrol();  // Fiber 1
+    fiber attack();  // Fiber 2
+    
+    // Fiber 0 (main) continua aqui
+    var i = 0;
+    while (i < 2000) {
+       // write("Main fiber: x={}\n", x);
+        x++;
+        frame;
+        i++;
+    }
+}
+
+struct State {
+    var x, y;
+};
+
+def teste(state) 
+{
+    while (true) 
+    {
+    print("A");
+    state.x = state.x + 1;  
+    yield(100);
+    print("B");
+    state.y = state.y + 1;
+    yield(100);
+    }
+}
+
+process enemy2() 
+{
+    var state = State(1, 1);
+    
+    fiber teste(state);   
+   
+    
+    while (true) 
+    {
+        write("{} {}\n", state.x, state.y);
+        frame;
+    }
+}
+
+enemy2();
+
+enemy();
+ </code></pre>
+
+
+            <h2 id="classes">Classes & Object-Oriented Programming</h2>
+            <p>BuLang supports class-based OOP with methods and inheritance:</p>
+            <pre class="code-example"><code><span class="example-label"></span>
+// Class definition 
+class Player 
+{
+    def init(name, health) 
+    {
+        this.name = name
+        this.health = health
+    }
+
+    def take_damage(amount) 
+    {
+        this.health = this.health - amount
+    }
+
+    def heal(amount) {
+        this.health = this.health + amount
+    }
+
+    def status() {
+        print(this.name + " - HP: " + this.health)
+    }
+}
+
+// Using classes
+player = Player.new("Hero", 100)
+player.take_damage(20)
+player.status()  // Hero - HP: 80
+
+
+
+class Builder {
+    var x, y;
+    
+    def init() {
+        self.x = 0;
+        self.y = 0;
+    }
+    
+    def setX(v) {
+        self.x = v;
+        return self;
+    }
+    
+    def setY(v) {
+        self.y = v;
+        return self;
+    }
+}
+
+var b = Builder();
+b.setX(10).setY(20);
+print(b.x);  // 10
+print(b.y);  // 20
+
+
+class A {
+    var a;
+    def init() { 
+        print("A.init()");
+        self.a = 1; 
+    }
+    def show() { print("Level A: " + self.a); }
+}
+
+class B : A {
+    var b;
+    def init() { 
+        print("B.init()");
+        super.init();
+        self.b = 2; 
+    }
+    def show() { 
+        print("Level B: " + self.b);
+        super.show();
+    }
+}
+
+class C : B {
+    var c;
+    def init() {
+        print("C.init()");
+        super.init();
+        self.c = 3;
+    }
+    def show() { 
+        print("Level C: " + self.c);
+        super.show();
+    }
+}
+
+class D : C {
+    var d;
+    def init() {
+        print("D.init()");
+        super.init();
+        self.d = 4;
+    }
+    def show() { 
+        print("Level D: " + self.d);
+        super.show();
+    }
+}
+
+class E : D {
+    var e;
+    def init() {
+        print("E.init()");
+        super.init();
+        self.e = 5;
+    }
+    def show() { 
+        print("Level E: " + self.e);
+        super.show();
+    }
+}
+
+class F : E {
+    var f;
+    def init() {
+        print("F.init()");
+        super.init();
+        self.f = 6;
+    }
+    def show() { 
+        print("Level F: " + self.f);
+        super.show();
+    }
+}
+
+ 
+
+print("Creating F...");
+var f = F();
+
+print("\nCalling f.show():");
+f.show();
+
+print("\nAccessing all fields:");
+print("f.a = " + f.a);
+print("f.b = " + f.b);
+print("f.c = " + f.c);
+print("f.d = " + f.d);
+print("f.e = " + f.e);
+print("f.f = " + f.f);
+
+</code></pre>
+
+            <h2 id="processes">Processes - Cooperative Multitasking</h2>
+            <p>BuLang's unique process system allows you to handle thousands of concurrent tasks efficiently:</p>
+            <pre class="code-example"><code><span class="example-label">// Process example</span>
+process enemy_behavior(enemy_id) {
+    while true {
+        // Do something
+        print("Enemy " + enemy_id + " acting")
+        
+        // Yield to next frame
+        frame
+        
+        // Decision making
+        if some_condition {
+            break
+        }
+    }
+}
+
+// Spawn processes
+ enemy_behavior(1)
+ enemy_behavior(2)
+ enemy_behavior(3)</code></pre>
+
+            <div class="note">
+                <strong>Note:</strong> Processes use <span class="code-inline">frame</span> to pause execution and resume in the next update cycle. This enables smooth game loop integration.
+            </div>
+
+            <h2 id="raylib">Raylib Integration</h2>
+            <p>BuLang integrates seamlessly with Raylib for 2D/3D graphics:</p>
+            <pre class="code-example"><code><span class="example-label">// Simple Raylib game loop</span>
+def main() 
+{
+    InitWindow(800, 600, "BuLang Game");
+    SetTargetFPS(60);
+
+    var red = Color(255,0,0,255); // native raylib color
+    var blue = Color(0,0,255,255);
+
+    while not WindowShouldClose() 
+    {
+        BeginDrawing();
+        ClearBackground(blue);
+        
+        // Draw rectangle
+        DrawRectangle(100, 100, 50, 50, red);
+        
+        EndDrawing();
+    }
+
+    CloseWindow();
+}
+
+main()</code></pre>
+
+            <h2 id="api-reference">API Reference</h2>
+
+            <h3>Core Functions</h3>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Function</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                         <tr>
+                            <td><span class="code-inline">frame</span></td>
+                            <td>Pause process until next update</td>
+                        </tr>
+                        <tr>
+                            <td><span class="code-inline">yield</span></td>
+                            <td>Pause function until next update</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="social-links">
+                <a href="https://github.com/akadjoker/bulang" target="_blank">GitHub</a>
+            </div>
+            <p>&copy; 2025 BuLang. Made with ❤️ for game developers. MIT License.</p>
+        </div>
+    </footer>
+</body>
+</html>

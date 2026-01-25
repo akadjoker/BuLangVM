@@ -1,232 +1,174 @@
-#include <iostream>
-#include <string>
-#include <cmath>
+// ============================================
+// BuLang Web - Main Entry Point
+// Executa scripts .bu com raylib no browser
+// ============================================
+
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
+#ifdef __EMSCRIPTEN__
 #include <emscripten.h>
-#include <emscripten/bind.h>
-#include "platform.hpp"
+#endif
+
 #include "interpreter.hpp"
+#include "bindings.hpp"  // RaylibBindings
 #include "Outputcapture.h"
-#include "webapi.h"
-#include "random.hpp"
 
-OutputCapture *g_currentOutput = nullptr;
-
- 
- 
-Value native_rand(Interpreter *vm, int argCount, Value *args)
-{
-
-    if (argCount == 0)
-    {
-        return vm->makeDouble(RandomGenerator::instance().randFloat());
-    }
-    else if (argCount == 1)
-    {
-        double value = args[0].isInt() ? (double)args[0].asInt() : args[0].asDouble();
-        return vm->makeDouble(RandomGenerator::instance().randFloat(0, value));
-    }
-    else
-    {
-        double min = args[0].isInt() ? (double)args[0].asInt() : args[0].asDouble();
-        double max = args[1].isInt() ? (double)args[1].asInt() : args[1].asDouble();
-        return vm->makeDouble(RandomGenerator::instance().randFloat(min, max));
-    }
-    return vm->makeNil();
-}
-
-
-static void valueToString(const Value &v, std::string &out)
-{
-    char buffer[256];
-
-    switch (v.type)
-    {
-    case ValueType::NIL:
-        out += "nil";
-        break;
-    case ValueType::BOOL:
-        out += v.as.boolean ? "true" : "false";
-        break;
-    case ValueType::BYTE:
-        snprintf(buffer, 256, "%u", v.as.byte);
-        out += buffer;
-        break;
-    case ValueType::INT:
-        snprintf(buffer, 256, "%d", v.as.integer);
-        out += buffer;
-        break;
-    case ValueType::UINT:
-        snprintf(buffer, 256, "%u", v.as.unsignedInteger);
-        out += buffer;
-        break;
-    case ValueType::FLOAT:
-        snprintf(buffer, 256, "%.2f", v.as.real);
-        out += buffer;
-        break;
-    case ValueType::DOUBLE:
-        snprintf(buffer, 256, "%.2f", v.as.number);
-        out += buffer;
-        break;
-    case ValueType::STRING:
-        out += v.as.string->chars();
-        break;
-    case ValueType::ARRAY:
-        out += "[array]";
-        break;
-    case ValueType::MAP:
-        out += "{map}";
-        break;
-    default:
-        out += "<object>";
-    }
-}
-
-
-
-Value native_ticks(Interpreter *vm, int argCount, Value *args)
-{
-    if (argCount != 1 || args[0].type != ValueType::DOUBLE)
-    {
-        vm->runtimeError("ticks expects double as argument");
-        return vm->makeNil();
-    }
-    vm->update(args[0].asDouble());
-    return vm->makeNil();
-}
-
-
-Value native_format(Interpreter *vm, int argCount, Value *args)
-{
-    if (argCount < 1 || args[0].type != ValueType::STRING)
-    {
-        vm->runtimeError("format expects string as first argument");
-        return vm->makeNil();
-    }
-
-  
-
-    const char *fmt = args[0].as.string->chars();
-    std::string result;
-    int argIndex = 1;
-
-    for (int i = 0; fmt[i] != '\0'; i++)
-    {
-        if (fmt[i] == '{' && fmt[i + 1] == '}')
-        {
-            if (argIndex < argCount)
-            {
-                valueToString(args[argIndex++], result);
-            }
-            i++;
-        }
-        else
-        {
-            result += fmt[i];
-        }
-    }
-
-    return vm->makeString(result.c_str());
-}
-
-Value native_write(Interpreter *vm, int argCount, Value *args)
-{
-    if (argCount < 1 || args[0].type != ValueType::STRING)
-    {
-        vm->runtimeError("write expects string as first argument");
-        return vm->makeNil();
-    }
-
-    const char *fmt = args[0].as.string->chars();
-    std::string result;
-    int argIndex = 1;
-
-    for (int i = 0; fmt[i] != '\0'; i++)
-    {
-        if (fmt[i] == '{' && fmt[i + 1] == '}')
-        {
-            if (argIndex < argCount)
-            {
-                valueToString(args[argIndex++], result);
-            }
-            i++;
-        }
-        else
-        {
-            result += fmt[i];
-        }
-    }
-
-    OsPrintf("%s", result.c_str());
-    return vm->makeNil();
-}
-
- 
 // ============================================
-// Execute Code (exposto ao JS)
+// Globals
 // ============================================
+static Interpreter* g_vm = nullptr;
 
-std::string executeCode(const std::string &code)
+// Required by platform.cpp for Emscripten builds
+OutputCapture* g_currentOutput = nullptr;
+
+// ============================================
+// File Loader para includes
+// ============================================
+struct FileLoaderContext
 {
-    OutputCapture output;
-    g_currentOutput = &output; // Ativa captura - OsPrintf vai usar isto!
+    const char* searchPaths[8];
+    int pathCount;
+    char fullPath[512];
+    char buffer[1024 * 1024];
+};
 
+static FileLoaderContext g_fileCtx;
+
+const char* multiPathFileLoader(const char* filename, size_t* outSize, void* userdata)
+{
+    FileLoaderContext* ctx = (FileLoaderContext*)userdata;
+
+    for (int i = 0; i < ctx->pathCount; i++)
+    {
+        snprintf(ctx->fullPath, sizeof(ctx->fullPath),
+                 "%s/%s", ctx->searchPaths[i], filename);
+
+        FILE* f = fopen(ctx->fullPath, "rb");
+        if (!f)
+        {
+            continue;
+        }
+
+        fseek(f, 0, SEEK_END);
+        long size = ftell(f);
+
+        if (size <= 0)
+        {
+            fclose(f);
+            continue;
+        }
+
+        if (size >= (long)sizeof(ctx->buffer))
+        {
+            fprintf(stderr, "File too large: %s (%ld bytes)\n", ctx->fullPath, size);
+            fclose(f);
+            *outSize = 0;
+            return nullptr;
+        }
+
+        fseek(f, 0, SEEK_SET);
+        size_t bytesRead = fread(ctx->buffer, 1, size, f);
+        fclose(f);
+
+        if (bytesRead != (size_t)size)
+        {
+            continue;
+        }
+
+        ctx->buffer[bytesRead] = '\0';
+        printf("Loaded: %s (%zu bytes)\n", ctx->fullPath, bytesRead);
+
+        *outSize = bytesRead;
+        return ctx->buffer;
+    }
+
+    fprintf(stderr, "File not found: %s\n", filename);
+    for (int i = 0; i < ctx->pathCount; i++)
+    {
+        fprintf(stderr, "  - %s/%s\n", ctx->searchPaths[i], filename);
+    }
+
+    *outSize = 0;
+    return nullptr;
+}
+
+// ============================================
+// Helper: Read file
+// ============================================
+static char* readFile(const char* path)
+{
+    FILE* file = fopen(path, "rb");
+    if (!file)
+    {
+        fprintf(stderr, "Could not open: %s\n", path);
+        return nullptr;
+    }
+
+    fseek(file, 0, SEEK_END);
+    size_t size = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    char* buffer = (char*)malloc(size + 1);
+    if (!buffer)
+    {
+        fclose(file);
+        return nullptr;
+    }
+
+    size_t read = fread(buffer, 1, size, file);
+    buffer[read] = '\0';
+    fclose(file);
+
+    return buffer;
+}
+
+// ============================================
+// Main
+// ============================================
+int main(int argc, char* argv[])
+{
+    printf("=== BuLang Web ===\n");
+
+    // Criar interpretador
     Interpreter vm;
- 
-    vm.registerNative("write", native_write, -1);
-    vm.registerNative("format", native_format, -1);
-    vm.registerNative("ticks", native_ticks, 1);
-    vm.registerNative("rand", native_rand, 1);
-    
-    registerWebNatives(&vm);
+    g_vm = &vm;
 
-    std::string result;
+    // Registar builtins e raylib
+    vm.registerAll();
+    RaylibBindings::registerAll(vm);
+    printf("Raylib module registered\n");
 
-    try
+    // Configurar file loader para includes
+    // No Emscripten, os assets ficam em /assets (via --preload-file)
+    g_fileCtx.searchPaths[0] = "/assets";
+    g_fileCtx.searchPaths[1] = "/assets/demos";
+    g_fileCtx.searchPaths[2] = ".";
+    g_fileCtx.pathCount = 3;
+    vm.setFileLoader(multiPathFileLoader, &g_fileCtx);
+
+    // Carregar e executar script principal
+    const char* scriptPath = "/assets/main.bu";
+    printf("Loading: %s\n", scriptPath);
+
+    char* source = readFile(scriptPath);
+    if (!source)
     {
-
-        if (!vm.run(code.c_str(), false))
-        {
-
-            std::string compileError = output.getOutput();
-            if (compileError.empty())
-            {
-                result = "❌ Compilation Error";
-            }
-            else
-            {
-                result = compileError;
-            }
-        }
-        else
-        {
-            // Sucesso
-            result = output.getOutput();
-            if (result.empty())
-            {
-                result = "✓ Executed successfully (no output)";
-            }
-        }
-    }
-    catch (const std::exception &e)
-    {
-
-        result = std::string("❌ Runtime Error: ") + e.what();
-        std::string vmOutput = output.getOutput();
-        if (!vmOutput.empty())
-        {
-            result += ": \n" + vmOutput;
-        }
+        fprintf(stderr, "Failed to read: %s\n", scriptPath);
+        return 1;
     }
 
-    g_currentOutput = nullptr;
-    return result;
-}
+    if (!vm.run(source, false))
+    {
+        fprintf(stderr, "Script error\n");
+        free(source);
+        return 1;
+    }
 
-// ============================================
-// Embind Bindings
-// ============================================
+    free(source);
+    printf("Script completed\n");
 
-EMSCRIPTEN_BINDINGS(bulang_playground)
-{
-    emscripten::function("executeCode", &executeCode);
+    g_vm = nullptr;
+    return 0;
 }

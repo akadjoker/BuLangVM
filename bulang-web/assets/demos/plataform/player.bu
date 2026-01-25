@@ -1,0 +1,182 @@
+// ============================================
+// PLAYER CLASS - Platformer character
+// ============================================
+
+class Player {
+    var x, y;
+    var velocityX, velocityY;
+    var width, height;
+    var grounded;
+    var jumpCount;
+    var maxJumps;
+    var color;
+    var facing;
+    
+    def init(startX, startY) {
+        self.x = startX;
+        self.y = startY;
+        self.velocityX = 0;
+        self.velocityY = 0;
+        self.width = 28;
+        self.height = 44;
+        self.grounded = false;
+        self.jumpCount = 0;
+        self.maxJumps = 2;
+        self.color = GREEN;
+        self.facing = 1;
+    }
+    
+    def handleInput() {
+        var moveInput = 0;
+        
+        // Horizontal movement
+        if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) {
+            moveInput = 1;
+            self.facing = 1;
+        } else if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) {
+            moveInput = -1;
+            self.facing = -1;
+        }
+        
+        // Apply movement with acceleration
+        if (moveInput != 0) {
+            self.velocityX = moveInput * MOVE_SPEED;
+        } else {
+            // Apply friction
+            self.velocityX = self.velocityX * FRICTION;
+            if (abs(self.velocityX) < 0.1) {
+                self.velocityX = 0;
+            }
+        }
+        
+        // Jump
+        if (IsKeyPressed(KEY_SPACE)) {
+            if (self.grounded || self.jumpCount < self.maxJumps) {
+                self.velocityY = JUMP_FORCE;
+                self.jumpCount = self.jumpCount + 1;
+                self.grounded = false;
+            }
+        }
+    }
+    
+    def applyGravity() {
+        self.velocityY = self.velocityY + GRAVITY;
+        
+        // Terminal velocity
+        if (self.velocityY > MAX_FALL_SPEED) {
+            self.velocityY = MAX_FALL_SPEED;
+        }
+    }
+    
+    def moveX() {
+        self.x = self.x + self.velocityX;
+    }
+    
+    def moveY() {
+        self.y = self.y + self.velocityY;
+    }
+    
+    def checkCollisionX(platforms) {
+        for (var i = 0; i < platforms.length(); i++) {
+            var platform = platforms[i];
+            
+            if (self.checkOverlap(platform)) {
+                if (self.velocityX > 0) {
+                    // Moving right - push left
+                    self.x = platform.x - self.width;
+                } else if (self.velocityX < 0) {
+                    // Moving left - push right
+                    self.x = platform.x + platform.width;
+                }
+                self.velocityX = 0;
+            }
+        }
+    }
+    
+    def checkCollisionY(platforms) {
+        self.grounded = false;
+        
+        for (var i = 0; i < platforms.length(); i++) {
+            var platform = platforms[i];
+            
+            if (self.checkOverlap(platform)) {
+                if (self.velocityY > 0) {
+                    // Falling down - land on platform
+                    self.y = platform.y - self.height;
+                    self.velocityY = 0;
+                    self.grounded = true;
+                    self.jumpCount = 0;
+                } else if (self.velocityY < 0) {
+                    // Moving up - hit ceiling
+                    self.y = platform.y + platform.height;
+                    self.velocityY = 0;
+                }
+            }
+        }
+    }
+    
+    def checkOverlap(platform) {
+        return self.x < platform.x + platform.width &&
+               self.x + self.width > platform.x &&
+               self.y < platform.y + platform.height &&
+               self.y + self.height > platform.y;
+    }
+    
+    def checkBounds() {
+        // Left wall
+        if (self.x < 0) {
+            self.x = 0;
+            self.velocityX = 0;
+        }
+        
+        // Right wall
+        if (self.x + self.width > SCREEN_WIDTH) {
+            self.x = SCREEN_WIDTH - self.width;
+            self.velocityX = 0;
+        }
+        
+        // Death plane
+        if (self.y > SCREEN_HEIGHT + 50) {
+            self.respawn();
+        }
+    }
+    
+    def respawn() {
+        self.x = 100;
+        self.y = 100;
+        self.velocityX = 0;
+        self.velocityY = 0;
+    }
+    
+    def update(platforms) {
+        self.handleInput();
+        self.applyGravity();
+        
+        // Move and check collisions separately for each axis
+        self.moveX();
+        self.checkCollisionX(platforms);
+        
+        self.moveY();
+        self.checkCollisionY(platforms);
+        
+        self.checkBounds();
+    }
+    
+    def draw() {
+        // Body
+        DrawRectangle(self.x, self.y, self.width, self.height, self.color);
+        
+        // Eyes
+        var eyeOffset = 7;
+        if (self.facing < 0) {
+            eyeOffset = 15;
+        }
+        DrawRectangle(self.x + eyeOffset, self.y + 10, 5, 5, BLACK);
+        DrawRectangle(self.x + eyeOffset + 9, self.y + 10, 5, 5, BLACK);
+        
+        // Grounded indicator (debug)
+        if (self.grounded) {
+            DrawCircle(self.x + 14, self.y - 8, 3, GREEN);
+        }
+    }
+}

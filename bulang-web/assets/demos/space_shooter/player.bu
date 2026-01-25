@@ -1,0 +1,186 @@
+// ============================================
+// PLAYER - Space ship
+// ============================================
+
+class SpaceShip {
+    var x, y;
+    var width, height;
+    var speed;
+    var bullets;
+    var shootCooldown;
+    var cooldownTimer;
+ 
+    
+    def init(x, y) {
+        self.x = x;
+        self.bullets = [];  
+        self.y = y;
+        self.width = 40;
+        self.height = 50;
+        self.speed = 5;
+        self.shootCooldown = 10;  // Frames entre tiros
+        self.cooldownTimer = 0;
+    }
+
+ 
+
+def shootSpread() {
+    var i = 0;
+    while (i < 50) {
+        var bullet = Bullet(self.x + self.width / 2, self.y - 10);
+     
+         self.bullets.push(bullet);
+        i = i + 1;
+    }
+}
+
+    
+    def handleInput() {
+        // Movimento horizontal
+        if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) {
+            self.x = self.x + self.speed;
+        }
+        if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) {
+            self.x = self.x - self.speed;
+        }
+        
+        // Movimento vertical
+        if (IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) {
+            self.y = self.y - self.speed;
+        }
+        if (IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) {
+            self.y = self.y + self.speed;
+        }
+
+        
+        
+        // Limites
+        if (self.x < 0) { self.x = 0; }
+        if (self.x > 760) { self.x = 760; }
+        if (self.y < 0) { self.y = 0; }
+        if (self.y > 400) { self.y = 400; }
+        
+        // Disparar
+        if (self.cooldownTimer > 0) {
+            self.cooldownTimer = self.cooldownTimer - 1;
+        }
+        
+        if (IsKeyDown(KEY_B)) 
+        {
+            //self.shoot();
+            self.shootSpread();  // BOOM! 50 balas!
+            
+        }
+        if (IsKeyDown(KEY_SPACE) && self.cooldownTimer == 0) 
+        {
+            self.shoot();
+ 
+            self.cooldownTimer = self.shootCooldown;
+        }
+    }
+    
+    def shoot() 
+    {
+        // Cria bala no centro da nave
+        var bulletX = self.x + self.width / 2 - 2;
+        var bulletY = self.y - 10;
+        var bullet = Bullet(bulletX, bulletY);
+        self.bullets.push(bullet);
+    }
+    
+    def updateBullets() 
+    {
+        // Atualiza todas as balas
+        for (var i = 0; i < self.bullets.length(); i++) 
+        {
+            var bullet = self.bullets[i];
+            bullet.update();
+           
+        }
+        
+        // Remove balas inativas (SWAP AND POP!)
+        var i = 0;
+        while (i < self.bullets.length()) 
+        {
+            var bullet = self.bullets[i];
+            if (!bullet.active) 
+            {
+                // Swap com última e pop
+                var lastIndex = self.bullets.length() - 1;
+                if (i != lastIndex) 
+                {
+                    self.bullets[i] = self.bullets[lastIndex];
+                }
+                self.bullets.pop();
+            } else 
+            {
+                i = i + 1;
+            }
+        }
+    }
+    
+    def update() 
+    {
+        self.handleInput();
+        self.updateBullets();
+    }
+    
+    def draw() 
+    {
+        // Nave verde
+        var GREEN = Color(50, 255, 100, 255);
+        var DARK_GREEN = Color(30, 180, 70, 255);
+        
+        // Corpo
+        DrawRectangle(self.x, self.y, self.width, self.height, GREEN);
+        
+        // Cockpit
+        DrawRectangle(self.x + 15, self.y + 10, 10, 15, DARK_GREEN);
+        
+        // Asas
+        DrawRectangle(self.x - 10, self.y + 20, 10, 20, GREEN);
+        DrawRectangle(self.x + 40, self.y + 20, 10, 20, GREEN);
+        
+        // Balas
+        for (var i = 0; i < self.bullets.length(); i++) 
+        {
+            self.bullets[i].draw();
+        }
+    }
+    
+    def getBulletCount() 
+    {
+        return self.bullets.length();
+    }
+// def checkBulletCollisions(enemies) {
+//     for (var i = 0; i < self.bullets.length(); i++) {
+//         for (var j = 0; j < enemies.length(); j++) {
+//             if (enemies[j].checkCollisionWithBullet(self.bullets[i])) {
+//                 self.bullets[i].active = false;
+//                 enemies[j].hit();
+//                 break;  // 
+//             }
+//         }
+//     }
+// }
+    def checkBulletCollisions(enemies) 
+    {
+        for (var i = 0; i < self.bullets.length(); i++) 
+        {
+            var bullet = self.bullets[i];
+            
+            for (var j = 0; j < enemies.length(); j++) 
+            {
+                var enemy = enemies[j];
+                
+                if (enemy.checkCollisionWithBullet(bullet)) 
+                {
+                    bullet.active = false;
+                    enemy.hit();
+                    
+                    break;         
+                }
+            }
+        }
+    }
+}
