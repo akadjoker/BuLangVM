@@ -3930,8 +3930,19 @@ op_super_invoke:
     }
     else
     {
-        // Métodos normais
-        if (!ownerClass->superclass->methods.get(methodName, &method))
+        // Métodos normais - procura na cadeia de herança
+        method = nullptr;
+        ClassDef *searchClass = ownerClass->superclass;
+        while (searchClass)
+        {
+            if (searchClass->methods.get(methodName, &method))
+            {
+                break;
+            }
+            searchClass = searchClass->superclass;
+        }
+        
+        if (!method)
         {
             runtimeError("Undefined method '%s'", methodName->chars());
             return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};

@@ -1,0 +1,29 @@
+class Object {
+    def update() {
+        print("Object.update");
+    }
+}
+
+class Sprite : Object {
+    // TEM override
+    def update() {
+        super.update();
+        print("Sprite.update");
+    }
+}
+
+class Particle : Sprite {
+    // TEM override
+    def update() {
+        super.update();
+        print("Particle.update");
+    }
+}
+
+print("=== Test 1: Chamada normal (sem super) ===");
+var spr = Sprite();
+spr.update();  // Chamai .update() direto
+
+print("\n=== Test 2: Particle ===");
+var p = Particle();
+p.update();

@@ -1,0 +1,381 @@
+ 
+
+print("========================================");
+print("   BULANG STRESS & EDGE CASE TESTS");
+print("========================================\n");
+
+ 
+
+// ============================================
+// TEST 1: DEEP RECURSION
+// ============================================
+print("\n[TEST 1] Deep Recursion");
+
+def deepRecursion(n) 
+{
+    if (n <= 0) return 0;
+    return 1 + deepRecursion(n - 1);
+}
+
+var result = deepRecursion(10);
+assert(result == 10, "Deep recursion (10 levels)");
+
+result = deepRecursion(50);
+assert(result == 50, "Very deep recursion (50 levels)");
+
+// ============================================
+// TEST 2: MUTUAL RECURSION
+// ============================================
+print("\n[TEST 2] Mutual Recursion");
+
+ 
+def isEven(n)
+{
+    if (n == 0) return true;
+    return isOdd(n - 1);
+}
+
+def isOdd(n)
+{
+    if (n == 0) return false;
+    return isEven(n - 1);
+}
+
+assert(isEven(10), "Mutual recursion - even");
+assert(!isOdd(10), "Mutual recursion - odd check");
+assert(isOdd(7), "Mutual recursion - odd");
+assert(!isEven(7), "Mutual recursion - even check");
+
+// ============================================
+// TEST 3: LARGE ARRAYS
+// ============================================
+print("\n[TEST 3] Large Arrays");
+
+var bigArray = [];
+for (var i = 0; i < 1000; i++)
+{
+    bigArray.push(i);
+}
+assert(bigArray.length() == 1000, "Large array (1000 elements)");
+assert(bigArray[0] == 0, "Large array first element");
+assert(bigArray[999] == 999, "Large array last element");
+
+// ============================================
+// TEST 4: NESTED ARRAYS
+// ============================================
+print("\n[TEST 4] Nested Arrays");
+
+var matrix = [[1, 2], [3, 4], [5, 6]];
+assert(matrix[0][0] == 1, "Nested array [0][0]");
+assert(matrix[1][1] == 4, "Nested array [1][1]");
+assert(matrix[2][0] == 5, "Nested array [2][0]");
+
+// ============================================
+// TEST 5: LARGE MAPS
+// ============================================
+print("\n[TEST 5] Large Maps");
+
+var bigMap = {};
+for (var i = 0; i < 100; i++)
+{
+    var key = "key" + i;
+    bigMap[key] = i * 2;
+}
+
+assert(bigMap["key0"] == 0, "Large map key0");
+assert(bigMap["key50"] == 100, "Large map key50");
+assert(bigMap["key99"] == 198, "Large map key99");
+
+// ============================================
+// TEST 6: MANY FUNCTION CALLS
+// ============================================
+print("\n[TEST 6] Many Function Calls");
+
+def noop()
+{
+    return 1;
+}
+
+var callCount = 0;
+for (var i = 0; i < 1000; i++)
+{
+    callCount = callCount + noop();
+}
+assert(callCount == 1000, "1000 function calls");
+
+// ============================================
+// TEST 7: MANY CLASS INSTANCES
+// ============================================
+print("\n[TEST 7] Many Class Instances");
+
+class Particle
+{
+    var x, y;
+    def init(x, y)
+    {
+        self.x = x;
+        self.y = y;
+    }
+}
+
+var particles = [];
+for (var i = 0; i < 100; i++)
+{
+    particles.push(Particle(i, i * 2));
+}
+
+assert(particles.length() == 100, "100 instances created");
+assert(particles[0].x == 0, "First instance x");
+assert(particles[99].x == 99, "Last instance x");
+assert(particles[50].y == 100, "Middle instance y");
+
+// ============================================
+// TEST 8: COMPLEX INHERITANCE CHAIN
+// ============================================
+print("\n[TEST 8] Complex Inheritance Chain");
+
+class A
+{
+    var a;
+    def init() { self.a = 1; }
+    def getA() { return self.a; }
+}
+
+class B : A
+{
+    var b;
+    def init()
+    {
+        super.init();
+        self.b = 2; 
+    }
+    def getB() { return self.b; }
+}
+
+class C : B
+{
+    var c;
+    def init()
+    {
+        super.init();
+        self.c = 3;
+    }
+    def getC() { return self.c; }
+    def getSum() { return self.a + self.b + self.c; }
+}
+
+var obj = C();
+assert(obj.a == 1, "Three-level inheritance field a");
+assert(obj.b == 2, "Three-level inheritance field b");
+assert(obj.c == 3, "Three-level inheritance field c");
+assert(obj.getA() == 1, "Three-level inheritance method A");
+assert(obj.getB() == 2, "Three-level inheritance method B");
+assert(obj.getC() == 3, "Three-level inheritance method C");
+assert(obj.getSum() == 6, "Three-level inheritance combined");
+
+// ============================================
+// TEST 9: ZERO AND NEGATIVE NUMBERS
+// ============================================
+print("\n[TEST 9] Zero and Negative Numbers");
+
+assert(0 == 0, "Zero equality");
+assert(-5 == -5, "Negative equality");
+assert(-5 + 5 == 0, "Negative + positive");
+assert(-5 * -2 == 10, "Negative * negative");
+assert(-10 / 2 == -5, "Negative division");
+assert(0 * 1000 == 0, "Zero multiplication");
+assert(0 / 1 == 0, "Zero division");
+
+// ============================================
+// TEST 10: BOUNDARY CONDITIONS
+// ============================================
+print("\n[TEST 10] Boundary Conditions");
+
+var arr = [1, 2, 3];
+assert(arr[-1] == 3, "Array negative index -1");
+assert(arr[-2] == 2, "Array negative index -2");
+assert(arr[-3] == 1, "Array negative index -3");
+
+// ============================================
+// TEST 11: EMPTY STRUCTURES
+// ============================================
+print("\n[TEST 11] Empty Structures");
+
+var emptyArr = [];
+assert(emptyArr.length() == 0, "Empty array length");
+
+var emptyMap = {};
+// Can't easily test empty map without has() method
+
+// ============================================
+// TEST 12: STRING EDGE CASES
+// ============================================
+print("\n[TEST 12] String Edge Cases");
+
+var empty = "";
+assert(empty + "test" == "test", "Empty string concatenation");
+assert("a" + "" == "a", "Concatenate empty");
+
+var spaces = "   ";
+assert(spaces == "   ", "String with spaces");
+
+// ============================================
+// TEST 13: BOOLEAN EDGE CASES
+// ============================================
+print("\n[TEST 13] Boolean Edge Cases");
+
+assert(true && true, "true && true");
+assert(!(true && false), "true && false");
+assert(!(false && true), "false && true");
+assert(!(false && false), "false && false");
+
+assert(true || true, "true || true");
+assert(true || false, "true || false");
+assert(false || true, "false || true");
+assert(!(false || false), "false || false");
+
+assert(!false, "!false");
+assert(!!true, "!!true");
+assert(!!!false, "!!!false");
+
+// ============================================
+// TEST 14: SHORT-CIRCUIT EVALUATION
+// ============================================
+print("\n[TEST 14] Short-Circuit Evaluation");
+
+var sideEffect = 0;
+
+def causeEffect()
+{
+    sideEffect = sideEffect + 1;
+    return true;
+}
+
+// AND short-circuit
+sideEffect = 0;
+var r1 = false && causeEffect();
+assert(sideEffect == 0, "AND short-circuits on false");
+
+sideEffect = 0;
+var r2 = true && causeEffect();
+assert(sideEffect == 1, "AND evaluates second on true");
+
+// OR short-circuit
+sideEffect = 0;
+var r3 = true || causeEffect();
+assert(sideEffect == 0, "OR short-circuits on true");
+
+sideEffect = 0;
+var r4 = false || causeEffect();
+assert(sideEffect == 1, "OR evaluates second on false");
+
+// ============================================
+// TEST 15: OPERATOR PRECEDENCE COMPLEX
+// ============================================
+print("\n[TEST 15] Operator Precedence Complex");
+
+assert(2 + 3 * 4 == 14, "Precedence: + and *");
+assert(10 - 2 * 3 == 4, "Precedence: - and *");
+assert(20 / 4 + 3 == 8, "Precedence: / and +");
+assert(2 * 3 + 4 * 5 == 26, "Precedence: multiple *");
+assert((2 + 3) * (4 + 5) == 45, "Precedence: parentheses");
+
+// ============================================
+// TEST 16: MIXED TYPE OPERATIONS
+// ============================================
+print("\n[TEST 16] Mixed Type Operations");
+
+assert(5 + 3.5 == 8.5, "Int + float");
+assert(10.5 - 3 == 7.5, "Float - int");
+assert(2.5 * 4 == 10, "Float * int");
+assert(10 / 2.5 == 4, "Int / float");
+
+// ============================================
+// TEST 17: LOOP INSIDE FUNCTION INSIDE LOOP
+// ============================================
+print("\n[TEST 17] Loop inside Function inside Loop");
+
+def innerLoop(n)
+{
+    var sum = 0;
+    for (var i = 0; i < n; i++)
+    {
+        sum = sum + i;
+    }
+    return sum;
+}
+
+var total = 0;
+for (var j = 1; j <= 5; j++)
+{
+    total = total + innerLoop(j);
+}
+assert(total == 20, "Nested loop structures");
+
+// ============================================
+// TEST 18: CLASS METHOD CALLING OTHER METHOD
+// ============================================
+print("\n[TEST 18] Class Method Calling Other Method");
+
+class Calculator
+{
+    var value;
+    
+    def init(v)
+    {
+        self.value = v;
+    }
+    
+    def double()
+    {
+        return self.value * 2;
+    }
+    
+    def quadruple()
+    {
+        return self.double() * 2;
+    }
+}
+
+var calc = Calculator(5);
+assert(calc.double() == 10, "Method call");
+assert(calc.quadruple() == 20, "Method calling method");
+
+// ============================================
+// TEST 19: RECURSIVE CLASS METHODS
+// ============================================
+print("\n[TEST 19] Recursive Class Methods");
+
+class RecursiveClass
+{
+    def factorial(n)
+    {
+        if (n <= 1) return 1;
+        return n * self.factorial(n - 1);
+    }
+}
+
+var rc = RecursiveClass();
+assert(rc.factorial(5) == 120, "Recursive class method");
+
+// ============================================
+// TEST 20: SCOPE SHADOWING
+// ============================================
+print("\n[TEST 20] Scope Shadowing");
+
+var x = 10;
+{
+    var x = 20;
+    assert(x == 20, "Inner scope shadows");
+}
+assert(x == 10, "Outer scope unchanged");
+
+def shadowTest()
+{
+    var x = 30;
+    return x;
+}
+assert(shadowTest() == 30, "Function scope shadows");
+assert(x == 10, "Global still unchanged");
+
+ 
