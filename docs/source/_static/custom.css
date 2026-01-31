@@ -1,8 +1,0 @@
-:root { --bulang-cyan: #00d9ff; --bulang-pink: #ff006e; }
-.wy-side-nav-search { background: linear-gradient(135deg, #0a0e27, #151932) !important; border-bottom: 2px solid var(--bulang-cyan); }
-.wy-side-nav-search > a { color: var(--bulang-cyan) !important; }
-.wy-menu-vertical li.current > a { color: var(--bulang-cyan); border-left: 3px solid var(--bulang-cyan); }
-a { color: var(--bulang-cyan); }
-a:hover { color: var(--bulang-pink); }
-h1, h2, h3 { color: var(--bulang-cyan) !important; }
-code.literal { background-color: #1a1f3a; color: var(--bulang-cyan); }
