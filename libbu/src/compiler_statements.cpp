@@ -23,6 +23,10 @@ void Compiler::declaration()
     {
         funDeclaration();
     }
+    else if (match(TOKEN_PROCESS))
+    {
+        processDeclaration();
+    }
     else if (match(TOKEN_VAR))
     {
         varDeclaration();
@@ -67,6 +71,22 @@ void Compiler::statement()
     if (check(TOKEN_IDENTIFIER) && peek(0).type == TOKEN_COLON)
     {
         labelStatement();
+    }
+    else if (match(TOKEN_FRAME))
+    {
+        frameStatement();
+    }
+    else if (match(TOKEN_YIELD))
+    {
+        yieldStatement();
+    }
+    else if (match(TOKEN_FIBER))
+    {
+        fiberStatement();
+    }
+    else if (match(TOKEN_EXIT))
+    {
+        exitStatement();
     }
     else if (match(TOKEN_PRINT))
     {
@@ -633,6 +653,19 @@ void Compiler::namedVariable(Token &name, bool canAssign)
         setOp = OP_SET_GLOBAL;
         handle_assignment(getOp, setOp, arg, canAssign);
         return;
+    }
+
+    // === 4. PRIVATE (fallback para variáveis de processo) ===
+    if (isProcess_)
+    {
+        arg = (int)vm_->getProcessPrivateIndex(name.lexeme.c_str());
+        if (arg != -1)
+        {
+            getOp = OP_GET_PRIVATE;
+            setOp = OP_SET_PRIVATE;
+            handle_assignment(getOp, setOp, arg, canAssign);
+            return;
+        }
     }
 
     // === 5. Fallback final: assume GLOBAL (será criado ou erro em runtime) ===
@@ -1330,6 +1363,13 @@ void Compiler::foreachStatement()
 void Compiler::returnStatement()
 {
 
+    if (isProcess_)
+    {
+        consume(TOKEN_SEMICOLON, "Expect ';'"); // quando usamo gosub nos processos
+        emitByte(OP_RETURN_SUB);
+        return;
+    }
+
     if (function == nullptr)
     {
         error("Can't return from top-level code");
@@ -1494,7 +1534,7 @@ void Compiler::funDeclaration()
     }
 
     // Compila função
-    compileFunction(func);
+    compileFunction(func, false); // false = não é process
 
     // Verifica se tem upvalues
     if (func->upvalueCount > 0)
@@ -1527,7 +1567,78 @@ void Compiler::funDeclaration()
     }
 }
 
-void Compiler::compileFunction(Function *func)
+void Compiler::processDeclaration()
+{
+    consume(TOKEN_IDENTIFIER, "Expect process name");
+    Token nameToken = previous;
+    isProcess_ = true;
+    argNames.clear();
+
+    validateIdentifierName(nameToken);
+    if (hadError)
+    {
+        return;
+    }
+
+    // Warning("Compiling process '%s'", nameToken.lexeme.c_str());
+
+    // Cria função para o process
+
+    Function *func = vm_->addFunction(nameToken.lexeme.c_str(), 0);
+
+    if (!func)
+    {
+        error("Function already exists");
+        return;
+    }
+
+    // Compila processo
+    numFibers_ = 1;
+    compileFunction(func, true); // true = É PROCESS!
+
+    // Cria blueprint (process não vai para globals como callable)
+    ProcessDef *proc = vm_->addProcess(nameToken.lexeme.c_str(), func, numFibers_);
+    currentProcess = proc;
+
+    for (uint32 i = 0; i < argNames.size(); i++)
+    {
+        int privateIndex = vm_->getProcessPrivateIndex(argNames[i]->chars());
+
+        if (privateIndex >= 0)
+        {
+            if (privateIndex == (int)PrivateIndex::ID)
+            {
+                Warning("Property 'ID' is readonly!");
+            }
+            else if (privateIndex == (int)PrivateIndex::FATHER)
+            {
+                Warning("Property 'FATHER' is readonly!");
+            }
+            else
+            {
+                proc->argsNames.push((uint8)privateIndex);
+            }
+        }
+        else
+        {
+
+            proc->argsNames.push(255); // Marcador "sem private"
+        }
+    }
+    argNames.clear();
+
+    // Warning("Process '%s' registered with index %d and %d fibers", nameToken.lexeme.c_str(), proc->index, numFibers_);
+
+    emitConstant(vm_->makeProcess(proc->index));
+    uint8 nameConstant = identifierConstant(nameToken);
+    defineVariable(nameConstant);
+
+    proc->finalize();
+
+    isProcess_ = false;
+}
+
+void Compiler::compileFunction(Function *func, bool isProcess)
 {
     // ========================================
     // SALVA ESTADO
@@ -1536,6 +1647,7 @@ void Compiler::compileFunction(Function *func)
     Code *enclosingChunk = this->currentChunk;
     int enclosingScopeDepth = this->scopeDepth;
     int enclosingLocalCount = this->localCount_;
+    bool wasInProcess = this->isProcess_;
     int savedUpvalueCount = this->upvalueCount_;
 
     // Guarda o tamanho da stack (para restaurar depois)
@@ -1567,6 +1679,7 @@ void Compiler::compileFunction(Function *func)
     this->scopeDepth = 0;
     this->localCount_ = 0;
     this->upvalueCount_ = 0;
+    this->isProcess_ = isProcess;
     labels.clear();
     pendingGotos.clear();
     pendingGosubs.clear();
@@ -1583,10 +1696,13 @@ void Compiler::compileFunction(Function *func)
     beginScope();
     consume(TOKEN_LPAREN, "Expect '(' after name");
 
-    Token dummyToken;
-    dummyToken.lexeme = func->name->chars();
-    addLocal(dummyToken);
-    markInitialized();
+    if (!isProcess)
+    {
+        Token dummyToken;
+        dummyToken.lexeme = func->name->chars();
+        addLocal(dummyToken);
+        markInitialized();
+    }
 
     if (!check(TOKEN_RPAREN))
     {
@@ -1600,6 +1716,10 @@ void Compiler::compileFunction(Function *func)
             }
 
             consume(TOKEN_IDENTIFIER, "Expect parameter name");
+            if (isProcess)
+            {
+                argNames.push(vm_->createString(previous.lexeme.c_str()));
+            }
             addLocal(previous);
             markInitialized();
 
@@ -1640,6 +1760,7 @@ void Compiler::compileFunction(Function *func)
     this->currentChunk = enclosingChunk;
     this->scopeDepth = enclosingScopeDepth;
     this->localCount_ = enclosingLocalCount;
+    this->isProcess_ = wasInProcess;
     this->upvalueCount_ = savedUpvalueCount;
 
     while (enclosingStack_.size() > savedStackSize)
@@ -1775,14 +1896,26 @@ void Compiler::prefixIncrement(bool canAssign)
         emitBytes(OP_SET_PROPERTY, nameIdx);
     }
     // -----------------------------------------------------------
-    // CENÁRIO B: É uma VARIÁVEL (++i, ++upvalue)
+    // CENÁRIO B: É uma VARIÁVEL (++i, ++upvalue, ++private)
     // -----------------------------------------------------------
     else
     {
         uint8 getOp, setOp;
         int arg = -1; // Marcador para saber se encontrámos
 
-        // 1. Tenta LOCAL
+        // 1. Tenta PRIVATE (Se for Process e a variável for privada)
+        if (isProcess_)
+        {
+            int index = (int)vm_->getProcessPrivateIndex(name.lexeme.c_str());
+            if (index != -1)
+            {
+                arg = index;
+                getOp = OP_GET_PRIVATE;
+                setOp = OP_SET_PRIVATE;
+            }
+        }
+
+        // 2. Tenta LOCAL (Se não achou private)
         if (arg == -1)
         {
             arg = resolveLocal(name);
@@ -1793,7 +1926,7 @@ void Compiler::prefixIncrement(bool canAssign)
             }
         }
 
-        // 2. Tenta UPVALUE (Se não achou local)
+        // 3. Tenta UPVALUE (Se não achou local) -> ISTO FALTAVA!
         if (arg == -1)
         {
             arg = resolveUpvalue(name);
@@ -1870,7 +2003,19 @@ void Compiler::prefixDecrement(bool canAssign)
         uint8 getOp, setOp;
         int arg = -1;
 
-        // 1. Tenta LOCAL
+        // 1. Tenta PRIVATE
+        if (isProcess_)
+        {
+            int index = (int)vm_->getProcessPrivateIndex(name.lexeme.c_str());
+            if (index != -1)
+            {
+                arg = index;
+                getOp = OP_GET_PRIVATE;
+                setOp = OP_SET_PRIVATE;
+            }
+        }
+
+        // 2. Tenta LOCAL
         if (arg == -1)
         {
             arg = resolveLocal(name);
@@ -1881,7 +2026,7 @@ void Compiler::prefixDecrement(bool canAssign)
             }
         }
 
-        // 2. Tenta UPVALUE (CRÍTICO!)
+        // 3. Tenta UPVALUE (CRÍTICO!)
         if (arg == -1)
         {
             arg = resolveUpvalue(name);
@@ -1907,6 +2052,54 @@ void Compiler::prefixDecrement(bool canAssign)
         emitBytes(setOp, (uint8)arg);           // [new_value] (SET usa PEEK, não remove!)
         // SET já deixa o new_value na stack
     }
+}
+
+void Compiler::frameStatement()
+{
+    // if (!isProcess_)
+    // {
+    //     error("'frame' can only be used in process body");
+    //     return;
+    // }
+
+    if (match(TOKEN_LPAREN))
+    {
+        // frame(expression)
+        expression(); // Percentagem vai para stack
+        consume(TOKEN_RPAREN, "Expect ')' after percentage");
+    }
+    else
+    {
+        // frame; = frame(100);
+        emitBytes(OP_CONSTANT, makeConstant(vm_->makeInt(100)));
+    }
+
+    consume(TOKEN_SEMICOLON, "Expect ';' after frame");
+    emitByte(OP_FRAME);
+}
+
+void Compiler::exitStatement()
+{
+    if (!isProcess_)
+    {
+        error("'exit' can only be used in process body");
+        return;
+    }
+
+    if (match(TOKEN_LPAREN))
+    {
+        // exit(expression)
+        expression();
+        consume(TOKEN_RPAREN, "Expect ')' after exit code");
+    }
+    else
+    {
+        // exit;
+        emitConstant(vm_->makeInt(0));
+    }
+
+    consume(TOKEN_SEMICOLON, "Expect ';' after exit");
+    emitByte(OP_EXIT);
 }
 
 void Compiler::includeStatement()
@@ -2111,6 +2304,58 @@ void Compiler::parseRequire()
     consume(TOKEN_SEMICOLON, "Expect ';' after require");
 }
 
+void Compiler::yieldStatement()
+{
+
+    if (match(TOKEN_LPAREN))
+    {
+        expression(); // Percentagem vai para stack
+        consume(TOKEN_RPAREN, "Expect ')' after percentage");
+    }
+    else
+    {
+
+        emitBytes(OP_CONSTANT, makeConstant(vm_->makeDouble(1.0)));
+    }
+
+    consume(TOKEN_SEMICOLON, "Expect ';' after yild");
+    emitByte(OP_YIELD);
+}
+
+void Compiler::fiberStatement()
+{
+    consume(TOKEN_IDENTIFIER, "Expect function name after 'fiber'.");
+    Token nameToken = previous;
+
+    namedVariable(nameToken, false); // empilha callee
+
+    consume(TOKEN_LPAREN, "Expect '(' after fiber function name.");
+
+    uint8 argCount = 0;
+
+    if (!check(TOKEN_RPAREN))
+    {
+        do
+        {
+            expression();
+
+            if (argCount == 255)
+            {
+                error("Can't have more than 255 arguments");
+            }
+            argCount++;
+        } while (match(TOKEN_COMMA));
+    }
+
+    consume(TOKEN_RPAREN, "Expect ')' after arguments");
+    // Warning("Compiling fiber call to '%s' with %d arguments", nameToken.lexeme.c_str(), argCount);
+
+    consume(TOKEN_SEMICOLON, "Expect ';' after fiber call.");
+
+    emitByte(OP_SPAWN);
+    emitByte(argCount);
+    numFibers_ += 1;
+}
 
 void Compiler::dot(bool canAssign)
 {
@@ -2316,6 +2561,7 @@ void Compiler::gosubStatement()
 
 void Compiler::structDeclaration()
 {
+    isProcess_ = false;
     consume(TOKEN_IDENTIFIER, "Expect struct name");
     Token structName = previous;
     uint8_t nameConstant = identifierConstant(structName);
@@ -2397,6 +2643,7 @@ void Compiler::structDeclaration()
 void Compiler::self(bool canAssign)
 {
     (void)canAssign;
+    isProcess_ = false;
     if (currentClass == nullptr)
     {
         error("Cannot use 'self' outside of a class");
@@ -2411,6 +2658,7 @@ void Compiler::self(bool canAssign)
 void Compiler::super(bool canAssign)
 {
     (void)canAssign;
+    isProcess_ = false;
     if (currentClass == nullptr)
     {
         error("Cannot use 'super' outside of a class");
@@ -2449,6 +2697,7 @@ void Compiler::super(bool canAssign)
 
 void Compiler::classDeclaration()
 {
+    isProcess_ = false;
     consume(TOKEN_IDENTIFIER, "Expect class name");
     Token className = previous;
     uint8_t nameConstant = identifierConstant(className);
@@ -2619,6 +2868,7 @@ void Compiler::classDeclaration()
 
 void Compiler::method(ClassDef *classDef)
 {
+    isProcess_ = false;
     consume(TOKEN_IDENTIFIER, "Expect method name");
     Token methodName = previous;
 
@@ -2727,6 +2977,7 @@ void Compiler::method(ClassDef *classDef)
 
 void Compiler::tryStatement()
 {
+    isProcess_ = false;
     consume(TOKEN_LBRACE, "Expect '{' after 'try'");
 
     if (tryDepth >= MAX_TRY_DEPTH)

@@ -1,3 +1,0 @@
-var p = nil;
-print(p);
-p = p + 1;

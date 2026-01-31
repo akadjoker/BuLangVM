@@ -673,13 +673,15 @@ void Interpreter::resetFiber()
 
 Function *Interpreter::compile(const char *source)
 {
-  Function *mainFunc = compiler->compile(source);
+  ProcessDef *proc = compiler->compile(source);
+  Function *mainFunc = proc->fibers[0].frames[0].func;
   return mainFunc;
 }
 
 Function *Interpreter::compileExpression(const char *source)
 {
-  Function *mainFunc = compiler->compileExpression(source);
+  ProcessDef *proc = compiler->compileExpression(source);
+  Function *mainFunc = proc->fibers[0].frames[0].func;
   return mainFunc;
 }
 
@@ -687,8 +689,8 @@ bool Interpreter::run(const char *source, bool _dump)
 {
   reset();
 
-  Function *mainFunc = compiler->compile(source);
-  if (!mainFunc)
+  ProcessDef *proc = compiler->compile(source);
+  if (!proc)
   {
     return false;
   }
@@ -696,15 +698,18 @@ bool Interpreter::run(const char *source, bool _dump)
   if (_dump)
   {
     disassemble();
-    // Debug::dumpFunction(mainFunc);
+    // Function *mainFunc = proc->fibers[0].frames[0].func;
+    //   Debug::dumpFunction(mainFunc);
   }
 
-  // Inicializa mainFiber com a função compilada
-  initFiber(&mainFiber, mainFunc);
-  currentFiber = &mainFiber;
+  mainProcess = spawnProcess(proc);
+  currentProcess = mainProcess;
 
-  // Executa a fiber principal
-  run_fiber(&mainFiber);
+  Fiber *fiber = &mainProcess->fibers[0];
+
+  //  Debug::disassembleChunk(*fiber->frames[0].func->chunk,"#main");
+
+  run_fiber(fiber, mainProcess);
 
   return !hasFatalError_;
 }
@@ -712,8 +717,8 @@ bool Interpreter::compile(const char *source, bool dump)
 {
   reset();
 
-  Function *mainFunc = compiler->compile(source);
-  if (!mainFunc)
+  ProcessDef *proc = compiler->compile(source);
+  if (!proc)
   {
     return false;
   }
@@ -721,7 +726,8 @@ bool Interpreter::compile(const char *source, bool dump)
   if (dump)
   {
     disassemble();
-    // Debug::dumpFunction(mainFunc);
+    // Function *mainFunc = proc->fibers[0].frames[0].func;
+    //   Debug::dumpFunction(mainFunc);
   }
 
   return !hasFatalError_;
@@ -950,7 +956,7 @@ Value Interpreter::createClassInstance(ClassDef *klass, int argCount, Value *arg
     // Executa o constructor
     while (fiber->frameCount > savedFrameCount)
     {
-      FiberResult result = run_fiber(fiber);
+      FiberResult result = run_fiber(fiber, proc);
       if (result.reason == FiberResult::FIBER_DONE || result.reason == FiberResult::ERROR)
       {
         break;

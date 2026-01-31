@@ -668,7 +668,6 @@ class Interpreter
   float accumulator = 0.0f;
   const float FIXED_DT = 1.0f / 60.0f;
 
-  Fiber mainFiber;  // [LITE] Main fiber for single-threaded execution
   Fiber *currentFiber;
   Process *currentProcess;
   Process *mainProcess;
@@ -1056,7 +1055,8 @@ public:
   bool functionExists(const char *name);
   int registerFunction(const char *name, Function *func);
 
-  FiberResult run_fiber(Fiber *fiber);
+  void run_process_step(Process *proc);
+  FiberResult run_fiber(Fiber *fiber, Process *proc);
 
   float getCurrentTime() const;
 

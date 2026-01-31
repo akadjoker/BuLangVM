@@ -91,6 +91,11 @@ enum TokenType
     TOKEN_PRINT,
  
 
+    TOKEN_PROCESS,
+    TOKEN_FRAME,
+    TOKEN_EXIT,
+    TOKEN_FIBER,
+    TOKEN_YIELD,
     TOKEN_LEN,
     TOKEN_FREE,
 

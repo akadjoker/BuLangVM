@@ -396,16 +396,16 @@ op_set_local:
 
 op_get_private:
 {
-    // [LITE] Process private variables not supported
-    runtimeError("Process-specific private variable access not supported in VM Lite");
-    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    uint8 index = READ_BYTE();
+    PUSH(process->privates[index]);
+    DISPATCH();
 }
 
 op_set_private:
 {
-    // [LITE] Process private variables not supported
-    runtimeError("Process-specific private variable assignment not supported in VM Lite");
-    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    uint8 index = READ_BYTE();
+    process->privates[index] = PEEK();
+    DISPATCH();
 }
 
 op_get_global:
@@ -1026,14 +1026,68 @@ op_call:
     }
 
     // ========================================
-    // PATH 3: PROCESS [LITE]
+    // PATH 3: PROCESS
     // ========================================
     else if (callee.isProcess())
     {
-        // [LITE] Process spawning not supported
-        runtimeError("Process spawning not supported in VM Lite");
-        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
-    }
+        int index = callee.asProcessId();
+        ProcessDef *blueprint = processes[index];
+
+        if (!blueprint)
+        {
+            runtimeError("Invalid process");
+            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+        }
+
+        Function *processFunc = blueprint->fibers[0].frames[0].func;
+
+        if (argCount != processFunc->arity)
+        {
+            runtimeError("Process expected %d arguments but got %d",
+                         processFunc->arity, argCount);
+            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+        }
+
+        // SPAWN - clona blueprint
+        Process *instance = spawnProcess(blueprint);
+
+        // Se tem argumentos, inicializa locals da fiber
+        if (argCount > 0)
+        {
+            Fiber *procFiber = &instance->fibers[0];
+
+            for (int i = 0; i < argCount; i++)
+            {
+                procFiber->stack[i] = fiber->stackTop[-(argCount - i)];
+                if (blueprint->argsNames.size() > 0)
+                {
+                    uint8 idx = blueprint->argsNames[i];
+                    if (idx != 255)
+                    {
+                        instance->privates[idx] = procFiber->stack[i];
+                    }
+                }
+            }
+
+            procFiber->stackTop = procFiber->stack + argCount;
+        }
+
+        // Remove callee + args da stack atual
+        fiber->stackTop -= (argCount + 1);
+
+        instance->privates[(int)PrivateIndex::ID] = makeInt(instance->id);
+        instance->privates[(int)PrivateIndex::FATHER] = makeProcess(process->id);
+
+        if (hooks.onStart)
+        {
+            hooks.onStart(instance);
+        }
+
+        // Push ID do processo criado
+        PUSH(makeInt(instance->id));
+
+        //  Não criou frame no current fiber!
+        DISPATCH();
     }
 
     // ========================================
@@ -1372,7 +1426,14 @@ op_return:
 
         fiber->state = FiberState::DEAD;
 
-        // [LITE] No process/fiber management in Lite
+        if (fiber == &process->fibers[0])
+        {
+            for (int i = 0; i < process->nextFiberIndex; i++)
+            {
+                process->fibers[i].state = FiberState::DEAD;
+            }
+            process->state = FiberState::DEAD;
+        }
 
         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
     }
@@ -1400,23 +1461,101 @@ op_yield:
 
 op_frame:
 {
-    // [LITE] Frame control not supported
-    runtimeError("Frame control not supported in VM Lite");
-    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    Value value = POP();
+    int percent = value.isInt() ? value.asInt() : (int)value.asDouble();
+
+    STORE_FRAME();
+    return {FiberResult::PROCESS_FRAME, instructionsRun, 0, percent};
 }
 
 op_exit:
 {
-    // [LITE] Process exit not supported
-    runtimeError("Process exit not supported in VM Lite");
+    Value exitCode = POP();
+
+    // Define exit code (int ou 0)
+    process->exitCode = exitCode.isInt() ? exitCode.asInt() : 0;
+
+    // Mata o processo
+    process->state = FiberState::DEAD;
+
+    // Mata todas as fibers (incluindo a atual)
+
+    for (int i = 0; i < process->totalFibers; i++)
+    {
+        Fiber *f = &process->fibers[i];
+        f->state = FiberState::DEAD;
+        f->frameCount = 0;
+        f->ip = nullptr;
+        f->stackTop = f->stack; // stack limpa
+    }
+
+    // (Opcional) deixa o exitCode no topo da fiber atual para debug
+    fiber->stackTop = fiber->stack;
+    *fiber->stackTop++ = exitCode;
+
+    STORE_FRAME();
     return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
 }
 
 op_spawn:
 {
-    // [LITE] Fiber spawning not supported
-    runtimeError("Fiber spawning not supported in VM Lite");
-    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    uint8 argCount = READ_BYTE();
+    Value callee = NPEEK(argCount);
+
+    if (!process)
+    {
+        runtimeError("No current process for spawn");
+        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    }
+    if (process->nextFiberIndex >= process->totalFibers)
+    {
+        runtimeError("Too many fibers in process (max %d)", process->totalFibers);
+        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    }
+    if (!callee.isFunction())
+    {
+        runtimeError("fiber expects a function");
+        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    }
+
+    int funcIndex = callee.asFunctionId();
+    Function *func = functions[funcIndex];
+    if (!func)
+    {
+        runtimeError("Invalid function");
+        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    }
+    if (argCount != func->arity)
+    {
+        runtimeError("Expected %d arguments but got %d", func->arity, argCount);
+        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+    }
+
+    int fiberIdx = process->nextFiberIndex++;
+    Fiber *newFiber = &process->fibers[fiberIdx];
+
+    newFiber->state = FiberState::RUNNING;
+    newFiber->resumeTime = 0;
+    newFiber->stackTop = newFiber->stack;
+    newFiber->frameCount = 0;
+
+    newFiber->stack[0] = callee; // Slot 0 = Função
+
+    for (int i = 0; i < argCount; i++)
+    {
+        newFiber->stack[i + 1] = fiber->stackTop[-(argCount - i)];
+    }
+    newFiber->stackTop = newFiber->stack + argCount + 1;
+
+    CallFrame *frame = &newFiber->frames[newFiber->frameCount++];
+    frame->func = func;
+    frame->closure = nullptr;
+    frame->ip = func->chunk->code;
+    frame->slots = newFiber->stack;
+
+    fiber->stackTop -= (argCount + 1);
+    PUSH(makeInt(fiberIdx));
+    DISPATCH();
 }
 
     // ========== DEBUG ==========
@@ -1508,12 +1647,30 @@ op_get_property:
     }
     else
 
-        // === PROCESS PRIVATES (external access) [LITE] ===
+        // === PROCESS PRIVATES (external access) ===
         if (object.isProcess())
         {
-            // [LITE] Process-specific property access not supported
-            runtimeError("Process-specific property access not supported in VM Lite");
-            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+
+            int processId = object.asProcessId();
+
+            Process *proc = aliveProcesses[processId];
+            if (!proc)
+            {
+                runtimeError("Process '%i' is dead or invalid", processId);
+                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            }
+            int privateIdx = getProcessPrivateIndex(name);
+            if (privateIdx != -1)
+            {
+                PUSH(proc->privates[privateIdx]);
+            }
+            else
+            {
+                runtimeError("Proces  does not support '%s' property access", name);
+                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            }
+
+            DISPATCH();
         }
         else
 
@@ -1613,47 +1770,47 @@ op_get_property:
                 PUSH(makeNil());
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
-            char *base = (char *)inst->data;
-            char *ptr = base + field.offset;
+                                char *base = (char *)inst->data;
+                    char *ptr = base + field.offset;
 
-            Value result;
-            switch (field.type)
-            {
-            case FieldType::BYTE:
-            {
-                result = makeByte(*(uint8 *)ptr);
-                break;
-            }
-            case FieldType::INT:
-                result = makeInt(*(int *)ptr);
-                break;
+                    Value result;
+                    switch (field.type)
+                    {
+                    case FieldType::BYTE:
+                    {
+                        result = makeByte(*(uint8 *)ptr);
+                        break;
+                    }
+                    case FieldType::INT:
+                        result = makeInt(*(int *)ptr);
+                        break;
 
-            case FieldType::UINT:
-                result = makeUInt(*(uint32 *)ptr);
-                break;
+                    case FieldType::UINT:
+                        result = makeUInt(*(uint32 *)ptr);
+                        break;
 
-            case FieldType::FLOAT:
-                result = makeFloat(*(float *)ptr);
-                break;
-            case FieldType::DOUBLE:
-                result = makeDouble(*(double *)ptr);
-                break;
+                    case FieldType::FLOAT:
+                        result = makeFloat(*(float *)ptr);
+                        break;
+                    case FieldType::DOUBLE:
+                        result = makeDouble(*(double *)ptr);
+                        break;
 
-            case FieldType::BOOL:
-                result = makeBool(*(bool *)ptr);
-                break;
+                    case FieldType::BOOL:
+                        result = makeBool(*(bool *)ptr);
+                        break;
 
-            case FieldType::POINTER:
-                result = makePointer(*(void **)ptr);
-                break;
+                    case FieldType::POINTER:
+                        result = makePointer(*(void **)ptr);
+                        break;
 
-            case FieldType::STRING:
-            {
-                String *str = *(String **)ptr;
-                result = str ? makeString(str) : makeNil();
-                break;
-            }
-            }
+                    case FieldType::STRING:
+                    {
+                        String *str = *(String **)ptr;
+                        result = str ? makeString(str) : makeNil();
+                        break;
+                    }
+                    }
 
             DROP(); // Remove object
             PUSH(result);
@@ -1722,11 +1879,35 @@ op_set_property:
         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
     }
 
-    // === PROCESS PRIVATES (external write) [LITE] ===
+    // === PROCESS PRIVATES (external write) ===
     if (object.isProcess())
     {
-        // [LITE] Process-specific property assignment not supported
-        runtimeError("Process-specific property assignment not supported in VM Lite");
+        int processId = object.asProcessId();
+        Process *proc = aliveProcesses[processId];
+
+        if (!proc) // || proc->state == FiberState::DEAD)
+        {
+            runtimeError("Process '%i' is dead or invalid", processId);
+            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+        }
+
+        // Lookup private pelo nome
+        int privateIdx = getProcessPrivateIndex(name);
+        if (privateIdx != -1)
+        {
+            if ((privateIdx == (int)PrivateIndex::ID) || (privateIdx == (int)PrivateIndex::FATHER))
+            {
+                runtimeError("Property '%s' is readonly", name);
+                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            }
+            proc->privates[privateIdx] = value;
+            DROP();      // Remove value
+            DROP();      // Remove process
+            PUSH(value); // Assignment retorna valor
+            DISPATCH();
+        }
+
+        runtimeError("Process has no property '%s'", name);
         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
     }
 
@@ -1842,93 +2023,94 @@ op_set_property:
             DROP();
             return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
         }
-        char *base = (char *)inst->data;
-        char *ptr = base + field.offset;
-        switch (field.type)
-        {
-        case FieldType::BYTE:
-        {
-            if (!value.isByte())
-            {
-               *(uint8 *)ptr = (uint8)value.asNumber();
-               break;
-            }
-            *(uint8 *)ptr = (uint8)value.asByte();
-            break;
-        }
+       char *base = (char *)inst->data;
+                char *ptr = base + field.offset;
+                switch (field.type)
+                {
+                case FieldType::BYTE:
+                {
+                    if (!value.isByte())
+                    {
+                        runtimeError("Field expects byte");
+                        DROP();
+                        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                    }
+                    *(uint8 *)ptr = (uint8)value.asByte();
+                    break;
+                }
 
-        case FieldType::INT:
-            if (!value.isInt())
-            {
-                runtimeError("Field expects int");
-                DROP();
-                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
-            }
-            *(int *)ptr = value.asInt();
-            break;
-        case FieldType::UINT:
-            if (!value.isUInt())
-            {
-                runtimeError("Field expects uint");
-                DROP();
-                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
-            }
-            *(uint32 *)ptr = value.asUInt();
-            break;
-        case FieldType::FLOAT:
-        {
-            if (!value.isFloat())
-            {
-                runtimeError("Field expects float");
-                DROP();
-                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
-            }
-            *(float *)ptr = value.asFloat();
-            break;
-        }
-        case FieldType::DOUBLE:
-            if (!value.isDouble())
-            {
-                runtimeError("Field expects double");
-                DROP();
-                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
-            }
-            *(double *)ptr = value.asDouble();
-            break;
+                case FieldType::INT:
+                    if (!value.isInt())
+                    {
+                        runtimeError("Field expects int");
+                        DROP();
+                        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                    }
+                    *(int *)ptr = value.asInt();
+                    break;
+                case FieldType::UINT:
+                    if (!value.isUInt())
+                    {
+                        runtimeError("Field expects uint");
+                        DROP();
+                        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                    }
+                    *(uint32 *)ptr = value.asUInt();
+                    break;
+                case FieldType::FLOAT:
+                {
+                    if (!value.isNumber())
+                    {
+                        runtimeError("Field expects float");
+                        DROP();
+                        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                    }
+                    *(float *)ptr =(float) value.asNumber();
+                    break;
+                }
+                case FieldType::DOUBLE:
+                    if (!value.isDouble())
+                    {
+                        runtimeError("Field expects double");
+                        DROP();
+                        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                    }
+                    *(double *)ptr = value.asDouble();
+                    break;
 
-        case FieldType::BOOL:
-            if (!value.isBool())
-            {
-                runtimeError("Field expects bool");
-                DROP();
-                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
-            }
-            *(bool *)ptr = value.asBool();
-            break;
+                case FieldType::BOOL:
+                    if (!value.isBool())
+                    {
+                        runtimeError("Field expects bool");
+                        DROP();
+                        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                    }
+                    *(bool *)ptr = value.asBool();
+                    break;
 
-        case FieldType::POINTER:
-            if (!value.isPointer())
-            {
-                runtimeError("Field expects pointer");
-                DROP();
-                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
-            }
-            *(void **)ptr = value.asPointer();
-            break;
+                case FieldType::POINTER:
+                    if (!value.isPointer())
+                    {
+                        runtimeError("Field expects pointer");
+                        DROP();
+                        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                    }
+                    *(void **)ptr = value.asPointer();
+                    break;
 
-        case FieldType::STRING:
-        {
-            if (!value.isString())
-            {
-                runtimeError("Field expects string");
-                DROP();
-                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
-            }
-            String **fieldPtr = (String **)ptr;
-            *fieldPtr = value.asString();
-            break;
-        }
-        }
+                case FieldType::STRING:
+                {
+                    if (!value.isString())
+                    {
+                        runtimeError("Field expects string");
+                        DROP();
+                        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                    }
+                    String **fieldPtr = (String **)ptr;
+                    *fieldPtr = value.asString();
+                    break;
+                }
+                }
 
         // Stack: [obj, value] -> queremos [value]
         DROP(); // Remove value
@@ -4469,7 +4651,14 @@ op_exit_finally:
                     *fiber->stackTop++ = returnValue;
                     fiber->state = FiberState::DEAD;
 
-                    // [LITE] No process/fiber management in Lite
+                    if (fiber == &process->fibers[0])
+                    {
+                        for (int i = 0; i < process->nextFiberIndex; i++)
+                        {
+                            process->fibers[i].state = FiberState::DEAD;
+                        }
+                        process->state = FiberState::DEAD;
+                    }
 
                     STORE_FRAME();
                     return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
@@ -5142,7 +5331,14 @@ op_return_n:
 
         fiber->state = FiberState::DEAD;
 
-        // [LITE] No process/fiber management in Lite
+        if (fiber == &process->fibers[0])
+        {
+            for (int i = 0; i < process->nextFiberIndex; i++)
+            {
+                process->fibers[i].state = FiberState::DEAD;
+            }
+            process->state = FiberState::DEAD;
+        }
 
         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
     }
