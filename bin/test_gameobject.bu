@@ -1,0 +1,10 @@
+// Main game script - all logic here, zero C++ rebuild needed
+include "player.bu";
+include "enemy.bu";
+
+// Create game objects (calls C++ native, registers them in engine)
+var player = createGameObject("Player");
+var enemy1 = createGameObject("Enemy");
+var enemy2 = createGameObject("Enemy");
+
+print("=== Game objects created from script ===");

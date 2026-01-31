@@ -1,0 +1,203 @@
+// Debug AI movement
+require "raylib";
+import math;
+import raylib;
+import file;
+using raylib;
+
+class NeuralNetwork
+{
+    var input_size;
+    var hidden_size;
+    var output_size;
+    
+    var weights_ih;
+    var weights_ho;
+    var bias_h;
+    var bias_o;
+    
+    def init(inputs, hidden, outputs)
+    {
+        self.input_size = inputs;
+        self.hidden_size = hidden;
+        self.output_size = outputs;
+        
+        self.weights_ih = [];
+        for (var i = 0; i < inputs; i = i + 1)
+        {
+            var row = [];
+            for (var j = 0; j < hidden; j = j + 1)
+            {
+                row.push(0);
+            }
+            self.weights_ih.push(row);
+        }
+        
+        self.weights_ho = [];
+        for (var i = 0; i < hidden; i = i + 1)
+        {
+            var row = [];
+            for (var j = 0; j < outputs; j = j + 1)
+            {
+                row.push(0);
+            }
+            self.weights_ho.push(row);
+        }
+        
+        self.bias_h = [];
+        for (var i = 0; i < hidden; i = i + 1)
+        {
+            self.bias_h.push(0);
+        }
+        
+        self.bias_o = [];
+        for (var i = 0; i < outputs; i = i + 1)
+        {
+            self.bias_o.push(0);
+        }
+    }
+    
+    def sigmoid(x)
+    {
+        return 1.0 / (1.0 + exp(-x));
+    }
+    
+    def predict(inputs)
+    {
+        var hidden = [];
+        for (var j = 0; j < self.hidden_size; j = j + 1)
+        {
+            var sum = self.bias_h[j];
+            for (var i = 0; i < self.input_size; i = i + 1)
+            {
+                sum = sum + inputs[i] * self.weights_ih[i][j];
+            }
+            hidden.push(self.sigmoid(sum));
+        }
+        
+        var outputs = [];
+        for (var j = 0; j < self.output_size; j = j + 1)
+        {
+            var sum = self.bias_o[j];
+            for (var i = 0; i < self.hidden_size; i = i + 1)
+            {
+                sum = sum + hidden[i] * self.weights_ho[i][j];
+            }
+            outputs.push(self.sigmoid(sum));
+        }
+        
+        return outputs;
+    }
+    
+    def load_from_file(filename)
+    {
+        var f = file.open(filename, "r");
+        
+        self.input_size = file.read_int(f);
+        self.hidden_size = file.read_int(f);
+        self.output_size = file.read_int(f);
+        
+        print(format("Network: {} -> {} -> {}", self.input_size, self.hidden_size, self.output_size));
+        
+        self.weights_ih = [];
+        for (var i = 0; i < self.input_size; i = i + 1)
+        {
+            var row = [];
+            for (var j = 0; j < self.hidden_size; j = j + 1)
+            {
+                row.push(file.read_double(f));
+            }
+            self.weights_ih.push(row);
+        }
+        
+        self.weights_ho = [];
+        for (var i = 0; i < self.hidden_size; i = i + 1)
+        {
+            var row = [];
+            for (var j = 0; j < self.output_size; j = j + 1)
+            {
+                row.push(file.read_double(f));
+            }
+            self.weights_ho.push(row);
+        }
+        
+        self.bias_h = [];
+        for (var i = 0; i < self.hidden_size; i = i + 1)
+        {
+            self.bias_h.push(file.read_double(f));
+        }
+        
+        self.bias_o = [];
+        for (var i = 0; i < self.output_size; i = i + 1)
+        {
+            self.bias_o.push(file.read_double(f));
+        }
+        
+        file.close(f);
+    }
+}
+
+print("=== AI Debug ===");
+print("");
+
+if (!file.exists("pong_weights.nn"))
+{
+    print("❌ No weights found");
+}
+else
+{
+    print("✅ Loading weights...");
+    var nn = NeuralNetwork(5, 12, 3);
+    nn.load_from_file("pong_weights.nn");
+    
+    print("");
+    print("=== Testing predictions ===");
+    
+    // Test 1: Ball above paddle (should go UP)
+    print("");
+    print("Test 1: Ball ABOVE paddle");
+    var inputs1 = [0.3, 0.1, 0.1, 1.0, -0.5]; // paddle_y=180, ball_y=60
+    var outputs1 = nn.predict(inputs1);
+    print(format("  Outputs: {} {} {}", floor(outputs1[0]*1000)/1000.0, floor(outputs1[1]*1000)/1000.0, floor(outputs1[2]*1000)/1000.0));
+    var max1 = 0;
+    for (var i = 1; i < 3; i = i + 1)
+    {
+        if (outputs1[i] > outputs1[max1]) max1 = i;
+    }
+    print(format("  Max: outputs[{}] = {}", max1, floor(outputs1[max1]*1000)/1000.0));
+    if (max1 == 0) print("  Action: UP ⬆️");
+    if (max1 == 1) print("  Action: DOWN ⬇️");
+    if (max1 == 2) print("  Action: STAY ➡️");
+    
+    // Test 2: Ball below paddle (should go DOWN)
+    print("");
+    print("Test 2: Ball BELOW paddle");
+    var inputs2 = [0.3, 0.1, 0.7, 1.0, 0.5]; // paddle_y=180, ball_y=420
+    var outputs2 = nn.predict(inputs2);
+    print(format("  Outputs: {} {} {}", floor(outputs2[0]*1000)/1000.0, floor(outputs2[1]*1000)/1000.0, floor(outputs2[2]*1000)/1000.0));
+    var max2 = 0;
+    for (var i = 1; i < 3; i = i + 1)
+    {
+        if (outputs2[i] > outputs2[max2]) max2 = i;
+    }
+    print(format("  Max: outputs[{}] = {}", max2, floor(outputs2[max2]*1000)/1000.0));
+    if (max2 == 0) print("  Action: UP ⬆️");
+    if (max2 == 1) print("  Action: DOWN ⬇️");
+    if (max2 == 2) print("  Action: STAY ➡️");
+    
+    // Test 3: Ball at paddle (should STAY)
+    print("");
+    print("Test 3: Ball at SAME height");
+    var inputs3 = [0.5, 0.1, 0.5, 1.0, 0.0]; // paddle_y=300, ball_y=300
+    var outputs3 = nn.predict(inputs3);
+    print(format("  Outputs: {} {} {}", floor(outputs3[0]*1000)/1000.0, floor(outputs3[1]*1000)/1000.0, floor(outputs3[2]*1000)/1000.0));
+    var max3 = 0;
+    for (var i = 1; i < 3; i = i + 1)
+    {
+        if (outputs3[i] > outputs3[max3]) max3 = i;
+    }
+    print(format("  Max: outputs[{}] = {}", max3, floor(outputs3[max3]*1000)/1000.0));
+    if (max3 == 0) print("  Action: UP ⬆️");
+    if (max3 == 1) print("  Action: DOWN ⬇️");
+    if (max3 == 2) print("  Action: STAY ➡️");
+}

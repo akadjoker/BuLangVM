@@ -48,4 +48,10 @@
 
 
 //include "flixe_plataforms.bu";
-include "flixel_shooter.bu"; 
+//include "flixel_shooter.bu"; 
+
+include "newral.bu"; 
+
+
+
+

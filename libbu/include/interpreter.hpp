@@ -198,9 +198,7 @@ struct NativeClassDef
   String *name;
   NativeConstructor constructor;
   NativeDestructor destructor;
-
-  // HashMap<String *, NativeMethod, StringHasher, StringEq> methods;
-  // HashMap<String *, NativeProperty, StringHasher, StringEq> properties;
+  bool persistent;  // Se true, instâncias não são coletadas pelo GC
 
   List<String *, NativeMethod> methods;
   List<String *, NativeProperty> properties;
@@ -222,7 +220,7 @@ struct NativeStructDef
   int id;
   String *name;
   size_t structSize;
-  // HashMap<String *, NativeFieldDef, StringHasher, StringEq> fields;
+  bool persistent;  // Se true, instâncias não são coletadas pelo GC
   List<String *, NativeFieldDef> fields;
   NativeStructCtor constructor; // nullable
   NativeStructDtor destructor;  // nullable
@@ -431,16 +429,18 @@ struct NativeClassInstance : GCObject
 {
   NativeClassDef *klass;
   void *userData;
+  bool persistent;  // Se true, não é coletado pelo GC
 
-  NativeClassInstance() : GCObject(GCObjectType::NATIVE_CLASS) {}
+  NativeClassInstance() : GCObject(GCObjectType::NATIVE_CLASS), persistent(false) {}
 };
 
 struct NativeStructInstance : GCObject
 {
   NativeStructDef *def;
   void *data;
+  bool persistent;  // Se true, não é coletado pelo GC
 
-  NativeStructInstance() : GCObject(GCObjectType::NATIVE_STRUCT) {}
+  NativeStructInstance() : GCObject(GCObjectType::NATIVE_STRUCT), persistent(false) {}
 };
 
 struct Upvalue : GCObject
@@ -883,16 +883,23 @@ class Interpreter
     arena.Free(m, size);
   }
 
-  FORCE_INLINE NativeClassInstance *createNativeClass()
+  FORCE_INLINE NativeClassInstance *createNativeClass(bool persistent = false)
   {
 
     checkGC();
     size_t size = sizeof(NativeClassInstance);
     void *mem = (NativeClassInstance *)arena.Allocate(size); // 32kb
     NativeClassInstance *instance = new (mem) NativeClassInstance();
-    instance->next = gcObjects;
-    gcObjects = instance;
-    totalNativeClasses++;
+    instance->persistent = persistent;
+
+    // Se não for persistent, adiciona ao GC
+    if (!persistent)
+    {
+      instance->next = gcObjects;
+      gcObjects = instance;
+      totalNativeClasses++;
+    }
+
     totalAllocated += size;
 
     return instance;
@@ -913,16 +920,23 @@ class Interpreter
     totalNativeClasses--;
   }
 
-  FORCE_INLINE NativeStructInstance *createNativeStruct()
+  FORCE_INLINE NativeStructInstance *createNativeStruct(bool persistent = false)
   {
     checkGC();
     size_t size = sizeof(NativeStructInstance);
     void *mem = (NativeStructInstance *)arena.Allocate(size); // 32kb
     NativeStructInstance *instance = new (mem) NativeStructInstance();
+    instance->persistent = persistent;
     totalAllocated += size;
-    instance->next = gcObjects;
-    gcObjects = instance;
-    totalNativeStructs++;
+    
+    // Se não for persistent, adiciona ao GC
+    if (!persistent)
+    {
+      instance->next = gcObjects;
+      gcObjects = instance;
+      totalNativeStructs++;
+    }
+
     return instance;
   }
 
@@ -972,7 +986,8 @@ public:
   void setFileLoader(FileLoaderCallback loader, void *userdata = nullptr);
 
   NativeClassDef *registerNativeClass(const char *name, NativeConstructor ctor,
-                                      NativeDestructor dtor, int argCount);
+                                      NativeDestructor dtor, int argCount,
+                                      bool persistent = false);
   void addNativeMethod(NativeClassDef *klass, const char *methodName,
                        NativeMethod method);
   void addNativeProperty(NativeClassDef *klass, const char *propName,
@@ -983,7 +998,8 @@ public:
   Value createNativeStruct(int structId, int argc, Value *args);
   NativeStructDef *registerNativeStruct(const char *name, size_t structSize,
                                         NativeStructCtor ctor = nullptr,
-                                        NativeStructDtor dtor = nullptr);
+                                        NativeStructDtor dtor = nullptr,
+                                        bool persistent = false);
 
   void addStructField(NativeStructDef *def, const char *fieldName,
                       size_t offset, FieldType type, bool readOnly = false);
@@ -1008,6 +1024,10 @@ public:
   // Criar instâncias de classes script a partir do C++
   Value createClassInstance(const char *className, int argCount, Value *args);
   Value createClassInstance(ClassDef *klass, int argCount, Value *args);
+
+  // Create instance WITHOUT calling init() - safe to call from native functions during runtime
+  Value createClassInstanceRaw(const char *className);
+  Value createClassInstanceRaw(ClassDef *klass);
 
   uint32 getTotalProcesses() const;
   uint32 getTotalAliveProcesses() const;
@@ -1052,6 +1072,10 @@ public:
 
   // Call function with automatic name resolution (tries name, then __main__$name)
   bool callFunctionAuto(const char *name, int argCount);
+
+  // Call a method on a class instance from C++
+  // Pushes self + args, sets up the frame, and runs the method
+  bool callMethod(Value instance, const char *methodName, int argCount, Value *args);
 
   Process *callProcess(ProcessDef *proc, int argCount);
   Process *callProcess(const char *name, int argCount);
@@ -1186,7 +1210,15 @@ public:
   {
     Value v;
     v.type = ValueType::NATIVECLASSINSTANCE;
-    v.as.sClassInstance = createNativeClass();
+    v.as.sClassInstance = createNativeClass(false);  // default: não persistent
+    return v;
+  }
+
+  FORCE_INLINE Value makeNativeClassInstance(bool persistent)
+  {
+    Value v;
+    v.type = ValueType::NATIVECLASSINSTANCE;
+    v.as.sClassInstance = createNativeClass(persistent);
     return v;
   }
 
@@ -1225,7 +1257,15 @@ public:
   {
     Value v;
     v.type = ValueType::NATIVESTRUCTINSTANCE;
-    v.as.sNativeStruct = createNativeStruct();
+    v.as.sNativeStruct = createNativeStruct(false);  // default: não persistent
+    return v;
+  }
+
+  FORCE_INLINE Value makeNativeStructInstance(bool persistent)
+  {
+    Value v;
+    v.type = ValueType::NATIVESTRUCTINSTANCE;
+    v.as.sNativeStruct = createNativeStruct(persistent);
     return v;
   }
   FORCE_INLINE Value makeString(const char *str)

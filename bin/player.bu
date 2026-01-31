@@ -1,0 +1,27 @@
+
+class Player : ScriptComponent
+{
+    var speed = 100.0;
+    var name = "Player1";
+
+    def start()
+    {
+        self.x = 10.0;
+        self.y = 20.0;
+        self.speed = 100.0;
+        self.name = "Player1";
+        write("Player.start() - pos: ({}, {})\n", self.x, self.y);
+    }
+
+    def update(dt)
+    {
+        self.x = self.x + self.speed * dt;
+        self.y = self.y + self.speed * dt;
+        write("Player.update(dt={}) - pos: ({}, {})\n", dt, self.x, self.y);
+    }
+
+    def render()
+    {
+        write("Player.render() at ({}, {})\n", self.x, self.y);
+    }
+}

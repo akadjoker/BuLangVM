@@ -38,6 +38,7 @@ add_subdirectory(BuRlGl)
 # add_subdirectory(BuImGui)
 add_subdirectory(bu)
 add_subdirectory(tests)
+add_subdirectory(testCBiding)
 
 
  

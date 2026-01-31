@@ -7,9 +7,298 @@ GLOBAL FUNCTIONS
 ========================================
 
 
+>>> Function: __main__
+    Arity: 0
+    Has return: no
+    Index: 0
+
+  Constants (9):
+    [0] = "Player"
+    [1] = <value type 22>
+    [2] = "Enemy"
+    [3] = <value type 22>
+    [4] = "player"
+    [5] = "createGameObject"
+    [6] = "enemy1"
+    [7] = "enemy2"
+    [8] = "=== Game objects created from script ==="
+
+  Bytecode:
+    0000    2 OP_CONSTANT             1 '<class 0>'
+    0002    | OP_DEFINE_GLOBAL        0 'Player'
+    0004    | OP_CONSTANT             3 '<class 1>'
+    0006    | OP_DEFINE_GLOBAL        2 'Enemy'
+    0008    6 OP_GET_GLOBAL           5 'createGameObject'
+    0010    | OP_CONSTANT             0 'Player'
+    0012    | OP_CALL                 1
+    0014    | OP_DEFINE_GLOBAL        4 'player'
+    0016    7 OP_GET_GLOBAL           5 'createGameObject'
+    0018    | OP_CONSTANT             2 'Enemy'
+    0020    | OP_CALL                 1
+    0022    | OP_DEFINE_GLOBAL        6 'enemy1'
+    0024    8 OP_GET_GLOBAL           5 'createGameObject'
+    0026    | OP_CONSTANT             2 'Enemy'
+    0028    | OP_CALL                 1
+    0030    | OP_DEFINE_GLOBAL        7 'enemy2'
+    0032   10 OP_CONSTANT             8 '=== Game objects created from script ==='
+    0034    | OP_PRINT                1
+    0036   11 OP_NIL              
+    0037    | OP_RETURN           
+
+
 ========================================
 CLASSES
 ========================================
+
+
+>>> Class: Player
+    Index: 0
+    Field count: 2
+    Has superclass: no
+
+    Fields:
+      [0] speed
+      [1] name
+
+    Methods:
+
+    >>> Method: start
+        Arity: 0
+        Has return: yes
+
+      Constants (10):
+        [0] = "x"
+        [1] = 10.00
+        [2] = "y"
+        [3] = 20.00
+        [4] = "speed"
+        [5] = 100.00
+        [6] = "name"
+        [7] = "Player1"
+        [8] = "write"
+        [9] = "Player.start() - pos: ({}, {})
+"
+
+      Bytecode:
+        0000    9 OP_GET_LOCAL            0
+        0002    | OP_CONSTANT             1 '10.0000'
+        0004    | OP_SET_PROPERTY         0 'x'
+        0006    | OP_POP              
+        0007   10 OP_GET_LOCAL            0
+        0009    | OP_CONSTANT             3 '20.0000'
+        0011    | OP_SET_PROPERTY         2 'y'
+        0013    | OP_POP              
+        0014   11 OP_GET_LOCAL            0
+        0016    | OP_CONSTANT             5 '100.0000'
+        0018    | OP_SET_PROPERTY         4 'speed'
+        0020    | OP_POP              
+        0021   12 OP_GET_LOCAL            0
+        0023    | OP_CONSTANT             7 'Player1'
+        0025    | OP_SET_PROPERTY         6 'name'
+        0027    | OP_POP              
+        0028   13 OP_GET_GLOBAL           8 'write'
+        0030    | OP_CONSTANT             9 'Player.start() - pos: ({}, {})'
+        0032    | OP_GET_LOCAL            0
+        0034    | OP_GET_PROPERTY         0 'x'
+        0036    | OP_GET_LOCAL            0
+        0038    | OP_GET_PROPERTY         2 'y'
+        0040    | OP_CALL                 3
+        0042    | OP_POP              
+        0043   14 OP_GET_LOCAL            0
+        0045    | OP_RETURN           
+        0046    | OP_POP              
+
+
+    >>> Method: update
+        Arity: 1
+        Has return: yes
+
+      Constants (5):
+        [0] = "x"
+        [1] = "speed"
+        [2] = "y"
+        [3] = "write"
+        [4] = "Player.update(dt={}) - pos: ({}, {})
+"
+
+      Bytecode:
+        0000   18 OP_GET_LOCAL            0
+        0002    | OP_GET_LOCAL            0
+        0004    | OP_GET_PROPERTY         0 'x'
+        0006    | OP_GET_LOCAL            0
+        0008    | OP_GET_PROPERTY         1 'speed'
+        0010    | OP_GET_LOCAL            1
+        0012    | OP_MULTIPLY         
+        0013    | OP_ADD              
+        0014    | OP_SET_PROPERTY         0 'x'
+        0016    | OP_POP              
+        0017   19 OP_GET_LOCAL            0
+        0019    | OP_GET_LOCAL            0
+        0021    | OP_GET_PROPERTY         2 'y'
+        0023    | OP_GET_LOCAL            0
+        0025    | OP_GET_PROPERTY         1 'speed'
+        0027    | OP_GET_LOCAL            1
+        0029    | OP_MULTIPLY         
+        0030    | OP_ADD              
+        0031    | OP_SET_PROPERTY         2 'y'
+        0033    | OP_POP              
+        0034   20 OP_GET_GLOBAL           3 'write'
+        0036    | OP_CONSTANT             4 'Player.update(dt={}) - pos: ({}, {})'
+        0038    | OP_GET_LOCAL            1
+        0040    | OP_GET_LOCAL            0
+        0042    | OP_GET_PROPERTY         0 'x'
+        0044    | OP_GET_LOCAL            0
+        0046    | OP_GET_PROPERTY         2 'y'
+        0048    | OP_CALL                 4
+        0050    | OP_POP              
+        0051   21 OP_GET_LOCAL            0
+        0053    | OP_RETURN           
+        0054    | OP_POP              
+        0055    | OP_POP              
+
+
+    >>> Method: render
+        Arity: 0
+        Has return: yes
+
+      Constants (4):
+        [0] = "write"
+        [1] = "Player.render() at ({}, {})
+"
+        [2] = "x"
+        [3] = "y"
+
+      Bytecode:
+        0000   25 OP_GET_GLOBAL           0 'write'
+        0002    | OP_CONSTANT             1 'Player.render() at ({}, {})'
+        0004    | OP_GET_LOCAL            0
+        0006    | OP_GET_PROPERTY         2 'x'
+        0008    | OP_GET_LOCAL            0
+        0010    | OP_GET_PROPERTY         3 'y'
+        0012    | OP_CALL                 3
+        0014    | OP_POP              
+        0015   26 OP_GET_LOCAL            0
+        0017    | OP_RETURN           
+        0018    | OP_POP              
+
+
+
+>>> Class: Enemy
+    Index: 1
+    Field count: 1
+    Has superclass: no
+
+    Fields:
+      [0] hp
+
+    Methods:
+
+    >>> Method: start
+        Arity: 0
+        Has return: yes
+
+      Constants (7):
+        [0] = "x"
+        [1] = 50.00
+        [2] = "y"
+        [3] = "hp"
+        [4] = 100
+        [5] = "write"
+        [6] = "Enemy.start() - pos: ({}, {}) hp: {}
+"
+
+      Bytecode:
+        0000    8 OP_GET_LOCAL            0
+        0002    | OP_CONSTANT             1 '50.0000'
+        0004    | OP_SET_PROPERTY         0 'x'
+        0006    | OP_POP              
+        0007    9 OP_GET_LOCAL            0
+        0009    | OP_CONSTANT             1 '50.0000'
+        0011    | OP_SET_PROPERTY         2 'y'
+        0013    | OP_POP              
+        0014   10 OP_GET_LOCAL            0
+        0016    | OP_CONSTANT             4 '100'
+        0018    | OP_SET_PROPERTY         3 'hp'
+        0020    | OP_POP              
+        0021   11 OP_GET_GLOBAL           5 'write'
+        0023    | OP_CONSTANT             6 'Enemy.start() - pos: ({}, {}) hp: {}'
+        0025    | OP_GET_LOCAL            0
+        0027    | OP_GET_PROPERTY         0 'x'
+        0029    | OP_GET_LOCAL            0
+        0031    | OP_GET_PROPERTY         2 'y'
+        0033    | OP_GET_LOCAL            0
+        0035    | OP_GET_PROPERTY         3 'hp'
+        0037    | OP_CALL                 4
+        0039    | OP_POP              
+        0040   12 OP_GET_LOCAL            0
+        0042    | OP_RETURN           
+        0043    | OP_POP              
+
+
+    >>> Method: update
+        Arity: 1
+        Has return: yes
+
+      Constants (6):
+        [0] = "x"
+        [1] = 30.00
+        [2] = "write"
+        [3] = "Enemy.update(dt={}) - pos: ({}, {}) hp: {}
+"
+        [4] = "y"
+        [5] = "hp"
+
+      Bytecode:
+        0000   16 OP_GET_LOCAL            0
+        0002    | OP_GET_LOCAL            0
+        0004    | OP_GET_PROPERTY         0 'x'
+        0006    | OP_CONSTANT             1 '30.0000'
+        0008    | OP_GET_LOCAL            1
+        0010    | OP_MULTIPLY         
+        0011    | OP_SUBTRACT         
+        0012    | OP_SET_PROPERTY         0 'x'
+        0014    | OP_POP              
+        0015   17 OP_GET_GLOBAL           2 'write'
+        0017    | OP_CONSTANT             3 'Enemy.update(dt={}) - pos: ({}, {}) hp: {}'
+        0019    | OP_GET_LOCAL            1
+        0021    | OP_GET_LOCAL            0
+        0023    | OP_GET_PROPERTY         0 'x'
+        0025    | OP_GET_LOCAL            0
+        0027    | OP_GET_PROPERTY         4 'y'
+        0029    | OP_GET_LOCAL            0
+        0031    | OP_GET_PROPERTY         5 'hp'
+        0033    | OP_CALL                 5
+        0035    | OP_POP              
+        0036   18 OP_GET_LOCAL            0
+        0038    | OP_RETURN           
+        0039    | OP_POP              
+        0040    | OP_POP              
+
+
+    >>> Method: render
+        Arity: 0
+        Has return: yes
+
+      Constants (4):
+        [0] = "write"
+        [1] = "Enemy.render() at ({}, {})
+"
+        [2] = "x"
+        [3] = "y"
+
+      Bytecode:
+        0000   22 OP_GET_GLOBAL           0 'write'
+        0002    | OP_CONSTANT             1 'Enemy.render() at ({}, {})'
+        0004    | OP_GET_LOCAL            0
+        0006    | OP_GET_PROPERTY         2 'x'
+        0008    | OP_GET_LOCAL            0
+        0010    | OP_GET_PROPERTY         3 'y'
+        0012    | OP_CALL                 3
+        0014    | OP_POP              
+        0015   23 OP_GET_LOCAL            0
+        0017    | OP_RETURN           
+        0018    | OP_POP              
+
 
 
 ========================================
