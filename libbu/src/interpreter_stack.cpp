@@ -404,7 +404,7 @@ bool Interpreter::callFunction(Function *func, int argCount)
 
     while (currentFiber->frameCount > targetFrames)
     {
-        FiberResult result = run_fiber(currentFiber);
+        FiberResult result = run_fiber(currentFiber,currentProcess);
 
         if (result.reason == FiberResult::ERROR)
         {
@@ -522,7 +522,7 @@ bool Interpreter::callMethod(Value instance, const char *methodName, int argCoun
     // Execute the method
     while (fiber->frameCount > savedFrameCount)
     {
-        FiberResult result = run_fiber(fiber);
+        FiberResult result = run_fiber(fiber, proc);
         if (result.reason == FiberResult::FIBER_DONE || result.reason == FiberResult::ERROR)
         {
             break;
