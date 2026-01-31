@@ -469,6 +469,72 @@ bool Interpreter::callFunctionAuto(const char *name, int argCount)
     return callFunction(func, argCount);
 }
 
+bool Interpreter::callMethod(Value instance, const char *methodName, int argCount, Value *args)
+{
+    if (!instance.isClassInstance())
+    {
+        runtimeError("callMethod: value is not a class instance");
+        return false;
+    }
+
+    ClassInstance *inst = instance.asClassInstance();
+    String *name = createString(methodName);
+    Function *method = nullptr;
+
+    if (!inst->getMethod(name, &method))
+    {
+        // Method not found - not necessarily an error (optional methods like start/render)
+        return false;
+    }
+
+    if (argCount != method->arity)
+    {
+        runtimeError("Method '%s' expects %d arguments, got %d",
+                     methodName, method->arity, argCount);
+        return false;
+    }
+
+    Process *proc = mainProcess;
+    Fiber *fiber = &proc->fibers[0];
+    int savedFrameCount = fiber->frameCount;
+    Value *savedStackTop = fiber->stackTop;
+
+    // Push self (slot 0) + args
+    push(instance);
+    for (int i = 0; i < argCount; i++)
+    {
+        push(args[i]);
+    }
+
+    if (fiber->frameCount >= FRAMES_MAX)
+    {
+        runtimeError("Stack overflow calling method '%s'", methodName);
+        fiber->stackTop = savedStackTop;
+        return false;
+    }
+
+    CallFrame *frame = &fiber->frames[fiber->frameCount++];
+    frame->func = method;
+    frame->closure = nullptr;
+    frame->ip = method->chunk->code;
+    frame->slots = fiber->stackTop - argCount - 1; // self is before args
+
+    // Execute the method
+    while (fiber->frameCount > savedFrameCount)
+    {
+        FiberResult result = run_fiber(fiber, proc);
+        if (result.reason == FiberResult::FIBER_DONE || result.reason == FiberResult::ERROR)
+        {
+            break;
+        }
+    }
+
+    // Restore stack
+    fiber->stackTop = savedStackTop;
+
+    return true;
+}
+
 Process *Interpreter::callProcess(ProcessDef *proc, int argCount)
 {
     if (!proc)

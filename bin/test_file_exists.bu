@@ -1,0 +1,39 @@
+// Teste de file.exists()
+import file;
+
+print("🧪 Teste de file.exists()\n");
+
+// Teste 1: Arquivo que acabamos de criar
+print("1️⃣ Verificando test_weights_dummy.nn (deve existir):");
+if (file.exists("test_weights_dummy.nn"))
+{
+    print("✅ Arquivo existe!");
+}
+else
+{
+    print("❌ Arquivo não encontrado!");
+}
+
+// Teste 2: Arquivo que não existe
+print("\n2️⃣ Verificando arquivo_inexistente.txt:");
+if (file.exists("arquivo_inexistente.txt"))
+{
+    print("❌ Arquivo foi encontrado (erro!)");
+}
+else
+{
+    print("✅ Arquivo não existe (como esperado)");
+}
+
+// Teste 3: Verificar pong_weights.nn
+print("\n3️⃣ Verificando pong_weights.nn:");
+if (file.exists("pong_weights.nn"))
+{
+    print("✅ Arquivo de pesos existe! Pode carregar.");
+}
+else
+{
+    print("⚠️ Arquivo de pesos não existe. Será necessário treinar.");
+}
+
+print("\n✨ Teste concluído!");

@@ -55,6 +55,42 @@ bool toNumberPair(const Value &a, const Value &b, double &da, double &db)
     return true;
 }
 
+static const char* getValueTypeName(const Value &v)
+{
+    switch (v.type)
+    {
+        case ValueType::NIL:                 return "nil";
+        case ValueType::BOOL:                return "bool";
+        case ValueType::CHAR:                return "char";
+        case ValueType::BYTE:                return "byte";
+        case ValueType::INT:                 return "int";
+        case ValueType::UINT:                return "uint";
+        case ValueType::LONG:                return "long";
+        case ValueType::ULONG:               return "ulong";
+        case ValueType::FLOAT:               return "float";
+        case ValueType::DOUBLE:              return "double";
+        case ValueType::STRING:              return "string";
+        case ValueType::ARRAY:               return "array";
+        case ValueType::MAP:                 return "map";
+        case ValueType::BUFFER:              return "buffer";
+        case ValueType::STRUCT:              return "struct";
+        case ValueType::STRUCTINSTANCE:      return "struct instance";
+        case ValueType::FUNCTION:            return "function";
+        case ValueType::NATIVE:              return "native function";
+        case ValueType::NATIVECLASS:         return "native class";
+        case ValueType::NATIVECLASSINSTANCE: return "native class instance";
+        case ValueType::NATIVESTRUCT:        return "native struct";
+        case ValueType::NATIVESTRUCTINSTANCE:return "native struct instance";
+        case ValueType::CLASS:               return "class";
+        case ValueType::CLASSINSTANCE:       return "class instance";
+        case ValueType::PROCESS:             return "process";
+        case ValueType::POINTER:             return "pointer";
+        case ValueType::MODULEREFERENCE:     return "module reference";
+        case ValueType::CLOSURE:             return "closure";
+        default:                             return "unknown";
+    }
+}
+
 FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 {
 
@@ -98,6 +134,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 #define THROW_RUNTIME_ERROR(fmt, ...)                                \
     do                                                               \
     {                                                                \
+        STORE_FRAME();                                               \
         char msgBuffer[256];                                         \
         snprintf(msgBuffer, sizeof(msgBuffer), fmt, ##__VA_ARGS__);  \
                                                                      \
@@ -430,7 +467,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                 break;
             }
 
-            THROW_RUNTIME_ERROR("Operands '+' must be numbers or strings");
+            THROW_RUNTIME_ERROR("Cannot apply '+' to %s and %s", getValueTypeName(a), getValueTypeName(b));
             break;
         }
 
@@ -456,7 +493,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                 break;
             }
 
-            THROW_RUNTIME_ERROR("Operands '-' must be numbers");
+            THROW_RUNTIME_ERROR("Cannot apply '-' to %s and %s", getValueTypeName(a), getValueTypeName(b));
             break;
         }
 
@@ -482,7 +519,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                 break;
             }
 
-            THROW_RUNTIME_ERROR("Operands '*' must be numbers");
+            THROW_RUNTIME_ERROR("Cannot apply '*' to %s and %s", getValueTypeName(a), getValueTypeName(b));
             break;
         }
 
@@ -497,6 +534,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 #define THROW_DIV_ZERO()                                             \
     do                                                               \
     {                                                                \
+        STORE_FRAME();                                               \
         Value error = makeString("Division by zero");                \
         if (throwException(error))                                   \
         {                                                            \
@@ -548,7 +586,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                 break;
             }
 
-            THROW_RUNTIME_ERROR("Operands '/' must be numbers");
+            THROW_RUNTIME_ERROR("Cannot apply '/' to %s and %s", getValueTypeName(a), getValueTypeName(b));
 
         break_switch: // Label para o goto da macro sair do case
             break;
@@ -568,12 +606,13 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 
             if (!a.isNumber() || !b.isNumber())
             {
-                THROW_RUNTIME_ERROR("Operands '%' must be numbers.");
+                THROW_RUNTIME_ERROR("Cannot apply '%%' to %s and %s", getValueTypeName(a), getValueTypeName(b));
             }
 
 #define THROW_MOD_ZERO()                                             \
     do                                                               \
     {                                                                \
+        STORE_FRAME();                                               \
         Value error = makeString("Modulo by zero");                  \
         if (throwException(error))                                   \
         {                                                            \
@@ -1056,7 +1095,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                     runtimeError("Failed to create native '%s' instance", klass->name->chars());
                     return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
                 }
-                Value literal = makeNativeClassInstance();
+                Value literal = makeNativeClassInstance(klass->persistent);
                 // Cria instance wrapper
                 NativeClassInstance *instance = literal.as.sClassInstance;
 
@@ -1083,7 +1122,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                     def->constructor(this, data, argCount, args);
                 }
 
-                Value literal = makeNativeStructInstance();
+                Value literal = makeNativeStructInstance(def->persistent);
                 // Cria instance wrapper
                 NativeStructInstance *instance = literal.as.sNativeStruct;
 
@@ -3825,12 +3864,8 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                     }
             }
 
-            runtimeError("Type does not support method calls");
-
-            printf(": ");
-            printValue(receiver);
-            printf("\n");
-
+            STORE_FRAME();
+            runtimeError("Cannot call method '%s' on %s", name, getValueTypeName(receiver));
             return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
         }
 

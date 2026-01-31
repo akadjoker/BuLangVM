@@ -50,6 +50,26 @@ static void FileModuleCleanup()
 }
 
 // ============================================
+// EXISTS - Verificar se arquivo existe
+// ============================================
+
+int native_file_exists(Interpreter *vm, int argCount, Value *args)
+{
+    if (argCount < 1 || !args[0].isString())
+    {
+        vm->push(vm->makeBool(false));
+        return 1;
+    }
+
+    const char *path = args[0].asStringChars();
+    int fileSize = OsFileSize(path);
+    bool exists = (fileSize >= 0);
+    
+    vm->push(vm->makeBool(exists));
+    return 1;
+}
+
+// ============================================
 // OPEN
 // ============================================
 
@@ -742,6 +762,7 @@ void Interpreter::registerFile()
     }
 
     addModule("file")
+        .addFunction("exists", native_file_exists, 1)
         .addFunction("open", native_file_open, -1)
         .addFunction("save", native_file_save, 1)
         .addFunction("close", native_file_close, 1)

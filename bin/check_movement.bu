@@ -1,0 +1,64 @@
+// Simple test to show if AI moves
+require "raylib";
+import math;
+import raylib;
+import file;
+using raylib;
+
+class SimpleNN
+{
+    var w, b;
+    
+    def init()
+    {
+        self.w = [];
+        self.b = [];
+    }
+    
+    def sigmoid(x)
+    {
+        return 1.0 / (1.0 + exp(-x));
+    }
+    
+    def load_from_file(filename)
+    {
+        var f = file.open(filename, "r");
+        var in_size = file.read_int(f);
+        var hid_size = file.read_int(f);
+        var out_size = file.read_int(f);
+        
+        print(format("Network: {} -> {} -> {}", in_size, hid_size, out_size));
+        
+        self.w = [];
+        for (var i = 0; i < in_size * hid_size; i = i + 1)
+        {
+            self.w.push(file.read_double(f));
+        }
+        
+        for (var i = 0; i < hid_size * out_size; i = i + 1)
+        {
+            self.w.push(file.read_double(f));
+        }
+        
+        self.b = [];
+        for (var i = 0; i < hid_size + out_size; i = i + 1)
+        {
+            self.b.push(file.read_double(f));
+        }
+        
+        file.close(f);
+    }
+}
+
+if (file.exists("pong_weights.nn"))
+{
+    var nn = SimpleNN();
+    nn.load_from_file("pong_weights.nn");
+    print("✅ Weights loaded successfully");
+    print("");
+    print("Now running ./play_trained_ai.bu to see the AI move...");
+}
+else
+{
+    print("❌ No trained model found");
+}

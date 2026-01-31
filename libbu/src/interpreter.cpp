@@ -289,7 +289,8 @@ void Interpreter::setFileLoader(FileLoaderCallback loader, void *userdata)
 NativeClassDef *Interpreter::registerNativeClass(const char *name,
                                                  NativeConstructor ctor,
                                                  NativeDestructor dtor,
-                                                 int argCount)
+                                                 int argCount,
+                                                 bool persistent)
 {
   NativeClassDef *klass = new NativeClassDef();
   klass->name = createString(name);
@@ -298,6 +299,7 @@ NativeClassDef *Interpreter::registerNativeClass(const char *name,
   klass->constructor = ctor;
   klass->destructor = dtor;
   klass->argCount = argCount;
+  klass->persistent = persistent;
 
   // Adiciona ao vector para lookup por id
   nativeClasses.push(klass);
@@ -340,7 +342,7 @@ Value Interpreter::createNativeStruct(int structId, int argc, Value *args)
     def->constructor(this, data, argc, args);
   }
 
-  Value literal = makeNativeStructInstance();
+  Value literal = makeNativeStructInstance(def->persistent);
   NativeStructInstance *instance = literal.asNativeStructInstance();
   instance->def = def;
   instance->data = data;
@@ -350,13 +352,15 @@ Value Interpreter::createNativeStruct(int structId, int argc, Value *args)
 NativeStructDef *Interpreter::registerNativeStruct(const char *name,
                                                    size_t structSize,
                                                    NativeStructCtor ctor,
-                                                   NativeStructDtor dtor)
+                                                   NativeStructDtor dtor,
+                                                   bool persistent)
 {
   NativeStructDef *klass = new NativeStructDef();
   klass->name = createString(name);
   klass->constructor = ctor;
   klass->destructor = dtor;
   klass->structSize = structSize;
+  klass->persistent = persistent;
   klass->id = nativeStructs.size();
   nativeStructs.push(klass);
   globals.set(klass->name, makeNativeStruct(klass->id));
@@ -963,6 +967,72 @@ Value Interpreter::createClassInstance(ClassDef *klass, int argCount, Value *arg
     fiber->stackTop = savedStackTop;
   }
 
+  return value;
+}
+
+Value Interpreter::createClassInstanceRaw(const char *className)
+{
+  ClassDef *klass = nullptr;
+  if (!tryGetClassDefenition(className, &klass))
+  {
+    runtimeError("Class '%s' not found", className);
+    return makeNil();
+  }
+  return createClassInstanceRaw(klass);
+}
+
+Value Interpreter::createClassInstanceRaw(ClassDef *klass)
+{
+  if (!klass)
+  {
+    runtimeError("Cannot create instance of null class");
+    return makeNil();
+  }
+
+  Value value = makeClassInstance();
+  ClassInstance *instance = value.asClassInstance();
+  instance->klass = klass;
+  instance->fields.reserve(klass->fieldCount);
+
+  for (int i = 0; i < klass->fieldCount; i++)
+  {
+    if (i < (int)klass->fieldDefaults.size() && !klass->fieldDefaults[i].isNil())
+    {
+      instance->fields.push(klass->fieldDefaults[i]);
+    }
+    else
+    {
+      instance->fields.push(makeNil());
+    }
+  }
+
+  // Se herda de NativeClass, cria os dados nativos
+  NativeClassDef *nativeDef = nullptr;
+  ClassDef *current = klass;
+  while (current)
+  {
+    if (current->nativeSuperclass)
+    {
+      nativeDef = current->nativeSuperclass;
+      break;
+    }
+    current = current->superclass;
+  }
+
+  if (nativeDef)
+  {
+    if (nativeDef->constructor)
+    {
+      instance->nativeUserData = nativeDef->constructor(this, 0, nullptr);
+    }
+    else
+    {
+      instance->nativeUserData = arena.Allocate(128);
+      std::memset(instance->nativeUserData, 0, 128);
+    }
+  }
+
+  // NÃO chama init() - seguro para chamar durante runtime
   return value;
 }
 
