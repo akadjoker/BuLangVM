@@ -168,8 +168,8 @@ public:
   void setFileLoader(FileLoaderCallback loader, void *userdata = nullptr);
   void setOptions(const CompilerOptions &opts) { options = opts; }
 
-  ProcessDef *compile(const std::string &source);
-  ProcessDef *compileExpression(const std::string &source);
+  Function *compile(const std::string &source);
+  Function *compileExpression(const std::string &source);
 
   void clear();
 
@@ -199,7 +199,6 @@ private:
   Code *currentChunk;
 
   ClassDef *currentClass;
-  ProcessDef *currentProcess;
   Vector<String *> argNames;
   std::vector<Token> tokens;
 
@@ -217,8 +216,6 @@ private:
   int localCount_;
 
   LoopContext loopContexts_[MAX_LOOP_DEPTH];
-  bool isProcess_;
-  int numFibers_;
 
   struct EnclosingContext
   {
@@ -327,7 +324,6 @@ private:
   void statement();
   void varDeclaration();
   void funDeclaration();
-  void processDeclaration();
   void expressionStatement();
   void printStatement();
   void ifStatement();
@@ -339,8 +335,6 @@ private:
   void foreachStatement();
   void returnStatement();
   void block();
-  void yieldStatement();
-  void fiberStatement();
 
   void tryStatement();
   void throwStatement();
@@ -373,10 +367,7 @@ private:
 
   uint8 argumentList();
 
-  void compileFunction(Function *func, bool isProcess);
-  void compileProcess(const std::string &name);
-
-  bool isProcessFunction(const char *name) const;
+  void compileFunction(Function *func);
 
   void structDeclaration();
   void arrayLiteral(bool canAssign);
@@ -391,12 +382,7 @@ private:
   void beginScope();
   void endScope();
 
-  bool inProcessFunction() const;
-
   void initRules();
-
-  void frameStatement();
-  void exitStatement();
 
   void includeStatement();
   void parseImport();

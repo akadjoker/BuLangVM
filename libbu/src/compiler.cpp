@@ -26,9 +26,9 @@ ParseRule Compiler::rules[TOKEN_COUNT];
 Compiler::Compiler(Interpreter *vm)
     : vm_(vm), lexer(nullptr),
       function(nullptr), currentChunk(nullptr),
-      currentProcess(nullptr), hadError(false),
+      hadError(false),
       panicMode(false), scopeDepth(0), localCount_(0), loopDepth_(0),
-      isProcess_(false), tryDepth(0),
+      tryDepth(0),
       expressionDepth(0), declarationDepth(0), callDepth(0),
       upvalueCount_(0)
 {
@@ -167,7 +167,7 @@ void Compiler::setFileLoader(FileLoaderCallback loader, void *userdata)
   fileLoaderUserdata = userdata;
 }
 
-ProcessDef *Compiler::compile(const std::string &source)
+Function *Compiler::compile(const std::string &source)
 {
   delete lexer;
   lexer = new Lexer(source);
@@ -178,7 +178,6 @@ ProcessDef *Compiler::compile(const std::string &source)
   enclosingStack_.clear();
   declaredGlobals_.clear();
   upvalueCount_ = 0;
-  isProcess_ = true;  // Top-level code IS a process
 
   compileStartTime = std::chrono::steady_clock::now();
 
@@ -203,19 +202,10 @@ ProcessDef *Compiler::compile(const std::string &source)
   currentClass = nullptr;
 
   advance();
-  numFibers_ = 1;
 
   while (!match(TOKEN_EOF) && !hadError)
   {
     declaration();
-  }
-
-  currentProcess = vm_->addProcess("__main_process__", function, numFibers_);
-
-  if (!currentProcess)
-  {
-    error("Fail to create main process");
-    return nullptr;
   }
 
   emitReturn();
@@ -224,8 +214,6 @@ ProcessDef *Compiler::compile(const std::string &source)
   {
     return nullptr;
   }
-
-  currentProcess->finalize();
 
   importedModules.clear();
   usingModules.clear();
@@ -240,18 +228,16 @@ ProcessDef *Compiler::compile(const std::string &source)
   // Info("  Total Warnings: %zu", stats.totalWarnings);
   // Info("  Compile Time: %lld ms", stats.compileTime.count());
 
-  return currentProcess;
+  return function;
 }
 
-ProcessDef *Compiler::compileExpression(const std::string &source)
+Function *Compiler::compileExpression(const std::string &source)
 {
-  numFibers_ = 1;
   delete lexer;
   stats.maxExpressionDepth = 0;
   stats.maxScopeDepth = 0;
   stats.totalErrors = 0;
   stats.totalWarnings = 0;
-  isProcess_ = true;  // Expression compilation IS a process
   upvalueCount_ = 0;
   lexer = new Lexer(source);
 
@@ -261,7 +247,6 @@ ProcessDef *Compiler::compileExpression(const std::string &source)
   function = vm_->addFunction("__expr__", 0);
   currentChunk = function->chunk;
 
-  currentProcess = vm_->addProcess("__main__", function, 1);
   currentFunctionType = FunctionType::TYPE_SCRIPT;
   currentClass = nullptr;
   enclosingStack_.clear();
@@ -285,16 +270,12 @@ ProcessDef *Compiler::compileExpression(const std::string &source)
     return nullptr;
   }
 
-  //   currentProcess->totalFibers = numFibers_;
-  // currentProcess->fibers =      (Fiber *)malloc(numFibers_ * sizeof(Fiber));
-  currentProcess->finalize();
-
   importedModules.clear();
   usingModules.clear();
   auto endTime = std::chrono::steady_clock::now();
   stats.compileTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - compileStartTime);
 
-  return currentProcess;
+  return function;
 }
 
 void Compiler::clear()
@@ -306,7 +287,6 @@ void Compiler::clear()
   function = nullptr;
   currentChunk = nullptr;
 
-  currentProcess = nullptr;
   currentClass = nullptr;
   hadError = false;
   importedModules.clear();
@@ -515,7 +495,6 @@ void Compiler::synchronize()
     case TOKEN_USING:
     case TOKEN_INCLUDE:
     case TOKEN_DEF:
-    case TOKEN_PROCESS:
     case TOKEN_CLASS:
     case TOKEN_STRUCT:
     case TOKEN_VAR:
@@ -537,10 +516,6 @@ void Compiler::synchronize()
 
     //  SPECIAL STATEMENTS
     case TOKEN_PRINT:
-    case TOKEN_YIELD:
-    case TOKEN_FIBER:
-    case TOKEN_FRAME:
-    case TOKEN_EXIT:
       return;
 
     default:; // Nothing

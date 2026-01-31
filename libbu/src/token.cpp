@@ -113,13 +113,6 @@ const char *tokenTypeToString(TokenType type)
     case TOKEN_COLON:
         return "COLON";
     
-    case TOKEN_PROCESS:
-        return "PROCESS";
-    case TOKEN_FRAME:
-        return "FRAME";
-    case TOKEN_EXIT:
-        return "EXIT";
-    
 
     case TOKEN_LPAREN:
         return "LPAREN";
