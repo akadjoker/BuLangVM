@@ -45,8 +45,8 @@ enum Opcode : uint8
     OP_GET_GLOBAL = 28,
     OP_SET_GLOBAL = 29,
     OP_DEFINE_GLOBAL = 30,
-    OP_GET_PRIVATE = 31,
-    OP_SET_PRIVATE = 32,
+    OP_GET_PRIVATE = 31,    // [LITE] Process-specific - not used in VM Lite
+    OP_SET_PRIVATE = 32,    // [LITE] Process-specific - not used in VM Lite
 
     // Control flow (33-37)
     OP_JUMP = 33,
@@ -58,10 +58,10 @@ enum Opcode : uint8
     // Functions (38-43)
     OP_CALL = 38,
     OP_RETURN = 39,
-    OP_SPAWN = 40,
+    OP_SPAWN = 40,          // [LITE] Process-specific - not used in VM Lite
     OP_YIELD = 41,
-    OP_FRAME = 42,
-    OP_EXIT = 43,
+    OP_FRAME = 42,          // [LITE] Process-specific - not used in VM Lite
+    OP_EXIT = 43,           // [LITE] Process-specific - not used in VM Lite
 
     // Collections (44-44)
     OP_DEFINE_ARRAY = 44,
