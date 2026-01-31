@@ -91,7 +91,7 @@ static const char* getValueTypeName(const Value &v)
     }
 }
 
-FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
+FiberResult Interpreter::run_fiber(Fiber *fiber)
 {
 
     currentFiber = fiber;
@@ -302,16 +302,16 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 
         case OP_GET_PRIVATE:
         {
-            uint8 index = READ_BYTE();
-            PUSH(process->privates[index]);
-            break;
+            // [LITE] Process-specific operation not supported
+            runtimeError("Process-specific operation 'OP_GET_PRIVATE' not supported in VM Lite");
+            goto error;
         }
 
         case OP_SET_PRIVATE:
         {
-            uint8 index = READ_BYTE();
-            process->privates[index] = PEEK();
-            break;
+            // [LITE] Process-specific operation not supported
+            runtimeError("Process-specific operation 'OP_SET_PRIVATE' not supported in VM Lite");
+            goto error;
         }
 
         case OP_GET_GLOBAL:
@@ -904,69 +904,9 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
             }
             else if (callee.isProcess())
             {
-
-                int index = callee.asProcessId();
-                ProcessDef *blueprint = processes[index];
-
-                if (!blueprint)
-                {
-                    runtimeError("Invalid process");
-                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
-                }
-
-                Function *processFunc = blueprint->fibers[0].frames[0].func;
-
-                // Verifica arity
-                if (argCount != processFunc->arity)
-                {
-                    runtimeError("Process expected %d arguments but got %d",
-                                 processFunc->arity, argCount);
-                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
-                }
-
-                // SPAWN - clona blueprint
-                Process *instance = spawnProcess(blueprint);
-
-                // Se tem argumentos, inicializa locals da fiber
-                if (argCount > 0)
-                {
-                    Fiber *procFiber = &instance->fibers[0];
-
-                    for (int i = 0; i < argCount; i++)
-                    {
-                        procFiber->stack[i] = fiber->stackTop[-(argCount - i)];
-                        if (blueprint->argsNames.size() > 0)
-                        {
-                            uint8 index = blueprint->argsNames[i];
-                            if (index != 255)
-                            {
-                                instance->privates[index] = procFiber->stack[i];
-                            }
-                        }
-                    }
-
-                    procFiber->stackTop = procFiber->stack + argCount;
-
-                    // Os argumentos viram locals[0], locals[1]...
-                }
-
-                // Remove callee + args da stack atual
-                fiber->stackTop -= (argCount + 1);
-
-                if (process->id == 0)
-                {
-                }
-
-                instance->privates[(int)PrivateIndex::ID] = makeInt(instance->id);
-                instance->privates[(int)PrivateIndex::FATHER] = makeProcess(process->id);
-
-                if (hooks.onStart)
-                {
-                    hooks.onStart(instance);
-                }
-
-                // Push ID do processo criado
-                PUSH(makeInt(instance->id));
+                // [LITE] Process-specific operation not supported
+                runtimeError("Process-specific operation 'spawn process' not supported in VM Lite");
+                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
             else if (callee.isStruct())
             {
@@ -1278,14 +1218,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 
                 fiber->state = FiberState::DEAD;
 
-                if (fiber == &process->fibers[0])
-                {
-                    for (int i = 0; i < process->nextFiberIndex; i++)
-                    {
-                        process->fibers[i].state = FiberState::DEAD;
-                    }
-                    process->state = FiberState::DEAD;
-                }
+                // [LITE] No process/fiber management in Lite
 
                 STORE_FRAME();
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
@@ -1371,14 +1304,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 
                 fiber->state = FiberState::DEAD;
 
-                if (fiber == &process->fibers[0])
-                {
-                    for (int i = 0; i < process->nextFiberIndex; i++)
-                    {
-                        process->fibers[i].state = FiberState::DEAD;
-                    }
-                    process->state = FiberState::DEAD;
-                }
+                // [LITE] No process/fiber management in Lite
 
                 STORE_FRAME();
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
@@ -1412,100 +1338,22 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 
         case OP_FRAME:
         {
-            Value value = POP();
-            int percent = value.isInt() ? value.asInt() : (int)value.asDouble();
-
-            STORE_FRAME();
-            return {FiberResult::PROCESS_FRAME, instructionsRun, 0, percent};
+            // [LITE] Process-specific operation not supported
+            runtimeError("Process-specific operation 'OP_FRAME' not supported in VM Lite");
+            goto error;
         }
 
         case OP_EXIT:
         {
-            Value exitCode = POP();
-
-            // Define exit code (int ou 0)
-            process->exitCode = exitCode.isInt() ? exitCode.asInt() : 0;
-
-            // Mata o processo
-            process->state = FiberState::DEAD;
-
-            // Mata todas as fibers (incluindo a atual)
-            for (int i = 0; i < process->totalFibers; i++)
-            {
-                Fiber *f = &process->fibers[i];
-                f->state = FiberState::DEAD;
-                f->frameCount = 0;
-                f->ip = nullptr;
-                f->stackTop = f->stack; // stack limpa
-            }
-
-            // (Opcional) deixa o exitCode no topo da fiber atual para debug
-            fiber->stackTop = fiber->stack;
-            *fiber->stackTop++ = exitCode;
-
-            STORE_FRAME();
-            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            // [LITE] Process-specific operation not supported
+            runtimeError("Process-specific operation 'OP_EXIT' not supported in VM Lite");
+            goto error;
         }
         case OP_SPAWN:
         {
-            uint8 argCount = READ_BYTE();
-            Value callee = NPEEK(argCount);
-
-            if (!process)
-            {
-                runtimeError("No current process for spawn");
-                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
-            }
-            if (process->nextFiberIndex >= process->totalFibers)
-            {
-                runtimeError("Too many fibers in process (max %d)", process->totalFibers);
-                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
-            }
-            if (!callee.isFunction())
-            {
-                runtimeError("fiber expects a function");
-                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
-            }
-
-            int funcIndex = callee.asFunctionId();
-            Function *func = functions[funcIndex];
-            if (!func)
-            {
-                runtimeError("Invalid function");
-                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
-            }
-            if (argCount != func->arity)
-            {
-                runtimeError("Expected %d arguments but got %d", func->arity, argCount);
-                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
-            }
-
-            int fiberIdx = process->nextFiberIndex++;
-            Fiber *newFiber = &process->fibers[fiberIdx];
-
-            newFiber->state = FiberState::RUNNING;
-            newFiber->resumeTime = 0;
-            newFiber->stackTop = newFiber->stack;
-            newFiber->frameCount = 0;
-
-            newFiber->stack[0] = callee; // Slot 0 = Função
-
-            for (int i = 0; i < argCount; i++)
-            {
-                newFiber->stack[i + 1] = fiber->stackTop[-(argCount - i)];
-            }
-            newFiber->stackTop = newFiber->stack + argCount + 1;
-
-            CallFrame *frame = &newFiber->frames[newFiber->frameCount++];
-            frame->func = func;
-            frame->ip = func->chunk->code;
-            frame->slots = newFiber->stack;
-            frame->closure = nullptr;
-
-            fiber->stackTop -= (argCount + 1);
-            PUSH(makeInt(fiberIdx));
-
-            break;
+            // [LITE] Process-specific operation not supported
+            runtimeError("Process-specific operation 'OP_SPAWN' not supported in VM Lite");
+            goto error;
         }
 
             // ========== DEBUG ==========
@@ -1603,27 +1451,9 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                 // === PROCESS PRIVATES (external access) ===
                 if (object.isProcess())
                 {
-
-                    int processId = object.asProcessId();
-
-                    Process *proc = aliveProcesses[processId];
-                    if (!proc)
-                    {
-                        runtimeError("Process '%i' is dead or invalid", processId);
-                        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
-                    }
-                    int privateIdx = getProcessPrivateIndex(name);
-                    if (privateIdx != -1)
-                    {
-                        PUSH(proc->privates[privateIdx]);
-                    }
-                    else
-                    {
-                        runtimeError("Proces  does not support '%s' property access", name);
-                        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
-                    }
-
-                    break;
+                    // [LITE] Process-specific operation not supported
+                    runtimeError("Process-specific property access not supported in VM Lite");
+                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
                 }
                 else
 
@@ -1836,32 +1666,8 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
             // === PROCESS PRIVATES (external write) ===
             if (object.isProcess())
             {
-                int processId = object.asProcessId();
-                Process *proc = aliveProcesses[processId];
-
-                if (!proc) // || proc->state == FiberState::DEAD)
-                {
-                    runtimeError("Process '%i' is dead or invalid", processId);
-                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
-                }
-
-                // Lookup private pelo nome
-                int privateIdx = getProcessPrivateIndex(name);
-                if (privateIdx != -1)
-                {
-                    if ((privateIdx == (int)PrivateIndex::ID) || (privateIdx == (int)PrivateIndex::FATHER))
-                    {
-                        runtimeError("Property '%s' is readonly", name);
-                        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
-                    }
-                    proc->privates[privateIdx] = value;
-                    DROP();      // Remove value
-                    DROP();      // Remove process
-                    PUSH(value); // Assignment retorna valor
-                    break;
-                }
-
-                runtimeError("Process has no property '%s'", name);
+                // [LITE] Process-specific operation not supported
+                runtimeError("Process-specific property assignment not supported in VM Lite");
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
             else if (object.isStructInstance())
@@ -4596,14 +4402,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                             *fiber->stackTop++ = returnValue;
                             fiber->state = FiberState::DEAD;
 
-                            if (fiber == &process->fibers[0])
-                            {
-                                for (int i = 0; i < process->nextFiberIndex; i++)
-                                {
-                                    process->fibers[i].state = FiberState::DEAD;
-                                }
-                                process->state = FiberState::DEAD;
-                            }
+                            // [LITE] No process/fiber management in Lite
 
                             STORE_FRAME();
                             return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
