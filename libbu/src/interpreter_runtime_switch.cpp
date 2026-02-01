@@ -491,7 +491,26 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                     PUSH(makeDouble(da - db));
                 }
                 break;
+            } else if (a.isBool() && b.isNumber()) 
+            {
+                double da = a.asBool() ? 1.0 : 0.0;
+                double db = b.isInt() ? (double)b.asInt() : b.asDouble();
+                PUSH(makeDouble(da - db));
+                break;
+            } else if (a.isNumber() && b.isBool()) 
+            {
+                double da = a.isInt() ? (double)a.asInt() : a.asDouble();
+                double db = b.asBool() ? 1.0 : 0.0;
+                PUSH(makeDouble(da - db));
+                break;
+            } else if (a.isBool() && b.isBool()) 
+            {
+                double da = a.asBool() ? 1.0 : 0.0;
+                double db = b.asBool() ? 1.0 : 0.0;
+                PUSH(makeDouble(da - db));
+                break;
             }
+            
 
             THROW_RUNTIME_ERROR("Cannot apply '-' to %s and %s", getValueTypeName(a), getValueTypeName(b));
             break;
