@@ -286,10 +286,11 @@ private:
   // Bytecode emission
   void emitByte(uint8 byte);
   void emitBytes(uint8 byte1, uint8 byte2);
+  void emitShort(uint16 value);
   void emitDiscard(uint8 count);
   void emitReturn();
   void emitConstant(Value value);
-  uint8 makeConstant(Value value);
+  uint16 makeConstant(Value value);
 
   int emitJump(uint8 instruction);
   void patchJump(int offset);
@@ -357,15 +358,16 @@ private:
   void emitGosubTo(int targetOffset);
   void patchJumpTo(int operandOffset, int targetOffset);
 
+  void emitVarOp(uint8 op, int arg);
   void handle_assignment(uint8 getOp, uint8 setOp, int arg, bool canAssign);
 
   void prefixIncrement(bool canAssign);
   void prefixDecrement(bool canAssign);
 
   // Variables
-  uint8 identifierConstant(Token &name);
+  uint16 identifierConstant(Token &name);
   void namedVariable(Token &name, bool canAssign);
-  void defineVariable(uint8 global);
+  void defineVariable(uint16 global);
   void declareVariable();
   void addLocal(Token &name);
   int resolveLocal(Token &name);

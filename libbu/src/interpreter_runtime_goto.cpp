@@ -118,7 +118,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 #define NPEEK(n) (fiber->stackTop[-1 - (n)])
 #define READ_BYTE() (*ip++)
 #define READ_SHORT() (ip += 2, (uint16)((ip[-2] << 8) | ip[-1]))
-#define READ_CONSTANT() (func->chunk->constants[READ_BYTE()])
+#define READ_CONSTANT() (func->chunk->constants[READ_SHORT()])
 
 #define BINARY_OP_PREP()           \
     Value b = fiber->stackTop[-1]; \
@@ -3941,7 +3941,7 @@ op_invoke:
 op_super_invoke:
 {
     uint8_t ownerClassId = READ_BYTE();
-    uint8_t nameIdx = READ_BYTE();
+    uint16_t nameIdx = READ_SHORT();
     uint8_t argCount = READ_BYTE();
 
     Value nameValue = func->chunk->constants[nameIdx];
