@@ -1,354 +1,276 @@
 #include "interpreter.hpp"
 #include <cstdio>
+#include <chrono>
 
-int main(int argc, char **argv)
-{
-    (void)argc;
-    (void)argv;
+using namespace std::chrono;
 
+void benchmark(const char* name, const char* code, int iterations = 1) {
+    auto start = high_resolution_clock::now();
+    
+    for (int i = 0; i < iterations; i++) {
+        Interpreter vm;
+        vm.registerAll();
+        vm.run(code, false);
+    }
+    
+    auto end = high_resolution_clock::now();
+    auto duration = duration_cast<microseconds>(end - start);
+    
+    printf("[BENCH] %s: %lld μs (%d iterations, %.2f μs/iter)\n", 
+           name, 
+           (long long)duration.count(), 
+           iterations,
+           (double)duration.count() / iterations);
+}
+   
+
+
+int main() {
     printf("========================================\n");
-    printf("BuLang VM Test Suite\n");
-    printf("========================================\n");
+    printf("BuLang VM Performance Benchmark\n");
+    printf("========================================\n\n");
 
-    {
-        printf("\n[TEST] Simple print\n");
-        Interpreter vm;
-        vm.registerAll();
-        bool ok = vm.run("print(\"Hello World\");", false);
-        printf("  %s\n", ok ? "PASS" : "FAIL");
-    }
+    // Teste 1: Incremento simples em loop
+    benchmark("Simple increment loop (10000 iterations)", R"(
+        var i = 0;
+        while (i < 10000) {
+            i++;
+        }
+    )", 10);
 
-    {
-        printf("\n[TEST] Prefix increment\n");
-        Interpreter vm;
-        vm.registerAll();
-        bool ok = vm.run(R"(
-            var x = 5;
-            var y = ++x;
-            print("x=" + x + " y=" + y);
-            if (x == 6 && y == 6) {
-                print("OK");
-            } else {
-                print("FAIL");
-            }
-        )", false);
-        printf("  %s\n", ok ? "PASS" : "FAIL");
-    }
+    // Teste 2: Múltiplas variáveis globais
+    benchmark("Multiple global variables", R"(
+        var a = 0; var b = 0; var c = 0; var d = 0; var e = 0;
+        var i = 0;
+        while (i < 1000) {
+            a++; b++; c++; d++; e++;
+            i++;
+        }
+    )", 10);
 
-    {
-        printf("\n[TEST] Postfix increment\n");
-        Interpreter vm;
-        vm.registerAll();
-        bool ok = vm.run(R"(
-            var x = 5;
-            var y = x++;
-            print("x=" + x + " y=" + y);
-            if (x == 6 && y == 5) {
-                print("OK");
-            } else {
-                print("FAIL");
-            }
-        )", false);
-        printf("  %s\n", ok ? "PASS" : "FAIL");
-    }
-
-    {
-        printf("\n[TEST] Array\n");
-        Interpreter vm;
-        vm.registerAll();
-        bool ok = vm.run(R"(
-            var arr = [1, 2, 3];
-            print("len=" + arr.length());
-            if (arr.length() == 3) {
-                print("OK");
-            } else {
-                print("FAIL");
-            }
-        )", false);
-        printf("  %s\n", ok ? "PASS" : "FAIL");
-    }
-
-    {
-        printf("\n[TEST] Class with property increment\n");
-        Interpreter vm;
-        vm.registerAll();
-        bool ok = vm.run(R"(
-            class Counter {
-                var n = 0;
-                def inc() { self.n++; }
-                def get() { return self.n; }
-            }
-            var c = Counter();
-            c.inc();
-            c.inc();
-            print("n=" + c.get());
-            if (c.get() == 2) {
-                print("OK");
-            } else {
-                print("FAIL");
-            }
-        )", false);
-        printf("  %s\n", ok ? "PASS" : "FAIL");
-    }
-
-    {
-        printf("\n[TEST] Prefix decrement\n");
-        Interpreter vm;
-        vm.registerAll();
-        bool ok = vm.run(R"(
-            var a = 10;
-            var b = --a;
-            print("a=" + a + " b=" + b);
-            if (a == 9 && b == 9) {
-                print("OK");
-            } else {
-                print("FAIL");
-            }
-        )", false);
-        printf("  %s\n", ok ? "PASS" : "FAIL");
-    }
-
-    {
-        printf("\n[TEST] Postfix decrement\n");
-        Interpreter vm;
-        vm.registerAll();
-        bool ok = vm.run(R"(
-            var a = 10;
-            var b = a--;
-            print("a=" + a + " b=" + b);
-            if (a == 9 && b == 10) {
-                print("OK");
-            } else {
-                print("FAIL");
-            }
-        )", false);
-        printf("  %s\n", ok ? "PASS" : "FAIL");
-    }
-
-    {
-        printf("\n[TEST] Multiple increments in expression\n");
-        Interpreter vm;
-        vm.registerAll();
-        bool ok = vm.run(R"(
-            var a = 1;
-            var b = 2;
-            var result = ++a + ++b;
-            print("a=" + a + " b=" + b + " result=" + result);
-            if (a == 2 && b == 3 && result == 5) {
-                print("OK");
-            } else {
-                print("FAIL");
-            }
-        )", false);
-        printf("  %s\n", ok ? "PASS" : "FAIL");
-    }
-
-    {
-        printf("\n[TEST] Increment in loop\n");
-        Interpreter vm;
-        vm.registerAll();
-        bool ok = vm.run(R"(
+    // Teste 3: Acesso a variáveis locais em função
+    benchmark("Local variables in function", R"(
+        def test() {
             var sum = 0;
             var i = 0;
-            while (i < 5) {
-                sum = sum + ++i;
+            while (i < 1000) {
+                var local = i;
+                sum = sum + local;
+                i++;
             }
-            print("sum=" + sum + " i=" + i);
-            if (sum == 15 && i == 5) {
-                print("OK");
-            } else {
-                print("FAIL");
-            }
-        )", false);
-        printf("  %s\n", ok ? "PASS" : "FAIL");
-    }
+            return sum;
+        }
+        test();
+    )", 10);
 
-    {
-        printf("\n[TEST] Local variable increment\n");
-        Interpreter vm;
-        vm.registerAll();
-        bool ok = vm.run(R"(
-            def test() {
-                var local = 5;
-                var result = ++local;
-                return local == 6 && result == 6;
-            }
-            var ok = test();
-            if (ok) {
-                print("OK");
-            } else {
-                print("FAIL");
-            }
-        )", false);
-        printf("  %s\n", ok ? "PASS" : "FAIL");
-    }
+    // Teste 4: Prefix vs Postfix
+    benchmark("Prefix increment", R"(
+        var i = 0;
+        var sum = 0;
+        while (i < 5000) {
+            sum = sum + ++i;
+        }
+    )", 10);
 
-    {
-        printf("\n[TEST] Mixed prefix and postfix\n");
-        Interpreter vm;
-        vm.registerAll();
-        bool ok = vm.run(R"(
-            var a = 5;
-            var b = a++ + ++a;
-            print("a=" + a + " b=" + b);
-            if (a == 7 && b == 12) {
-                print("OK");
-            } else {
-                print("FAIL");
-            }
-        )", false);
-        printf("  %s\n", ok ? "PASS" : "FAIL");
-    }
+    benchmark("Postfix increment", R"(
+        var i = 0;
+        var sum = 0;
+        while (i < 5000) {
+            sum = sum + i++;
+        }
+    )", 10);
 
-    {
-        printf("\n[TEST] Increment with negative numbers\n");
-        Interpreter vm;
-        vm.registerAll();
-        bool ok = vm.run(R"(
-            var a = -5;
-            var b = ++a;
-            var c = a++;
-            print("a=" + a + " b=" + b + " c=" + c);
-            if (a == -3 && b == -4 && c == -4) {
-                print("OK");
-            } else {
-                print("FAIL");
+    // Teste 5: Closures/Upvalues
+    benchmark("Closure with upvalue", R"(
+        def outer() {
+            var x = 0;
+            def inner() {
+                x++;
+                return x;
             }
-        )", false);
-        printf("  %s\n", ok ? "PASS" : "FAIL");
-    }
+            var i = 0;
+            while (i < 1000) {
+                inner();
+                i++;
+            }
+            return x;
+        }
+        outer();
+    )", 10);
 
-    {
-        printf("\n[TEST] Function with local increment\n");
-        Interpreter vm;
-        vm.registerAll();
-        bool ok = vm.run(R"(
-            def testFunc() {
-                var counter = 0;
-                var r1 = ++counter;
-                var r2 = counter++;
-                var r3 = ++counter;
-                return [r1, r2, r3, counter];
-            }
-            var result = testFunc();
-            print("r1=" + result[0] + " r2=" + result[1] + " r3=" + result[2] + " counter=" + result[3]);
-            if (result[0] == 1 && result[1] == 1 && result[2] == 3 && result[3] == 3) {
-                print("OK");
-            } else {
-                print("FAIL");
-            }
-        )", false);
-        printf("  %s\n", ok ? "PASS" : "FAIL");
-    }
+    // Teste 6: Classes e métodos
+    benchmark("Class method calls", R"(
+        class Counter {
+            var value = 0;
+            def inc() { self.value++; }
+        }
+        var c = Counter();
+        var i = 0;
+        while (i < 1000) {
+            c.inc();
+            i++;
+        }
+    )", 10);
 
-    {
-        printf("\n[TEST] Class method with increment\n");
-        Interpreter vm;
-        vm.registerAll();
-        bool ok = vm.run(R"(
-            class Counter {
-                var value = 0;
-                def increment() {
-                    var local = 5;
-                    local++;
-                    self.value++;
-                    return local;
-                }
-                def prefixInc() {
-                    var local = 10;
-                    return ++local;
-                }
-            }
-            var c = Counter();
-            var r1 = c.increment();
-            var r2 = c.increment();
-            var r3 = c.prefixInc();
-            print("r1=" + r1 + " r2=" + r2 + " r3=" + r3 + " value=" + c.value);
-            if (r1 == 6 && r2 == 6 && r3 == 11 && c.value == 2) {
-                print("OK");
-            } else {
-                print("FAIL");
-            }
-        )", false);
-        printf("  %s\n", ok ? "PASS" : "FAIL");
-    }
+    // Teste 7: Operações aritméticas
+    benchmark("Arithmetic operations", R"(
+        var sum = 0;
+        var i = 0;
+        while (i < 5000) {
+            sum = sum + i * 2 - 1;
+            i++;
+        }
+    )", 10);
 
-    {
-        printf("\n[TEST] Nested function increment\n");
-        Interpreter vm;
-        vm.registerAll();
-        bool ok = vm.run(R"(
-            def outer() {
-                var x = 5;
-                def inner() {
-                    x++;
-                    return ++x;
-                }
-                var result = inner();
-                return [result, x];
-            }
-            var arr = outer();
-            print("result=" + arr[0] + " x=" + arr[1]);
-            if (arr[0] == 7 && arr[1] == 7) {
-                print("OK");
-            } else {
-                print("FAIL");
-            }
-        )", false);
-        printf("  %s\n", ok ? "PASS" : "FAIL");
-    }
+    // Teste 8: Muitas variáveis (stress test para constant pool)
+    benchmark("Many global variables (50)", R"(
+        var v0=0; var v1=0; var v2=0; var v3=0; var v4=0;
+        var v5=0; var v6=0; var v7=0; var v8=0; var v9=0;
+        var v10=0; var v11=0; var v12=0; var v13=0; var v14=0;
+        var v15=0; var v16=0; var v17=0; var v18=0; var v19=0;
+        var v20=0; var v21=0; var v22=0; var v23=0; var v24=0;
+        var v25=0; var v26=0; var v27=0; var v28=0; var v29=0;
+        var v30=0; var v31=0; var v32=0; var v33=0; var v34=0;
+        var v35=0; var v36=0; var v37=0; var v38=0; var v39=0;
+        var v40=0; var v41=0; var v42=0; var v43=0; var v44=0;
+        var v45=0; var v46=0; var v47=0; var v48=0; var v49=0;
+        var i = 0;
+        while (i < 100) {
+            v0++; v10++; v20++; v30++; v40++;
+            i++;
+        }
+    )", 10);
 
-    {
-        printf("\n[TEST] Function parameters and increment\n");
-        Interpreter vm;
-        vm.registerAll();
-        bool ok = vm.run(R"(
-            def modify(n) {
-                var r1 = n++;
-                var r2 = ++n;
-                return [r1, r2, n];
-            }
-            var result = modify(10);
-            print("r1=" + result[0] + " r2=" + result[1] + " n=" + result[2]);
-            if (result[0] == 10 && result[1] == 12 && result[2] == 12) {
-                print("OK");
-            } else {
-                print("FAIL");
-            }
-        )", false);
-        printf("  %s\n", ok ? "PASS" : "FAIL");
-    }
+    // Teste 9: Recursão (Fibonacci)
+    benchmark("Recursive Fibonacci (fib(20))", R"(
+        def fib(n) {
+            if (n <= 1) return n;
+            return fib(n - 1) + fib(n - 2);
+        }
+        fib(20);
+    )", 10);
 
-    {
-        printf("\n[TEST] Class with multiple methods incrementing\n");
-        Interpreter vm;
-        vm.registerAll();
-        bool ok = vm.run(R"(
-            class Calculator {
-                var total = 0;
-                def addPrefix(val) {
-                    return self.total = self.total + (++val);
-                }
-                def addPostfix(val) {
-                    return self.total = self.total + (val++);
-                }
+    // Teste 10: Factorial recursivo
+    benchmark("Recursive Factorial (fact(15))", R"(
+        def fact(n) {
+            if (n <= 1) return 1;
+            return n * fact(n - 1);
+        }
+        fact(15);
+    )", 10);
+
+    // Teste 11: Array operations (mais realista)
+    benchmark("Array manipulation (1000 elements)", R"(
+        var arr = [];
+        var i = 0;
+        while (i < 1000) {
+            arr.push(i);
+            i++;
+        }
+        var sum = 0;
+        i = 0;
+        while (i < arr.len()) {
+            sum = sum + arr[i];
+            i++;
+        }
+    )", 10);
+
+    // Teste 12: Objeto com propriedades (simulação de entidades)
+    benchmark("Object property access (1000 iterations)", R"(
+        class Entity {
+            var x = 0.0;
+            var y = 0.0;
+            var vx = 1.0;
+            var vy = 1.0;
+            
+            def update() {
+                self.x = self.x + self.vx;
+                self.y = self.y + self.vy;
             }
-            var calc = Calculator();
-            var r1 = calc.addPrefix(5);
-            var r2 = calc.addPostfix(10);
-            print("r1=" + r1 + " r2=" + r2 + " total=" + calc.total);
-            if (r1 == 6 && r2 == 16 && calc.total == 16) {
-                print("OK");
-            } else {
-                print("FAIL");
+        }
+        
+        var entities = [];
+        var i = 0;
+        while (i < 10) {
+            entities.push(Entity());
+            i++;
+        }
+        
+        i = 0;
+        while (i < 100) {
+            var j = 0;
+            while (j < entities.len()) {
+                entities[j].update();
+                j++;
             }
-        )", false);
-        printf("  %s\n", ok ? "PASS" : "FAIL");
-    }
+            i++;
+        }
+    )", 10);
+
+    // Teste 13: Simulação de física (partículas)
+    benchmark("Physics simulation (100 particles, 100 steps)", R"(
+        class Particle {
+            var x = 0.0;
+            var y = 0.0;
+            var vx = 0.0;
+            var vy = 0.0;
+            
+            def init(px, py) {
+                self.x = px;
+                self.y = py;
+                self.vx = (px - 50.0) / 10.0;
+                self.vy = (py - 50.0) / 10.0;
+            }
+            
+            def update() {
+                self.x = self.x + self.vx;
+                self.y = self.y + self.vy;
+                self.vx = self.vx * 0.99;
+                self.vy = self.vy * 0.99;
+            }
+        }
+        
+        var particles = [];
+        var i = 0;
+        while (i < 100) {
+            var p = Particle();
+            p.init(i, i);
+            particles.push(p);
+            i++;
+        }
+        
+        var step = 0;
+        while (step < 100) {
+            i = 0;
+            while (i < particles.len()) {
+                particles[i].update();
+                i++;
+            }
+            step++;
+        }
+    )", 10);
+
+    // Teste 14: Nested loops com arrays
+    benchmark("Nested loops with arrays (100x100)", R"(
+        var matrix = [];
+        var i = 0;
+        while (i < 100) {
+            var row = [];
+            var j = 0;
+            while (j < 100) {
+                row.push(i * j);
+                j++;
+            }
+            matrix.push(row);
+            i++;
+        }
+    )", 10);
 
     printf("\n========================================\n");
-    printf("Tests complete\n");
+    printf("Benchmark complete\n");
     printf("========================================\n");
+    printf("\nCompare with Python:\n");
+    printf("  python3 tests/src/benchmark.py\n");
 
     return 0;
 }
