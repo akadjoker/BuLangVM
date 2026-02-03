@@ -4,28 +4,65 @@
 
 using namespace std::chrono;
 
+// Ler ficheiro para string
+static char* readFile(const char* path) {
+    FILE* file = fopen(path, "rb");
+    if (!file) {
+        fprintf(stderr, "Could not open file \"%s\".\n", path);
+        return nullptr;
+    }
+
+    fseek(file, 0L, SEEK_END);
+    size_t fileSize = ftell(file);
+    rewind(file);
+
+    char* buffer = new char[fileSize + 1];
+    size_t bytesRead = fread(buffer, 1, fileSize, file);
+    buffer[bytesRead] = '\0';
+
+    fclose(file);
+    return buffer;
+}
+
+// Correr um ficheiro .bu
+static int runFile(const char* path) {
+    char* source = readFile(path);
+    if (!source) return 1;
+
+    Interpreter vm;
+    vm.registerAll();
+    vm.run(source, false);
+
+    delete[] source;
+    return 0;
+}
+
 void benchmark(const char* name, const char* code, int iterations = 1) {
     auto start = high_resolution_clock::now();
-    
+
     for (int i = 0; i < iterations; i++) {
         Interpreter vm;
         vm.registerAll();
         vm.run(code, false);
     }
-    
+
     auto end = high_resolution_clock::now();
     auto duration = duration_cast<microseconds>(end - start);
-    
-    printf("[BENCH] %s: %lld μs (%d iterations, %.2f μs/iter)\n", 
-           name, 
-           (long long)duration.count(), 
+
+    printf("[BENCH] %s: %lld μs (%d iterations, %.2f μs/iter)\n",
+           name,
+           (long long)duration.count(),
            iterations,
            (double)duration.count() / iterations);
 }
-   
 
 
-int main() {
+
+int main(int argc, char* argv[]) {
+    // Se passar um ficheiro como argumento, corre-o
+    if (argc > 1) {
+        return runFile(argv[1]);
+    }
     printf("========================================\n");
     printf("BuLang VM Performance Benchmark\n");
     printf("========================================\n\n");
@@ -47,7 +84,7 @@ int main() {
             i++;
         }
     )", 10);
-
+ 
     // Teste 3: Acesso a variáveis locais em função
     benchmark("Local variables in function", R"(
         def test() {
@@ -169,7 +206,7 @@ int main() {
         }
         var sum = 0;
         i = 0;
-        while (i < arr.len()) {
+        while (i < len(arr)) {
             sum = sum + arr[i];
             i++;
         }
@@ -199,7 +236,7 @@ int main() {
         i = 0;
         while (i < 100) {
             var j = 0;
-            while (j < entities.len()) {
+            while (j < len(entities)) {
                 entities[j].update();
                 j++;
             }
@@ -242,7 +279,7 @@ int main() {
         var step = 0;
         while (step < 100) {
             i = 0;
-            while (i < particles.len()) {
+            while (i < len(particles)) {
                 particles[i].update();
                 i++;
             }
@@ -265,7 +302,7 @@ int main() {
             i++;
         }
     )", 10);
-
+ 
     printf("\n========================================\n");
     printf("Benchmark complete\n");
     printf("========================================\n");
