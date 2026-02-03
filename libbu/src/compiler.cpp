@@ -565,6 +565,12 @@ void Compiler::emitBytes(uint8 byte1, uint8 byte2)
   emitByte(byte2);
 }
 
+void Compiler::emitShort(uint16 value)
+{
+  emitByte((value >> 8) & 0xFF);
+  emitByte(value & 0xFF);
+}
+
 void Compiler::emitDiscard(uint8 count)
 {
   emitByte(OP_DISCARD);
@@ -585,28 +591,29 @@ void Compiler::emitReturn()
   emitByte(OP_RETURN);
 }
 
-uint8 Compiler::makeConstant(Value value)
+uint16 Compiler::makeConstant(Value value)
 {
   if (hadError)
     return 0;
 
   int constant = currentChunk->addConstant(value);
-  if (constant > UINT8_MAX)
+  if (constant > UINT16_MAX)
   {
-    error("Function too large (>256 constants). Split code into smaller functions");
+    error("Function too large (>65536 constants)");
     hadError = true;
     return 0;
   }
 
-  return (uint8)constant;
+  return (uint16)constant;
 }
 
 void Compiler::emitConstant(Value value)
 {
-  uint8 constant = makeConstant(value);
+  uint16 constant = makeConstant(value);
   if (hadError)
     return;
-  emitBytes(OP_CONSTANT, constant);
+  emitByte(OP_CONSTANT);
+  emitShort(constant);
 }
 
 // ============================================

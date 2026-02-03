@@ -152,7 +152,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
         }                                                            \
     } while (0)
 
-#define READ_CONSTANT() (func->chunk->constants[READ_BYTE()])
+#define READ_CONSTANT() (func->chunk->constants[READ_SHORT()])
     LOAD_FRAME();
 
     // printf("[DEBUG] Starting run_fiber: ip=%p, func=%s, offset=%ld\n",
@@ -3891,7 +3891,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
         case OP_SUPER_INVOKE:
         {
             uint8_t ownerClassId = READ_BYTE();
-            uint8_t nameIdx = READ_BYTE();
+            uint16_t nameIdx = READ_SHORT();
             uint8_t argCount = READ_BYTE();
 
             Value nameValue = func->chunk->constants[nameIdx];
