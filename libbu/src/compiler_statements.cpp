@@ -1755,32 +1755,17 @@ void Compiler::prefixIncrement(bool canAssign)
     else
     {
         uint8 getOp = OP_GET_GLOBAL, setOp = OP_SET_GLOBAL;
-        int arg = -1; // Marcador para saber se encontrámos
+        int arg = -1;
 
-        // 1. Tenta PRIVATE (Se for Process e a variável for privada)
-        if (isProcess_)
+        // 1. Tenta LOCAL (prioridade máxima)
+        arg = resolveLocal(name);
+        if (arg != -1)
         {
-            int index = (int)vm_->getProcessPrivateIndex(name.lexeme.c_str());
-            if (index != -1)
-            {
-                arg = index;
-                getOp = OP_GET_PRIVATE;
-                setOp = OP_SET_PRIVATE;
-            }
+            getOp = OP_GET_LOCAL;
+            setOp = OP_SET_LOCAL;
         }
 
-        // 2. Tenta LOCAL (Se não achou private)
-        if (arg == -1)
-        {
-            arg = resolveLocal(name);
-            if (arg != -1)
-            {
-                getOp = OP_GET_LOCAL;
-                setOp = OP_SET_LOCAL;
-            }
-        }
-
-        // 3. Tenta UPVALUE (Se não achou local) -> ISTO FALTAVA!
+        // 2. Tenta UPVALUE
         if (arg == -1)
         {
             arg = resolveUpvalue(name);
@@ -1791,7 +1776,27 @@ void Compiler::prefixIncrement(bool canAssign)
             }
         }
 
-        // 4. Fallback para GLOBAL (Se não achou nada)
+        // 3. Tenta GLOBAL (se foi declarado como global)
+        if (arg == -1 && declaredGlobals_.count(name.lexeme) > 0)
+        {
+            arg = identifierConstant(name);
+            getOp = OP_GET_GLOBAL;
+            setOp = OP_SET_GLOBAL;
+        }
+
+        // 4. Tenta PRIVATE (só se for Process e não achou global)
+        if (arg == -1 && isProcess_)
+        {
+            int index = (int)vm_->getProcessPrivateIndex(name.lexeme.c_str());
+            if (index != -1)
+            {
+                arg = index;
+                getOp = OP_GET_PRIVATE;
+                setOp = OP_SET_PRIVATE;
+            }
+        }
+
+        // 5. Fallback para GLOBAL (se não achou nada)
         if (arg == -1)
         {
             arg = identifierConstant(name);
@@ -1860,30 +1865,15 @@ void Compiler::prefixDecrement(bool canAssign)
         uint8 getOp = OP_GET_GLOBAL, setOp = OP_SET_GLOBAL;
         int arg = -1;
 
-        // 1. Tenta PRIVATE
-        if (isProcess_)
+        // 1. Tenta LOCAL
+        arg = resolveLocal(name);
+        if (arg != -1)
         {
-            int index = (int)vm_->getProcessPrivateIndex(name.lexeme.c_str());
-            if (index != -1)
-            {
-                arg = index;
-                getOp = OP_GET_PRIVATE;
-                setOp = OP_SET_PRIVATE;
-            }
+            getOp = OP_GET_LOCAL;
+            setOp = OP_SET_LOCAL;
         }
 
-        // 2. Tenta LOCAL
-        if (arg == -1)
-        {
-            arg = resolveLocal(name);
-            if (arg != -1)
-            {
-                getOp = OP_GET_LOCAL;
-                setOp = OP_SET_LOCAL;
-            }
-        }
-
-        // 3. Tenta UPVALUE (CRÍTICO!)
+        // 2. Tenta UPVALUE
         if (arg == -1)
         {
             arg = resolveUpvalue(name);
@@ -1894,7 +1884,27 @@ void Compiler::prefixDecrement(bool canAssign)
             }
         }
 
-        // 4. Fallback GLOBAL
+        // 3. Tenta GLOBAL (se foi declarado como global)
+        if (arg == -1 && declaredGlobals_.count(name.lexeme) > 0)
+        {
+            arg = identifierConstant(name);
+            getOp = OP_GET_GLOBAL;
+            setOp = OP_SET_GLOBAL;
+        }
+
+        // 4. Tenta PRIVATE (só se for Process e não achou global)
+        if (arg == -1 && isProcess_)
+        {
+            int index = (int)vm_->getProcessPrivateIndex(name.lexeme.c_str());
+            if (index != -1)
+            {
+                arg = index;
+                getOp = OP_GET_PRIVATE;
+                setOp = OP_SET_PRIVATE;
+            }
+        }
+
+        // 5. Fallback GLOBAL
         if (arg == -1)
         {
             arg = identifierConstant(name);
