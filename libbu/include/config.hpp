@@ -32,7 +32,8 @@
 #define LIKELY(x) (x)
 #endif
 
-//#define USE_COMPUTED_GOTO 0
+#define USE_COMPUTED_GOTO 0
+
 
 #define BU_ENABLE_SOCKETS 1
 #define BU_ENABLE_FILE_IO 1

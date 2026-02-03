@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(make:*)",
+      "Bash(/media/djoker/code/projects/cpp/BuLangVM/bin/main:*)",
+      "Bash(grep:*)",
+      "Bash(cmake:*)",
+      "Bash(./bu test_require.bu:*)",
+      "Bash(./bu:*)",
+      "Bash(ldd:*)",
+      "Bash(ninja:*)",
+      "Bash(source /media/projectos/projects/emsdk/emsdk_env.sh)",
+      "Bash(emcc:*)",
+      "Bash(./bin/bu_tests:*)",
+      "Bash(gdb:*)",
+      "Bash(/media/projectos/projects/cpp/BuLangVM/bin/bu_tests:*)"
+    ]
+  }
+}

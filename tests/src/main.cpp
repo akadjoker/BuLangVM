@@ -4,26 +4,65 @@
 
 using namespace std::chrono;
 
+// Ler ficheiro para string
+static char* readFile(const char* path) {
+    FILE* file = fopen(path, "rb");
+    if (!file) {
+        fprintf(stderr, "Could not open file \"%s\".\n", path);
+        return nullptr;
+    }
+
+    fseek(file, 0L, SEEK_END);
+    size_t fileSize = ftell(file);
+    rewind(file);
+
+    char* buffer = new char[fileSize + 1];
+    size_t bytesRead = fread(buffer, 1, fileSize, file);
+    buffer[bytesRead] = '\0';
+
+    fclose(file);
+    return buffer;
+}
+
+// Correr um ficheiro .bu
+static int runFile(const char* path) {
+    char* source = readFile(path);
+    if (!source) return 1;
+
+    Interpreter vm;
+    vm.registerAll();
+    vm.run(source, false);
+
+    delete[] source;
+    return 0;
+}
+
 void benchmark(const char* name, const char* code, int iterations = 1) {
     auto start = high_resolution_clock::now();
-    
+
     for (int i = 0; i < iterations; i++) {
         Interpreter vm;
         vm.registerAll();
         vm.run(code, false);
     }
-    
+
     auto end = high_resolution_clock::now();
     auto duration = duration_cast<microseconds>(end - start);
-    
-    printf("[BENCH] %s: %lld μs (%d iterations, %.2f μs/iter)\n", 
-           name, 
-           (long long)duration.count(), 
+
+    printf("[BENCH] %s: %lld μs (%d iterations, %.2f μs/iter)\n",
+           name,
+           (long long)duration.count(),
            iterations,
            (double)duration.count() / iterations);
 }
 
-int main() {
+
+
+int main(int argc, char* argv[]) {
+    // Se passar um ficheiro como argumento, corre-o
+    if (argc > 1) {
+        return runFile(argv[1]);
+    }
     printf("========================================\n");
     printf("BuLang VM Performance Benchmark\n");
     printf("========================================\n\n");
@@ -139,9 +178,136 @@ int main() {
         }
     )", 10);
 
+    // Teste 9: Recursão (Fibonacci)
+    benchmark("Recursive Fibonacci (fib(20))", R"(
+        def fib(n) {
+            if (n <= 1) return n;
+            return fib(n - 1) + fib(n - 2);
+        }
+        fib(20);
+    )", 10);
+
+    // Teste 10: Factorial recursivo
+    benchmark("Recursive Factorial (fact(15))", R"(
+        def fact(n) {
+            if (n <= 1) return 1;
+            return n * fact(n - 1);
+        }
+        fact(15);
+    )", 10);
+
+    // Teste 11: Array operations (mais realista)
+    benchmark("Array manipulation (1000 elements)", R"(
+        var arr = [];
+        var i = 0;
+        while (i < 1000) {
+            arr.push(i);
+            i++;
+        }
+        var sum = 0;
+        i = 0;
+        while (i < len(arr)) {
+            sum = sum + arr[i];
+            i++;
+        }
+    )", 10);
+
+    // Teste 12: Objeto com propriedades (simulação de entidades)
+    benchmark("Object property access (1000 iterations)", R"(
+        class Entity {
+            var x = 0.0;
+            var y = 0.0;
+            var vx = 1.0;
+            var vy = 1.0;
+            
+            def update() {
+                self.x = self.x + self.vx;
+                self.y = self.y + self.vy;
+            }
+        }
+        
+        var entities = [];
+        var i = 0;
+        while (i < 10) {
+            entities.push(Entity());
+            i++;
+        }
+        
+        i = 0;
+        while (i < 100) {
+            var j = 0;
+            while (j < len(entities)) {
+                entities[j].update();
+                j++;
+            }
+            i++;
+        }
+    )", 10);
+
+    // Teste 13: Simulação de física (partículas)
+    benchmark("Physics simulation (100 particles, 100 steps)", R"(
+        class Particle {
+            var x = 0.0;
+            var y = 0.0;
+            var vx = 0.0;
+            var vy = 0.0;
+            
+            def init(px, py) {
+                self.x = px;
+                self.y = py;
+                self.vx = (px - 50.0) / 10.0;
+                self.vy = (py - 50.0) / 10.0;
+            }
+            
+            def update() {
+                self.x = self.x + self.vx;
+                self.y = self.y + self.vy;
+                self.vx = self.vx * 0.99;
+                self.vy = self.vy * 0.99;
+            }
+        }
+        
+        var particles = [];
+        var i = 0;
+        while (i < 100) {
+            var p = Particle();
+            p.init(i, i);
+            particles.push(p);
+            i++;
+        }
+        
+        var step = 0;
+        while (step < 100) {
+            i = 0;
+            while (i < len(particles)) {
+                particles[i].update();
+                i++;
+            }
+            step++;
+        }
+    )", 10);
+
+    // Teste 14: Nested loops com arrays
+    benchmark("Nested loops with arrays (100x100)", R"(
+        var matrix = [];
+        var i = 0;
+        while (i < 100) {
+            var row = [];
+            var j = 0;
+            while (j < 100) {
+                row.push(i * j);
+                j++;
+            }
+            matrix.push(row);
+            i++;
+        }
+    )", 10);
+
     printf("\n========================================\n");
     printf("Benchmark complete\n");
     printf("========================================\n");
+    printf("\nCompare with Python:\n");
+    printf("  python3 tests/src/benchmark.py\n");
 
     return 0;
 }

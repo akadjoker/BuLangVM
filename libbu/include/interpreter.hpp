@@ -630,8 +630,8 @@ class Interpreter
   static constexpr double GC_GROWTH_FACTOR = 2.0;
   bool gcInProgress = false;
   bool enbaledGC = true;
-  GCObject *gcObjects;
-  int frameCount;
+  GCObject *gcObjects = nullptr;
+  int frameCount = 0;
   Vector<GCObject *> grayStack;
 
   // gc end
