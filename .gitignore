@@ -1,0 +1,36 @@
+# Build directories
+build/
+bin/
+
+# Compiled binaries
+*.o
+*.so
+*.a
+*.dylib
+*.dll
+*.exe
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+compile_commands.json
+CTestTestfile.cmake
+_deps/
+*.ninja
+.ninja_*
+
+# Dumps and logs
+*.dump
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# System
+.DS_Store
+Thumbs.db
