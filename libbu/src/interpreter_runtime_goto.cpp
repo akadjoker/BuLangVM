@@ -281,10 +281,6 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 
         // Multi-return (88)
         &&op_return_n,
-
-        // Extended collections (89-90)
-        &&op_define_array_long,
-        &&op_define_map_long,
     };
 
 #define SAFE_CALL_NATIVE(fiber, argCount, callFunc)                                    \
@@ -4047,45 +4043,6 @@ op_return_sub:
 
 op_define_array:
 {
-
-    uint8_t count = READ_BYTE();
-    Value array = makeArray();
-    ArrayInstance *instance = array.asArray();
-    instance->values.resize(count);
-    for (int i = count - 1; i >= 0; i--)
-    {
-        instance->values[i] = POP();
-    }
-    PUSH(array);
-    DISPATCH();
-}
-op_define_map:
-{
-    uint8_t count = READ_BYTE();
-
-    Value map = makeMap();
-    MapInstance *inst = map.asMap();
-
-    for (int i = 0; i < count; i++)
-    {
-        Value value = POP();
-        Value key = POP();
-
-        if (!key.isString())
-        {
-            runtimeError("Map key must be string");
-            PUSH(makeNil());
-            DISPATCH();
-        }
-
-        inst->table.set(key.asString(), value);
-    }
-
-    PUSH(map);
-    DISPATCH();
-}
-op_define_array_long:
-{
     uint16_t count = READ_SHORT();
     Value array = makeArray();
     ArrayInstance *instance = array.asArray();
@@ -4097,7 +4054,7 @@ op_define_array_long:
     PUSH(array);
     DISPATCH();
 }
-op_define_map_long:
+op_define_map:
 {
     uint16_t count = READ_SHORT();
 

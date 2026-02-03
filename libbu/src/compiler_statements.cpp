@@ -216,13 +216,6 @@ void Compiler::printStatement()
     emitBytes(OP_PRINT, argCount);
 }
 
-// void Compiler::printStatement()
-// {
-//     expression();
-//     consume(TOKEN_SEMICOLON, "Expect ';' after value");
-//     emitByte(OP_PRINT);
-// }
-
 void Compiler::expressionStatement()
 {
 
@@ -1301,77 +1294,6 @@ void Compiler::foreachStatement()
     endLoop();
 }
 
-// void Compiler::foreachStatement()
-// {
-//     consume(TOKEN_LPAREN, "Expect '(' after 'foreach'");
-//     consume(TOKEN_IDENTIFIER, "Expect variable name");
-//     Token itemName = previous;
-//     consume(TOKEN_IN, "Expect 'in'");
-
-//     expression();
-//     consume(TOKEN_RPAREN, "Expect ')'");
-
-//     beginScope();
-
-//     Token tmp;
-//     tmp.lexeme = "__seq___";
-//     tmp.type = TOKEN_IDENTIFIER;
-//     tmp.column = previous.column;
-
-//     addLocal(tmp);
-//     markInitialized();
-//     uint8_t seqSlot = localCount_ - 1;
-//     emitByte(OP_SET_LOCAL);
-//     emitByte(seqSlot);
-
-//     // var __iter = nil
-//     emitByte(OP_NIL);
-//     tmp.lexeme = "__ite___";
-//     addLocal(tmp);
-//     markInitialized();
-//     uint8_t iterSlot = localCount_ - 1;
-//     emitByte(OP_SET_LOCAL);
-//     emitByte(iterSlot);
-
-//     int loopStart = currentChunk->count;
-//     beginLoop(loopStart);
-
-//     emitByte(OP_GET_LOCAL);
-//     emitByte(seqSlot);
-//     emitByte(OP_GET_LOCAL);
-//     emitByte(iterSlot);
-//     emitByte(OP_ITER_NEXT);
-
-//     int exitJump = emitJump(OP_JUMP_IF_FALSE);
-//     emitByte(OP_POP);  //   POP (bool)
-
-//     emitByte(OP_SET_LOCAL);
-//     emitByte(iterSlot);
-
-//     emitByte(OP_GET_LOCAL);
-//     emitByte(seqSlot);
-//     emitByte(OP_GET_LOCAL);
-//     emitByte(iterSlot);
-//     emitByte(OP_ITER_VALUE);
-
-//     beginScope();
-//     addLocal(itemName);
-//     markInitialized();
-//     uint8_t itemSlot = localCount_ - 1;
-//     emitByte(OP_SET_LOCAL);
-//     emitByte(itemSlot);
-
-//     statement();
-//     endScope();
-
-//     emitLoop(loopStart);
-
-//     patchJump(exitJump);
-
-//     endLoop();
-//     endScope();
-// }
-
 void Compiler::returnStatement()
 {
 
@@ -1593,8 +1515,6 @@ void Compiler::processDeclaration()
         return;
     }
 
-    // Warning("Compiling process '%s'", nameToken.lexeme.c_str());
-
     // Cria função para o process
 
     Function *func = vm_->addFunction(nameToken.lexeme.c_str(), 0);
@@ -1639,8 +1559,6 @@ void Compiler::processDeclaration()
         }
     }
     argNames.clear();
-
-    // Warning("Process '%s' registered with index %d and %d fibers", nameToken.lexeme.c_str(), proc->index, numFibers_);
 
     emitConstant(vm_->makeProcess(proc->index));
     uint16 nameConstant = identifierConstant(nameToken);
@@ -1782,86 +1700,6 @@ void Compiler::compileFunction(Function *func, bool isProcess)
     }
 }
 
-// void Compiler::prefixIncrement(bool canAssign)
-// {
-//     (void)canAssign;
-
-//     // 1. Validar se temos um nome de variável
-//     if (!check(TOKEN_IDENTIFIER))
-//     {
-//         error("Expect variable name after '++'");
-//         return;
-//     }
-
-//     advance();             // Consome o identifier (ex: 'i' ou 'player')
-//     Token name = previous; // Guarda o token
-
-//     // -----------------------------------------------------------
-//     // CENÁRIO A: É uma PROPRIEDADE (ex: ++player.hp)
-//     // -----------------------------------------------------------
-//     if (match(TOKEN_DOT))
-//     {
-//         consume(TOKEN_IDENTIFIER, "Expect property name after '.'.");
-//         uint8_t nameIdx = identifierConstant(previous); // O índice do nome da propriedade (ex: 'hp')
-
-//         // 1. Carregar o Objeto para a stack (ex: 'player')
-//         // Usamos a mesma lógica de resolução de variáveis
-//         int arg = resolveLocal(name);
-//         if (arg != -1) {
-//             emitBytes(OP_GET_LOCAL, (uint8)arg);
-//         } else {
-//             arg = identifierConstant(name);
-//             emitBytes(OP_GET_GLOBAL, (uint8)arg);
-//         }
-//         // Stack: [obj]
-
-//         // 2. Duplicar (precisamos do obj para ler E para escrever)
-//         emitByte(OP_DUP);
-//         // Stack: [obj, obj]
-
-//         // 3. Ler o valor atual da propriedade
-//         emitBytes(OP_GET_PROPERTY, nameIdx);
-//         // Stack: [obj, valor_antigo]
-
-//         // 4. Somar 1
-//         emitConstant(vm_->makeInt(1));
-//         emitByte(OP_ADD);
-//         // Stack: [obj, valor_novo]
-
-//         // 5. Definir o valor novo
-//         // O OP_SET_PROPERTY consome [obj, valor_novo] e deixa [valor_novo]
-
-//         emitBytes(OP_SET_PROPERTY, nameIdx);
-//     }
-//     // -----------------------------------------------------------
-//     // CENÁRIO B: É uma VARIÁVEL SIMPLES (ex: ++i)
-//     // -----------------------------------------------------------
-//     else
-//     {
-//         uint8 getOp, setOp;
-//         int arg = resolveLocal(name);
-
-//         if (arg != -1)
-//         {
-//             getOp = OP_GET_LOCAL;
-//             setOp = OP_SET_LOCAL;
-//         }
-//         else
-//         {
-//             arg = identifierConstant(name);
-//             getOp = OP_GET_GLOBAL;
-//             setOp = OP_SET_GLOBAL;
-//         }
-
-//         // i = i + 1
-//         emitBytes(getOp, (uint8)arg);
-//         emitConstant(vm_->makeInt(1));
-//         emitByte(OP_ADD);
-//         emitBytes(setOp, (uint8)arg); // Deixa o valor novo na stack
-
-//     }
-// }
-
 void Compiler::prefixIncrement(bool canAssign)
 {
     (void)canAssign;
@@ -1916,7 +1754,7 @@ void Compiler::prefixIncrement(bool canAssign)
     // -----------------------------------------------------------
     else
     {
-        uint8 getOp, setOp;
+        uint8 getOp = OP_GET_GLOBAL, setOp = OP_SET_GLOBAL;
         int arg = -1; // Marcador para saber se encontrámos
 
         // 1. Tenta PRIVATE (Se for Process e a variável for privada)
@@ -1963,10 +1801,10 @@ void Compiler::prefixIncrement(bool canAssign)
 
         // Agora sim, emite o código correto para QUALQUER tipo de variável
         // ++i retorna o valor NOVO
-        emitBytes(getOp, (uint8)arg);           // [old_value]
+        emitVarOp(getOp, arg);                  // [old_value]
         emitConstant(vm_->makeInt(1));          // [old_value, 1]
         emitByte(OP_ADD);                       // [new_value]
-        emitBytes(setOp, (uint8)arg);           // [new_value] (SET usa PEEK, não remove!)
+        emitVarOp(setOp, arg);                  // [new_value] (SET usa PEEK, não remove!)
         // SET já deixa o new_value na stack, não precisa de DUP
     }
 }
@@ -2019,7 +1857,7 @@ void Compiler::prefixDecrement(bool canAssign)
     // -----------------------------------------------------------
     else
     {
-        uint8 getOp, setOp;
+        uint8 getOp = OP_GET_GLOBAL, setOp = OP_SET_GLOBAL;
         int arg = -1;
 
         // 1. Tenta PRIVATE
@@ -2065,10 +1903,10 @@ void Compiler::prefixDecrement(bool canAssign)
         }
 
         // --i retorna o valor NOVO
-        emitBytes(getOp, (uint8)arg);           // [old_value]
+        emitVarOp(getOp, arg);                  // [old_value]
         emitConstant(vm_->makeInt(1));          // [old_value, 1]
         emitByte(OP_SUBTRACT);                  // [new_value]
-        emitBytes(setOp, (uint8)arg);           // [new_value] (SET usa PEEK, não remove!)
+        emitVarOp(setOp, arg);                  // [new_value] (SET usa PEEK, não remove!)
         // SET já deixa o new_value na stack
     }
 }
@@ -2367,8 +2205,6 @@ void Compiler::fiberStatement()
     }
 
     consume(TOKEN_RPAREN, "Expect ')' after arguments");
-    // Warning("Compiling fiber call to '%s' with %d arguments", nameToken.lexeme.c_str(), argCount);
-
     consume(TOKEN_SEMICOLON, "Expect ';' after fiber call.");
 
     emitByte(OP_SPAWN);
@@ -2722,12 +2558,6 @@ void Compiler::super(bool canAssign)
     // DEPOIS ARGUMENTOS!
     uint8_t argCount = argumentList();
 
-    // printf("[COMPILER] super.%s em classe %s (ID=%d), super=%s\n",
-    //        methodName.lexeme.c_str(),
-    //        currentClass->name->chars(),
-    //        currentClass->index,
-    //        currentClass->superclass->name->chars());
-
     emitByte(OP_SUPER_INVOKE);
     emitByte(currentClass->index);
     emitShort(nameIdx);
@@ -2756,9 +2586,6 @@ void Compiler::classDeclaration()
         fail("Class with name '%s' already exists", className.lexeme.c_str());
         return;
     }
-
-    // printf("ClassDef criado: %p, ID: %d\n", (void*)classDef, classId);
-    // printf("fieldCount inicial: %d\n", classDef->fieldCount);
 
     // Emite class ID como constante
     emitConstant(vm_->makeClass(classDef->index));

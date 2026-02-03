@@ -579,14 +579,6 @@ void Compiler::emitDiscard(uint8 count)
 
 void Compiler::emitReturn()
 {
-  // vamos testar no
-  //  for (int i = 0; i < localCount_; i++)
-  //  {
-  //    if (locals_[i].isCaptured)
-  //    {
-  //      emitByte(OP_CLOSE_UPVALUE);
-  //    }
-  //  }
   emitByte(OP_NIL);
   emitByte(OP_RETURN);
 }
