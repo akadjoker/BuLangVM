@@ -245,6 +245,12 @@ private:
   std::vector<std::string> warnings;
   std::set<std::string> declaredGlobals_;  // Track declared global variable names
 
+  // Global variable indexing for optimization
+  std::unordered_map<std::string, uint16> globalIndices_;  // Map global name -> index
+  uint16 nextGlobalIndex_ = 0;  // Next available global index
+  
+  uint16 getOrCreateGlobalIndex(const std::string& name);  // Get or assign global index
+
   // Token management
   void advance();
   Token peek(int offset = 0);

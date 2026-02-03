@@ -638,7 +638,9 @@ class Interpreter
 
   HashMap<String *, uint16, StringHasher, StringEq> moduleNames; // Nome  ID
   Vector<ModuleDef *> modules;                                   // Array de módulos!
-  HashMap<String *, Value, StringHasher, StringEq> globals;
+  HashMap<String *, Value, StringHasher, StringEq> globals;      // For named lookups (debug, reflection)
+  Vector<Value> globalsArray;                                    // OPTIMIZATION: Direct indexed access
+  HashMap<String *, uint16, StringHasher, StringEq> nativeGlobalIndices; // Native name -> globalsArray index
 
   // Plugin system internals
   static constexpr int MAX_PLUGIN_PATHS = 8;

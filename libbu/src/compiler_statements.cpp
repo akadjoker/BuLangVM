@@ -246,7 +246,8 @@ void Compiler::varDeclaration()
             consume(TOKEN_IDENTIFIER, "Expect variable name in multi-assignment");
             names.push_back(previous);
 
-            uint16_t global = identifierConstant(previous);
+            // OPTIMIZATION: Use global index instead of constant pool
+            uint16_t global = (scopeDepth == 0) ? getOrCreateGlobalIndex(previous.lexeme) : identifierConstant(previous);
             globals.push_back(global);
 
             if (scopeDepth > 0)
@@ -296,7 +297,8 @@ void Compiler::varDeclaration()
         consume(TOKEN_IDENTIFIER, "Expect variable name");
         Token nameToken = previous;
 
-        uint16_t global = identifierConstant(nameToken);
+        // OPTIMIZATION: Use global index instead of constant pool for globals
+        uint16_t global = (scopeDepth == 0) ? getOrCreateGlobalIndex(nameToken.lexeme) : identifierConstant(nameToken);
 
         if (scopeDepth > 0)
         {
@@ -652,7 +654,8 @@ void Compiler::namedVariable(Token &name, bool canAssign)
     // Verifica se foi declarado como global antes de usar PRIVATE
     if (declaredGlobals_.count(name.lexeme) > 0)
     {
-        arg = identifierConstant(name);
+        // OPTIMIZATION: Use direct index instead of hash lookup
+        arg = getOrCreateGlobalIndex(name.lexeme);
         getOp = OP_GET_GLOBAL;
         setOp = OP_SET_GLOBAL;
         handle_assignment(getOp, setOp, arg, canAssign);
@@ -673,7 +676,8 @@ void Compiler::namedVariable(Token &name, bool canAssign)
     }
 
     // === 5. Fallback final: assume GLOBAL (será criado ou erro em runtime) ===
-    arg = identifierConstant(name);
+    // OPTIMIZATION: Use direct index instead of hash lookup
+    arg = getOrCreateGlobalIndex(name.lexeme);
     getOp = OP_GET_GLOBAL;
     setOp = OP_SET_GLOBAL;
     handle_assignment(getOp, setOp, arg, canAssign);
@@ -1497,8 +1501,10 @@ void Compiler::funDeclaration()
     }
     else
     {
-        uint16 nameConstant = identifierConstant(nameToken);
-        defineVariable(nameConstant); // Global
+        // OPTIMIZATION: Use global index instead of constant pool
+        declaredGlobals_.insert(nameToken.lexeme);
+        uint16 globalIndex = getOrCreateGlobalIndex(nameToken.lexeme);
+        defineVariable(globalIndex); // Global
     }
 }
 
@@ -1561,8 +1567,10 @@ void Compiler::processDeclaration()
     argNames.clear();
 
     emitConstant(vm_->makeProcess(proc->index));
-    uint16 nameConstant = identifierConstant(nameToken);
-    defineVariable(nameConstant);
+    // OPTIMIZATION: Use global index instead of constant pool
+    declaredGlobals_.insert(nameToken.lexeme);
+    uint16 globalIndex = getOrCreateGlobalIndex(nameToken.lexeme);
+    defineVariable(globalIndex);
 
     proc->finalize();
 
@@ -1694,8 +1702,15 @@ void Compiler::compileFunction(Function *func, bool isProcess)
     this->isProcess_ = wasInProcess;
     this->upvalueCount_ = savedUpvalueCount;
 
+    // Restore locals_ array from enclosingStack_ before popping
     while (enclosingStack_.size() > savedStackSize)
     {
+        EnclosingContext& ctx = enclosingStack_.back();
+        // Restore locals_ array content
+        for (size_t i = 0; i < ctx.locals.size(); i++)
+        {
+            this->locals_[i] = ctx.locals[i];
+        }
         enclosingStack_.pop_back();
     }
 }
@@ -1736,7 +1751,8 @@ void Compiler::prefixIncrement(bool canAssign)
         }
         else
         {
-            arg = identifierConstant(name);
+            // OPTIMIZATION: Use global index instead of constant pool
+            arg = getOrCreateGlobalIndex(name.lexeme);
             emitByte(OP_GET_GLOBAL);
             emitShort((uint16)arg);
         }
@@ -1779,7 +1795,8 @@ void Compiler::prefixIncrement(bool canAssign)
         // 3. Tenta GLOBAL (se foi declarado como global)
         if (arg == -1 && declaredGlobals_.count(name.lexeme) > 0)
         {
-            arg = identifierConstant(name);
+            // OPTIMIZATION: Use global index instead of constant pool
+            arg = getOrCreateGlobalIndex(name.lexeme);
             getOp = OP_GET_GLOBAL;
             setOp = OP_SET_GLOBAL;
         }
@@ -1799,7 +1816,8 @@ void Compiler::prefixIncrement(bool canAssign)
         // 5. Fallback para GLOBAL (se não achou nada)
         if (arg == -1)
         {
-            arg = identifierConstant(name);
+            // OPTIMIZATION: Use global index instead of constant pool
+            arg = getOrCreateGlobalIndex(name.lexeme);
             getOp = OP_GET_GLOBAL;
             setOp = OP_SET_GLOBAL;
         }
@@ -1844,7 +1862,8 @@ void Compiler::prefixDecrement(bool canAssign)
         }
         else
         {
-            arg = identifierConstant(name);
+            // OPTIMIZATION: Use global index instead of constant pool
+            arg = getOrCreateGlobalIndex(name.lexeme);
             emitByte(OP_GET_GLOBAL);
             emitShort((uint16)arg);
         }
@@ -1887,7 +1906,8 @@ void Compiler::prefixDecrement(bool canAssign)
         // 3. Tenta GLOBAL (se foi declarado como global)
         if (arg == -1 && declaredGlobals_.count(name.lexeme) > 0)
         {
-            arg = identifierConstant(name);
+            // OPTIMIZATION: Use global index instead of constant pool
+            arg = getOrCreateGlobalIndex(name.lexeme);
             getOp = OP_GET_GLOBAL;
             setOp = OP_SET_GLOBAL;
         }
@@ -1907,7 +1927,8 @@ void Compiler::prefixDecrement(bool canAssign)
         // 5. Fallback GLOBAL
         if (arg == -1)
         {
-            arg = identifierConstant(name);
+            // OPTIMIZATION: Use global index instead of constant pool
+            arg = getOrCreateGlobalIndex(name.lexeme);
             getOp = OP_GET_GLOBAL;
             setOp = OP_SET_GLOBAL;
         }
@@ -2521,7 +2542,14 @@ void Compiler::structDeclaration()
     match(TOKEN_SEMICOLON);
 
     emitConstant(vm_->makeStruct(structDef->index));
-    defineVariable(nameConstant);
+    
+    // OPTIMIZATION: Use global index for struct name instead of constant pool
+    if (scopeDepth == 0) {
+        uint16_t global = getOrCreateGlobalIndex(structName.lexeme);
+        defineVariable(global);
+    } else {
+        defineVariable(nameConstant);
+    }
 }
 
 void Compiler::self(bool canAssign)
@@ -2579,7 +2607,6 @@ void Compiler::classDeclaration()
     isProcess_ = false;
     consume(TOKEN_IDENTIFIER, "Expect class name");
     Token className = previous;
-    uint16_t nameConstant = identifierConstant(className);
 
     validateIdentifierName(className);
     if (hadError)
@@ -2599,7 +2626,10 @@ void Compiler::classDeclaration()
 
     // Emite class ID como constante
     emitConstant(vm_->makeClass(classDef->index));
-    defineVariable(nameConstant);
+    // OPTIMIZATION: Use global index instead of constant pool
+    declaredGlobals_.insert(className.lexeme);
+    uint16_t globalIndex = getOrCreateGlobalIndex(className.lexeme);
+    defineVariable(globalIndex);
 
     // Herança?
     if (match(TOKEN_COLON))

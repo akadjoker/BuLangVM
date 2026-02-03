@@ -316,35 +316,54 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 
         case OP_GET_GLOBAL:
         {
-
-            Value name = READ_CONSTANT();
-            Value value;
-
-            if (!globals.get(name.asString(), &value))
+            // OPTIMIZATION: Direct array access using index instead of hash lookup
+            uint16 index = READ_SHORT();
+            
+            // Ensure globalsArray is large enough
+            if (index >= globalsArray.size())
             {
-                runtimeError("Undefined variable '%s'", name.asString()->chars());
+                runtimeError("Undefined global variable at index %d", index);
                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
+            
+            Value value = globalsArray[index];
+            if (value.isNil() && index >= globalsArray.size())
+            {
+                runtimeError("Uninitialized global variable at index %d", index);
+                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            }
+            
             PUSH(value);
             break;
         }
 
         case OP_SET_GLOBAL:
         {
-
-            Value name = READ_CONSTANT();
-            Value value = PEEK();
-            if (globals.set(name.asString(), value))
+            // OPTIMIZATION: Direct array access using index instead of hash lookup
+            uint16 index = READ_SHORT();
+            
+            // Ensure globalsArray is large enough
+            while (index >= globalsArray.size())
             {
+                globalsArray.push(Value());
             }
+            
+            globalsArray[index] = PEEK();
             break;
         }
 
         case OP_DEFINE_GLOBAL:
         {
-
-            Value name = READ_CONSTANT();
-            globals.set(name.asString(), POP());
+            // OPTIMIZATION: Direct array access using index instead of hash lookup
+            uint16 index = READ_SHORT();
+            
+            // Ensure globalsArray is large enough
+            while (index >= globalsArray.size())
+            {
+                globalsArray.push(Value());
+            }
+            
+            globalsArray[index] = POP();
             break;
         }
             // ========== ARITHMETIC ==========
