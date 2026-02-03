@@ -7,59 +7,932 @@ GLOBAL FUNCTIONS
 ========================================
 
 
->>> Function: __main__$test_factorial
+>>> Function: __main__$closure_capture_multiple
     Arity: 0
     Has return: yes
-    Index: 10
+    Index: 13
 
-  Constants (2):
-    [0] = "fact"
-    [1] = 15
+  Constants (7):
+    [0] = "a"
+    [1] = 10
+    [2] = "b"
+    [3] = 20
+    [4] = <value type 16>
+    [5] = 100
+    [6] = 200
 
   Bytecode:
-    0000   97 OP_GET_GLOBAL           0 'fact'
-    0003    | OP_CONSTANT             1 '15'
-    0006    | OP_CALL                 1
-    0008    | OP_POP              
-    0009   98 OP_POP              
+    0000  129 OP_CONSTANT             1 '10'
+    0003  130 OP_CONSTANT             3 '20'
+    0006  133 OP_CLOSURE              4 '<function 14>'
+    0009    | OP_NIL              
     0010    | OP_NIL              
-    0011    | OP_RETURN           
+    0011    | OP_NIL              
+    0012    | OP_TRUE             
+    0013  134 OP_CONSTANT             5 '100'
+    0016    | OP_SET_LOCAL            1
+    0018    | OP_POP              
+    0019  135 OP_CONSTANT             6 '200'
+    0022    | OP_SET_LOCAL            2
+    0024    | OP_POP              
+    0025  136 OP_GET_LOCAL            3
+    0027    | OP_CALL                 0
+    0029    | OP_RETURN           
+    0030  137 OP_POP              
+    0031    | OP_CLOSE_UPVALUE    
+    0032    | OP_CLOSE_UPVALUE    
+    0033    | OP_POP              
+    0034    | OP_NIL              
+    0035    | OP_RETURN           
 
 
->>> Function: __main__$test_closure$outer$inner
+>>> Function: __main__$test_block_with_globals
     Arity: 0
     Has return: yes
-    Index: 17
+    Index: 28
+
+  Constants (10):
+    [0] = "local_x"
+    [1] = 100
+    [2] = 500
+    [3] = "local_y"
+    [4] = 200
+    [5] = "local_z"
+    [6] = 300
+    [7] = "Block inner local"
+    [8] = "Block middle local"
+    [9] = "Block global modified"
+
+  Bytecode:
+    0000  491 OP_CONSTANT             1 '100'
+    0003  493 OP_CONSTANT             2 '500'
+    0006    | OP_SET_GLOBAL          10 '<non-string>'
+    0009    | OP_POP              
+    0010  494 OP_CONSTANT             4 '200'
+    0013  496 OP_CONSTANT             6 '300'
+    0016  497 OP_GET_GLOBAL           8 'Block middle local'
+    0019    | OP_CONSTANT             7 'Block inner local'
+    0022    | OP_CONSTANT             6 '300'
+    0025    | OP_GET_LOCAL            3
+    0027    | OP_CALL                 3
+    0029    | OP_POP              
+    0030  498 OP_POP              
+    0031  499 OP_GET_GLOBAL           8 'Block middle local'
+    0034    | OP_CONSTANT             8 'Block middle local'
+    0037    | OP_CONSTANT             4 '200'
+    0040    | OP_GET_LOCAL            2
+    0042    | OP_CALL                 3
+    0044    | OP_POP              
+    0045  500 OP_POP              
+    0046  501 OP_GET_GLOBAL           8 'Block middle local'
+    0049    | OP_CONSTANT             9 'Block global modified'
+    0052    | OP_CONSTANT             2 '500'
+    0055    | OP_GET_GLOBAL          10 '<non-string>'
+    0058    | OP_CALL                 3
+    0060    | OP_POP              
+    0061  502 OP_GET_LOCAL            1
+    0063    | OP_RETURN           
+    0064  503 OP_POP              
+    0065    | OP_POP              
+    0066    | OP_NIL              
+    0067    | OP_RETURN           
+
+
+>>> Function: __main__$assert_true
+    Arity: 2
+    Has return: yes
+    Index: 2
+
+  Constants (3):
+    [0] = 1
+    [1] = "[PASS] "
+    [2] = "[FAIL] "
+
+  Bytecode:
+    0000   20 OP_GET_LOCAL            2
+    0002    | OP_JUMP_IF_FALSE        2 -> 30
+    0005    | OP_POP              
+    0006   21 OP_GET_GLOBAL           6 '<non-string>'
+    0009    | OP_DUP              
+    0010    | OP_CONSTANT             0 '1'
+    0013    | OP_ADD              
+    0014    | OP_SET_GLOBAL           6 '<non-string>'
+    0017    | OP_POP              
+    0018    | OP_POP              
+    0019   22 OP_CONSTANT             1 '[PASS] '
+    0022    | OP_GET_LOCAL            1
+    0024    | OP_ADD              
+    0025    | OP_PRINT                1
+    0027   23 OP_JUMP                27 -> 52
+    0030    | OP_POP              
+    0031   24 OP_GET_GLOBAL           7 '<non-string>'
+    0034    | OP_DUP              
+    0035    | OP_CONSTANT             0 '1'
+    0038    | OP_ADD              
+    0039    | OP_SET_GLOBAL           7 '<non-string>'
+    0042    | OP_POP              
+    0043    | OP_POP              
+    0044   25 OP_CONSTANT             2 '[FAIL] '
+    0047    | OP_GET_LOCAL            1
+    0049    | OP_ADD              
+    0050    | OP_PRINT                1
+    0052   27 OP_POP              
+    0053    | OP_POP              
+    0054    | OP_POP              
+    0055    | OP_NIL              
+    0056    | OP_RETURN           
+
+
+>>> Function: __main__$test_locals
+    Arity: 0
+    Has return: yes
+    Index: 5
+
+  Constants (5):
+    [0] = "x"
+    [1] = 5
+    [2] = "y"
+    [3] = 10
+    [4] = "z"
+
+  Bytecode:
+    0000   70 OP_CONSTANT             1 '5'
+    0003   71 OP_CONSTANT             3 '10'
+    0006   72 OP_GET_LOCAL            1
+    0008    | OP_GET_LOCAL            2
+    0010    | OP_ADD              
+    0011   73 OP_GET_LOCAL            3
+    0013    | OP_RETURN           
+    0014   74 OP_POP              
+    0015    | OP_POP              
+    0016    | OP_POP              
+    0017    | OP_POP              
+    0018    | OP_NIL              
+    0019    | OP_RETURN           
+
+
+>>> Function: __main__$test_local_shadow
+    Arity: 0
+    Has return: yes
+    Index: 6
+
+  Constants (2):
+    [0] = "g1"
+    [1] = 999
+
+  Bytecode:
+    0000   79 OP_CONSTANT             1 '999'
+    0003   80 OP_GET_LOCAL            1
+    0005    | OP_RETURN           
+    0006   81 OP_POP              
+    0007    | OP_POP              
+    0008    | OP_NIL              
+    0009    | OP_RETURN           
+
+
+>>> Function: __main__$outer_simple$inner
+    Arity: 0
+    Has return: yes
+    Index: 8
+
+  Constants (1):
+    [0] = 42
+
+  Bytecode:
+    0000   93 OP_CONSTANT             0 '42'
+    0003    | OP_RETURN           
+    0004   94 OP_POP              
+    0005    | OP_NIL              
+    0006    | OP_RETURN           
+
+
+>>> Function: __main__$multiply
+    Arity: 2
+    Has return: yes
+    Index: 4
+
+  Constants (0):
+
+  Bytecode:
+    0000   57 OP_GET_LOCAL            1
+    0002    | OP_GET_LOCAL            2
+    0004    | OP_MULTIPLY         
+    0005    | OP_RETURN           
+    0006   58 OP_POP              
+    0007    | OP_POP              
+    0008    | OP_POP              
+    0009    | OP_NIL              
+    0010    | OP_RETURN           
+
+
+>>> Function: __main__$closure_capture_multiple$inner
+    Arity: 0
+    Has return: yes
+    Index: 14
+
+  Constants (0):
+
+  Bytecode:
+    0000  132 OP_GET_UPVALUE          0
+    0002    | OP_GET_UPVALUE          1
+    0004    | OP_ADD              
+    0005    | OP_RETURN           
+    0006  133 OP_POP              
+    0007    | OP_NIL              
+    0008    | OP_RETURN           
+
+
+>>> Function: __main__$test_while_break
+    Arity: 0
+    Has return: yes
+    Index: 24
+
+  Constants (6):
+    [0] = "sum"
+    [1] = 0
+    [2] = "i"
+    [3] = 100
+    [4] = 10
+    [5] = 1
+
+  Bytecode:
+    0000  425 OP_CONSTANT             1 '0'
+    0003  426 OP_CONSTANT             1 '0'
+    0006  427 OP_GET_LOCAL            2
+    0008    | OP_CONSTANT             3 '100'
+    0011    | OP_LESS             
+    0012    | OP_JUMP_IF_FALSE       12 -> 55
+    0015    | OP_POP              
+    0016  428 OP_GET_LOCAL            2
+    0018    | OP_CONSTANT             4 '10'
+    0021    | OP_EQUAL            
+    0022    | OP_JUMP_IF_FALSE       22 -> 32
+    0025    | OP_POP              
+    0026  429 OP_JUMP                26 -> 56
+    0029  430 OP_JUMP                29 -> 33
+    0032    | OP_POP              
+    0033  431 OP_GET_LOCAL            1
+    0035    | OP_GET_LOCAL            2
+    0037    | OP_ADD              
+    0038    | OP_SET_LOCAL            1
+    0040    | OP_POP              
+    0041  432 OP_GET_LOCAL            2
+    0043    | OP_DUP              
+    0044    | OP_CONSTANT             5 '1'
+    0047    | OP_ADD              
+    0048    | OP_SET_LOCAL            2
+    0050    | OP_POP              
+    0051    | OP_POP              
+    0052  433 OP_LOOP                52 -> 6
+    0055    | OP_POP              
+    0056  434 OP_GET_LOCAL            1
+    0058    | OP_RETURN           
+    0059  435 OP_POP              
+    0060    | OP_POP              
+    0061    | OP_POP              
+    0062    | OP_NIL              
+    0063    | OP_RETURN           
+
+
+>>> Function: __main__$make_counter$increment
+    Arity: 0
+    Has return: yes
+    Index: 12
 
   Constants (1):
     [0] = 1
 
   Bytecode:
-    0000  212 OP_GET_UPVALUE          0
+    0000  117 OP_GET_UPVALUE          0
     0002    | OP_DUP              
     0003    | OP_CONSTANT             0 '1'
     0006    | OP_ADD              
     0007    | OP_SET_UPVALUE          0
     0009    | OP_POP              
     0010    | OP_POP              
-    0011  213 OP_GET_UPVALUE          0
+    0011  118 OP_GET_UPVALUE          0
     0013    | OP_RETURN           
-    0014  214 OP_POP              
+    0014  119 OP_POP              
     0015    | OP_NIL              
     0016    | OP_RETURN           
 
 
->>> Function: __main__$fact
+>>> Function: __main__$assert_eq
+    Arity: 3
+    Has return: yes
+    Index: 1
+
+  Constants (3):
+    [0] = 1
+    [1] = "[PASS] "
+    [2] = "[FAIL] {}: expected {}, got {}
+"
+
+  Bytecode:
+    0000   10 OP_GET_LOCAL            2
+    0002    | OP_GET_LOCAL            3
+    0004    | OP_EQUAL            
+    0005    | OP_JUMP_IF_FALSE        5 -> 33
+    0008    | OP_POP              
+    0009   11 OP_GET_GLOBAL           6 '<non-string>'
+    0012    | OP_DUP              
+    0013    | OP_CONSTANT             0 '1'
+    0016    | OP_ADD              
+    0017    | OP_SET_GLOBAL           6 '<non-string>'
+    0020    | OP_POP              
+    0021    | OP_POP              
+    0022   12 OP_CONSTANT             1 '[PASS] '
+    0025    | OP_GET_LOCAL            1
+    0027    | OP_ADD              
+    0028    | OP_PRINT                1
+    0030   13 OP_JUMP                30 -> 62
+    0033    | OP_POP              
+    0034   14 OP_GET_GLOBAL           7 '<non-string>'
+    0037    | OP_DUP              
+    0038    | OP_CONSTANT             0 '1'
+    0041    | OP_ADD              
+    0042    | OP_SET_GLOBAL           7 '<non-string>'
+    0045    | OP_POP              
+    0046    | OP_POP              
+    0047   15 OP_GET_GLOBAL           1 '[PASS] '
+    0050    | OP_CONSTANT             2 '[FAIL] {}: expected {}, got {}'
+    0053    | OP_GET_LOCAL            1
+    0055    | OP_GET_LOCAL            2
+    0057    | OP_GET_LOCAL            3
+    0059    | OP_CALL                 4
+    0061    | OP_POP              
+    0062   17 OP_POP              
+    0063    | OP_POP              
+    0064    | OP_POP              
+    0065    | OP_POP              
+    0066    | OP_NIL              
+    0067    | OP_RETURN           
+
+
+>>> Function: __main__$test_while_continue
+    Arity: 0
+    Has return: yes
+    Index: 26
+
+  Constants (6):
+    [0] = "sum"
+    [1] = 0
+    [2] = "i"
+    [3] = 10
+    [4] = 1
+    [5] = 5
+
+  Bytecode:
+    0000  456 OP_CONSTANT             1 '0'
+    0003  457 OP_CONSTANT             1 '0'
+    0006  458 OP_GET_LOCAL            2
+    0008    | OP_CONSTANT             3 '10'
+    0011    | OP_LESS             
+    0012    | OP_JUMP_IF_FALSE       12 -> 55
+    0015    | OP_POP              
+    0016  459 OP_GET_LOCAL            2
+    0018    | OP_DUP              
+    0019    | OP_CONSTANT             4 '1'
+    0022    | OP_ADD              
+    0023    | OP_SET_LOCAL            2
+    0025    | OP_POP              
+    0026    | OP_POP              
+    0027  460 OP_GET_LOCAL            2
+    0029    | OP_CONSTANT             5 '5'
+    0032    | OP_EQUAL            
+    0033    | OP_JUMP_IF_FALSE       33 -> 43
+    0036    | OP_POP              
+    0037  461 OP_LOOP                37 -> 6
+    0040  462 OP_JUMP                40 -> 44
+    0043    | OP_POP              
+    0044  463 OP_GET_LOCAL            1
+    0046    | OP_GET_LOCAL            2
+    0048    | OP_ADD              
+    0049    | OP_SET_LOCAL            1
+    0051    | OP_POP              
+    0052  464 OP_LOOP                52 -> 6
+    0055    | OP_POP              
+    0056  465 OP_GET_LOCAL            1
+    0058    | OP_RETURN           
+    0059  466 OP_POP              
+    0060    | OP_POP              
+    0061    | OP_POP              
+    0062    | OP_NIL              
+    0063    | OP_RETURN           
+
+
+>>> Function: __main__$square
+    Arity: 1
+    Has return: yes
+    Index: 19
+
+  Constants (0):
+
+  Bytecode:
+    0000  246 OP_GET_LOCAL            1
+    0002    | OP_GET_LOCAL            1
+    0004    | OP_MULTIPLY         
+    0005    | OP_RETURN           
+    0006  247 OP_POP              
+    0007    | OP_POP              
+    0008    | OP_NIL              
+    0009    | OP_RETURN           
+
+
+>>> Function: __main__$test_nested_if_else
+    Arity: 1
+    Has return: yes
+    Index: 23
+
+  Constants (9):
+    [0] = 10
+    [1] = 20
+    [2] = 30
+    [3] = "very high"
+    [4] = "high"
+    [5] = "medium"
+    [6] = 5
+    [7] = "low"
+    [8] = "very low"
+
+  Bytecode:
+    0000  394 OP_GET_LOCAL            1
+    0002    | OP_CONSTANT             0 '10'
+    0005    | OP_GREATER          
+    0006    | OP_JUMP_IF_FALSE        6 -> 53
+    0009    | OP_POP              
+    0010  395 OP_GET_LOCAL            1
+    0012    | OP_CONSTANT             1 '20'
+    0015    | OP_GREATER          
+    0016    | OP_JUMP_IF_FALSE       16 -> 45
+    0019    | OP_POP              
+    0020  396 OP_GET_LOCAL            1
+    0022    | OP_CONSTANT             2 '30'
+    0025    | OP_GREATER          
+    0026    | OP_JUMP_IF_FALSE       26 -> 37
+    0029    | OP_POP              
+    0030  397 OP_CONSTANT             3 'very high'
+    0033    | OP_RETURN           
+    0034  398 OP_JUMP                34 -> 42
+    0037    | OP_POP              
+    0038  399 OP_CONSTANT             4 'high'
+    0041    | OP_RETURN           
+    0042  401 OP_JUMP                42 -> 50
+    0045    | OP_POP              
+    0046  402 OP_CONSTANT             5 'medium'
+    0049    | OP_RETURN           
+    0050  404 OP_JUMP                50 -> 76
+    0053    | OP_POP              
+    0054  405 OP_GET_LOCAL            1
+    0056    | OP_CONSTANT             6 '5'
+    0059    | OP_GREATER          
+    0060    | OP_JUMP_IF_FALSE       60 -> 71
+    0063    | OP_POP              
+    0064  406 OP_CONSTANT             7 'low'
+    0067    | OP_RETURN           
+    0068  407 OP_JUMP                68 -> 76
+    0071    | OP_POP              
+    0072  408 OP_CONSTANT             8 'very low'
+    0075    | OP_RETURN           
+    0076  411 OP_POP              
+    0077    | OP_POP              
+    0078    | OP_NIL              
+    0079    | OP_RETURN           
+
+
+>>> Function: __main__$make_counter
+    Arity: 0
+    Has return: yes
+    Index: 11
+
+  Constants (3):
+    [0] = "count"
+    [1] = 0
+    [2] = <value type 16>
+
+  Bytecode:
+    0000  115 OP_CONSTANT             1 '0'
+    0003  119 OP_CLOSURE              2 '<function 12>'
+    0006    | OP_NIL              
+    0007    | OP_NIL              
+    0008  120 OP_GET_LOCAL            2
+    0010    | OP_RETURN           
+    0011  121 OP_POP              
+    0012    | OP_CLOSE_UPVALUE    
+    0013    | OP_POP              
+    0014    | OP_NIL              
+    0015    | OP_RETURN           
+
+
+>>> Function: __main__$apply
+    Arity: 2
+    Has return: yes
+    Index: 17
+
+  Constants (0):
+
+  Bytecode:
+    0000  238 OP_GET_LOCAL            1
+    0002    | OP_GET_LOCAL            2
+    0004    | OP_CALL                 1
+    0006    | OP_RETURN           
+    0007  239 OP_POP              
+    0008    | OP_POP              
+    0009    | OP_POP              
+    0010    | OP_NIL              
+    0011    | OP_RETURN           
+
+
+>>> Function: __main__$test_switch_basic
+    Arity: 1
+    Has return: yes
+    Index: 29
+
+  Constants (7):
+    [0] = 1
+    [1] = "one"
+    [2] = 2
+    [3] = "two"
+    [4] = 3
+    [5] = "three"
+    [6] = "other"
+
+  Bytecode:
+    0000  513 OP_GET_LOCAL            1
+    0002  514 OP_DUP              
+    0003    | OP_CONSTANT             0 '1'
+    0006    | OP_EQUAL            
+    0007    | OP_JUMP_IF_FALSE        7 -> 19
+    0010    | OP_POP              
+    0011    | OP_POP              
+    0012  515 OP_CONSTANT             1 'one'
+    0015    | OP_RETURN           
+    0016    | OP_JUMP                16 -> 61
+    0019    | OP_POP              
+    0020  516 OP_DUP              
+    0021    | OP_CONSTANT             2 '2'
+    0024    | OP_EQUAL            
+    0025    | OP_JUMP_IF_FALSE       25 -> 37
+    0028    | OP_POP              
+    0029    | OP_POP              
+    0030  517 OP_CONSTANT             3 'two'
+    0033    | OP_RETURN           
+    0034    | OP_JUMP                34 -> 61
+    0037    | OP_POP              
+    0038  518 OP_DUP              
+    0039    | OP_CONSTANT             4 '3'
+    0042    | OP_EQUAL            
+    0043    | OP_JUMP_IF_FALSE       43 -> 55
+    0046    | OP_POP              
+    0047    | OP_POP              
+    0048  519 OP_CONSTANT             5 'three'
+    0051    | OP_RETURN           
+    0052    | OP_JUMP                52 -> 61
+    0055    | OP_POP              
+    0056  520 OP_POP              
+    0057  521 OP_CONSTANT             6 'other'
+    0060    | OP_RETURN           
+    0061  523 OP_POP              
+    0062    | OP_POP              
+    0063    | OP_NIL              
+    0064    | OP_RETURN           
+
+
+>>> Function: __main__$use_struct
+    Arity: 1
+    Has return: yes
+    Index: 33
+
+  Constants (2):
+    [0] = "x"
+    [1] = "y"
+
+  Bytecode:
+    0000  710 OP_GET_LOCAL            1
+    0002    | OP_GET_PROPERTY         0 'x'
+    0005    | OP_GET_LOCAL            1
+    0007    | OP_GET_PROPERTY         1 'y'
+    0010    | OP_ADD              
+    0011    | OP_RETURN           
+    0012  711 OP_POP              
+    0013    | OP_POP              
+    0014    | OP_NIL              
+    0015    | OP_RETURN           
+
+
+>>> Function: __main__$create_adder
+    Arity: 1
+    Has return: yes
+    Index: 21
+
+  Constants (1):
+    [0] = <value type 16>
+
+  Bytecode:
+    0000  293 OP_CLOSURE              0 '<function 22>'
+    0003    | OP_NIL              
+    0004    | OP_NIL              
+    0005  294 OP_GET_LOCAL            2
+    0007    | OP_RETURN           
+    0008  295 OP_POP              
+    0009    | OP_CLOSE_UPVALUE    
+    0010    | OP_POP              
+    0011    | OP_NIL              
+    0012    | OP_RETURN           
+
+
+>>> Function: __main__$create_adder$adder
+    Arity: 1
+    Has return: yes
+    Index: 22
+
+  Constants (0):
+
+  Bytecode:
+    0000  292 OP_GET_UPVALUE          0
+    0002    | OP_GET_LOCAL            1
+    0004    | OP_ADD              
+    0005    | OP_RETURN           
+    0006  293 OP_POP              
+    0007    | OP_POP              
+    0008    | OP_NIL              
+    0009    | OP_RETURN           
+
+
+>>> Function: __main__$test_block_scope
+    Arity: 0
+    Has return: yes
+    Index: 27
+
+  Constants (6):
+    [0] = "x"
+    [1] = 10
+    [2] = 20
+    [3] = 30
+    [4] = "Block scope innermost"
+    [5] = "Block scope middle"
+
+  Bytecode:
+    0000  476 OP_CONSTANT             1 '10'
+    0003  478 OP_CONSTANT             2 '20'
+    0006  480 OP_CONSTANT             3 '30'
+    0009  481 OP_GET_GLOBAL           8 '<non-string>'
+    0012    | OP_CONSTANT             4 'Block scope innermost'
+    0015    | OP_CONSTANT             3 '30'
+    0018    | OP_GET_LOCAL            3
+    0020    | OP_CALL                 3
+    0022    | OP_POP              
+    0023  482 OP_POP              
+    0024  483 OP_GET_GLOBAL           8 '<non-string>'
+    0027    | OP_CONSTANT             5 'Block scope middle'
+    0030    | OP_CONSTANT             2 '20'
+    0033    | OP_GET_LOCAL            2
+    0035    | OP_CALL                 3
+    0037    | OP_POP              
+    0038  484 OP_POP              
+    0039  485 OP_GET_LOCAL            1
+    0041    | OP_RETURN           
+    0042  486 OP_POP              
+    0043    | OP_POP              
+    0044    | OP_NIL              
+    0045    | OP_RETURN           
+
+
+>>> Function: __main__$test_switch_with_vars
+    Arity: 1
+    Has return: yes
+    Index: 30
+
+  Constants (8):
+    [0] = "result"
+    [1] = 0
+    [2] = 1
+    [3] = 10
+    [4] = 2
+    [5] = 20
+    [6] = 3
+    [7] = 30
+
+  Bytecode:
+    0000  531 OP_CONSTANT             1 '0'
+    0003  532 OP_GET_LOCAL            1
+    0005  533 OP_DUP              
+    0006    | OP_CONSTANT             2 '1'
+    0009    | OP_EQUAL            
+    0010    | OP_JUMP_IF_FALSE       10 -> 24
+    0013    | OP_POP              
+    0014    | OP_POP              
+    0015  534 OP_CONSTANT             3 '10'
+    0018    | OP_SET_LOCAL            2
+    0020    | OP_POP              
+    0021    | OP_JUMP                21 -> 73
+    0024    | OP_POP              
+    0025  535 OP_DUP              
+    0026    | OP_CONSTANT             4 '2'
+    0029    | OP_EQUAL            
+    0030    | OP_JUMP_IF_FALSE       30 -> 44
+    0033    | OP_POP              
+    0034    | OP_POP              
+    0035  536 OP_CONSTANT             5 '20'
+    0038    | OP_SET_LOCAL            2
+    0040    | OP_POP              
+    0041    | OP_JUMP                41 -> 73
+    0044    | OP_POP              
+    0045  537 OP_DUP              
+    0046    | OP_CONSTANT             6 '3'
+    0049    | OP_EQUAL            
+    0050    | OP_JUMP_IF_FALSE       50 -> 64
+    0053    | OP_POP              
+    0054    | OP_POP              
+    0055  538 OP_CONSTANT             7 '30'
+    0058    | OP_SET_LOCAL            2
+    0060    | OP_POP              
+    0061    | OP_JUMP                61 -> 73
+    0064    | OP_POP              
+    0065  539 OP_POP              
+    0066  540 OP_CONSTANT             2 '1'
+    0069    | OP_NEGATE           
+    0070    | OP_SET_LOCAL            2
+    0072    | OP_POP              
+    0073  542 OP_GET_LOCAL            2
+    0075    | OP_RETURN           
+    0076  543 OP_POP              
+    0077    | OP_POP              
+    0078    | OP_POP              
+    0079    | OP_NIL              
+    0080    | OP_RETURN           
+
+
+>>> Function: __main__$outer_with_params
     Arity: 1
     Has return: yes
     Index: 9
 
   Constants (2):
-    [0] = 1
-    [1] = "fact"
+    [0] = <value type 16>
+    [1] = 10
 
   Bytecode:
-    0000   92 OP_GET_LOCAL            1
+    0000  103 OP_CLOSURE              0 '<function 10>'
+    0003    | OP_NIL              
+    0004    | OP_NIL              
+    0005  104 OP_GET_LOCAL            2
+    0007    | OP_CONSTANT             1 '10'
+    0010    | OP_CALL                 1
+    0012    | OP_RETURN           
+    0013  105 OP_POP              
+    0014    | OP_CLOSE_UPVALUE    
+    0015    | OP_POP              
+    0016    | OP_NIL              
+    0017    | OP_RETURN           
+
+
+>>> Function: __main__$outer_with_params$inner
+    Arity: 1
+    Has return: yes
+    Index: 10
+
+  Constants (0):
+
+  Bytecode:
+    0000  102 OP_GET_UPVALUE          0
+    0002    | OP_GET_LOCAL            1
+    0004    | OP_ADD              
+    0005    | OP_RETURN           
+    0006  103 OP_POP              
+    0007    | OP_POP              
+    0008    | OP_NIL              
+    0009    | OP_RETURN           
+
+
+>>> Function: __main__$test_nested_while
+    Arity: 0
+    Has return: yes
+    Index: 25
+
+  Constants (7):
+    [0] = "sum"
+    [1] = 0
+    [2] = "i"
+    [3] = 5
+    [4] = "j"
+    [5] = 3
+    [6] = 1
+
+  Bytecode:
+    0000  440 OP_CONSTANT             1 '0'
+    0003  441 OP_CONSTANT             1 '0'
+    0006  442 OP_GET_LOCAL            2
+    0008    | OP_CONSTANT             3 '5'
+    0011    | OP_LESS             
+    0012    | OP_JUMP_IF_FALSE       12 -> 68
+    0015    | OP_POP              
+    0016  443 OP_CONSTANT             1 '0'
+    0019  444 OP_GET_LOCAL            3
+    0021    | OP_CONSTANT             5 '3'
+    0024    | OP_LESS             
+    0025    | OP_JUMP_IF_FALSE       25 -> 52
+    0028    | OP_POP              
+    0029  445 OP_GET_LOCAL            1
+    0031    | OP_CONSTANT             6 '1'
+    0034    | OP_ADD              
+    0035    | OP_SET_LOCAL            1
+    0037    | OP_POP              
+    0038  446 OP_GET_LOCAL            3
+    0040    | OP_DUP              
+    0041    | OP_CONSTANT             6 '1'
+    0044    | OP_ADD              
+    0045    | OP_SET_LOCAL            3
+    0047    | OP_POP              
+    0048    | OP_POP              
+    0049  447 OP_LOOP                49 -> 19
+    0052    | OP_POP              
+    0053  448 OP_GET_LOCAL            2
+    0055    | OP_DUP              
+    0056    | OP_CONSTANT             6 '1'
+    0059    | OP_ADD              
+    0060    | OP_SET_LOCAL            2
+    0062    | OP_POP              
+    0063    | OP_POP              
+    0064  449 OP_POP              
+    0065    | OP_LOOP                65 -> 6
+    0068    | OP_POP              
+    0069  450 OP_GET_LOCAL            1
+    0071    | OP_RETURN           
+    0072  451 OP_POP              
+    0073    | OP_POP              
+    0074    | OP_POP              
+    0075    | OP_NIL              
+    0076    | OP_RETURN           
+
+
+>>> Function: __main__$double
+    Arity: 1
+    Has return: yes
+    Index: 18
+
+  Constants (1):
+    [0] = 2
+
+  Bytecode:
+    0000  242 OP_GET_LOCAL            1
+    0002    | OP_CONSTANT             0 '2'
+    0005    | OP_MULTIPLY         
+    0006    | OP_RETURN           
+    0007  243 OP_POP              
+    0008    | OP_POP              
+    0009    | OP_NIL              
+    0010    | OP_RETURN           
+
+
+>>> Function: closure_in_method$inner
+    Arity: 0
+    Has return: yes
+    Index: 34
+
+  Constants (1):
+    [0] = "a"
+
+  Bytecode:
+    0000  782 OP_GET_UPVALUE          0
+    0002    | OP_GET_PROPERTY         0 'a'
+    0005    | OP_GET_UPVALUE          1
+    0007    | OP_ADD              
+    0008    | OP_RETURN           
+    0009  783 OP_POP              
+    0010    | OP_NIL              
+    0011    | OP_RETURN           
+
+
+>>> Function: __main__$add
+    Arity: 2
+    Has return: yes
+    Index: 3
+
+  Constants (0):
+
+  Bytecode:
+    0000   53 OP_GET_LOCAL            1
+    0002    | OP_GET_LOCAL            2
+    0004    | OP_ADD              
+    0005    | OP_RETURN           
+    0006   54 OP_POP              
+    0007    | OP_POP              
+    0008    | OP_POP              
+    0009    | OP_NIL              
+    0010    | OP_RETURN           
+
+
+>>> Function: __main__$factorial
+    Arity: 1
+    Has return: yes
+    Index: 16
+
+  Constants (1):
+    [0] = 1
+
+  Bytecode:
+    0000  203 OP_GET_LOCAL            1
     0002    | OP_CONSTANT             0 '1'
     0005    | OP_GREATER          
     0006    | OP_NOT              
@@ -69,703 +942,39 @@ GLOBAL FUNCTIONS
     0014    | OP_RETURN           
     0015    | OP_JUMP                15 -> 19
     0018    | OP_POP              
-    0019   93 OP_GET_LOCAL            1
-    0021    | OP_GET_GLOBAL           1 'fact'
+    0019  204 OP_GET_LOCAL            1
+    0021    | OP_GET_GLOBAL          28 '<non-string>'
     0024    | OP_GET_LOCAL            1
     0026    | OP_CONSTANT             0 '1'
     0029    | OP_SUBTRACT         
     0030    | OP_CALL                 1
     0032    | OP_MULTIPLY         
     0033    | OP_RETURN           
-    0034   94 OP_POP              
+    0034  205 OP_POP              
     0035    | OP_POP              
     0036    | OP_NIL              
     0037    | OP_RETURN           
 
 
->>> Function: __main__$test_multiple_vars
-    Arity: 0
+>>> Function: __main__$apply_twice
+    Arity: 2
     Has return: yes
-    Index: 3
+    Index: 20
 
-  Constants (9):
-    [0] = "a"
-    [1] = 0
-    [2] = "b"
-    [3] = "c"
-    [4] = "d"
-    [5] = "e"
-    [6] = "i"
-    [7] = 1000
-    [8] = 1
+  Constants (0):
 
   Bytecode:
-    0000   30 OP_CONSTANT             1 '0'
-    0003    | OP_CONSTANT             1 '0'
-    0006    | OP_CONSTANT             1 '0'
-    0009    | OP_CONSTANT             1 '0'
-    0012    | OP_CONSTANT             1 '0'
-    0015   31 OP_CONSTANT             1 '0'
-    0018   32 OP_GET_LOCAL            6
-    0020    | OP_CONSTANT             7 '1000'
-    0023    | OP_LESS             
-    0024    | OP_JUMP_IF_FALSE       24 -> 97
-    0027    | OP_POP              
-    0028   33 OP_GET_LOCAL            1
-    0030    | OP_DUP              
-    0031    | OP_CONSTANT             8 '1'
-    0034    | OP_ADD              
-    0035    | OP_SET_LOCAL            1
-    0037    | OP_POP              
-    0038    | OP_POP              
-    0039    | OP_GET_LOCAL            2
-    0041    | OP_DUP              
-    0042    | OP_CONSTANT             8 '1'
-    0045    | OP_ADD              
-    0046    | OP_SET_LOCAL            2
-    0048    | OP_POP              
-    0049    | OP_POP              
-    0050    | OP_GET_LOCAL            3
-    0052    | OP_DUP              
-    0053    | OP_CONSTANT             8 '1'
-    0056    | OP_ADD              
-    0057    | OP_SET_LOCAL            3
-    0059    | OP_POP              
-    0060    | OP_POP              
-    0061    | OP_GET_LOCAL            4
-    0063    | OP_DUP              
-    0064    | OP_CONSTANT             8 '1'
-    0067    | OP_ADD              
-    0068    | OP_SET_LOCAL            4
-    0070    | OP_POP              
-    0071    | OP_POP              
-    0072    | OP_GET_LOCAL            5
-    0074    | OP_DUP              
-    0075    | OP_CONSTANT             8 '1'
-    0078    | OP_ADD              
-    0079    | OP_SET_LOCAL            5
-    0081    | OP_POP              
-    0082    | OP_POP              
-    0083   34 OP_GET_LOCAL            6
-    0085    | OP_DUP              
-    0086    | OP_CONSTANT             8 '1'
-    0089    | OP_ADD              
-    0090    | OP_SET_LOCAL            6
-    0092    | OP_POP              
-    0093    | OP_POP              
-    0094   35 OP_LOOP                94 -> 18
-    0097    | OP_POP              
-    0098   36 OP_POP              
-    0099    | OP_POP              
-    0100    | OP_POP              
-    0101    | OP_POP              
-    0102    | OP_POP              
-    0103    | OP_POP              
-    0104    | OP_POP              
-    0105    | OP_NIL              
-    0106    | OP_RETURN           
-
-
->>> Function: __main__$test_many_vars
-    Arity: 0
-    Has return: yes
-    Index: 6
-
-  Constants (54):
-    [0] = "v0"
-    [1] = 0
-    [2] = "v1"
-    [3] = "v2"
-    [4] = "v3"
-    [5] = "v4"
-    [6] = "v5"
-    [7] = "v6"
-    [8] = "v7"
-    [9] = "v8"
-    [10] = "v9"
-    [11] = "v10"
-    [12] = "v11"
-    [13] = "v12"
-    [14] = "v13"
-    [15] = "v14"
-    [16] = "v15"
-    [17] = "v16"
-    [18] = "v17"
-    [19] = "v18"
-    [20] = "v19"
-    [21] = "v20"
-    [22] = "v21"
-    [23] = "v22"
-    [24] = "v23"
-    [25] = "v24"
-    [26] = "v25"
-    [27] = "v26"
-    [28] = "v27"
-    [29] = "v28"
-    [30] = "v29"
-    [31] = "v30"
-    [32] = "v31"
-    [33] = "v32"
-    [34] = "v33"
-    [35] = "v34"
-    [36] = "v35"
-    [37] = "v36"
-    [38] = "v37"
-    [39] = "v38"
-    [40] = "v39"
-    [41] = "v40"
-    [42] = "v41"
-    [43] = "v42"
-    [44] = "v43"
-    [45] = "v44"
-    [46] = "v45"
-    [47] = "v46"
-    [48] = "v47"
-    [49] = "v48"
-    [50] = "v49"
-    [51] = "i"
-    [52] = 100
-    [53] = 1
-
-  Bytecode:
-    0000   62 OP_CONSTANT             1 '0'
-    0003    | OP_CONSTANT             1 '0'
-    0006    | OP_CONSTANT             1 '0'
-    0009    | OP_CONSTANT             1 '0'
-    0012    | OP_CONSTANT             1 '0'
-    0015   63 OP_CONSTANT             1 '0'
-    0018    | OP_CONSTANT             1 '0'
-    0021    | OP_CONSTANT             1 '0'
-    0024    | OP_CONSTANT             1 '0'
-    0027    | OP_CONSTANT             1 '0'
-    0030   64 OP_CONSTANT             1 '0'
-    0033    | OP_CONSTANT             1 '0'
-    0036    | OP_CONSTANT             1 '0'
-    0039    | OP_CONSTANT             1 '0'
-    0042    | OP_CONSTANT             1 '0'
-    0045   65 OP_CONSTANT             1 '0'
-    0048    | OP_CONSTANT             1 '0'
-    0051    | OP_CONSTANT             1 '0'
-    0054    | OP_CONSTANT             1 '0'
-    0057    | OP_CONSTANT             1 '0'
-    0060   66 OP_CONSTANT             1 '0'
-    0063    | OP_CONSTANT             1 '0'
-    0066    | OP_CONSTANT             1 '0'
-    0069    | OP_CONSTANT             1 '0'
-    0072    | OP_CONSTANT             1 '0'
-    0075   67 OP_CONSTANT             1 '0'
-    0078    | OP_CONSTANT             1 '0'
-    0081    | OP_CONSTANT             1 '0'
-    0084    | OP_CONSTANT             1 '0'
-    0087    | OP_CONSTANT             1 '0'
-    0090   68 OP_CONSTANT             1 '0'
-    0093    | OP_CONSTANT             1 '0'
-    0096    | OP_CONSTANT             1 '0'
-    0099    | OP_CONSTANT             1 '0'
-    0102    | OP_CONSTANT             1 '0'
-    0105   69 OP_CONSTANT             1 '0'
-    0108    | OP_CONSTANT             1 '0'
-    0111    | OP_CONSTANT             1 '0'
-    0114    | OP_CONSTANT             1 '0'
-    0117    | OP_CONSTANT             1 '0'
-    0120   70 OP_CONSTANT             1 '0'
-    0123    | OP_CONSTANT             1 '0'
-    0126    | OP_CONSTANT             1 '0'
-    0129    | OP_CONSTANT             1 '0'
-    0132    | OP_CONSTANT             1 '0'
-    0135   71 OP_CONSTANT             1 '0'
-    0138    | OP_CONSTANT             1 '0'
-    0141    | OP_CONSTANT             1 '0'
-    0144    | OP_CONSTANT             1 '0'
-    0147    | OP_CONSTANT             1 '0'
-    0150   73 OP_CONSTANT             1 '0'
-    0153   74 OP_GET_LOCAL           51
-    0155    | OP_CONSTANT            52 '100'
-    0158    | OP_LESS             
-    0159    | OP_JUMP_IF_FALSE      159 -> 232
-    0162    | OP_POP              
-    0163   75 OP_GET_LOCAL            1
-    0165    | OP_DUP              
-    0166    | OP_CONSTANT            53 '1'
-    0169    | OP_ADD              
-    0170    | OP_SET_LOCAL            1
-    0172    | OP_POP              
-    0173    | OP_POP              
-    0174    | OP_GET_LOCAL           11
-    0176    | OP_DUP              
-    0177    | OP_CONSTANT            53 '1'
-    0180    | OP_ADD              
-    0181    | OP_SET_LOCAL           11
-    0183    | OP_POP              
-    0184    | OP_POP              
-    0185    | OP_GET_LOCAL           21
-    0187    | OP_DUP              
-    0188    | OP_CONSTANT            53 '1'
-    0191    | OP_ADD              
-    0192    | OP_SET_LOCAL           21
-    0194    | OP_POP              
-    0195    | OP_POP              
-    0196    | OP_GET_LOCAL           31
-    0198    | OP_DUP              
-    0199    | OP_CONSTANT            53 '1'
-    0202    | OP_ADD              
-    0203    | OP_SET_LOCAL           31
-    0205    | OP_POP              
-    0206    | OP_POP              
-    0207    | OP_GET_LOCAL           41
-    0209    | OP_DUP              
-    0210    | OP_CONSTANT            53 '1'
-    0213    | OP_ADD              
-    0214    | OP_SET_LOCAL           41
-    0216    | OP_POP              
-    0217    | OP_POP              
-    0218   76 OP_GET_LOCAL           51
-    0220    | OP_DUP              
-    0221    | OP_CONSTANT            53 '1'
-    0224    | OP_ADD              
-    0225    | OP_SET_LOCAL           51
-    0227    | OP_POP              
-    0228    | OP_POP              
-    0229   77 OP_LOOP               229 -> 153
-    0232    | OP_POP              
-    0233   78 OP_POP              
-    0234    | OP_POP              
-    0235    | OP_POP              
-    0236    | OP_POP              
-    0237    | OP_POP              
-    0238    | OP_POP              
-    0239    | OP_POP              
-    0240    | OP_POP              
-    0241    | OP_POP              
-    0242    | OP_POP              
-    0243    | OP_POP              
-    0244    | OP_POP              
-    0245    | OP_POP              
-    0246    | OP_POP              
-    0247    | OP_POP              
-    0248    | OP_POP              
-    0249    | OP_POP              
-    0250    | OP_POP              
-    0251    | OP_POP              
-    0252    | OP_POP              
-    0253    | OP_POP              
-    0254    | OP_POP              
-    0255    | OP_POP              
-    0256    | OP_POP              
-    0257    | OP_POP              
-    0258    | OP_POP              
-    0259    | OP_POP              
-    0260    | OP_POP              
-    0261    | OP_POP              
-    0262    | OP_POP              
-    0263    | OP_POP              
-    0264    | OP_POP              
-    0265    | OP_POP              
-    0266    | OP_POP              
-    0267    | OP_POP              
-    0268    | OP_POP              
-    0269    | OP_POP              
-    0270    | OP_POP              
-    0271    | OP_POP              
-    0272    | OP_POP              
-    0273    | OP_POP              
-    0274    | OP_POP              
-    0275    | OP_POP              
-    0276    | OP_POP              
-    0277    | OP_POP              
-    0278    | OP_POP              
-    0279    | OP_POP              
-    0280    | OP_POP              
-    0281    | OP_POP              
-    0282    | OP_POP              
-    0283    | OP_POP              
-    0284    | OP_POP              
-    0285    | OP_NIL              
-    0286    | OP_RETURN           
-
-
->>> Function: __main__$test_closure$outer
-    Arity: 0
-    Has return: yes
-    Index: 16
-
-  Constants (6):
-    [0] = "x"
-    [1] = 0
-    [2] = <value type 16>
-    [3] = "i"
-    [4] = 1000
-    [5] = 1
-
-  Bytecode:
-    0000  210 OP_CONSTANT             1 '0'
-    0003  214 OP_CLOSURE              2 '<function 17>'
-    0006    | OP_NIL              
-    0007    | OP_NIL              
-    0008  215 OP_CONSTANT             1 '0'
-    0011  216 OP_GET_LOCAL            3
-    0013    | OP_CONSTANT             4 '1000'
-    0016    | OP_LESS             
-    0017    | OP_JUMP_IF_FALSE       17 -> 40
-    0020    | OP_POP              
-    0021  217 OP_GET_LOCAL            2
-    0023    | OP_CALL                 0
-    0025    | OP_POP              
-    0026  218 OP_GET_LOCAL            3
-    0028    | OP_DUP              
-    0029    | OP_CONSTANT             5 '1'
-    0032    | OP_ADD              
-    0033    | OP_SET_LOCAL            3
-    0035    | OP_POP              
-    0036    | OP_POP              
-    0037  219 OP_LOOP                37 -> 11
-    0040    | OP_POP              
-    0041  220 OP_GET_LOCAL            1
-    0043    | OP_RETURN           
-    0044  221 OP_POP              
-    0045    | OP_POP              
-    0046    | OP_POP              
-    0047    | OP_POP              
-    0048    | OP_NIL              
-    0049    | OP_RETURN           
-
-
->>> Function: __main__$test_nested_loops
-    Arity: 0
-    Has return: yes
-    Index: 14
-
-  Constants (8):
-    [0] = "matrix"
-    [1] = "i"
-    [2] = 0
-    [3] = 100
-    [4] = "row"
-    [5] = "j"
-    [6] = "push"
-    [7] = 1
-
-  Bytecode:
-    0000  193 OP_DEFINE_ARRAY         0
-    0003  194 OP_CONSTANT             2 '0'
-    0006  195 OP_GET_LOCAL            2
-    0008    | OP_CONSTANT             3 '100'
-    0011    | OP_LESS             
-    0012    | OP_JUMP_IF_FALSE       12 -> 84
-    0015    | OP_POP              
-    0016  196 OP_DEFINE_ARRAY         0
-    0019  197 OP_CONSTANT             2 '0'
-    0022  198 OP_GET_LOCAL            4
-    0024    | OP_CONSTANT             3 '100'
-    0027    | OP_LESS             
-    0028    | OP_JUMP_IF_FALSE       28 -> 58
-    0031    | OP_POP              
-    0032  199 OP_GET_LOCAL            3
-    0034    | OP_GET_LOCAL            2
-    0036    | OP_GET_LOCAL            4
-    0038    | OP_MULTIPLY         
-    0039    | OP_INVOKE               6 'push' (1 args)
-    0043    | OP_POP              
-    0044  200 OP_GET_LOCAL            4
-    0046    | OP_DUP              
-    0047    | OP_CONSTANT             7 '1'
-    0050    | OP_ADD              
-    0051    | OP_SET_LOCAL            4
-    0053    | OP_POP              
-    0054    | OP_POP              
-    0055  201 OP_LOOP                55 -> 22
-    0058    | OP_POP              
-    0059  202 OP_GET_LOCAL            1
-    0061    | OP_GET_LOCAL            3
-    0063    | OP_INVOKE               6 'push' (1 args)
-    0067    | OP_POP              
-    0068  203 OP_GET_LOCAL            2
-    0070    | OP_DUP              
-    0071    | OP_CONSTANT             7 '1'
-    0074    | OP_ADD              
-    0075    | OP_SET_LOCAL            2
-    0077    | OP_POP              
-    0078    | OP_POP              
-    0079  204 OP_POP              
-    0080    | OP_POP              
-    0081    | OP_LOOP                81 -> 6
-    0084    | OP_POP              
-    0085  205 OP_POP              
-    0086    | OP_POP              
-    0087    | OP_POP              
-    0088    | OP_NIL              
-    0089    | OP_RETURN           
-
-
->>> Function: __main__$test_fibonacci
-    Arity: 0
-    Has return: yes
-    Index: 8
-
-  Constants (2):
-    [0] = "fib"
-    [1] = 20
-
-  Bytecode:
-    0000   87 OP_GET_GLOBAL           0 'fib'
-    0003    | OP_CONSTANT             1 '20'
+    0000  253 OP_GET_LOCAL            1
+    0002    | OP_GET_LOCAL            1
+    0004    | OP_GET_LOCAL            2
     0006    | OP_CALL                 1
-    0008    | OP_POP              
-    0009   88 OP_POP              
-    0010    | OP_NIL              
-    0011    | OP_RETURN           
-
-
->>> Function: __main__$test_closure
-    Arity: 0
-    Has return: yes
-    Index: 15
-
-  Constants (2):
-    [0] = <value type 16>
-    [1] = "outer"
-
-  Bytecode:
-    0000  221 OP_CONSTANT             0 '<function 16>'
-    0003  222 OP_GET_GLOBAL           1 'outer'
-    0006    | OP_CALL                 0
-    0008    | OP_POP              
-    0009  223 OP_POP              
-    0010    | OP_POP              
-    0011    | OP_NIL              
-    0012    | OP_RETURN           
-
-
->>> Function: __main__$run_benchmark
-    Arity: 3
-    Has return: yes
-    Index: 1
-
-  Constants (10):
-    [0] = "start"
-    [1] = "i"
-    [2] = 0
-    [3] = 1
-    [4] = "end"
-    [5] = "duration"
-    [6] = 1000000
-    [7] = "per_iter"
-    [8] = "write"
-    [9] = "[BENCH] {}: {} us ({} iterations, {} us/iter)
-"
-
-  Bytecode:
-    0000    5 OP_CLOCK            
-    0001    7 OP_CONSTANT             2 '0'
-    0004    8 OP_GET_LOCAL            5
-    0006    | OP_GET_LOCAL            3
-    0008    | OP_LESS             
-    0009    | OP_JUMP_IF_FALSE        9 -> 32
+    0008    | OP_CALL                 1
+    0010    | OP_RETURN           
+    0011  254 OP_POP              
     0012    | OP_POP              
-    0013    9 OP_GET_LOCAL            2
-    0015    | OP_CALL                 0
-    0017    | OP_POP              
-    0018   10 OP_GET_LOCAL            5
-    0020    | OP_DUP              
-    0021    | OP_CONSTANT             3 '1'
-    0024    | OP_ADD              
-    0025    | OP_SET_LOCAL            5
-    0027    | OP_POP              
-    0028    | OP_POP              
-    0029   11 OP_LOOP                29 -> 4
-    0032    | OP_POP              
-    0033   13 OP_CLOCK            
-    0034   14 OP_GET_LOCAL            6
-    0036    | OP_GET_LOCAL            4
-    0038    | OP_SUBTRACT         
-    0039    | OP_CONSTANT             6 '1000000'
-    0042    | OP_MULTIPLY         
-    0043   15 OP_GET_LOCAL            7
-    0045    | OP_GET_LOCAL            3
-    0047    | OP_DIVIDE           
-    0048   17 OP_GET_GLOBAL           8 'write'
-    0051    | OP_CONSTANT             9 '[BENCH] {}: {} us ({} iterations, {} us/iter)'
-    0054    | OP_GET_LOCAL            1
-    0056    | OP_GET_LOCAL            7
-    0058    | OP_GET_LOCAL            3
-    0060    | OP_GET_LOCAL            8
-    0062    | OP_CALL                 5
-    0064    | OP_POP              
-    0065   18 OP_POP              
-    0066    | OP_POP              
-    0067    | OP_POP              
-    0068    | OP_POP              
-    0069    | OP_POP              
-    0070    | OP_POP              
-    0071    | OP_POP              
-    0072    | OP_POP              
-    0073    | OP_POP              
-    0074    | OP_NIL              
-    0075    | OP_RETURN           
-
-
->>> Function: __main__$test_local_function
-    Arity: 0
-    Has return: yes
-    Index: 4
-
-  Constants (6):
-    [0] = "sum"
-    [1] = 0
-    [2] = "i"
-    [3] = 1000
-    [4] = "local"
-    [5] = 1
-
-  Bytecode:
-    0000   40 OP_CONSTANT             1 '0'
-    0003   41 OP_CONSTANT             1 '0'
-    0006   42 OP_GET_LOCAL            2
-    0008    | OP_CONSTANT             3 '1000'
-    0011    | OP_LESS             
-    0012    | OP_JUMP_IF_FALSE       12 -> 41
-    0015    | OP_POP              
-    0016   43 OP_GET_LOCAL            2
-    0018   44 OP_GET_LOCAL            1
-    0020    | OP_GET_LOCAL            3
-    0022    | OP_ADD              
-    0023    | OP_SET_LOCAL            1
-    0025    | OP_POP              
-    0026   45 OP_GET_LOCAL            2
-    0028    | OP_DUP              
-    0029    | OP_CONSTANT             5 '1'
-    0032    | OP_ADD              
-    0033    | OP_SET_LOCAL            2
-    0035    | OP_POP              
-    0036    | OP_POP              
-    0037   46 OP_POP              
-    0038    | OP_LOOP                38 -> 6
-    0041    | OP_POP              
-    0042   47 OP_GET_LOCAL            1
-    0044    | OP_RETURN           
-    0045   48 OP_POP              
-    0046    | OP_POP              
-    0047    | OP_POP              
-    0048    | OP_NIL              
-    0049    | OP_RETURN           
-
-
->>> Function: __main__$test_objects
-    Arity: 0
-    Has return: yes
-    Index: 12
-
-  Constants (10):
-    [0] = "entities"
-    [1] = "i"
-    [2] = 0
-    [3] = 10
-    [4] = "push"
-    [5] = "Entity"
-    [6] = 1
-    [7] = 100
-    [8] = "j"
-    [9] = "update"
-
-  Bytecode:
-    0000  131 OP_DEFINE_ARRAY         0
-    0003  132 OP_CONSTANT             2 '0'
-    0006  133 OP_GET_LOCAL            2
-    0008    | OP_CONSTANT             3 '10'
-    0011    | OP_LESS             
-    0012    | OP_JUMP_IF_FALSE       12 -> 42
-    0015    | OP_POP              
-    0016  134 OP_GET_LOCAL            1
-    0018    | OP_GET_GLOBAL           5 'Entity'
-    0021    | OP_CALL                 0
-    0023    | OP_INVOKE               4 'push' (1 args)
-    0027    | OP_POP              
-    0028  135 OP_GET_LOCAL            2
-    0030    | OP_DUP              
-    0031    | OP_CONSTANT             6 '1'
-    0034    | OP_ADD              
-    0035    | OP_SET_LOCAL            2
-    0037    | OP_POP              
-    0038    | OP_POP              
-    0039  136 OP_LOOP                39 -> 6
-    0042    | OP_POP              
-    0043  138 OP_CONSTANT             2 '0'
-    0046    | OP_SET_LOCAL            2
-    0048    | OP_POP              
-    0049  139 OP_GET_LOCAL            2
-    0051    | OP_CONSTANT             7 '100'
-    0054    | OP_LESS             
-    0055    | OP_JUMP_IF_FALSE       55 -> 112
-    0058    | OP_POP              
-    0059  140 OP_CONSTANT             2 '0'
-    0062  141 OP_GET_LOCAL            3
-    0064    | OP_GET_LOCAL            1
-    0066    | OP_FUNC_LEN         
-    0067    | OP_LESS             
-    0068    | OP_JUMP_IF_FALSE       68 -> 96
-    0071    | OP_POP              
-    0072  142 OP_GET_LOCAL            1
-    0074    | OP_GET_LOCAL            3
-    0076    | OP_GET_INDEX        
-    0077    | OP_INVOKE               9 'update' (0 args)
-    0081    | OP_POP              
-    0082  143 OP_GET_LOCAL            3
-    0084    | OP_DUP              
-    0085    | OP_CONSTANT             6 '1'
-    0088    | OP_ADD              
-    0089    | OP_SET_LOCAL            3
-    0091    | OP_POP              
-    0092    | OP_POP              
-    0093  144 OP_LOOP                93 -> 62
-    0096    | OP_POP              
-    0097  145 OP_GET_LOCAL            2
-    0099    | OP_DUP              
-    0100    | OP_CONSTANT             6 '1'
-    0103    | OP_ADD              
-    0104    | OP_SET_LOCAL            2
-    0106    | OP_POP              
-    0107    | OP_POP              
-    0108  146 OP_POP              
-    0109    | OP_LOOP               109 -> 49
-    0112    | OP_POP              
-    0113  147 OP_POP              
-    0114    | OP_POP              
-    0115    | OP_POP              
-    0116    | OP_NIL              
-    0117    | OP_RETURN           
-
-
->>> Function: __main__$test_simple_increment
-    Arity: 0
-    Has return: yes
-    Index: 2
-
-  Constants (4):
-    [0] = "i"
-    [1] = 0
-    [2] = 10000
-    [3] = 1
-
-  Bytecode:
-    0000   22 OP_CONSTANT             1 '0'
-    0003   23 OP_GET_LOCAL            1
-    0005    | OP_CONSTANT             2 '10000'
-    0008    | OP_LESS             
-    0009    | OP_JUMP_IF_FALSE        9 -> 27
-    0012    | OP_POP              
-    0013   24 OP_GET_LOCAL            1
-    0015    | OP_DUP              
-    0016    | OP_CONSTANT             3 '1'
-    0019    | OP_ADD              
-    0020    | OP_SET_LOCAL            1
-    0022    | OP_POP              
-    0023    | OP_POP              
-    0024   25 OP_LOOP                24 -> 3
-    0027    | OP_POP              
-    0028   26 OP_POP              
-    0029    | OP_POP              
-    0030    | OP_NIL              
-    0031    | OP_RETURN           
+    0013    | OP_POP              
+    0014    | OP_NIL              
+    0015    | OP_RETURN           
 
 
 >>> Function: __main__
@@ -773,327 +982,2059 @@ GLOBAL FUNCTIONS
     Has return: no
     Index: 0
 
-  Constants (51):
-    [0] = <value type 16>
-    [1] = "run_benchmark"
+  Constants (304):
+    [0] = 0
+    [1] = <value type 16>
     [2] = <value type 16>
-    [3] = "test_simple_increment"
-    [4] = <value type 16>
-    [5] = "test_multiple_vars"
-    [6] = <value type 16>
-    [7] = "test_local_function"
-    [8] = <value type 16>
-    [9] = "test_arithmetic"
-    [10] = <value type 16>
-    [11] = "test_many_vars"
-    [12] = <value type 16>
-    [13] = "fib"
+    [3] = "
+=== 1. Global Variables ==="
+    [4] = 10
+    [5] = 20
+    [6] = "Global var assignment"
+    [7] = "Global var addition"
+    [8] = 30
+    [9] = 100
+    [10] = "Global var reassignment"
+    [11] = "hello"
+    [12] = "Global string"
+    [13] = "
+=== 2. Global Functions ==="
     [14] = <value type 16>
-    [15] = "test_fibonacci"
-    [16] = <value type 16>
-    [17] = "fact"
-    [18] = <value type 16>
-    [19] = "test_factorial"
-    [20] = <value type 16>
-    [21] = "test_array"
-    [22] = "Entity"
-    [23] = <value type 22>
-    [24] = <value type 16>
-    [25] = "test_objects"
-    [26] = "Particle"
-    [27] = <value type 22>
+    [15] = <value type 16>
+    [16] = "Function call"
+    [17] = 15
+    [18] = 5
+    [19] = "Function with globals"
+    [20] = 130
+    [21] = "Nested function calls"
+    [22] = 50
+    [23] = 2
+    [24] = 3
+    [25] = "
+=== 3. Local Variables ==="
+    [26] = <value type 16>
+    [27] = "Local variables"
     [28] = <value type 16>
-    [29] = "test_physics"
-    [30] = <value type 16>
-    [31] = "test_nested_loops"
-    [32] = <value type 16>
-    [33] = "test_closure"
-    [34] = "========================================"
-    [35] = "BuLang VM Performance Benchmark"
-    [36] = ""
-    [37] = "iterations"
-    [38] = 10
-    [39] = "Simple increment loop (10000 iterations)"
-    [40] = "Multiple variables"
-    [41] = "Local variables in function"
-    [42] = "Arithmetic operations"
-    [43] = "Many variables (50)"
-    [44] = "Recursive Fibonacci (fib(20))"
-    [45] = "Recursive Factorial (fact(15))"
-    [46] = "Array manipulation (1000 elements)"
-    [47] = "Object property access"
-    [48] = "Physics simulation (100 particles)"
-    [49] = "Nested loops with arrays (100x100)"
-    [50] = "Benchmark complete"
+    [29] = "Local shadows global"
+    [30] = 999
+    [31] = "Global unchanged after shadow"
+    [32] = "
+=== 4. Nested Functions ==="
+    [33] = <value type 16>
+    [34] = "Simple nested function"
+    [35] = 42
+    [36] = <value type 16>
+    [37] = "Nested with params"
+    [38] = "
+=== 5. Closures / Upvalues ==="
+    [39] = <value type 16>
+    [40] = "Closure first call"
+    [41] = 1
+    [42] = "Closure second call"
+    [43] = "Closure third call"
+    [44] = <value type 16>
+    [45] = "Closure captures updated values"
+    [46] = 300
+    [47] = "
+=== 6. Classes ==="
+    [48] = <value type 22>
+    [49] = "Class init x"
+    [50] = "x"
+    [51] = "Class init y"
+    [52] = "y"
+    [53] = "Class method"
+    [54] = "sum"
+    [55] = "move"
+    [56] = "Class method modifies state"
+    [57] = 40
+    [58] = "
+=== 7. Native Functions ==="
+    [59] = "push"
+    [60] = "Array len"
+    [61] = "Array access"
+    [62] = "clock() returns number"
+    [63] = "
+=== 8. Recursion ==="
+    [64] = <value type 16>
+    [65] = "Fibonacci 0"
+    [66] = "Fibonacci 1"
+    [67] = "Fibonacci 10"
+    [68] = 55
+    [69] = <value type 16>
+    [70] = "Factorial 5"
+    [71] = 120
+    [72] = "Factorial 10"
+    [73] = 3628800
+    [74] = "
+=== 9. Loops with Globals ==="
+    [75] = "Loop sum"
+    [76] = 45
+    [77] = "Loop array build"
+    [78] = "Loop array value"
+    [79] = 6
+    [80] = "
+=== 10. Function as Argument ==="
+    [81] = <value type 16>
+    [82] = <value type 16>
+    [83] = <value type 16>
+    [84] = "Function as arg (double)"
+    [85] = "Function as arg (square)"
+    [86] = 25
+    [87] = <value type 16>
+    [88] = "Apply twice"
+    [89] = "
+=== 11. Mixed Scenarios ==="
+    [90] = <value type 22>
+    [91] = "add"
+    [92] = "multiply"
+    [93] = "Chained class methods"
+    [94] = "get"
+    [95] = <value type 16>
+    [96] = "Closure factory 1"
+    [97] = "Closure factory 2"
+    [98] = "
+=== 12. Stress Test - Many Globals ==="
+    [99] = 4
+    [100] = 7
+    [101] = 8
+    [102] = 9
+    [103] = 11
+    [104] = 12
+    [105] = 13
+    [106] = 14
+    [107] = 16
+    [108] = 17
+    [109] = 18
+    [110] = 19
+    [111] = "Sum of 20 globals"
+    [112] = 190
+    [113] = "
+=== 13. Increment Operators ==="
+    [114] = "Postfix increment"
+    [115] = "Prefix increment"
+    [116] = "Postfix decrement"
+    [117] = "Prefix decrement"
+    [118] = "
+=== 14. Class Methods with Complex Returns ==="
+    [119] = <value type 22>
+    [120] = "Early return negative"
+    [121] = "early_return"
+    [122] = "Early return zero"
+    [123] = "Early return normal"
+    [124] = 52
+    [125] = "Nested if return 1"
+    [126] = "nested_if_return"
+    [127] = "Nested if return 2"
+    [128] = "Nested if return 3"
+    [129] = "While with return"
+    [130] = "while_with_return"
+    [131] = "While without return"
+    [132] = "
+=== 15. If/Else Edge Cases ==="
+    [133] = <value type 16>
+    [134] = "Nested if/else 1"
+    [135] = "very high"
+    [136] = 35
+    [137] = "Nested if/else 2"
+    [138] = "high"
+    [139] = "Nested if/else 3"
+    [140] = "medium"
+    [141] = "Nested if/else 4"
+    [142] = "low"
+    [143] = "Nested if/else 5"
+    [144] = "very low"
+    [145] = "
+=== 16. While Loops Edge Cases ==="
+    [146] = <value type 16>
+    [147] = "While with break"
+    [148] = <value type 16>
+    [149] = "Nested while loops"
+    [150] = <value type 16>
+    [151] = "While with continue"
+    [152] = "
+=== 17. Block Scopes with Brackets ==="
+    [153] = <value type 16>
+    [154] = "Block scope outer"
+    [155] = <value type 16>
+    [156] = "Block outer local"
+    [157] = "
+=== 18. Switch/Case ==="
+    [158] = <value type 16>
+    [159] = "Switch case 1"
+    [160] = "one"
+    [161] = "Switch case 2"
+    [162] = "two"
+    [163] = "Switch case 3"
+    [164] = "three"
+    [165] = "Switch default"
+    [166] = "other"
+    [167] = 99
+    [168] = <value type 16>
+    [169] = "Switch case assign 1"
+    [170] = "Switch case assign 2"
+    [171] = "Switch default assign"
+    [172] = <value type 22>
+    [173] = "Switch in class method 1"
+    [174] = 101
+    [175] = "test_method"
+    [176] = "Switch in class method 2"
+    [177] = 102
+    [178] = "Switch in class method default"
+    [179] = "
+=== 19. Elif Statements ==="
+    [180] = <value type 16>
+    [181] = "Elif negative"
+    [182] = "negative"
+    [183] = "Elif zero"
+    [184] = "zero"
+    [185] = "Elif small"
+    [186] = "small"
+    [187] = "Elif medium"
+    [188] = "Elif large"
+    [189] = "large"
+    [190] = 500
+    [191] = <value type 16>
+    [192] = "Elif modifies global 1"
+    [193] = "Elif global value 1"
+    [194] = 1000
+    [195] = "Elif modifies global 2"
+    [196] = "Elif global value 2"
+    [197] = 2000
+    [198] = "Elif modifies global else"
+    [199] = "Elif global value else"
+    [200] = 9999
+    [201] = <value type 22>
+    [202] = "Elif in class negative"
+    [203] = "classify"
+    [204] = "Elif in class result negative"
+    [205] = "result"
+    [206] = "Elif in class zero"
+    [207] = "Elif in class result zero"
+    [208] = "Elif in class positive"
+    [209] = "positive"
+    [210] = "Elif in class result positive"
+    [211] = "
+=== 20. Structs ==="
+    [212] = "Vector2"
+    [213] = <value type 14>
+    [214] = "Struct field x"
+    [215] = "Struct field y"
+    [216] = 200
+    [217] = "Struct field modified x"
+    [218] = "Struct field modified y"
+    [219] = "Color"
+    [220] = <value type 14>
+    [221] = "r"
+    [222] = 255
+    [223] = "g"
+    [224] = 128
+    [225] = "b"
+    [226] = 64
+    [227] = "Struct with var r"
+    [228] = "Struct with var g"
+    [229] = "Struct with var b"
+    [230] = "Point3D"
+    [231] = <value type 14>
+    [232] = "Struct 3 fields x"
+    [233] = "Struct 3 fields y"
+    [234] = "Struct 3 fields z"
+    [235] = "z"
+    [236] = "Rectangle"
+    [237] = <value type 14>
+    [238] = "width"
+    [239] = "height"
+    [240] = "Struct mixed var x"
+    [241] = "Struct mixed var y"
+    [242] = "Struct mixed width"
+    [243] = "Struct mixed height"
+    [244] = <value type 16>
+    [245] = "Struct passed to function"
+    [246] = "
+=== 21. Classes - Edge Cases Avançados ==="
+    [247] = <value type 22>
+    [248] = "Complex class nested if 1"
+    [249] = "very negative"
+    [250] = "nested_if_in_method"
+    [251] = "Complex class state after nested if"
+    [252] = "a"
+    [253] = "Complex class nested if 2"
+    [254] = "very positive"
+    [255] = "Complex class state after nested if 2"
+    [256] = "Complex class loop"
+    [257] = "loop_in_method"
+    [258] = "Complex class switch"
+    [259] = "switch_in_method"
+    [260] = "Complex class state after switch"
+    [261] = 222
+    [262] = "Complex class closure"
+    [263] = "closure_in_method"
+    [264] = "
+=== 22. Classes com Múltiplos Métodos ==="
+    [265] = <value type 22>
+    [266] = "Multi method increment"
+    [267] = "increment"
+    [268] = "Multi method increment 2"
+    [269] = "Multi method decrement"
+    [270] = "decrement"
+    [271] = "Multi method add"
+    [272] = 21
+    [273] = "Multi method multiply"
+    [274] = "reset"
+    [275] = "Multi method reset"
+    [276] = "value"
+    [277] = "
+=== 23. Arrays de Structs e Classes ==="
+    [278] = "Array of structs len"
+    [279] = "Array of structs element 0 x"
+    [280] = "Array of structs element 1 y"
+    [281] = "Array of structs element 2 x"
+    [282] = "Array of classes len"
+    [283] = "Array of classes element 0"
+    [284] = "Array of classes element 1"
+    [285] = "Array of classes method call"
+    [286] = "Loop over array of classes"
+    [287] = 61
+    [288] = "
+=== 24. Classes Aninhadas e Composição ==="
+    [289] = <value type 22>
+    [290] = <value type 22>
+    [291] = "Nested class outer value"
+    [292] = "Nested class inner data"
+    [293] = "get_inner_data"
+    [294] = "update_inner"
+    [295] = "Nested class inner updated"
+    [296] = "inner"
+    [297] = "data"
+    [298] = "
+========================================"
+    [299] = "Tests Passed: {}
+"
+    [300] = "Tests Failed: {}
+"
+    [301] = "========================================"
+    [302] = "ALL TESTS PASSED!"
+    [303] = "SOME TESTS FAILED!"
 
   Bytecode:
-    0000   18 OP_CONSTANT             0 '<function 1>'
-    0003    | OP_DEFINE_GLOBAL        1 'run_benchmark'
-    0006   26 OP_CONSTANT             2 '<function 2>'
-    0009    | OP_DEFINE_GLOBAL        3 'test_simple_increment'
-    0012   36 OP_CONSTANT             4 '<function 3>'
-    0015    | OP_DEFINE_GLOBAL        5 'test_multiple_vars'
-    0018   48 OP_CONSTANT             6 '<function 4>'
-    0021    | OP_DEFINE_GLOBAL        7 'test_local_function'
-    0024   58 OP_CONSTANT             8 '<function 5>'
-    0027    | OP_DEFINE_GLOBAL        9 'test_arithmetic'
-    0030   78 OP_CONSTANT            10 '<function 6>'
-    0033    | OP_DEFINE_GLOBAL       11 'test_many_vars'
-    0036   84 OP_CONSTANT            12 '<function 7>'
-    0039    | OP_DEFINE_GLOBAL       13 'fib'
-    0042   88 OP_CONSTANT            14 '<function 8>'
-    0045    | OP_DEFINE_GLOBAL       15 'test_fibonacci'
-    0048   94 OP_CONSTANT            16 '<function 9>'
-    0051    | OP_DEFINE_GLOBAL       17 'fact'
-    0054   98 OP_CONSTANT            18 '<function 10>'
-    0057    | OP_DEFINE_GLOBAL       19 'test_factorial'
-    0060  115 OP_CONSTANT            20 '<function 11>'
-    0063    | OP_DEFINE_GLOBAL       21 'test_array'
-    0066  118 OP_CONSTANT            23 '<class 0>'
-    0069    | OP_DEFINE_GLOBAL       22 'Entity'
-    0072  147 OP_CONSTANT            24 '<function 12>'
-    0075    | OP_DEFINE_GLOBAL       25 'test_objects'
-    0078  150 OP_CONSTANT            27 '<class 1>'
-    0081    | OP_DEFINE_GLOBAL       26 'Particle'
-    0084  189 OP_CONSTANT            28 '<function 13>'
-    0087    | OP_DEFINE_GLOBAL       29 'test_physics'
-    0090  205 OP_CONSTANT            30 '<function 14>'
-    0093    | OP_DEFINE_GLOBAL       31 'test_nested_loops'
-    0096  223 OP_CONSTANT            32 '<function 15>'
-    0099    | OP_DEFINE_GLOBAL       33 'test_closure'
-    0102  226 OP_CONSTANT            34 '========================================'
-    0105    | OP_PRINT                1
-    0107  227 OP_CONSTANT            35 'BuLang VM Performance Benchmark'
-    0110    | OP_PRINT                1
-    0112  228 OP_CONSTANT            34 '========================================'
-    0115    | OP_PRINT                1
-    0117  229 OP_CONSTANT            36 ''
-    0120    | OP_PRINT                1
-    0122  231 OP_CONSTANT            38 '10'
-    0125    | OP_DEFINE_GLOBAL       37 'iterations'
-    0128  233 OP_GET_GLOBAL           1 'run_benchmark'
-    0131    | OP_CONSTANT            39 'Simple increment loop (10000 iterations)'
-    0134    | OP_GET_GLOBAL           3 'test_simple_increment'
-    0137    | OP_GET_GLOBAL          37 'iterations'
-    0140    | OP_CALL                 3
-    0142    | OP_POP              
-    0143  234 OP_GET_GLOBAL           1 'run_benchmark'
-    0146    | OP_CONSTANT            40 'Multiple variables'
-    0149    | OP_GET_GLOBAL           5 'test_multiple_vars'
-    0152    | OP_GET_GLOBAL          37 'iterations'
-    0155    | OP_CALL                 3
-    0157    | OP_POP              
-    0158  235 OP_GET_GLOBAL           1 'run_benchmark'
-    0161    | OP_CONSTANT            41 'Local variables in function'
-    0164    | OP_GET_GLOBAL           7 'test_local_function'
-    0167    | OP_GET_GLOBAL          37 'iterations'
-    0170    | OP_CALL                 3
-    0172    | OP_POP              
-    0173  236 OP_GET_GLOBAL           1 'run_benchmark'
-    0176    | OP_CONSTANT            42 'Arithmetic operations'
-    0179    | OP_GET_GLOBAL           9 'test_arithmetic'
-    0182    | OP_GET_GLOBAL          37 'iterations'
-    0185    | OP_CALL                 3
-    0187    | OP_POP              
-    0188  237 OP_GET_GLOBAL           1 'run_benchmark'
-    0191    | OP_CONSTANT            43 'Many variables (50)'
-    0194    | OP_GET_GLOBAL          11 'test_many_vars'
-    0197    | OP_GET_GLOBAL          37 'iterations'
-    0200    | OP_CALL                 3
-    0202    | OP_POP              
-    0203  238 OP_GET_GLOBAL           1 'run_benchmark'
-    0206    | OP_CONSTANT            44 'Recursive Fibonacci (fib(20))'
-    0209    | OP_GET_GLOBAL          15 'test_fibonacci'
-    0212    | OP_GET_GLOBAL          37 'iterations'
+    0000    6 OP_CONSTANT             0 '0'
+    0003    | OP_DEFINE_GLOBAL        6 'Global var assignment'
+    0006    7 OP_CONSTANT             0 '0'
+    0009    | OP_DEFINE_GLOBAL        7 'Global var addition'
+    0012   17 OP_CONSTANT             1 '<function 1>'
+    0015    | OP_DEFINE_GLOBAL        8 '<non-string>'
+    0018   27 OP_CONSTANT             2 '<function 2>'
+    0021    | OP_DEFINE_GLOBAL        9 '<non-string>'
+    0024   32 OP_CONSTANT             3 '
+=== 1. Global Variables ==='
+    0027    | OP_PRINT                1
+    0029   34 OP_CONSTANT             4 '10'
+    0032    | OP_DEFINE_GLOBAL       10 'Global var reassignment'
+    0035   35 OP_CONSTANT             5 '20'
+    0038    | OP_DEFINE_GLOBAL       11 'hello'
+    0041   36 OP_GET_GLOBAL          10 'Global var reassignment'
+    0044    | OP_GET_GLOBAL          11 'hello'
+    0047    | OP_ADD              
+    0048    | OP_DEFINE_GLOBAL       12 'Global string'
+    0051   38 OP_GET_GLOBAL           8 '<non-string>'
+    0054    | OP_CONSTANT             6 'Global var assignment'
+    0057    | OP_CONSTANT             4 '10'
+    0060    | OP_GET_GLOBAL          10 'Global var reassignment'
+    0063    | OP_CALL                 3
+    0065    | OP_POP              
+    0066   39 OP_GET_GLOBAL           8 '<non-string>'
+    0069    | OP_CONSTANT             7 'Global var addition'
+    0072    | OP_CONSTANT             8 '30'
+    0075    | OP_GET_GLOBAL          12 'Global string'
+    0078    | OP_CALL                 3
+    0080    | OP_POP              
+    0081   41 OP_CONSTANT             9 '100'
+    0084    | OP_SET_GLOBAL          10 'Global var reassignment'
+    0087    | OP_POP              
+    0088   42 OP_GET_GLOBAL           8 '<non-string>'
+    0091    | OP_CONSTANT            10 'Global var reassignment'
+    0094    | OP_CONSTANT             9 '100'
+    0097    | OP_GET_GLOBAL          10 'Global var reassignment'
+    0100    | OP_CALL                 3
+    0102    | OP_POP              
+    0103   44 OP_CONSTANT            11 'hello'
+    0106    | OP_DEFINE_GLOBAL       13 '
+=== 2. Global Functions ==='
+    0109   45 OP_GET_GLOBAL           8 '<non-string>'
+    0112    | OP_CONSTANT            12 'Global string'
+    0115    | OP_CONSTANT            11 'hello'
+    0118    | OP_GET_GLOBAL          13 '
+=== 2. Global Functions ==='
+    0121    | OP_CALL                 3
+    0123    | OP_POP              
+    0124   50 OP_CONSTANT            13 '
+=== 2. Global Functions ==='
+    0127    | OP_PRINT                1
+    0129   54 OP_CONSTANT            14 '<function 3>'
+    0132    | OP_DEFINE_GLOBAL       14 '<non-string>'
+    0135   58 OP_CONSTANT            15 '<function 4>'
+    0138    | OP_DEFINE_GLOBAL       15 '<non-string>'
+    0141   60 OP_GET_GLOBAL           8 '<non-string>'
+    0144    | OP_CONSTANT            16 'Function call'
+    0147    | OP_CONSTANT            17 '15'
+    0150    | OP_GET_GLOBAL          14 '<non-string>'
+    0153    | OP_CONSTANT             4 '10'
+    0156    | OP_CONSTANT            18 '5'
+    0159    | OP_CALL                 2
+    0161    | OP_CALL                 3
+    0163    | OP_POP              
+    0164   61 OP_GET_GLOBAL           8 '<non-string>'
+    0167    | OP_CONSTANT            19 'Function with globals'
+    0170    | OP_CONSTANT            20 '130'
+    0173    | OP_GET_GLOBAL          14 '<non-string>'
+    0176    | OP_GET_GLOBAL          10 'Global var reassignment'
+    0179    | OP_GET_GLOBAL          12 'Global string'
+    0182    | OP_CALL                 2
+    0184    | OP_CALL                 3
+    0186    | OP_POP              
+    0187   62 OP_GET_GLOBAL           8 '<non-string>'
+    0190    | OP_CONSTANT            21 'Nested function calls'
+    0193    | OP_CONSTANT            22 '50'
+    0196    | OP_GET_GLOBAL          15 '<non-string>'
+    0199    | OP_GET_GLOBAL          14 '<non-string>'
+    0202    | OP_CONSTANT            23 '2'
+    0205    | OP_CONSTANT            24 '3'
+    0208    | OP_CALL                 2
+    0210    | OP_CONSTANT             4 '10'
+    0213    | OP_CALL                 2
     0215    | OP_CALL                 3
     0217    | OP_POP              
-    0218  239 OP_GET_GLOBAL           1 'run_benchmark'
-    0221    | OP_CONSTANT            45 'Recursive Factorial (fact(15))'
-    0224    | OP_GET_GLOBAL          19 'test_factorial'
-    0227    | OP_GET_GLOBAL          37 'iterations'
-    0230    | OP_CALL                 3
-    0232    | OP_POP              
-    0233  240 OP_GET_GLOBAL           1 'run_benchmark'
-    0236    | OP_CONSTANT            46 'Array manipulation (1000 elements)'
-    0239    | OP_GET_GLOBAL          21 'test_array'
-    0242    | OP_GET_GLOBAL          37 'iterations'
-    0245    | OP_CALL                 3
-    0247    | OP_POP              
-    0248  241 OP_GET_GLOBAL           1 'run_benchmark'
-    0251    | OP_CONSTANT            47 'Object property access'
-    0254    | OP_GET_GLOBAL          25 'test_objects'
-    0257    | OP_GET_GLOBAL          37 'iterations'
-    0260    | OP_CALL                 3
-    0262    | OP_POP              
-    0263  242 OP_GET_GLOBAL           1 'run_benchmark'
-    0266    | OP_CONSTANT            48 'Physics simulation (100 particles)'
-    0269    | OP_GET_GLOBAL          29 'test_physics'
-    0272    | OP_GET_GLOBAL          37 'iterations'
-    0275    | OP_CALL                 3
-    0277    | OP_POP              
-    0278  243 OP_GET_GLOBAL           1 'run_benchmark'
-    0281    | OP_CONSTANT            49 'Nested loops with arrays (100x100)'
-    0284    | OP_GET_GLOBAL          31 'test_nested_loops'
-    0287    | OP_GET_GLOBAL          37 'iterations'
-    0290    | OP_CALL                 3
-    0292    | OP_POP              
-    0293  245 OP_CONSTANT            34 '========================================'
-    0296    | OP_PRINT                1
-    0298  246 OP_CONSTANT            50 'Benchmark complete'
-    0301    | OP_PRINT                1
-    0303  247 OP_CONSTANT            34 '========================================'
-    0306    | OP_PRINT                1
-    0308  248 OP_NIL              
-    0309    | OP_RETURN           
+    0218   67 OP_CONSTANT            25 '
+=== 3. Local Variables ==='
+    0221    | OP_PRINT                1
+    0223   74 OP_CONSTANT            26 '<function 5>'
+    0226    | OP_DEFINE_GLOBAL       16 'Function call'
+    0229   76 OP_GET_GLOBAL           8 '<non-string>'
+    0232    | OP_CONSTANT            27 'Local variables'
+    0235    | OP_CONSTANT            17 '15'
+    0238    | OP_GET_GLOBAL          16 'Function call'
+    0241    | OP_CALL                 0
+    0243    | OP_CALL                 3
+    0245    | OP_POP              
+    0246   81 OP_CONSTANT            28 '<function 6>'
+    0249    | OP_DEFINE_GLOBAL       17 '<non-string>'
+    0252   83 OP_GET_GLOBAL           8 '<non-string>'
+    0255    | OP_CONSTANT            29 'Local shadows global'
+    0258    | OP_CONSTANT            30 '999'
+    0261    | OP_GET_GLOBAL          17 '<non-string>'
+    0264    | OP_CALL                 0
+    0266    | OP_CALL                 3
+    0268    | OP_POP              
+    0269   84 OP_GET_GLOBAL           8 '<non-string>'
+    0272    | OP_CONSTANT            31 'Global unchanged after shadow'
+    0275    | OP_CONSTANT             9 '100'
+    0278    | OP_GET_GLOBAL          10 'Global var reassignment'
+    0281    | OP_CALL                 3
+    0283    | OP_POP              
+    0284   89 OP_CONSTANT            32 '
+=== 4. Nested Functions ==='
+    0287    | OP_PRINT                1
+    0289   96 OP_CONSTANT            33 '<function 7>'
+    0292    | OP_DEFINE_GLOBAL       18 '<non-string>'
+    0295   98 OP_GET_GLOBAL           8 '<non-string>'
+    0298    | OP_CONSTANT            34 'Simple nested function'
+    0301    | OP_CONSTANT            35 '42'
+    0304    | OP_GET_GLOBAL          18 '<non-string>'
+    0307    | OP_CALL                 0
+    0309    | OP_CALL                 3
+    0311    | OP_POP              
+    0312  105 OP_CONSTANT            36 '<function 9>'
+    0315    | OP_DEFINE_GLOBAL       19 'Function with globals'
+    0318  107 OP_GET_GLOBAL           8 '<non-string>'
+    0321    | OP_CONSTANT            37 'Nested with params'
+    0324    | OP_CONSTANT            17 '15'
+    0327    | OP_GET_GLOBAL          19 'Function with globals'
+    0330    | OP_CONSTANT            18 '5'
+    0333    | OP_CALL                 1
+    0335    | OP_CALL                 3
+    0337    | OP_POP              
+    0338  112 OP_CONSTANT            38 '
+=== 5. Closures / Upvalues ==='
+    0341    | OP_PRINT                1
+    0343  121 OP_CONSTANT            39 '<function 11>'
+    0346    | OP_DEFINE_GLOBAL       20 '<non-string>'
+    0349  123 OP_GET_GLOBAL          20 '<non-string>'
+    0352    | OP_CALL                 0
+    0354    | OP_DEFINE_GLOBAL       21 'Nested function calls'
+    0357  124 OP_GET_GLOBAL           8 '<non-string>'
+    0360    | OP_CONSTANT            40 'Closure first call'
+    0363    | OP_CONSTANT            41 '1'
+    0366    | OP_GET_GLOBAL          21 'Nested function calls'
+    0369    | OP_CALL                 0
+    0371    | OP_CALL                 3
+    0373    | OP_POP              
+    0374  125 OP_GET_GLOBAL           8 '<non-string>'
+    0377    | OP_CONSTANT            42 'Closure second call'
+    0380    | OP_CONSTANT            23 '2'
+    0383    | OP_GET_GLOBAL          21 'Nested function calls'
+    0386    | OP_CALL                 0
+    0388    | OP_CALL                 3
+    0390    | OP_POP              
+    0391  126 OP_GET_GLOBAL           8 '<non-string>'
+    0394    | OP_CONSTANT            43 'Closure third call'
+    0397    | OP_CONSTANT            24 '3'
+    0400    | OP_GET_GLOBAL          21 'Nested function calls'
+    0403    | OP_CALL                 0
+    0405    | OP_CALL                 3
+    0407    | OP_POP              
+    0408  137 OP_CONSTANT            44 '<function 13>'
+    0411    | OP_DEFINE_GLOBAL       22 '<non-string>'
+    0414  139 OP_GET_GLOBAL           8 '<non-string>'
+    0417    | OP_CONSTANT            45 'Closure captures updated values'
+    0420    | OP_CONSTANT            46 '300'
+    0423    | OP_GET_GLOBAL          22 '<non-string>'
+    0426    | OP_CALL                 0
+    0428    | OP_CALL                 3
+    0430    | OP_POP              
+    0431  144 OP_CONSTANT            47 '
+=== 6. Classes ==='
+    0434    | OP_PRINT                1
+    0436  146 OP_CONSTANT            48 '<class 0>'
+    0439    | OP_DEFINE_GLOBAL       23 '<non-string>'
+    0442  165 OP_GET_GLOBAL          23 '<non-string>'
+    0445    | OP_CONSTANT             4 '10'
+    0448    | OP_CONSTANT             5 '20'
+    0451    | OP_CALL                 2
+    0453    | OP_DEFINE_GLOBAL       24 '<non-string>'
+    0456  166 OP_GET_GLOBAL           8 '<non-string>'
+    0459    | OP_CONSTANT            49 'Class init x'
+    0462    | OP_CONSTANT             4 '10'
+    0465    | OP_GET_GLOBAL          24 '<non-string>'
+    0468    | OP_GET_PROPERTY        50 'x'
+    0471    | OP_CALL                 3
+    0473    | OP_POP              
+    0474  167 OP_GET_GLOBAL           8 '<non-string>'
+    0477    | OP_CONSTANT            51 'Class init y'
+    0480    | OP_CONSTANT             5 '20'
+    0483    | OP_GET_GLOBAL          24 '<non-string>'
+    0486    | OP_GET_PROPERTY        52 'y'
+    0489    | OP_CALL                 3
+    0491    | OP_POP              
+    0492  168 OP_GET_GLOBAL           8 '<non-string>'
+    0495    | OP_CONSTANT            53 'Class method'
+    0498    | OP_CONSTANT             8 '30'
+    0501    | OP_GET_GLOBAL          24 '<non-string>'
+    0504    | OP_INVOKE              54 'sum' (0 args)
+    0508    | OP_CALL                 3
+    0510    | OP_POP              
+    0511  170 OP_GET_GLOBAL          24 '<non-string>'
+    0514    | OP_CONSTANT            18 '5'
+    0517    | OP_CONSTANT            18 '5'
+    0520    | OP_INVOKE              55 'move' (2 args)
+    0524    | OP_POP              
+    0525  171 OP_GET_GLOBAL           8 '<non-string>'
+    0528    | OP_CONSTANT            56 'Class method modifies state'
+    0531    | OP_CONSTANT            57 '40'
+    0534    | OP_GET_GLOBAL          24 '<non-string>'
+    0537    | OP_INVOKE              54 'sum' (0 args)
+    0541    | OP_CALL                 3
+    0543    | OP_POP              
+    0544  176 OP_CONSTANT            58 '
+=== 7. Native Functions ==='
+    0547    | OP_PRINT                1
+    0549  178 OP_DEFINE_ARRAY         0
+    0552    | OP_DEFINE_GLOBAL       25 '
+=== 3. Local Variables ==='
+    0555  179 OP_GET_GLOBAL          25 '
+=== 3. Local Variables ==='
+    0558    | OP_CONSTANT            41 '1'
+    0561    | OP_INVOKE              59 'push' (1 args)
+    0565    | OP_POP              
+    0566  180 OP_GET_GLOBAL          25 '
+=== 3. Local Variables ==='
+    0569    | OP_CONSTANT            23 '2'
+    0572    | OP_INVOKE              59 'push' (1 args)
+    0576    | OP_POP              
+    0577  181 OP_GET_GLOBAL          25 '
+=== 3. Local Variables ==='
+    0580    | OP_CONSTANT            24 '3'
+    0583    | OP_INVOKE              59 'push' (1 args)
+    0587    | OP_POP              
+    0588  182 OP_GET_GLOBAL           8 '<non-string>'
+    0591    | OP_CONSTANT            60 'Array len'
+    0594    | OP_CONSTANT            24 '3'
+    0597    | OP_GET_GLOBAL          25 '
+=== 3. Local Variables ==='
+    0600    | OP_FUNC_LEN         
+    0601    | OP_CALL                 3
+    0603    | OP_POP              
+    0604  183 OP_GET_GLOBAL           8 '<non-string>'
+    0607    | OP_CONSTANT            61 'Array access'
+    0610    | OP_CONSTANT            23 '2'
+    0613    | OP_GET_GLOBAL          25 '
+=== 3. Local Variables ==='
+    0616    | OP_CONSTANT            41 '1'
+    0619    | OP_GET_INDEX        
+    0620    | OP_CALL                 3
+    0622    | OP_POP              
+    0623  185 OP_CLOCK            
+    0624    | OP_DEFINE_GLOBAL       26 '<non-string>'
+    0627  186 OP_GET_GLOBAL           9 '<non-string>'
+    0630    | OP_CONSTANT            62 'clock() returns number'
+    0633    | OP_GET_GLOBAL          26 '<non-string>'
+    0636    | OP_CONSTANT             0 '0'
+    0639    | OP_LESS             
+    0640    | OP_NOT              
+    0641    | OP_CALL                 2
+    0643    | OP_POP              
+    0644  191 OP_CONSTANT            63 '
+=== 8. Recursion ==='
+    0647    | OP_PRINT                1
+    0649  196 OP_CONSTANT            64 '<function 15>'
+    0652    | OP_DEFINE_GLOBAL       27 'Local variables'
+    0655  198 OP_GET_GLOBAL           8 '<non-string>'
+    0658    | OP_CONSTANT            65 'Fibonacci 0'
+    0661    | OP_CONSTANT             0 '0'
+    0664    | OP_GET_GLOBAL          27 'Local variables'
+    0667    | OP_CONSTANT             0 '0'
+    0670    | OP_CALL                 1
+    0672    | OP_CALL                 3
+    0674    | OP_POP              
+    0675  199 OP_GET_GLOBAL           8 '<non-string>'
+    0678    | OP_CONSTANT            66 'Fibonacci 1'
+    0681    | OP_CONSTANT            41 '1'
+    0684    | OP_GET_GLOBAL          27 'Local variables'
+    0687    | OP_CONSTANT            41 '1'
+    0690    | OP_CALL                 1
+    0692    | OP_CALL                 3
+    0694    | OP_POP              
+    0695  200 OP_GET_GLOBAL           8 '<non-string>'
+    0698    | OP_CONSTANT            67 'Fibonacci 10'
+    0701    | OP_CONSTANT            68 '55'
+    0704    | OP_GET_GLOBAL          27 'Local variables'
+    0707    | OP_CONSTANT             4 '10'
+    0710    | OP_CALL                 1
+    0712    | OP_CALL                 3
+    0714    | OP_POP              
+    0715  205 OP_CONSTANT            69 '<function 16>'
+    0718    | OP_DEFINE_GLOBAL       28 '<non-string>'
+    0721  207 OP_GET_GLOBAL           8 '<non-string>'
+    0724    | OP_CONSTANT            70 'Factorial 5'
+    0727    | OP_CONSTANT            71 '120'
+    0730    | OP_GET_GLOBAL          28 '<non-string>'
+    0733    | OP_CONSTANT            18 '5'
+    0736    | OP_CALL                 1
+    0738    | OP_CALL                 3
+    0740    | OP_POP              
+    0741  208 OP_GET_GLOBAL           8 '<non-string>'
+    0744    | OP_CONSTANT            72 'Factorial 10'
+    0747    | OP_CONSTANT            73 '3628800'
+    0750    | OP_GET_GLOBAL          28 '<non-string>'
+    0753    | OP_CONSTANT             4 '10'
+    0756    | OP_CALL                 1
+    0758    | OP_CALL                 3
+    0760    | OP_POP              
+    0761  213 OP_CONSTANT            74 '
+=== 9. Loops with Globals ==='
+    0764    | OP_PRINT                1
+    0766  215 OP_CONSTANT             0 '0'
+    0769    | OP_DEFINE_GLOBAL       29 'Local shadows global'
+    0772  216 OP_CONSTANT             0 '0'
+    0775    | OP_DEFINE_GLOBAL       30 '<non-string>'
+    0778  217 OP_GET_GLOBAL          30 '<non-string>'
+    0781    | OP_CONSTANT             4 '10'
+    0784    | OP_LESS             
+    0785    | OP_JUMP_IF_FALSE      785 -> 816
+    0788    | OP_POP              
+    0789  218 OP_GET_GLOBAL          29 'Local shadows global'
+    0792    | OP_GET_GLOBAL          30 '<non-string>'
+    0795    | OP_ADD              
+    0796    | OP_SET_GLOBAL          29 'Local shadows global'
+    0799    | OP_POP              
+    0800  219 OP_GET_GLOBAL          30 '<non-string>'
+    0803    | OP_DUP              
+    0804    | OP_CONSTANT            41 '1'
+    0807    | OP_ADD              
+    0808    | OP_SET_GLOBAL          30 '<non-string>'
+    0811    | OP_POP              
+    0812    | OP_POP              
+    0813  220 OP_LOOP               813 -> 778
+    0816    | OP_POP              
+    0817  221 OP_GET_GLOBAL           8 '<non-string>'
+    0820    | OP_CONSTANT            75 'Loop sum'
+    0823    | OP_CONSTANT            76 '45'
+    0826    | OP_GET_GLOBAL          29 'Local shadows global'
+    0829    | OP_CALL                 3
+    0831    | OP_POP              
+    0832  223 OP_DEFINE_ARRAY         0
+    0835    | OP_DEFINE_GLOBAL       31 'Global unchanged after shadow'
+    0838  224 OP_CONSTANT             0 '0'
+    0841    | OP_SET_GLOBAL          30 '<non-string>'
+    0844    | OP_POP              
+    0845  225 OP_GET_GLOBAL          30 '<non-string>'
+    0848    | OP_CONSTANT            18 '5'
+    0851    | OP_LESS             
+    0852    | OP_JUMP_IF_FALSE      852 -> 887
+    0855    | OP_POP              
+    0856  226 OP_GET_GLOBAL          31 'Global unchanged after shadow'
+    0859    | OP_GET_GLOBAL          30 '<non-string>'
+    0862    | OP_CONSTANT            23 '2'
+    0865    | OP_MULTIPLY         
+    0866    | OP_INVOKE              59 'push' (1 args)
+    0870    | OP_POP              
+    0871  227 OP_GET_GLOBAL          30 '<non-string>'
+    0874    | OP_DUP              
+    0875    | OP_CONSTANT            41 '1'
+    0878    | OP_ADD              
+    0879    | OP_SET_GLOBAL          30 '<non-string>'
+    0882    | OP_POP              
+    0883    | OP_POP              
+    0884  228 OP_LOOP               884 -> 845
+    0887    | OP_POP              
+    0888  229 OP_GET_GLOBAL           8 '<non-string>'
+    0891    | OP_CONSTANT            77 'Loop array build'
+    0894    | OP_CONSTANT            18 '5'
+    0897    | OP_GET_GLOBAL          31 'Global unchanged after shadow'
+    0900    | OP_FUNC_LEN         
+    0901    | OP_CALL                 3
+    0903    | OP_POP              
+    0904  230 OP_GET_GLOBAL           8 '<non-string>'
+    0907    | OP_CONSTANT            78 'Loop array value'
+    0910    | OP_CONSTANT            79 '6'
+    0913    | OP_GET_GLOBAL          31 'Global unchanged after shadow'
+    0916    | OP_CONSTANT            24 '3'
+    0919    | OP_GET_INDEX        
+    0920    | OP_CALL                 3
+    0922    | OP_POP              
+    0923  235 OP_CONSTANT            80 '
+=== 10. Function as Argument ==='
+    0926    | OP_PRINT                1
+    0928  239 OP_CONSTANT            81 '<function 17>'
+    0931    | OP_DEFINE_GLOBAL       32 '
+=== 4. Nested Functions ==='
+    0934  243 OP_CONSTANT            82 '<function 18>'
+    0937    | OP_DEFINE_GLOBAL       33 '<non-string>'
+    0940  247 OP_CONSTANT            83 '<function 19>'
+    0943    | OP_DEFINE_GLOBAL       34 'Simple nested function'
+    0946  249 OP_GET_GLOBAL           8 '<non-string>'
+    0949    | OP_CONSTANT            84 'Function as arg (double)'
+    0952    | OP_CONSTANT             5 '20'
+    0955    | OP_GET_GLOBAL          32 '
+=== 4. Nested Functions ==='
+    0958    | OP_GET_GLOBAL          33 '<non-string>'
+    0961    | OP_CONSTANT             4 '10'
+    0964    | OP_CALL                 2
+    0966    | OP_CALL                 3
+    0968    | OP_POP              
+    0969  250 OP_GET_GLOBAL           8 '<non-string>'
+    0972    | OP_CONSTANT            85 'Function as arg (square)'
+    0975    | OP_CONSTANT            86 '25'
+    0978    | OP_GET_GLOBAL          32 '
+=== 4. Nested Functions ==='
+    0981    | OP_GET_GLOBAL          34 'Simple nested function'
+    0984    | OP_CONSTANT            18 '5'
+    0987    | OP_CALL                 2
+    0989    | OP_CALL                 3
+    0991    | OP_POP              
+    0992  254 OP_CONSTANT            87 '<function 20>'
+    0995    | OP_DEFINE_GLOBAL       35 '<non-string>'
+    0998  256 OP_GET_GLOBAL           8 '<non-string>'
+    1001    | OP_CONSTANT            88 'Apply twice'
+    1004    | OP_CONSTANT            57 '40'
+    1007    | OP_GET_GLOBAL          35 '<non-string>'
+    1010    | OP_GET_GLOBAL          33 '<non-string>'
+    1013    | OP_CONSTANT             4 '10'
+    1016    | OP_CALL                 2
+    1018    | OP_CALL                 3
+    1020    | OP_POP              
+    1021  261 OP_CONSTANT            89 '
+=== 11. Mixed Scenarios ==='
+    1024    | OP_PRINT                1
+    1026  263 OP_CONSTANT            90 '<class 1>'
+    1029    | OP_DEFINE_GLOBAL       36 '<non-string>'
+    1032  285 OP_GET_GLOBAL          36 '<non-string>'
+    1035    | OP_CONSTANT             4 '10'
+    1038    | OP_CALL                 1
+    1040    | OP_DEFINE_GLOBAL       37 'Nested with params'
+    1043  286 OP_GET_GLOBAL          37 'Nested with params'
+    1046    | OP_CONSTANT            18 '5'
+    1049    | OP_INVOKE              91 'add' (1 args)
+    1053    | OP_POP              
+    1054  287 OP_GET_GLOBAL          37 'Nested with params'
+    1057    | OP_CONSTANT            23 '2'
+    1060    | OP_INVOKE              92 'multiply' (1 args)
+    1064    | OP_POP              
+    1065  288 OP_GET_GLOBAL           8 '<non-string>'
+    1068    | OP_CONSTANT            93 'Chained class methods'
+    1071    | OP_CONSTANT             8 '30'
+    1074    | OP_GET_GLOBAL          37 'Nested with params'
+    1077    | OP_INVOKE              94 'get' (0 args)
+    1081    | OP_CALL                 3
+    1083    | OP_POP              
+    1084  295 OP_CONSTANT            95 '<function 21>'
+    1087    | OP_DEFINE_GLOBAL       38 '
+=== 5. Closures / Upvalues ==='
+    1090  297 OP_GET_GLOBAL          38 '
+=== 5. Closures / Upvalues ==='
+    1093    | OP_CONSTANT            18 '5'
+    1096    | OP_CALL                 1
+    1098    | OP_DEFINE_GLOBAL       39 '<non-string>'
+    1101  298 OP_GET_GLOBAL          38 '
+=== 5. Closures / Upvalues ==='
+    1104    | OP_CONSTANT             4 '10'
+    1107    | OP_CALL                 1
+    1109    | OP_DEFINE_GLOBAL       40 'Closure first call'
+    1112  299 OP_GET_GLOBAL           8 '<non-string>'
+    1115    | OP_CONSTANT            96 'Closure factory 1'
+    1118    | OP_CONSTANT            17 '15'
+    1121    | OP_GET_GLOBAL          39 '<non-string>'
+    1124    | OP_CONSTANT             4 '10'
+    1127    | OP_CALL                 1
+    1129    | OP_CALL                 3
+    1131    | OP_POP              
+    1132  300 OP_GET_GLOBAL           8 '<non-string>'
+    1135    | OP_CONSTANT            97 'Closure factory 2'
+    1138    | OP_CONSTANT            86 '25'
+    1141    | OP_GET_GLOBAL          40 'Closure first call'
+    1144    | OP_CONSTANT            17 '15'
+    1147    | OP_CALL                 1
+    1149    | OP_CALL                 3
+    1151    | OP_POP              
+    1152  305 OP_CONSTANT            98 '
+=== 12. Stress Test - Many Globals ==='
+    1155    | OP_PRINT                1
+    1157  307 OP_CONSTANT             0 '0'
+    1160    | OP_DEFINE_GLOBAL       41 '<non-string>'
+    1163    | OP_CONSTANT            41 '1'
+    1166    | OP_DEFINE_GLOBAL       42 'Closure second call'
+    1169    | OP_CONSTANT            23 '2'
+    1172    | OP_DEFINE_GLOBAL       43 'Closure third call'
+    1175    | OP_CONSTANT            24 '3'
+    1178    | OP_DEFINE_GLOBAL       44 '<non-string>'
+    1181    | OP_CONSTANT            99 '4'
+    1184    | OP_DEFINE_GLOBAL       45 'Closure captures updated values'
+    1187  308 OP_CONSTANT            18 '5'
+    1190    | OP_DEFINE_GLOBAL       46 '<non-string>'
+    1193    | OP_CONSTANT            79 '6'
+    1196    | OP_DEFINE_GLOBAL       47 '
+=== 6. Classes ==='
+    1199    | OP_CONSTANT           100 '7'
+    1202    | OP_DEFINE_GLOBAL       48 '<non-string>'
+    1205    | OP_CONSTANT           101 '8'
+    1208    | OP_DEFINE_GLOBAL       49 'Class init x'
+    1211    | OP_CONSTANT           102 '9'
+    1214    | OP_DEFINE_GLOBAL       50 'x'
+    1217  309 OP_CONSTANT             4 '10'
+    1220    | OP_DEFINE_GLOBAL       51 'Class init y'
+    1223    | OP_CONSTANT           103 '11'
+    1226    | OP_DEFINE_GLOBAL       52 'y'
+    1229    | OP_CONSTANT           104 '12'
+    1232    | OP_DEFINE_GLOBAL       53 'Class method'
+    1235    | OP_CONSTANT           105 '13'
+    1238    | OP_DEFINE_GLOBAL       54 'sum'
+    1241    | OP_CONSTANT           106 '14'
+    1244    | OP_DEFINE_GLOBAL       55 'move'
+    1247  310 OP_CONSTANT            17 '15'
+    1250    | OP_DEFINE_GLOBAL       56 'Class method modifies state'
+    1253    | OP_CONSTANT           107 '16'
+    1256    | OP_DEFINE_GLOBAL       57 '<non-string>'
+    1259    | OP_CONSTANT           108 '17'
+    1262    | OP_DEFINE_GLOBAL       58 '
+=== 7. Native Functions ==='
+    1265    | OP_CONSTANT           109 '18'
+    1268    | OP_DEFINE_GLOBAL       59 'push'
+    1271    | OP_CONSTANT           110 '19'
+    1274    | OP_DEFINE_GLOBAL       60 'Array len'
+    1277  312 OP_GET_GLOBAL          41 '<non-string>'
+    1280    | OP_GET_GLOBAL          42 'Closure second call'
+    1283    | OP_ADD              
+    1284    | OP_GET_GLOBAL          43 'Closure third call'
+    1287    | OP_ADD              
+    1288    | OP_GET_GLOBAL          44 '<non-string>'
+    1291    | OP_ADD              
+    1292    | OP_GET_GLOBAL          45 'Closure captures updated values'
+    1295    | OP_ADD              
+    1296    | OP_GET_GLOBAL          46 '<non-string>'
+    1299    | OP_ADD              
+    1300    | OP_GET_GLOBAL          47 '
+=== 6. Classes ==='
+    1303    | OP_ADD              
+    1304    | OP_GET_GLOBAL          48 '<non-string>'
+    1307    | OP_ADD              
+    1308    | OP_GET_GLOBAL          49 'Class init x'
+    1311    | OP_ADD              
+    1312    | OP_GET_GLOBAL          50 'x'
+    1315    | OP_ADD              
+    1316    | OP_GET_GLOBAL          51 'Class init y'
+    1319    | OP_ADD              
+    1320    | OP_GET_GLOBAL          52 'y'
+    1323    | OP_ADD              
+    1324    | OP_GET_GLOBAL          53 'Class method'
+    1327    | OP_ADD              
+    1328    | OP_GET_GLOBAL          54 'sum'
+    1331    | OP_ADD              
+    1332    | OP_GET_GLOBAL          55 'move'
+    1335    | OP_ADD              
+    1336    | OP_GET_GLOBAL          56 'Class method modifies state'
+    1339    | OP_ADD              
+    1340    | OP_GET_GLOBAL          57 '<non-string>'
+    1343    | OP_ADD              
+    1344    | OP_GET_GLOBAL          58 '
+=== 7. Native Functions ==='
+    1347    | OP_ADD              
+    1348    | OP_GET_GLOBAL          59 'push'
+    1351    | OP_ADD              
+    1352    | OP_GET_GLOBAL          60 'Array len'
+    1355    | OP_ADD              
+    1356    | OP_DEFINE_GLOBAL       61 'Array access'
+    1359  313 OP_GET_GLOBAL           8 '<non-string>'
+    1362    | OP_CONSTANT           111 'Sum of 20 globals'
+    1365    | OP_CONSTANT           112 '190'
+    1368    | OP_GET_GLOBAL          61 'Array access'
+    1371    | OP_CALL                 3
+    1373    | OP_POP              
+    1374  318 OP_CONSTANT           113 '
+=== 13. Increment Operators ==='
+    1377    | OP_PRINT                1
+    1379  320 OP_CONSTANT             0 '0'
+    1382    | OP_DEFINE_GLOBAL       62 'clock() returns number'
+    1385  321 OP_GET_GLOBAL          62 'clock() returns number'
+    1388    | OP_DUP              
+    1389    | OP_CONSTANT            41 '1'
+    1392    | OP_ADD              
+    1393    | OP_SET_GLOBAL          62 'clock() returns number'
+    1396    | OP_POP              
+    1397    | OP_POP              
+    1398  322 OP_GET_GLOBAL           8 '<non-string>'
+    1401    | OP_CONSTANT           114 'Postfix increment'
+    1404    | OP_CONSTANT            41 '1'
+    1407    | OP_GET_GLOBAL          62 'clock() returns number'
+    1410    | OP_CALL                 3
+    1412    | OP_POP              
+    1413  324 OP_GET_GLOBAL          62 'clock() returns number'
+    1416    | OP_CONSTANT            41 '1'
+    1419    | OP_ADD              
+    1420    | OP_SET_GLOBAL          62 'clock() returns number'
+    1423    | OP_POP              
+    1424  325 OP_GET_GLOBAL           8 '<non-string>'
+    1427    | OP_CONSTANT           115 'Prefix increment'
+    1430    | OP_CONSTANT            23 '2'
+    1433    | OP_GET_GLOBAL          62 'clock() returns number'
+    1436    | OP_CALL                 3
+    1438    | OP_POP              
+    1439  327 OP_GET_GLOBAL          62 'clock() returns number'
+    1442    | OP_DUP              
+    1443    | OP_CONSTANT            41 '1'
+    1446    | OP_SUBTRACT         
+    1447    | OP_SET_GLOBAL          62 'clock() returns number'
+    1450    | OP_POP              
+    1451    | OP_POP              
+    1452  328 OP_GET_GLOBAL           8 '<non-string>'
+    1455    | OP_CONSTANT           116 'Postfix decrement'
+    1458    | OP_CONSTANT            41 '1'
+    1461    | OP_GET_GLOBAL          62 'clock() returns number'
+    1464    | OP_CALL                 3
+    1466    | OP_POP              
+    1467  330 OP_GET_GLOBAL          62 'clock() returns number'
+    1470    | OP_CONSTANT            41 '1'
+    1473    | OP_SUBTRACT         
+    1474    | OP_SET_GLOBAL          62 'clock() returns number'
+    1477    | OP_POP              
+    1478  331 OP_GET_GLOBAL           8 '<non-string>'
+    1481    | OP_CONSTANT           117 'Prefix decrement'
+    1484    | OP_CONSTANT             0 '0'
+    1487    | OP_GET_GLOBAL          62 'clock() returns number'
+    1490    | OP_CALL                 3
+    1492    | OP_POP              
+    1493  336 OP_CONSTANT           118 '
+=== 14. Class Methods with Complex Returns ==='
+    1496    | OP_PRINT                1
+    1498  338 OP_CONSTANT           119 '<class 2>'
+    1501    | OP_DEFINE_GLOBAL       63 '
+=== 8. Recursion ==='
+    1504  378 OP_GET_GLOBAL          63 '
+=== 8. Recursion ==='
+    1507    | OP_CONSTANT            35 '42'
+    1510    | OP_CALL                 1
+    1512    | OP_DEFINE_GLOBAL       64 '<non-string>'
+    1515  379 OP_GET_GLOBAL           8 '<non-string>'
+    1518    | OP_CONSTANT           120 'Early return negative'
+    1521    | OP_CONSTANT            41 '1'
+    1524    | OP_NEGATE           
+    1525    | OP_GET_GLOBAL          64 '<non-string>'
+    1528    | OP_CONSTANT            18 '5'
+    1531    | OP_NEGATE           
+    1532    | OP_INVOKE             121 'early_return' (1 args)
+    1536    | OP_CALL                 3
+    1538    | OP_POP              
+    1539  380 OP_GET_GLOBAL           8 '<non-string>'
+    1542    | OP_CONSTANT           122 'Early return zero'
+    1545    | OP_CONSTANT             0 '0'
+    1548    | OP_GET_GLOBAL          64 '<non-string>'
+    1551    | OP_CONSTANT             0 '0'
+    1554    | OP_INVOKE             121 'early_return' (1 args)
+    1558    | OP_CALL                 3
+    1560    | OP_POP              
+    1561  381 OP_GET_GLOBAL           8 '<non-string>'
+    1564    | OP_CONSTANT           123 'Early return normal'
+    1567    | OP_CONSTANT           124 '52'
+    1570    | OP_GET_GLOBAL          64 '<non-string>'
+    1573    | OP_CONSTANT             4 '10'
+    1576    | OP_INVOKE             121 'early_return' (1 args)
+    1580    | OP_CALL                 3
+    1582    | OP_POP              
+    1583  382 OP_GET_GLOBAL           8 '<non-string>'
+    1586    | OP_CONSTANT           125 'Nested if return 1'
+    1589    | OP_CONSTANT             9 '100'
+    1592    | OP_GET_GLOBAL          64 '<non-string>'
+    1595    | OP_CONSTANT            86 '25'
+    1598    | OP_INVOKE             126 'nested_if_return' (1 args)
+    1602    | OP_CALL                 3
+    1604    | OP_POP              
+    1605  383 OP_GET_GLOBAL           8 '<non-string>'
+    1608    | OP_CONSTANT           127 'Nested if return 2'
+    1611    | OP_CONSTANT            22 '50'
+    1614    | OP_GET_GLOBAL          64 '<non-string>'
+    1617    | OP_CONSTANT            17 '15'
+    1620    | OP_INVOKE             126 'nested_if_return' (1 args)
+    1624    | OP_CALL                 3
+    1626    | OP_POP              
+    1627  384 OP_GET_GLOBAL           8 '<non-string>'
+    1630    | OP_CONSTANT           128 'Nested if return 3'
+    1633    | OP_CONSTANT             4 '10'
+    1636    | OP_GET_GLOBAL          64 '<non-string>'
+    1639    | OP_CONSTANT            18 '5'
+    1642    | OP_INVOKE             126 'nested_if_return' (1 args)
+    1646    | OP_CALL                 3
+    1648    | OP_POP              
+    1649  385 OP_GET_GLOBAL           8 '<non-string>'
+    1652    | OP_CONSTANT           129 'While with return'
+    1655    | OP_CONSTANT            18 '5'
+    1658    | OP_GET_GLOBAL          64 '<non-string>'
+    1661    | OP_CONSTANT             4 '10'
+    1664    | OP_INVOKE             130 'while_with_return' (1 args)
+    1668    | OP_CALL                 3
+    1670    | OP_POP              
+    1671  386 OP_GET_GLOBAL           8 '<non-string>'
+    1674    | OP_CONSTANT           131 'While without return'
+    1677    | OP_CONSTANT            41 '1'
+    1680    | OP_NEGATE           
+    1681    | OP_GET_GLOBAL          64 '<non-string>'
+    1684    | OP_CONSTANT            24 '3'
+    1687    | OP_INVOKE             130 'while_with_return' (1 args)
+    1691    | OP_CALL                 3
+    1693    | OP_POP              
+    1694  391 OP_CONSTANT           132 '
+=== 15. If/Else Edge Cases ==='
+    1697    | OP_PRINT                1
+    1699  411 OP_CONSTANT           133 '<function 23>'
+    1702    | OP_DEFINE_GLOBAL       65 'Fibonacci 0'
+    1705  413 OP_GET_GLOBAL           8 '<non-string>'
+    1708    | OP_CONSTANT           134 'Nested if/else 1'
+    1711    | OP_CONSTANT           135 'very high'
+    1714    | OP_GET_GLOBAL          65 'Fibonacci 0'
+    1717    | OP_CONSTANT           136 '35'
+    1720    | OP_CALL                 1
+    1722    | OP_CALL                 3
+    1724    | OP_POP              
+    1725  414 OP_GET_GLOBAL           8 '<non-string>'
+    1728    | OP_CONSTANT           137 'Nested if/else 2'
+    1731    | OP_CONSTANT           138 'high'
+    1734    | OP_GET_GLOBAL          65 'Fibonacci 0'
+    1737    | OP_CONSTANT            86 '25'
+    1740    | OP_CALL                 1
+    1742    | OP_CALL                 3
+    1744    | OP_POP              
+    1745  415 OP_GET_GLOBAL           8 '<non-string>'
+    1748    | OP_CONSTANT           139 'Nested if/else 3'
+    1751    | OP_CONSTANT           140 'medium'
+    1754    | OP_GET_GLOBAL          65 'Fibonacci 0'
+    1757    | OP_CONSTANT            17 '15'
+    1760    | OP_CALL                 1
+    1762    | OP_CALL                 3
+    1764    | OP_POP              
+    1765  416 OP_GET_GLOBAL           8 '<non-string>'
+    1768    | OP_CONSTANT           141 'Nested if/else 4'
+    1771    | OP_CONSTANT           142 'low'
+    1774    | OP_GET_GLOBAL          65 'Fibonacci 0'
+    1777    | OP_CONSTANT           100 '7'
+    1780    | OP_CALL                 1
+    1782    | OP_CALL                 3
+    1784    | OP_POP              
+    1785  417 OP_GET_GLOBAL           8 '<non-string>'
+    1788    | OP_CONSTANT           143 'Nested if/else 5'
+    1791    | OP_CONSTANT           144 'very low'
+    1794    | OP_GET_GLOBAL          65 'Fibonacci 0'
+    1797    | OP_CONSTANT            24 '3'
+    1800    | OP_CALL                 1
+    1802    | OP_CALL                 3
+    1804    | OP_POP              
+    1805  422 OP_CONSTANT           145 '
+=== 16. While Loops Edge Cases ==='
+    1808    | OP_PRINT                1
+    1810  435 OP_CONSTANT           146 '<function 24>'
+    1813    | OP_DEFINE_GLOBAL       66 'Fibonacci 1'
+    1816  437 OP_GET_GLOBAL           8 '<non-string>'
+    1819    | OP_CONSTANT           147 'While with break'
+    1822    | OP_CONSTANT            76 '45'
+    1825    | OP_GET_GLOBAL          66 'Fibonacci 1'
+    1828    | OP_CALL                 0
+    1830    | OP_CALL                 3
+    1832    | OP_POP              
+    1833  451 OP_CONSTANT           148 '<function 25>'
+    1836    | OP_DEFINE_GLOBAL       67 'Fibonacci 10'
+    1839  453 OP_GET_GLOBAL           8 '<non-string>'
+    1842    | OP_CONSTANT           149 'Nested while loops'
+    1845    | OP_CONSTANT            17 '15'
+    1848    | OP_GET_GLOBAL          67 'Fibonacci 10'
+    1851    | OP_CALL                 0
+    1853    | OP_CALL                 3
+    1855    | OP_POP              
+    1856  466 OP_CONSTANT           150 '<function 26>'
+    1859    | OP_DEFINE_GLOBAL       68 '<non-string>'
+    1862  468 OP_GET_GLOBAL           8 '<non-string>'
+    1865    | OP_CONSTANT           151 'While with continue'
+    1868    | OP_CONSTANT            22 '50'
+    1871    | OP_GET_GLOBAL          68 '<non-string>'
+    1874    | OP_CALL                 0
+    1876    | OP_CALL                 3
+    1878    | OP_POP              
+    1879  473 OP_CONSTANT           152 '
+=== 17. Block Scopes with Brackets ==='
+    1882    | OP_PRINT                1
+    1884  486 OP_CONSTANT           153 '<function 27>'
+    1887    | OP_DEFINE_GLOBAL       69 '<non-string>'
+    1890  488 OP_GET_GLOBAL           8 '<non-string>'
+    1893    | OP_CONSTANT           154 'Block scope outer'
+    1896    | OP_CONSTANT             4 '10'
+    1899    | OP_GET_GLOBAL          69 '<non-string>'
+    1902    | OP_CALL                 0
+    1904    | OP_CALL                 3
+    1906    | OP_POP              
+    1907  503 OP_CONSTANT           155 '<function 28>'
+    1910    | OP_DEFINE_GLOBAL       70 'Factorial 5'
+    1913  505 OP_GET_GLOBAL           8 '<non-string>'
+    1916    | OP_CONSTANT           156 'Block outer local'
+    1919    | OP_CONSTANT             9 '100'
+    1922    | OP_GET_GLOBAL          70 'Factorial 5'
+    1925    | OP_CALL                 0
+    1927    | OP_CALL                 3
+    1929    | OP_POP              
+    1930  510 OP_CONSTANT           157 '
+=== 18. Switch/Case ==='
+    1933    | OP_PRINT                1
+    1935  523 OP_CONSTANT           158 '<function 29>'
+    1938    | OP_DEFINE_GLOBAL       71 '<non-string>'
+    1941  525 OP_GET_GLOBAL           8 '<non-string>'
+    1944    | OP_CONSTANT           159 'Switch case 1'
+    1947    | OP_CONSTANT           160 'one'
+    1950    | OP_GET_GLOBAL          71 '<non-string>'
+    1953    | OP_CONSTANT            41 '1'
+    1956    | OP_CALL                 1
+    1958    | OP_CALL                 3
+    1960    | OP_POP              
+    1961  526 OP_GET_GLOBAL           8 '<non-string>'
+    1964    | OP_CONSTANT           161 'Switch case 2'
+    1967    | OP_CONSTANT           162 'two'
+    1970    | OP_GET_GLOBAL          71 '<non-string>'
+    1973    | OP_CONSTANT            23 '2'
+    1976    | OP_CALL                 1
+    1978    | OP_CALL                 3
+    1980    | OP_POP              
+    1981  527 OP_GET_GLOBAL           8 '<non-string>'
+    1984    | OP_CONSTANT           163 'Switch case 3'
+    1987    | OP_CONSTANT           164 'three'
+    1990    | OP_GET_GLOBAL          71 '<non-string>'
+    1993    | OP_CONSTANT            24 '3'
+    1996    | OP_CALL                 1
+    1998    | OP_CALL                 3
+    2000    | OP_POP              
+    2001  528 OP_GET_GLOBAL           8 '<non-string>'
+    2004    | OP_CONSTANT           165 'Switch default'
+    2007    | OP_CONSTANT           166 'other'
+    2010    | OP_GET_GLOBAL          71 '<non-string>'
+    2013    | OP_CONSTANT           167 '99'
+    2016    | OP_CALL                 1
+    2018    | OP_CALL                 3
+    2020    | OP_POP              
+    2021  543 OP_CONSTANT           168 '<function 30>'
+    2024    | OP_DEFINE_GLOBAL       72 'Factorial 10'
+    2027  545 OP_GET_GLOBAL           8 '<non-string>'
+    2030    | OP_CONSTANT           169 'Switch case assign 1'
+    2033    | OP_CONSTANT             4 '10'
+    2036    | OP_GET_GLOBAL          72 'Factorial 10'
+    2039    | OP_CONSTANT            41 '1'
+    2042    | OP_CALL                 1
+    2044    | OP_CALL                 3
+    2046    | OP_POP              
+    2047  546 OP_GET_GLOBAL           8 '<non-string>'
+    2050    | OP_CONSTANT           170 'Switch case assign 2'
+    2053    | OP_CONSTANT             5 '20'
+    2056    | OP_GET_GLOBAL          72 'Factorial 10'
+    2059    | OP_CONSTANT            23 '2'
+    2062    | OP_CALL                 1
+    2064    | OP_CALL                 3
+    2066    | OP_POP              
+    2067  547 OP_GET_GLOBAL           8 '<non-string>'
+    2070    | OP_CONSTANT           171 'Switch default assign'
+    2073    | OP_CONSTANT            41 '1'
+    2076    | OP_NEGATE           
+    2077    | OP_GET_GLOBAL          72 'Factorial 10'
+    2080    | OP_CONSTANT            18 '5'
+    2083    | OP_CALL                 1
+    2085    | OP_CALL                 3
+    2087    | OP_POP              
+    2088  549 OP_CONSTANT           172 '<class 3>'
+    2091    | OP_DEFINE_GLOBAL       73 '<non-string>'
+    2094  570 OP_GET_GLOBAL          73 '<non-string>'
+    2097    | OP_CONSTANT             9 '100'
+    2100    | OP_CALL                 1
+    2102    | OP_DEFINE_GLOBAL       74 '
+=== 9. Loops with Globals ==='
+    2105  571 OP_GET_GLOBAL           8 '<non-string>'
+    2108    | OP_CONSTANT           173 'Switch in class method 1'
+    2111    | OP_CONSTANT           174 '101'
+    2114    | OP_GET_GLOBAL          74 '
+=== 9. Loops with Globals ==='
+    2117    | OP_CONSTANT            41 '1'
+    2120    | OP_INVOKE             175 'test_method' (1 args)
+    2124    | OP_CALL                 3
+    2126    | OP_POP              
+    2127  572 OP_GET_GLOBAL           8 '<non-string>'
+    2130    | OP_CONSTANT           176 'Switch in class method 2'
+    2133    | OP_CONSTANT           177 '102'
+    2136    | OP_GET_GLOBAL          74 '
+=== 9. Loops with Globals ==='
+    2139    | OP_CONSTANT            23 '2'
+    2142    | OP_INVOKE             175 'test_method' (1 args)
+    2146    | OP_CALL                 3
+    2148    | OP_POP              
+    2149  573 OP_GET_GLOBAL           8 '<non-string>'
+    2152    | OP_CONSTANT           178 'Switch in class method default'
+    2155    | OP_CONSTANT             9 '100'
+    2158    | OP_GET_GLOBAL          74 '
+=== 9. Loops with Globals ==='
+    2161    | OP_CONSTANT           167 '99'
+    2164    | OP_INVOKE             175 'test_method' (1 args)
+    2168    | OP_CALL                 3
+    2170    | OP_POP              
+    2171  578 OP_CONSTANT           179 '
+=== 19. Elif Statements ==='
+    2174    | OP_PRINT                1
+    2176  592 OP_CONSTANT           180 '<function 31>'
+    2179    | OP_DEFINE_GLOBAL       75 'Loop sum'
+    2182  594 OP_GET_GLOBAL           8 '<non-string>'
+    2185    | OP_CONSTANT           181 'Elif negative'
+    2188    | OP_CONSTANT           182 'negative'
+    2191    | OP_GET_GLOBAL          75 'Loop sum'
+    2194    | OP_CONSTANT            18 '5'
+    2197    | OP_NEGATE           
+    2198    | OP_CALL                 1
+    2200    | OP_CALL                 3
+    2202    | OP_POP              
+    2203  595 OP_GET_GLOBAL           8 '<non-string>'
+    2206    | OP_CONSTANT           183 'Elif zero'
+    2209    | OP_CONSTANT           184 'zero'
+    2212    | OP_GET_GLOBAL          75 'Loop sum'
+    2215    | OP_CONSTANT             0 '0'
+    2218    | OP_CALL                 1
+    2220    | OP_CALL                 3
+    2222    | OP_POP              
+    2223  596 OP_GET_GLOBAL           8 '<non-string>'
+    2226    | OP_CONSTANT           185 'Elif small'
+    2229    | OP_CONSTANT           186 'small'
+    2232    | OP_GET_GLOBAL          75 'Loop sum'
+    2235    | OP_CONSTANT            18 '5'
+    2238    | OP_CALL                 1
+    2240    | OP_CALL                 3
+    2242    | OP_POP              
+    2243  597 OP_GET_GLOBAL           8 '<non-string>'
+    2246    | OP_CONSTANT           187 'Elif medium'
+    2249    | OP_CONSTANT           140 'medium'
+    2252    | OP_GET_GLOBAL          75 'Loop sum'
+    2255    | OP_CONSTANT            22 '50'
+    2258    | OP_CALL                 1
+    2260    | OP_CALL                 3
+    2262    | OP_POP              
+    2263  598 OP_GET_GLOBAL           8 '<non-string>'
+    2266    | OP_CONSTANT           188 'Elif large'
+    2269    | OP_CONSTANT           189 'large'
+    2272    | OP_GET_GLOBAL          75 'Loop sum'
+    2275    | OP_CONSTANT           190 '500'
+    2278    | OP_CALL                 1
+    2280    | OP_CALL                 3
+    2282    | OP_POP              
+    2283  614 OP_CONSTANT           191 '<function 32>'
+    2286    | OP_DEFINE_GLOBAL       76 '<non-string>'
+    2289  616 OP_GET_GLOBAL           8 '<non-string>'
+    2292    | OP_CONSTANT           192 'Elif modifies global 1'
+    2295    | OP_CONSTANT           160 'one'
+    2298    | OP_GET_GLOBAL          76 '<non-string>'
+    2301    | OP_CONSTANT            41 '1'
+    2304    | OP_CALL                 1
+    2306    | OP_CALL                 3
+    2308    | OP_POP              
+    2309  617 OP_GET_GLOBAL           8 '<non-string>'
+    2312    | OP_CONSTANT           193 'Elif global value 1'
+    2315    | OP_CONSTANT           194 '1000'
+    2318    | OP_GET_GLOBAL          10 'Global var reassignment'
+    2321    | OP_CALL                 3
+    2323    | OP_POP              
+    2324  618 OP_GET_GLOBAL           8 '<non-string>'
+    2327    | OP_CONSTANT           195 'Elif modifies global 2'
+    2330    | OP_CONSTANT           162 'two'
+    2333    | OP_GET_GLOBAL          76 '<non-string>'
+    2336    | OP_CONSTANT            23 '2'
+    2339    | OP_CALL                 1
+    2341    | OP_CALL                 3
+    2343    | OP_POP              
+    2344  619 OP_GET_GLOBAL           8 '<non-string>'
+    2347    | OP_CONSTANT           196 'Elif global value 2'
+    2350    | OP_CONSTANT           197 '2000'
+    2353    | OP_GET_GLOBAL          10 'Global var reassignment'
+    2356    | OP_CALL                 3
+    2358    | OP_POP              
+    2359  620 OP_GET_GLOBAL           8 '<non-string>'
+    2362    | OP_CONSTANT           198 'Elif modifies global else'
+    2365    | OP_CONSTANT           166 'other'
+    2368    | OP_GET_GLOBAL          76 '<non-string>'
+    2371    | OP_CONSTANT           167 '99'
+    2374    | OP_CALL                 1
+    2376    | OP_CALL                 3
+    2378    | OP_POP              
+    2379  621 OP_GET_GLOBAL           8 '<non-string>'
+    2382    | OP_CONSTANT           199 'Elif global value else'
+    2385    | OP_CONSTANT           200 '9999'
+    2388    | OP_GET_GLOBAL          10 'Global var reassignment'
+    2391    | OP_CALL                 3
+    2393    | OP_POP              
+    2394  623 OP_CONSTANT           201 '<class 4>'
+    2397    | OP_DEFINE_GLOBAL       77 'Loop array build'
+    2400  640 OP_GET_GLOBAL          77 'Loop array build'
+    2403    | OP_CALL                 0
+    2405    | OP_DEFINE_GLOBAL       78 'Loop array value'
+    2408  641 OP_GET_GLOBAL           8 '<non-string>'
+    2411    | OP_CONSTANT           202 'Elif in class negative'
+    2414    | OP_CONSTANT           182 'negative'
+    2417    | OP_GET_GLOBAL          78 'Loop array value'
+    2420    | OP_CONSTANT             4 '10'
+    2423    | OP_NEGATE           
+    2424    | OP_INVOKE             203 'classify' (1 args)
+    2428    | OP_CALL                 3
+    2430    | OP_POP              
+    2431  642 OP_GET_GLOBAL           8 '<non-string>'
+    2434    | OP_CONSTANT           204 'Elif in class result negative'
+    2437    | OP_CONSTANT            41 '1'
+    2440    | OP_NEGATE           
+    2441    | OP_GET_GLOBAL          78 'Loop array value'
+    2444    | OP_GET_PROPERTY       205 'result'
+    2447    | OP_CALL                 3
+    2449    | OP_POP              
+    2450  643 OP_GET_GLOBAL           8 '<non-string>'
+    2453    | OP_CONSTANT           206 'Elif in class zero'
+    2456    | OP_CONSTANT           184 'zero'
+    2459    | OP_GET_GLOBAL          78 'Loop array value'
+    2462    | OP_CONSTANT             0 '0'
+    2465    | OP_INVOKE             203 'classify' (1 args)
+    2469    | OP_CALL                 3
+    2471    | OP_POP              
+    2472  644 OP_GET_GLOBAL           8 '<non-string>'
+    2475    | OP_CONSTANT           207 'Elif in class result zero'
+    2478    | OP_CONSTANT             0 '0'
+    2481    | OP_GET_GLOBAL          78 'Loop array value'
+    2484    | OP_GET_PROPERTY       205 'result'
+    2487    | OP_CALL                 3
+    2489    | OP_POP              
+    2490  645 OP_GET_GLOBAL           8 '<non-string>'
+    2493    | OP_CONSTANT           208 'Elif in class positive'
+    2496    | OP_CONSTANT           209 'positive'
+    2499    | OP_GET_GLOBAL          78 'Loop array value'
+    2502    | OP_CONSTANT             4 '10'
+    2505    | OP_INVOKE             203 'classify' (1 args)
+    2509    | OP_CALL                 3
+    2511    | OP_POP              
+    2512  646 OP_GET_GLOBAL           8 '<non-string>'
+    2515    | OP_CONSTANT           210 'Elif in class result positive'
+    2518    | OP_CONSTANT            41 '1'
+    2521    | OP_GET_GLOBAL          78 'Loop array value'
+    2524    | OP_GET_PROPERTY       205 'result'
+    2527    | OP_CALL                 3
+    2529    | OP_POP              
+    2530  651 OP_CONSTANT           211 '
+=== 20. Structs ==='
+    2533    | OP_PRINT                1
+    2535  656 OP_CONSTANT           213 '<struct 0>'
+    2538    | OP_DEFINE_GLOBAL       79 '<non-string>'
+    2541  658 OP_GET_GLOBAL          79 '<non-string>'
+    2544    | OP_CONSTANT             4 '10'
+    2547    | OP_CONSTANT             5 '20'
+    2550    | OP_CALL                 2
+    2552    | OP_DEFINE_GLOBAL       42 'Closure second call'
+    2555  659 OP_GET_GLOBAL           8 '<non-string>'
+    2558    | OP_CONSTANT           214 'Struct field x'
+    2561    | OP_CONSTANT             4 '10'
+    2564    | OP_GET_GLOBAL          42 'Closure second call'
+    2567    | OP_GET_PROPERTY        50 'x'
+    2570    | OP_CALL                 3
+    2572    | OP_POP              
+    2573  660 OP_GET_GLOBAL           8 '<non-string>'
+    2576    | OP_CONSTANT           215 'Struct field y'
+    2579    | OP_CONSTANT             5 '20'
+    2582    | OP_GET_GLOBAL          42 'Closure second call'
+    2585    | OP_GET_PROPERTY        52 'y'
+    2588    | OP_CALL                 3
+    2590    | OP_POP              
+    2591  662 OP_GET_GLOBAL          42 'Closure second call'
+    2594    | OP_CONSTANT             9 '100'
+    2597    | OP_SET_PROPERTY        50 'x'
+    2600    | OP_POP              
+    2601  663 OP_GET_GLOBAL          42 'Closure second call'
+    2604    | OP_CONSTANT           216 '200'
+    2607    | OP_SET_PROPERTY        52 'y'
+    2610    | OP_POP              
+    2611  664 OP_GET_GLOBAL           8 '<non-string>'
+    2614    | OP_CONSTANT           217 'Struct field modified x'
+    2617    | OP_CONSTANT             9 '100'
+    2620    | OP_GET_GLOBAL          42 'Closure second call'
+    2623    | OP_GET_PROPERTY        50 'x'
+    2626    | OP_CALL                 3
+    2628    | OP_POP              
+    2629  665 OP_GET_GLOBAL           8 '<non-string>'
+    2632    | OP_CONSTANT           218 'Struct field modified y'
+    2635    | OP_CONSTANT           216 '200'
+    2638    | OP_GET_GLOBAL          42 'Closure second call'
+    2641    | OP_GET_PROPERTY        52 'y'
+    2644    | OP_CALL                 3
+    2646    | OP_POP              
+    2647  672 OP_CONSTANT           220 '<struct 1>'
+    2650    | OP_DEFINE_GLOBAL       80 '
+=== 10. Function as Argument ==='
+    2653  674 OP_GET_GLOBAL          80 '
+=== 10. Function as Argument ==='
+    2656    | OP_CALL                 0
+    2658    | OP_DEFINE_GLOBAL       81 '<non-string>'
+    2661  675 OP_GET_GLOBAL          81 '<non-string>'
+    2664    | OP_CONSTANT           222 '255'
+    2667    | OP_SET_PROPERTY       221 'r'
+    2670    | OP_POP              
+    2671  676 OP_GET_GLOBAL          81 '<non-string>'
+    2674    | OP_CONSTANT           224 '128'
+    2677    | OP_SET_PROPERTY       223 'g'
+    2680    | OP_POP              
+    2681  677 OP_GET_GLOBAL          81 '<non-string>'
+    2684    | OP_CONSTANT           226 '64'
+    2687    | OP_SET_PROPERTY       225 'b'
+    2690    | OP_POP              
+    2691  678 OP_GET_GLOBAL           8 '<non-string>'
+    2694    | OP_CONSTANT           227 'Struct with var r'
+    2697    | OP_CONSTANT           222 '255'
+    2700    | OP_GET_GLOBAL          81 '<non-string>'
+    2703    | OP_GET_PROPERTY       221 'r'
+    2706    | OP_CALL                 3
+    2708    | OP_POP              
+    2709  679 OP_GET_GLOBAL           8 '<non-string>'
+    2712    | OP_CONSTANT           228 'Struct with var g'
+    2715    | OP_CONSTANT           224 '128'
+    2718    | OP_GET_GLOBAL          81 '<non-string>'
+    2721    | OP_GET_PROPERTY       223 'g'
+    2724    | OP_CALL                 3
+    2726    | OP_POP              
+    2727  680 OP_GET_GLOBAL           8 '<non-string>'
+    2730    | OP_CONSTANT           229 'Struct with var b'
+    2733    | OP_CONSTANT           226 '64'
+    2736    | OP_GET_GLOBAL          81 '<non-string>'
+    2739    | OP_GET_PROPERTY       225 'b'
+    2742    | OP_CALL                 3
+    2744    | OP_POP              
+    2745  685 OP_CONSTANT           231 '<struct 2>'
+    2748    | OP_DEFINE_GLOBAL       82 '<non-string>'
+    2751  687 OP_GET_GLOBAL          82 '<non-string>'
+    2754    | OP_CONSTANT            41 '1'
+    2757    | OP_CONSTANT            23 '2'
+    2760    | OP_CONSTANT            24 '3'
+    2763    | OP_CALL                 3
+    2765    | OP_DEFINE_GLOBAL       83 '<non-string>'
+    2768  688 OP_GET_GLOBAL           8 '<non-string>'
+    2771    | OP_CONSTANT           232 'Struct 3 fields x'
+    2774    | OP_CONSTANT            41 '1'
+    2777    | OP_GET_GLOBAL          83 '<non-string>'
+    2780    | OP_GET_PROPERTY        50 'x'
+    2783    | OP_CALL                 3
+    2785    | OP_POP              
+    2786  689 OP_GET_GLOBAL           8 '<non-string>'
+    2789    | OP_CONSTANT           233 'Struct 3 fields y'
+    2792    | OP_CONSTANT            23 '2'
+    2795    | OP_GET_GLOBAL          83 '<non-string>'
+    2798    | OP_GET_PROPERTY        52 'y'
+    2801    | OP_CALL                 3
+    2803    | OP_POP              
+    2804  690 OP_GET_GLOBAL           8 '<non-string>'
+    2807    | OP_CONSTANT           234 'Struct 3 fields z'
+    2810    | OP_CONSTANT            24 '3'
+    2813    | OP_GET_GLOBAL          83 '<non-string>'
+    2816    | OP_GET_PROPERTY       235 'z'
+    2819    | OP_CALL                 3
+    2821    | OP_POP              
+    2822  697 OP_CONSTANT           237 '<struct 3>'
+    2825    | OP_DEFINE_GLOBAL       84 'Function as arg (double)'
+    2828  699 OP_GET_GLOBAL          84 'Function as arg (double)'
+    2831    | OP_CALL                 0
+    2833    | OP_DEFINE_GLOBAL       85 'Function as arg (square)'
+    2836  700 OP_GET_GLOBAL          85 'Function as arg (square)'
+    2839    | OP_CONSTANT             4 '10'
+    2842    | OP_SET_PROPERTY        50 'x'
+    2845    | OP_POP              
+    2846  701 OP_GET_GLOBAL          85 'Function as arg (square)'
+    2849    | OP_CONSTANT             5 '20'
+    2852    | OP_SET_PROPERTY        52 'y'
+    2855    | OP_POP              
+    2856  702 OP_GET_GLOBAL          85 'Function as arg (square)'
+    2859    | OP_CONSTANT             9 '100'
+    2862    | OP_SET_PROPERTY       238 'width'
+    2865    | OP_POP              
+    2866  703 OP_GET_GLOBAL          85 'Function as arg (square)'
+    2869    | OP_CONSTANT            22 '50'
+    2872    | OP_SET_PROPERTY       239 'height'
+    2875    | OP_POP              
+    2876  704 OP_GET_GLOBAL           8 '<non-string>'
+    2879    | OP_CONSTANT           240 'Struct mixed var x'
+    2882    | OP_CONSTANT             4 '10'
+    2885    | OP_GET_GLOBAL          85 'Function as arg (square)'
+    2888    | OP_GET_PROPERTY        50 'x'
+    2891    | OP_CALL                 3
+    2893    | OP_POP              
+    2894  705 OP_GET_GLOBAL           8 '<non-string>'
+    2897    | OP_CONSTANT           241 'Struct mixed var y'
+    2900    | OP_CONSTANT             5 '20'
+    2903    | OP_GET_GLOBAL          85 'Function as arg (square)'
+    2906    | OP_GET_PROPERTY        52 'y'
+    2909    | OP_CALL                 3
+    2911    | OP_POP              
+    2912  706 OP_GET_GLOBAL           8 '<non-string>'
+    2915    | OP_CONSTANT           242 'Struct mixed width'
+    2918    | OP_CONSTANT             9 '100'
+    2921    | OP_GET_GLOBAL          85 'Function as arg (square)'
+    2924    | OP_GET_PROPERTY       238 'width'
+    2927    | OP_CALL                 3
+    2929    | OP_POP              
+    2930  707 OP_GET_GLOBAL           8 '<non-string>'
+    2933    | OP_CONSTANT           243 'Struct mixed height'
+    2936    | OP_CONSTANT            22 '50'
+    2939    | OP_GET_GLOBAL          85 'Function as arg (square)'
+    2942    | OP_GET_PROPERTY       239 'height'
+    2945    | OP_CALL                 3
+    2947    | OP_POP              
+    2948  711 OP_CONSTANT           244 '<function 33>'
+    2951    | OP_DEFINE_GLOBAL       86 '<non-string>'
+    2954  713 OP_GET_GLOBAL           8 '<non-string>'
+    2957    | OP_CONSTANT           245 'Struct passed to function'
+    2960    | OP_CONSTANT            46 '300'
+    2963    | OP_GET_GLOBAL          86 '<non-string>'
+    2966    | OP_GET_GLOBAL          42 'Closure second call'
+    2969    | OP_CALL                 1
+    2971    | OP_CALL                 3
+    2973    | OP_POP              
+    2974  718 OP_CONSTANT           246 '
+=== 21. Classes - Edge Cases Avançados ==='
+    2977    | OP_PRINT                1
+    2979  720 OP_CONSTANT           247 '<class 5>'
+    2982    | OP_DEFINE_GLOBAL       87 '<non-string>'
+    2985  788 OP_GET_GLOBAL          87 '<non-string>'
+    2988    | OP_CONSTANT            18 '5'
+    2991    | OP_CONSTANT             4 '10'
+    2994    | OP_CALL                 2
+    2996    | OP_DEFINE_GLOBAL       88 'Apply twice'
+    2999  789 OP_GET_GLOBAL           8 '<non-string>'
+    3002    | OP_CONSTANT           248 'Complex class nested if 1'
+    3005    | OP_CONSTANT           249 'very negative'
+    3008    | OP_GET_GLOBAL          88 'Apply twice'
+    3011    | OP_CONSTANT            17 '15'
+    3014    | OP_NEGATE           
+    3015    | OP_INVOKE             250 'nested_if_in_method' (1 args)
+    3019    | OP_CALL                 3
+    3021    | OP_POP              
+    3022  790 OP_GET_GLOBAL           8 '<non-string>'
+    3025    | OP_CONSTANT           251 'Complex class state after nested if'
+    3028    | OP_CONSTANT             9 '100'
+    3031    | OP_NEGATE           
+    3032    | OP_GET_GLOBAL          88 'Apply twice'
+    3035    | OP_GET_PROPERTY       252 'a'
+    3038    | OP_CALL                 3
+    3040    | OP_POP              
+    3041  791 OP_GET_GLOBAL           8 '<non-string>'
+    3044    | OP_CONSTANT           253 'Complex class nested if 2'
+    3047    | OP_CONSTANT           254 'very positive'
+    3050    | OP_GET_GLOBAL          88 'Apply twice'
+    3053    | OP_CONSTANT             5 '20'
+    3056    | OP_INVOKE             250 'nested_if_in_method' (1 args)
+    3060    | OP_CALL                 3
+    3062    | OP_POP              
+    3063  792 OP_GET_GLOBAL           8 '<non-string>'
+    3066    | OP_CONSTANT           255 'Complex class state after nested if 2'
+    3069    | OP_CONSTANT             9 '100'
+    3072    | OP_GET_GLOBAL          88 'Apply twice'
+    3075    | OP_GET_PROPERTY       252 'a'
+    3078    | OP_CALL                 3
+    3080    | OP_POP              
+    3081  794 OP_GET_GLOBAL           8 '<non-string>'
+    3084    | OP_CONSTANT           256 'Complex class loop'
+    3087    | OP_CONSTANT           194 '1000'
+    3090    | OP_GET_GLOBAL          88 'Apply twice'
+    3093    | OP_INVOKE             257 'loop_in_method' (0 args)
+    3097    | OP_CALL                 3
+    3099    | OP_POP              
+    3100  796 OP_GET_GLOBAL           8 '<non-string>'
+    3103    | OP_CONSTANT           258 'Complex class switch'
+    3106    | OP_CONSTANT           162 'two'
+    3109    | OP_GET_GLOBAL          88 'Apply twice'
+    3112    | OP_CONSTANT            23 '2'
+    3115    | OP_INVOKE             259 'switch_in_method' (1 args)
+    3119    | OP_CALL                 3
+    3121    | OP_POP              
+    3122  797 OP_GET_GLOBAL           8 '<non-string>'
+    3125    | OP_CONSTANT           260 'Complex class state after switch'
+    3128    | OP_CONSTANT           261 '222'
+    3131    | OP_GET_GLOBAL          88 'Apply twice'
+    3134    | OP_GET_PROPERTY       225 'b'
+    3137    | OP_CALL                 3
+    3139    | OP_POP              
+    3140  799 OP_GET_GLOBAL           8 '<non-string>'
+    3143    | OP_CONSTANT           262 'Complex class closure'
+    3146    | OP_CONSTANT           216 '200'
+    3149    | OP_GET_GLOBAL          88 'Apply twice'
+    3152    | OP_INVOKE             263 'closure_in_method' (0 args)
+    3156    | OP_CALL                 3
+    3158    | OP_POP              
+    3159  804 OP_CONSTANT           264 '
+=== 22. Classes com Múltiplos Métodos ==='
+    3162    | OP_PRINT                1
+    3164  806 OP_CONSTANT           265 '<class 6>'
+    3167    | OP_DEFINE_GLOBAL       89 '
+=== 11. Mixed Scenarios ==='
+    3170  838 OP_GET_GLOBAL          89 '
+=== 11. Mixed Scenarios ==='
+    3173    | OP_CONSTANT             4 '10'
+    3176    | OP_CALL                 1
+    3178    | OP_DEFINE_GLOBAL       90 '<non-string>'
+    3181  839 OP_GET_GLOBAL           8 '<non-string>'
+    3184    | OP_CONSTANT           266 'Multi method increment'
+    3187    | OP_CONSTANT           103 '11'
+    3190    | OP_GET_GLOBAL          90 '<non-string>'
+    3193    | OP_INVOKE             267 'increment' (0 args)
+    3197    | OP_CALL                 3
+    3199    | OP_POP              
+    3200  840 OP_GET_GLOBAL           8 '<non-string>'
+    3203    | OP_CONSTANT           268 'Multi method increment 2'
+    3206    | OP_CONSTANT           104 '12'
+    3209    | OP_GET_GLOBAL          90 '<non-string>'
+    3212    | OP_INVOKE             267 'increment' (0 args)
+    3216    | OP_CALL                 3
+    3218    | OP_POP              
+    3219  841 OP_GET_GLOBAL           8 '<non-string>'
+    3222    | OP_CONSTANT           269 'Multi method decrement'
+    3225    | OP_CONSTANT           103 '11'
+    3228    | OP_GET_GLOBAL          90 '<non-string>'
+    3231    | OP_INVOKE             270 'decrement' (0 args)
+    3235    | OP_CALL                 3
+    3237    | OP_POP              
+    3238  842 OP_GET_GLOBAL           8 '<non-string>'
+    3241    | OP_CONSTANT           271 'Multi method add'
+    3244    | OP_CONSTANT           272 '21'
+    3247    | OP_GET_GLOBAL          90 '<non-string>'
+    3250    | OP_CONSTANT             4 '10'
+    3253    | OP_INVOKE              91 'add' (1 args)
+    3257    | OP_CALL                 3
+    3259    | OP_POP              
+    3260  843 OP_GET_GLOBAL           8 '<non-string>'
+    3263    | OP_CONSTANT           273 'Multi method multiply'
+    3266    | OP_CONSTANT            35 '42'
+    3269    | OP_GET_GLOBAL          90 '<non-string>'
+    3272    | OP_CONSTANT            23 '2'
+    3275    | OP_INVOKE              92 'multiply' (1 args)
+    3279    | OP_CALL                 3
+    3281    | OP_POP              
+    3282  844 OP_GET_GLOBAL          90 '<non-string>'
+    3285    | OP_INVOKE             274 'reset' (0 args)
+    3289    | OP_POP              
+    3290  845 OP_GET_GLOBAL           8 '<non-string>'
+    3293    | OP_CONSTANT           275 'Multi method reset'
+    3296    | OP_CONSTANT             0 '0'
+    3299    | OP_GET_GLOBAL          90 '<non-string>'
+    3302    | OP_GET_PROPERTY       276 'value'
+    3305    | OP_CALL                 3
+    3307    | OP_POP              
+    3308  850 OP_CONSTANT           277 '
+=== 23. Arrays de Structs e Classes ==='
+    3311    | OP_PRINT                1
+    3313  852 OP_DEFINE_ARRAY         0
+    3316    | OP_DEFINE_GLOBAL       91 'add'
+    3319  853 OP_GET_GLOBAL          91 'add'
+    3322    | OP_GET_GLOBAL          79 '<non-string>'
+    3325    | OP_CONSTANT            41 '1'
+    3328    | OP_CONSTANT            23 '2'
+    3331    | OP_CALL                 2
+    3333    | OP_INVOKE              59 'push' (1 args)
+    3337    | OP_POP              
+    3338  854 OP_GET_GLOBAL          91 'add'
+    3341    | OP_GET_GLOBAL          79 '<non-string>'
+    3344    | OP_CONSTANT            24 '3'
+    3347    | OP_CONSTANT            99 '4'
+    3350    | OP_CALL                 2
+    3352    | OP_INVOKE              59 'push' (1 args)
+    3356    | OP_POP              
+    3357  855 OP_GET_GLOBAL          91 'add'
+    3360    | OP_GET_GLOBAL          79 '<non-string>'
+    3363    | OP_CONSTANT            18 '5'
+    3366    | OP_CONSTANT            79 '6'
+    3369    | OP_CALL                 2
+    3371    | OP_INVOKE              59 'push' (1 args)
+    3375    | OP_POP              
+    3376  857 OP_GET_GLOBAL           8 '<non-string>'
+    3379    | OP_CONSTANT           278 'Array of structs len'
+    3382    | OP_CONSTANT            24 '3'
+    3385    | OP_GET_GLOBAL          91 'add'
+    3388    | OP_FUNC_LEN         
+    3389    | OP_CALL                 3
+    3391    | OP_POP              
+    3392  858 OP_GET_GLOBAL           8 '<non-string>'
+    3395    | OP_CONSTANT           279 'Array of structs element 0 x'
+    3398    | OP_CONSTANT            41 '1'
+    3401    | OP_GET_GLOBAL          91 'add'
+    3404    | OP_CONSTANT             0 '0'
+    3407    | OP_GET_INDEX        
+    3408    | OP_GET_PROPERTY        50 'x'
+    3411    | OP_CALL                 3
+    3413    | OP_POP              
+    3414  859 OP_GET_GLOBAL           8 '<non-string>'
+    3417    | OP_CONSTANT           280 'Array of structs element 1 y'
+    3420    | OP_CONSTANT            99 '4'
+    3423    | OP_GET_GLOBAL          91 'add'
+    3426    | OP_CONSTANT            41 '1'
+    3429    | OP_GET_INDEX        
+    3430    | OP_GET_PROPERTY        52 'y'
+    3433    | OP_CALL                 3
+    3435    | OP_POP              
+    3436  860 OP_GET_GLOBAL           8 '<non-string>'
+    3439    | OP_CONSTANT           281 'Array of structs element 2 x'
+    3442    | OP_CONSTANT            18 '5'
+    3445    | OP_GET_GLOBAL          91 'add'
+    3448    | OP_CONSTANT            23 '2'
+    3451    | OP_GET_INDEX        
+    3452    | OP_GET_PROPERTY        50 'x'
+    3455    | OP_CALL                 3
+    3457    | OP_POP              
+    3458  862 OP_DEFINE_ARRAY         0
+    3461    | OP_DEFINE_GLOBAL       92 'multiply'
+    3464  863 OP_GET_GLOBAL          92 'multiply'
+    3467    | OP_GET_GLOBAL          89 '
+=== 11. Mixed Scenarios ==='
+    3470    | OP_CONSTANT             4 '10'
+    3473    | OP_CALL                 1
+    3475    | OP_INVOKE              59 'push' (1 args)
+    3479    | OP_POP              
+    3480  864 OP_GET_GLOBAL          92 'multiply'
+    3483    | OP_GET_GLOBAL          89 '
+=== 11. Mixed Scenarios ==='
+    3486    | OP_CONSTANT             5 '20'
+    3489    | OP_CALL                 1
+    3491    | OP_INVOKE              59 'push' (1 args)
+    3495    | OP_POP              
+    3496  865 OP_GET_GLOBAL          92 'multiply'
+    3499    | OP_GET_GLOBAL          89 '
+=== 11. Mixed Scenarios ==='
+    3502    | OP_CONSTANT             8 '30'
+    3505    | OP_CALL                 1
+    3507    | OP_INVOKE              59 'push' (1 args)
+    3511    | OP_POP              
+    3512  867 OP_GET_GLOBAL           8 '<non-string>'
+    3515    | OP_CONSTANT           282 'Array of classes len'
+    3518    | OP_CONSTANT            24 '3'
+    3521    | OP_GET_GLOBAL          92 'multiply'
+    3524    | OP_FUNC_LEN         
+    3525    | OP_CALL                 3
+    3527    | OP_POP              
+    3528  868 OP_GET_GLOBAL           8 '<non-string>'
+    3531    | OP_CONSTANT           283 'Array of classes element 0'
+    3534    | OP_CONSTANT             4 '10'
+    3537    | OP_GET_GLOBAL          92 'multiply'
+    3540    | OP_CONSTANT             0 '0'
+    3543    | OP_GET_INDEX        
+    3544    | OP_GET_PROPERTY       276 'value'
+    3547    | OP_CALL                 3
+    3549    | OP_POP              
+    3550  869 OP_GET_GLOBAL           8 '<non-string>'
+    3553    | OP_CONSTANT           284 'Array of classes element 1'
+    3556    | OP_CONSTANT             5 '20'
+    3559    | OP_GET_GLOBAL          92 'multiply'
+    3562    | OP_CONSTANT            41 '1'
+    3565    | OP_GET_INDEX        
+    3566    | OP_GET_PROPERTY       276 'value'
+    3569    | OP_CALL                 3
+    3571    | OP_POP              
+    3572  871 OP_GET_GLOBAL          92 'multiply'
+    3575    | OP_CONSTANT             0 '0'
+    3578    | OP_GET_INDEX        
+    3579    | OP_INVOKE             267 'increment' (0 args)
+    3583    | OP_POP              
+    3584  872 OP_GET_GLOBAL           8 '<non-string>'
+    3587    | OP_CONSTANT           285 'Array of classes method call'
+    3590    | OP_CONSTANT           103 '11'
+    3593    | OP_GET_GLOBAL          92 'multiply'
+    3596    | OP_CONSTANT             0 '0'
+    3599    | OP_GET_INDEX        
+    3600    | OP_GET_PROPERTY       276 'value'
+    3603    | OP_CALL                 3
+    3605    | OP_POP              
+    3606  874 OP_CONSTANT             0 '0'
+    3609    | OP_DEFINE_GLOBAL       93 'Chained class methods'
+    3612  875 OP_CONSTANT             0 '0'
+    3615    | OP_DEFINE_GLOBAL       30 '<non-string>'
+    3618  876 OP_GET_GLOBAL          30 '<non-string>'
+    3621    | OP_GET_GLOBAL          92 'multiply'
+    3624    | OP_FUNC_LEN         
+    3625    | OP_LESS             
+    3626    | OP_JUMP_IF_FALSE     3626 -> 3664
+    3629    | OP_POP              
+    3630  877 OP_GET_GLOBAL          93 'Chained class methods'
+    3633    | OP_GET_GLOBAL          92 'multiply'
+    3636    | OP_GET_GLOBAL          30 '<non-string>'
+    3639    | OP_GET_INDEX        
+    3640    | OP_GET_PROPERTY       276 'value'
+    3643    | OP_ADD              
+    3644    | OP_SET_GLOBAL          93 'Chained class methods'
+    3647    | OP_POP              
+    3648  878 OP_GET_GLOBAL          30 '<non-string>'
+    3651    | OP_DUP              
+    3652    | OP_CONSTANT            41 '1'
+    3655    | OP_ADD              
+    3656    | OP_SET_GLOBAL          30 '<non-string>'
+    3659    | OP_POP              
+    3660    | OP_POP              
+    3661  879 OP_LOOP              3661 -> 3618
+    3664    | OP_POP              
+    3665  880 OP_GET_GLOBAL           8 '<non-string>'
+    3668    | OP_CONSTANT           286 'Loop over array of classes'
+    3671    | OP_CONSTANT           287 '61'
+    3674    | OP_GET_GLOBAL          93 'Chained class methods'
+    3677    | OP_CALL                 3
+    3679    | OP_POP              
+    3680  885 OP_CONSTANT           288 '
+=== 24. Classes Aninhadas e Composição ==='
+    3683    | OP_PRINT                1
+    3685  887 OP_CONSTANT           289 '<class 7>'
+    3688    | OP_DEFINE_GLOBAL       94 'get'
+    3691  899 OP_CONSTANT           290 '<class 8>'
+    3694    | OP_DEFINE_GLOBAL       95 '<non-string>'
+    3697  917 OP_GET_GLOBAL          95 '<non-string>'
+    3700    | OP_CONSTANT            22 '50'
+    3703    | OP_CALL                 1
+    3705    | OP_DEFINE_GLOBAL       96 'Closure factory 1'
+    3708  918 OP_GET_GLOBAL           8 '<non-string>'
+    3711    | OP_CONSTANT           291 'Nested class outer value'
+    3714    | OP_CONSTANT            22 '50'
+    3717    | OP_GET_GLOBAL          96 'Closure factory 1'
+    3720    | OP_GET_PROPERTY       276 'value'
+    3723    | OP_CALL                 3
+    3725    | OP_POP              
+    3726  919 OP_GET_GLOBAL           8 '<non-string>'
+    3729    | OP_CONSTANT           292 'Nested class inner data'
+    3732    | OP_CONSTANT             9 '100'
+    3735    | OP_GET_GLOBAL          96 'Closure factory 1'
+    3738    | OP_INVOKE             293 'get_inner_data' (0 args)
+    3742    | OP_CALL                 3
+    3744    | OP_POP              
+    3745  920 OP_GET_GLOBAL          96 'Closure factory 1'
+    3748    | OP_CONSTANT            30 '999'
+    3751    | OP_INVOKE             294 'update_inner' (1 args)
+    3755    | OP_POP              
+    3756  921 OP_GET_GLOBAL           8 '<non-string>'
+    3759    | OP_CONSTANT           295 'Nested class inner updated'
+    3762    | OP_CONSTANT            30 '999'
+    3765    | OP_GET_GLOBAL          96 'Closure factory 1'
+    3768    | OP_GET_PROPERTY       296 'inner'
+    3771    | OP_GET_PROPERTY       297 'data'
+    3774    | OP_CALL                 3
+    3776    | OP_POP              
+    3777  926 OP_CONSTANT           298 '
+========================================'
+    3780    | OP_PRINT                1
+    3782  927 OP_GET_GLOBAL           1 '<non-string>'
+    3785    | OP_CONSTANT           299 'Tests Passed: {}'
+    3788    | OP_GET_GLOBAL           6 'Global var assignment'
+    3791    | OP_CALL                 2
+    3793    | OP_POP              
+    3794  928 OP_GET_GLOBAL           1 '<non-string>'
+    3797    | OP_CONSTANT           300 'Tests Failed: {}'
+    3800    | OP_GET_GLOBAL           7 'Global var addition'
+    3803    | OP_CALL                 2
+    3805    | OP_POP              
+    3806  929 OP_CONSTANT           301 '========================================'
+    3809    | OP_PRINT                1
+    3811  931 OP_GET_GLOBAL           7 'Global var addition'
+    3814    | OP_CONSTANT             0 '0'
+    3817    | OP_EQUAL            
+    3818    | OP_JUMP_IF_FALSE     3818 -> 3830
+    3821    | OP_POP              
+    3822  932 OP_CONSTANT           302 'ALL TESTS PASSED!'
+    3825    | OP_PRINT                1
+    3827  933 OP_JUMP              3827 -> 3836
+    3830    | OP_POP              
+    3831  934 OP_CONSTANT           303 'SOME TESTS FAILED!'
+    3834    | OP_PRINT                1
+    3836  936 OP_NIL              
+    3837    | OP_RETURN           
 
 
->>> Function: __main__$test_arithmetic
+>>> Function: __main__$outer_simple
     Arity: 0
     Has return: yes
-    Index: 5
+    Index: 7
 
-  Constants (6):
-    [0] = "sum"
-    [1] = 0
-    [2] = "i"
-    [3] = 5000
-    [4] = 2
-    [5] = 1
+  Constants (1):
+    [0] = <value type 16>
 
   Bytecode:
-    0000   52 OP_CONSTANT             1 '0'
-    0003   53 OP_CONSTANT             1 '0'
-    0006   54 OP_GET_LOCAL            2
-    0008    | OP_CONSTANT             3 '5000'
-    0011    | OP_LESS             
-    0012    | OP_JUMP_IF_FALSE       12 -> 46
-    0015    | OP_POP              
-    0016   55 OP_GET_LOCAL            1
-    0018    | OP_GET_LOCAL            2
-    0020    | OP_CONSTANT             4 '2'
-    0023    | OP_MULTIPLY         
-    0024    | OP_ADD              
-    0025    | OP_CONSTANT             5 '1'
-    0028    | OP_SUBTRACT         
-    0029    | OP_SET_LOCAL            1
-    0031    | OP_POP              
-    0032   56 OP_GET_LOCAL            2
-    0034    | OP_DUP              
-    0035    | OP_CONSTANT             5 '1'
-    0038    | OP_ADD              
-    0039    | OP_SET_LOCAL            2
+    0000   94 OP_CONSTANT             0 '<function 8>'
+    0003   95 OP_GET_LOCAL            1
+    0005    | OP_CALL                 0
+    0007    | OP_RETURN           
+    0008   96 OP_POP              
+    0009    | OP_POP              
+    0010    | OP_NIL              
+    0011    | OP_RETURN           
+
+
+>>> Function: __main__$test_elif_basic
+    Arity: 1
+    Has return: yes
+    Index: 31
+
+  Constants (8):
+    [0] = 0
+    [1] = "negative"
+    [2] = "zero"
+    [3] = 10
+    [4] = "small"
+    [5] = 100
+    [6] = "medium"
+    [7] = "large"
+
+  Bytecode:
+    0000  581 OP_GET_LOCAL            1
+    0002    | OP_CONSTANT             0 '0'
+    0005    | OP_LESS             
+    0006    | OP_JUMP_IF_FALSE        6 -> 17
+    0009    | OP_POP              
+    0010  582 OP_CONSTANT             1 'negative'
+    0013    | OP_RETURN           
+    0014  583 OP_JUMP                14 -> 76
+    0017    | OP_POP              
+    0018    | OP_GET_LOCAL            1
+    0020    | OP_CONSTANT             0 '0'
+    0023    | OP_EQUAL            
+    0024    | OP_JUMP_IF_FALSE       24 -> 35
+    0027    | OP_POP              
+    0028  584 OP_CONSTANT             2 'zero'
+    0031    | OP_RETURN           
+    0032  585 OP_JUMP                32 -> 76
+    0035    | OP_POP              
+    0036    | OP_GET_LOCAL            1
+    0038    | OP_CONSTANT             3 '10'
+    0041    | OP_LESS             
+    0042    | OP_JUMP_IF_FALSE       42 -> 53
+    0045    | OP_POP              
+    0046  586 OP_CONSTANT             4 'small'
+    0049    | OP_RETURN           
+    0050  587 OP_JUMP                50 -> 76
+    0053    | OP_POP              
+    0054    | OP_GET_LOCAL            1
+    0056    | OP_CONSTANT             5 '100'
+    0059    | OP_LESS             
+    0060    | OP_JUMP_IF_FALSE       60 -> 71
+    0063    | OP_POP              
+    0064  588 OP_CONSTANT             6 'medium'
+    0067    | OP_RETURN           
+    0068  589 OP_JUMP                68 -> 76
+    0071    | OP_POP              
+    0072  590 OP_CONSTANT             7 'large'
+    0075    | OP_RETURN           
+    0076  592 OP_POP              
+    0077    | OP_POP              
+    0078    | OP_NIL              
+    0079    | OP_RETURN           
+
+
+>>> Function: __main__$test_elif_with_globals
+    Arity: 1
+    Has return: yes
+    Index: 32
+
+  Constants (11):
+    [0] = 1
+    [1] = 1000
+    [2] = "one"
+    [3] = 2
+    [4] = 2000
+    [5] = "two"
+    [6] = 3
+    [7] = 3000
+    [8] = "three"
+    [9] = 9999
+    [10] = "other"
+
+  Bytecode:
+    0000  601 OP_GET_LOCAL            1
+    0002    | OP_CONSTANT             0 '1'
+    0005    | OP_EQUAL            
+    0006    | OP_JUMP_IF_FALSE        6 -> 24
+    0009    | OP_POP              
+    0010  602 OP_CONSTANT             1 '1000'
+    0013    | OP_SET_GLOBAL          10 'other'
+    0016    | OP_POP              
+    0017  603 OP_CONSTANT             2 'one'
+    0020    | OP_RETURN           
+    0021  604 OP_JUMP                21 -> 86
+    0024    | OP_POP              
+    0025    | OP_GET_LOCAL            1
+    0027    | OP_CONSTANT             3 '2'
+    0030    | OP_EQUAL            
+    0031    | OP_JUMP_IF_FALSE       31 -> 49
+    0034    | OP_POP              
+    0035  605 OP_CONSTANT             4 '2000'
+    0038    | OP_SET_GLOBAL          10 'other'
     0041    | OP_POP              
-    0042    | OP_POP              
-    0043   57 OP_LOOP                43 -> 6
-    0046    | OP_POP              
-    0047   58 OP_POP              
-    0048    | OP_POP              
+    0042  606 OP_CONSTANT             5 'two'
+    0045    | OP_RETURN           
+    0046  607 OP_JUMP                46 -> 86
     0049    | OP_POP              
-    0050    | OP_NIL              
-    0051    | OP_RETURN           
-
-
->>> Function: __main__$test_physics
-    Arity: 0
-    Has return: yes
-    Index: 13
-
-  Constants (10):
-    [0] = "particles"
-    [1] = "i"
-    [2] = 0
-    [3] = 100
-    [4] = "p"
-    [5] = "Particle"
-    [6] = "push"
-    [7] = 1
-    [8] = "step"
-    [9] = "update"
-
-  Bytecode:
-    0000  172 OP_DEFINE_ARRAY         0
-    0003  173 OP_CONSTANT             2 '0'
-    0006  174 OP_GET_LOCAL            2
-    0008    | OP_CONSTANT             3 '100'
-    0011    | OP_LESS             
-    0012    | OP_JUMP_IF_FALSE       12 -> 49
-    0015    | OP_POP              
-    0016  175 OP_GET_GLOBAL           5 'Particle'
-    0019    | OP_GET_LOCAL            2
-    0021    | OP_GET_LOCAL            2
-    0023    | OP_CALL                 2
-    0025  176 OP_GET_LOCAL            1
-    0027    | OP_GET_LOCAL            3
-    0029    | OP_INVOKE               6 'push' (1 args)
-    0033    | OP_POP              
-    0034  177 OP_GET_LOCAL            2
-    0036    | OP_DUP              
-    0037    | OP_CONSTANT             7 '1'
-    0040    | OP_ADD              
-    0041    | OP_SET_LOCAL            2
-    0043    | OP_POP              
-    0044    | OP_POP              
-    0045  178 OP_POP              
-    0046    | OP_LOOP                46 -> 6
-    0049    | OP_POP              
-    0050  180 OP_CONSTANT             2 '0'
-    0053  181 OP_GET_LOCAL            3
-    0055    | OP_CONSTANT             3 '100'
-    0058    | OP_LESS             
-    0059    | OP_JUMP_IF_FALSE       59 -> 118
-    0062    | OP_POP              
-    0063  182 OP_CONSTANT             2 '0'
-    0066    | OP_SET_LOCAL            2
-    0068    | OP_POP              
-    0069  183 OP_GET_LOCAL            2
-    0071    | OP_GET_LOCAL            1
-    0073    | OP_FUNC_LEN         
-    0074    | OP_LESS             
-    0075    | OP_JUMP_IF_FALSE       75 -> 103
-    0078    | OP_POP              
-    0079  184 OP_GET_LOCAL            1
-    0081    | OP_GET_LOCAL            2
-    0083    | OP_GET_INDEX        
-    0084    | OP_INVOKE               9 'update' (0 args)
-    0088    | OP_POP              
-    0089  185 OP_GET_LOCAL            2
-    0091    | OP_DUP              
-    0092    | OP_CONSTANT             7 '1'
-    0095    | OP_ADD              
-    0096    | OP_SET_LOCAL            2
-    0098    | OP_POP              
-    0099    | OP_POP              
-    0100  186 OP_LOOP               100 -> 69
-    0103    | OP_POP              
-    0104  187 OP_GET_LOCAL            3
-    0106    | OP_DUP              
-    0107    | OP_CONSTANT             7 '1'
-    0110    | OP_ADD              
-    0111    | OP_SET_LOCAL            3
-    0113    | OP_POP              
-    0114    | OP_POP              
-    0115  188 OP_LOOP               115 -> 53
-    0118    | OP_POP              
-    0119  189 OP_POP              
-    0120    | OP_POP              
-    0121    | OP_POP              
-    0122    | OP_POP              
-    0123    | OP_NIL              
-    0124    | OP_RETURN           
+    0050    | OP_GET_LOCAL            1
+    0052    | OP_CONSTANT             6 '3'
+    0055    | OP_EQUAL            
+    0056    | OP_JUMP_IF_FALSE       56 -> 74
+    0059    | OP_POP              
+    0060  608 OP_CONSTANT             7 '3000'
+    0063    | OP_SET_GLOBAL          10 'other'
+    0066    | OP_POP              
+    0067  609 OP_CONSTANT             8 'three'
+    0070    | OP_RETURN           
+    0071  610 OP_JUMP                71 -> 86
+    0074    | OP_POP              
+    0075  611 OP_CONSTANT             9 '9999'
+    0078    | OP_SET_GLOBAL          10 'other'
+    0081    | OP_POP              
+    0082  612 OP_CONSTANT            10 'other'
+    0085    | OP_RETURN           
+    0086  614 OP_POP              
+    0087    | OP_POP              
+    0088    | OP_NIL              
+    0089    | OP_RETURN           
 
 
 >>> Function: __main__$fib
     Arity: 1
     Has return: yes
-    Index: 7
+    Index: 15
 
-  Constants (3):
+  Constants (2):
     [0] = 1
-    [1] = "fib"
-    [2] = 2
+    [1] = 2
 
   Bytecode:
-    0000   82 OP_GET_LOCAL            1
+    0000  194 OP_GET_LOCAL            1
     0002    | OP_CONSTANT             0 '1'
     0005    | OP_GREATER          
     0006    | OP_NOT              
@@ -1103,91 +3044,22 @@ GLOBAL FUNCTIONS
     0013    | OP_RETURN           
     0014    | OP_JUMP                14 -> 18
     0017    | OP_POP              
-    0018   83 OP_GET_GLOBAL           1 'fib'
+    0018  195 OP_GET_GLOBAL          27 '<non-string>'
     0021    | OP_GET_LOCAL            1
     0023    | OP_CONSTANT             0 '1'
     0026    | OP_SUBTRACT         
     0027    | OP_CALL                 1
-    0029    | OP_GET_GLOBAL           1 'fib'
+    0029    | OP_GET_GLOBAL          27 '<non-string>'
     0032    | OP_GET_LOCAL            1
-    0034    | OP_CONSTANT             2 '2'
+    0034    | OP_CONSTANT             1 '2'
     0037    | OP_SUBTRACT         
     0038    | OP_CALL                 1
     0040    | OP_ADD              
     0041    | OP_RETURN           
-    0042   84 OP_POP              
+    0042  196 OP_POP              
     0043    | OP_POP              
     0044    | OP_NIL              
     0045    | OP_RETURN           
-
-
->>> Function: __main__$test_array
-    Arity: 0
-    Has return: yes
-    Index: 11
-
-  Constants (7):
-    [0] = "arr"
-    [1] = "i"
-    [2] = 0
-    [3] = 1000
-    [4] = "push"
-    [5] = 1
-    [6] = "sum"
-
-  Bytecode:
-    0000  102 OP_DEFINE_ARRAY         0
-    0003  103 OP_CONSTANT             2 '0'
-    0006  104 OP_GET_LOCAL            2
-    0008    | OP_CONSTANT             3 '1000'
-    0011    | OP_LESS             
-    0012    | OP_JUMP_IF_FALSE       12 -> 39
-    0015    | OP_POP              
-    0016  105 OP_GET_LOCAL            1
-    0018    | OP_GET_LOCAL            2
-    0020    | OP_INVOKE               4 'push' (1 args)
-    0024    | OP_POP              
-    0025  106 OP_GET_LOCAL            2
-    0027    | OP_DUP              
-    0028    | OP_CONSTANT             5 '1'
-    0031    | OP_ADD              
-    0032    | OP_SET_LOCAL            2
-    0034    | OP_POP              
-    0035    | OP_POP              
-    0036  107 OP_LOOP                36 -> 6
-    0039    | OP_POP              
-    0040  109 OP_CONSTANT             2 '0'
-    0043  110 OP_CONSTANT             2 '0'
-    0046    | OP_SET_LOCAL            2
-    0048    | OP_POP              
-    0049  111 OP_GET_LOCAL            2
-    0051    | OP_GET_LOCAL            1
-    0053    | OP_FUNC_LEN         
-    0054    | OP_LESS             
-    0055    | OP_JUMP_IF_FALSE       55 -> 84
-    0058    | OP_POP              
-    0059  112 OP_GET_LOCAL            3
-    0061    | OP_GET_LOCAL            1
-    0063    | OP_GET_LOCAL            2
-    0065    | OP_GET_INDEX        
-    0066    | OP_ADD              
-    0067    | OP_SET_LOCAL            3
-    0069    | OP_POP              
-    0070  113 OP_GET_LOCAL            2
-    0072    | OP_DUP              
-    0073    | OP_CONSTANT             5 '1'
-    0076    | OP_ADD              
-    0077    | OP_SET_LOCAL            2
-    0079    | OP_POP              
-    0080    | OP_POP              
-    0081  114 OP_LOOP                81 -> 49
-    0084    | OP_POP              
-    0085  115 OP_POP              
-    0086    | OP_POP              
-    0087    | OP_POP              
-    0088    | OP_POP              
-    0089    | OP_NIL              
-    0090    | OP_RETURN           
 
 
 ========================================
@@ -1195,104 +3067,36 @@ CLASSES
 ========================================
 
 
->>> Class: Entity
+>>> Class: Point
     Index: 0
-    Field count: 4
+    Field count: 2
     Has superclass: no
 
     Fields:
       [0] x
       [1] y
-      [2] vx
-      [3] vy
-
-    Methods:
-
-    >>> Method: update
-        Arity: 0
-        Has return: yes
-
-      Constants (4):
-        [0] = "x"
-        [1] = "vx"
-        [2] = "y"
-        [3] = "vy"
-
-      Bytecode:
-        0000  125 OP_GET_LOCAL            0
-        0002    | OP_GET_LOCAL            0
-        0004    | OP_GET_PROPERTY         0 'x'
-        0007    | OP_GET_LOCAL            0
-        0009    | OP_GET_PROPERTY         1 'vx'
-        0012    | OP_ADD              
-        0013    | OP_SET_PROPERTY         0 'x'
-        0016    | OP_POP              
-        0017  126 OP_GET_LOCAL            0
-        0019    | OP_GET_LOCAL            0
-        0021    | OP_GET_PROPERTY         2 'y'
-        0024    | OP_GET_LOCAL            0
-        0026    | OP_GET_PROPERTY         3 'vy'
-        0029    | OP_ADD              
-        0030    | OP_SET_PROPERTY         2 'y'
-        0033    | OP_POP              
-        0034  127 OP_GET_LOCAL            0
-        0036    | OP_RETURN           
-        0037    | OP_POP              
-
-
-
->>> Class: Particle
-    Index: 1
-    Field count: 4
-    Has superclass: no
-
-    Fields:
-      [0] x
-      [1] y
-      [2] vx
-      [3] vy
 
     >>> Constructor (init)
         Arity: 2
 
-      Constants (6):
+      Constants (2):
         [0] = "x"
         [1] = "y"
-        [2] = "vx"
-        [3] = 50.00
-        [4] = 10.00
-        [5] = "vy"
 
       Bytecode:
-        0000  157 OP_GET_LOCAL            0
+        0000  151 OP_GET_LOCAL            0
         0002    | OP_GET_LOCAL            1
         0004    | OP_SET_PROPERTY         0 'x'
         0007    | OP_POP              
-        0008  158 OP_GET_LOCAL            0
+        0008  152 OP_GET_LOCAL            0
         0010    | OP_GET_LOCAL            2
         0012    | OP_SET_PROPERTY         1 'y'
         0015    | OP_POP              
-        0016  159 OP_GET_LOCAL            0
-        0018    | OP_GET_LOCAL            1
-        0020    | OP_CONSTANT             3 '50.0000'
-        0023    | OP_SUBTRACT         
-        0024    | OP_CONSTANT             4 '10.0000'
-        0027    | OP_DIVIDE           
-        0028    | OP_SET_PROPERTY         2 'vx'
-        0031    | OP_POP              
-        0032  160 OP_GET_LOCAL            0
-        0034    | OP_GET_LOCAL            2
-        0036    | OP_CONSTANT             3 '50.0000'
-        0039    | OP_SUBTRACT         
-        0040    | OP_CONSTANT             4 '10.0000'
-        0043    | OP_DIVIDE           
-        0044    | OP_SET_PROPERTY         5 'vy'
-        0047    | OP_POP              
-        0048  161 OP_GET_LOCAL            0
-        0050    | OP_RETURN           
-        0051    | OP_POP              
-        0052    | OP_POP              
-        0053    | OP_POP              
+        0016  153 OP_GET_LOCAL            0
+        0018    | OP_RETURN           
+        0019    | OP_POP              
+        0020    | OP_POP              
+        0021    | OP_POP              
 
     Methods:
 
@@ -1300,91 +3104,1140 @@ CLASSES
         Arity: 2
         Has return: yes
 
-      Constants (6):
+      Constants (2):
         [0] = "x"
         [1] = "y"
-        [2] = "vx"
-        [3] = 50.00
-        [4] = 10.00
-        [5] = "vy"
 
       Bytecode:
-        0000  157 OP_GET_LOCAL            0
+        0000  151 OP_GET_LOCAL            0
         0002    | OP_GET_LOCAL            1
         0004    | OP_SET_PROPERTY         0 'x'
         0007    | OP_POP              
-        0008  158 OP_GET_LOCAL            0
+        0008  152 OP_GET_LOCAL            0
         0010    | OP_GET_LOCAL            2
         0012    | OP_SET_PROPERTY         1 'y'
         0015    | OP_POP              
-        0016  159 OP_GET_LOCAL            0
-        0018    | OP_GET_LOCAL            1
-        0020    | OP_CONSTANT             3 '50.0000'
-        0023    | OP_SUBTRACT         
-        0024    | OP_CONSTANT             4 '10.0000'
-        0027    | OP_DIVIDE           
-        0028    | OP_SET_PROPERTY         2 'vx'
-        0031    | OP_POP              
-        0032  160 OP_GET_LOCAL            0
-        0034    | OP_GET_LOCAL            2
-        0036    | OP_CONSTANT             3 '50.0000'
-        0039    | OP_SUBTRACT         
-        0040    | OP_CONSTANT             4 '10.0000'
-        0043    | OP_DIVIDE           
-        0044    | OP_SET_PROPERTY         5 'vy'
-        0047    | OP_POP              
-        0048  161 OP_GET_LOCAL            0
-        0050    | OP_RETURN           
-        0051    | OP_POP              
-        0052    | OP_POP              
-        0053    | OP_POP              
+        0016  153 OP_GET_LOCAL            0
+        0018    | OP_RETURN           
+        0019    | OP_POP              
+        0020    | OP_POP              
+        0021    | OP_POP              
 
 
-    >>> Method: update
+    >>> Method: sum
         Arity: 0
         Has return: yes
 
-      Constants (5):
+      Constants (2):
         [0] = "x"
-        [1] = "vx"
-        [2] = "y"
-        [3] = "vy"
-        [4] = 0.99
+        [1] = "y"
 
       Bytecode:
-        0000  164 OP_GET_LOCAL            0
+        0000  156 OP_GET_LOCAL            0
+        0002    | OP_GET_PROPERTY         0 'x'
+        0005    | OP_GET_LOCAL            0
+        0007    | OP_GET_PROPERTY         1 'y'
+        0010    | OP_ADD              
+        0011    | OP_RETURN           
+        0012  157 OP_GET_LOCAL            0
+        0014    | OP_RETURN           
+        0015    | OP_POP              
+
+
+    >>> Method: move
+        Arity: 2
+        Has return: yes
+
+      Constants (2):
+        [0] = "x"
+        [1] = "y"
+
+      Bytecode:
+        0000  160 OP_GET_LOCAL            0
         0002    | OP_GET_LOCAL            0
         0004    | OP_GET_PROPERTY         0 'x'
-        0007    | OP_GET_LOCAL            0
-        0009    | OP_GET_PROPERTY         1 'vx'
-        0012    | OP_ADD              
-        0013    | OP_SET_PROPERTY         0 'x'
-        0016    | OP_POP              
-        0017  165 OP_GET_LOCAL            0
-        0019    | OP_GET_LOCAL            0
-        0021    | OP_GET_PROPERTY         2 'y'
-        0024    | OP_GET_LOCAL            0
-        0026    | OP_GET_PROPERTY         3 'vy'
-        0029    | OP_ADD              
-        0030    | OP_SET_PROPERTY         2 'y'
+        0007    | OP_GET_LOCAL            1
+        0009    | OP_ADD              
+        0010    | OP_SET_PROPERTY         0 'x'
+        0013    | OP_POP              
+        0014  161 OP_GET_LOCAL            0
+        0016    | OP_GET_LOCAL            0
+        0018    | OP_GET_PROPERTY         1 'y'
+        0021    | OP_GET_LOCAL            2
+        0023    | OP_ADD              
+        0024    | OP_SET_PROPERTY         1 'y'
+        0027    | OP_POP              
+        0028  162 OP_GET_LOCAL            0
+        0030    | OP_RETURN           
+        0031    | OP_POP              
+        0032    | OP_POP              
         0033    | OP_POP              
-        0034  166 OP_GET_LOCAL            0
-        0036    | OP_GET_LOCAL            0
-        0038    | OP_GET_PROPERTY         1 'vx'
-        0041    | OP_CONSTANT             4 '0.9900'
-        0044    | OP_MULTIPLY         
-        0045    | OP_SET_PROPERTY         1 'vx'
+
+
+
+>>> Class: ComplexReturns
+    Index: 2
+    Field count: 1
+    Has superclass: no
+
+    Fields:
+      [0] value
+
+    >>> Constructor (init)
+        Arity: 1
+
+      Constants (1):
+        [0] = "value"
+
+      Bytecode:
+        0000  342 OP_GET_LOCAL            0
+        0002    | OP_GET_LOCAL            1
+        0004    | OP_SET_PROPERTY         0 'value'
+        0007    | OP_POP              
+        0008  343 OP_GET_LOCAL            0
+        0010    | OP_RETURN           
+        0011    | OP_POP              
+        0012    | OP_POP              
+
+    Methods:
+
+    >>> Method: init
+        Arity: 1
+        Has return: yes
+
+      Constants (1):
+        [0] = "value"
+
+      Bytecode:
+        0000  342 OP_GET_LOCAL            0
+        0002    | OP_GET_LOCAL            1
+        0004    | OP_SET_PROPERTY         0 'value'
+        0007    | OP_POP              
+        0008  343 OP_GET_LOCAL            0
+        0010    | OP_RETURN           
+        0011    | OP_POP              
+        0012    | OP_POP              
+
+
+    >>> Method: early_return
+        Arity: 1
+        Has return: yes
+
+      Constants (3):
+        [0] = 0
+        [1] = 1
+        [2] = "value"
+
+      Bytecode:
+        0000  346 OP_GET_LOCAL            1
+        0002    | OP_CONSTANT             0 '0'
+        0005    | OP_LESS             
+        0006    | OP_JUMP_IF_FALSE        6 -> 18
+        0009    | OP_POP              
+        0010  347 OP_CONSTANT             1 '1'
+        0013    | OP_NEGATE           
+        0014    | OP_RETURN           
+        0015  348 OP_JUMP                15 -> 19
+        0018    | OP_POP              
+        0019  349 OP_GET_LOCAL            1
+        0021    | OP_CONSTANT             0 '0'
+        0024    | OP_EQUAL            
+        0025    | OP_JUMP_IF_FALSE       25 -> 36
+        0028    | OP_POP              
+        0029  350 OP_CONSTANT             0 '0'
+        0032    | OP_RETURN           
+        0033  351 OP_JUMP                33 -> 37
+        0036    | OP_POP              
+        0037  352 OP_GET_LOCAL            0
+        0039    | OP_GET_PROPERTY         2 'value'
+        0042    | OP_GET_LOCAL            1
+        0044    | OP_ADD              
+        0045    | OP_RETURN           
+        0046  353 OP_GET_LOCAL            0
+        0048    | OP_RETURN           
+        0049    | OP_POP              
+        0050    | OP_POP              
+
+
+    >>> Method: nested_if_return
+        Arity: 1
+        Has return: yes
+
+      Constants (4):
+        [0] = 10
+        [1] = 20
+        [2] = 100
+        [3] = 50
+
+      Bytecode:
+        0000  356 OP_GET_LOCAL            1
+        0002    | OP_CONSTANT             0 '10'
+        0005    | OP_GREATER          
+        0006    | OP_JUMP_IF_FALSE        6 -> 35
+        0009    | OP_POP              
+        0010  357 OP_GET_LOCAL            1
+        0012    | OP_CONSTANT             1 '20'
+        0015    | OP_GREATER          
+        0016    | OP_JUMP_IF_FALSE       16 -> 27
+        0019    | OP_POP              
+        0020  358 OP_CONSTANT             2 '100'
+        0023    | OP_RETURN           
+        0024  359 OP_JUMP                24 -> 32
+        0027    | OP_POP              
+        0028  360 OP_CONSTANT             3 '50'
+        0031    | OP_RETURN           
+        0032  362 OP_JUMP                32 -> 36
+        0035    | OP_POP              
+        0036  363 OP_CONSTANT             0 '10'
+        0039    | OP_RETURN           
+        0040  364 OP_GET_LOCAL            0
+        0042    | OP_RETURN           
+        0043    | OP_POP              
+        0044    | OP_POP              
+
+
+    >>> Method: while_with_return
+        Arity: 1
+        Has return: yes
+
+      Constants (4):
+        [0] = "i"
+        [1] = 0
+        [2] = 5
+        [3] = 1
+
+      Bytecode:
+        0000  367 OP_CONSTANT             1 '0'
+        0003  368 OP_GET_LOCAL            2
+        0005    | OP_GET_LOCAL            1
+        0007    | OP_LESS             
+        0008    | OP_JUMP_IF_FALSE        8 -> 43
+        0011    | OP_POP              
+        0012  369 OP_GET_LOCAL            2
+        0014    | OP_CONSTANT             2 '5'
+        0017    | OP_EQUAL            
+        0018    | OP_JUMP_IF_FALSE       18 -> 28
+        0021    | OP_POP              
+        0022  370 OP_GET_LOCAL            2
+        0024    | OP_RETURN           
+        0025  371 OP_JUMP                25 -> 29
+        0028    | OP_POP              
+        0029  372 OP_GET_LOCAL            2
+        0031    | OP_DUP              
+        0032    | OP_CONSTANT             3 '1'
+        0035    | OP_ADD              
+        0036    | OP_SET_LOCAL            2
+        0038    | OP_POP              
+        0039    | OP_POP              
+        0040  373 OP_LOOP                40 -> 3
+        0043    | OP_POP              
+        0044  374 OP_CONSTANT             3 '1'
+        0047    | OP_NEGATE           
+        0048    | OP_RETURN           
+        0049  375 OP_GET_LOCAL            0
+        0051    | OP_RETURN           
+        0052    | OP_POP              
+        0053    | OP_POP              
+        0054    | OP_POP              
+
+
+
+>>> Class: Outer
+    Index: 8
+    Field count: 2
+    Has superclass: no
+
+    Fields:
+      [0] inner
+      [1] value
+
+    >>> Constructor (init)
+        Arity: 1
+
+      Constants (3):
+        [0] = "value"
+        [1] = "inner"
+        [2] = 2
+
+      Bytecode:
+        0000  904 OP_GET_LOCAL            0
+        0002    | OP_GET_LOCAL            1
+        0004    | OP_SET_PROPERTY         0 'value'
+        0007    | OP_POP              
+        0008  905 OP_GET_LOCAL            0
+        0010    | OP_GET_GLOBAL          94 '<non-string>'
+        0013    | OP_GET_LOCAL            1
+        0015    | OP_CONSTANT             2 '2'
+        0018    | OP_MULTIPLY         
+        0019    | OP_CALL                 1
+        0021    | OP_SET_PROPERTY         1 'inner'
+        0024    | OP_POP              
+        0025  906 OP_GET_LOCAL            0
+        0027    | OP_RETURN           
+        0028    | OP_POP              
+        0029    | OP_POP              
+
+    Methods:
+
+    >>> Method: init
+        Arity: 1
+        Has return: yes
+
+      Constants (3):
+        [0] = "value"
+        [1] = "inner"
+        [2] = 2
+
+      Bytecode:
+        0000  904 OP_GET_LOCAL            0
+        0002    | OP_GET_LOCAL            1
+        0004    | OP_SET_PROPERTY         0 'value'
+        0007    | OP_POP              
+        0008  905 OP_GET_LOCAL            0
+        0010    | OP_GET_GLOBAL          94 '<non-string>'
+        0013    | OP_GET_LOCAL            1
+        0015    | OP_CONSTANT             2 '2'
+        0018    | OP_MULTIPLY         
+        0019    | OP_CALL                 1
+        0021    | OP_SET_PROPERTY         1 'inner'
+        0024    | OP_POP              
+        0025  906 OP_GET_LOCAL            0
+        0027    | OP_RETURN           
+        0028    | OP_POP              
+        0029    | OP_POP              
+
+
+    >>> Method: get_inner_data
+        Arity: 0
+        Has return: yes
+
+      Constants (2):
+        [0] = "inner"
+        [1] = "get"
+
+      Bytecode:
+        0000  909 OP_GET_LOCAL            0
+        0002    | OP_GET_PROPERTY         0 'inner'
+        0005    | OP_INVOKE               1 'get' (0 args)
+        0009    | OP_RETURN           
+        0010  910 OP_GET_LOCAL            0
+        0012    | OP_RETURN           
+        0013    | OP_POP              
+
+
+    >>> Method: update_inner
+        Arity: 1
+        Has return: yes
+
+      Constants (2):
+        [0] = "inner"
+        [1] = "data"
+
+      Bytecode:
+        0000  913 OP_GET_LOCAL            0
+        0002    | OP_GET_PROPERTY         0 'inner'
+        0005    | OP_GET_LOCAL            1
+        0007    | OP_SET_PROPERTY         1 'data'
+        0010    | OP_POP              
+        0011  914 OP_GET_LOCAL            0
+        0013    | OP_RETURN           
+        0014    | OP_POP              
+        0015    | OP_POP              
+
+
+
+>>> Class: ElifTest
+    Index: 4
+    Field count: 1
+    Has superclass: no
+
+    Fields:
+      [0] result
+
+    Methods:
+
+    >>> Method: classify
+        Arity: 1
+        Has return: yes
+
+      Constants (6):
+        [0] = 0
+        [1] = "result"
+        [2] = 1
+        [3] = "negative"
+        [4] = "zero"
+        [5] = "positive"
+
+      Bytecode:
+        0000  627 OP_GET_LOCAL            1
+        0002    | OP_CONSTANT             0 '0'
+        0005    | OP_LESS             
+        0006    | OP_JUMP_IF_FALSE        6 -> 27
+        0009    | OP_POP              
+        0010  628 OP_GET_LOCAL            0
+        0012    | OP_CONSTANT             2 '1'
+        0015    | OP_NEGATE           
+        0016    | OP_SET_PROPERTY         1 'result'
+        0019    | OP_POP              
+        0020  629 OP_CONSTANT             3 'negative'
+        0023    | OP_RETURN           
+        0024  630 OP_JUMP                24 -> 82
+        0027    | OP_POP              
+        0028    | OP_GET_LOCAL            1
+        0030    | OP_CONSTANT             0 '0'
+        0033    | OP_EQUAL            
+        0034    | OP_JUMP_IF_FALSE       34 -> 54
+        0037    | OP_POP              
+        0038  631 OP_GET_LOCAL            0
+        0040    | OP_CONSTANT             0 '0'
+        0043    | OP_SET_PROPERTY         1 'result'
+        0046    | OP_POP              
+        0047  632 OP_CONSTANT             4 'zero'
+        0050    | OP_RETURN           
+        0051  633 OP_JUMP                51 -> 82
+        0054    | OP_POP              
+        0055    | OP_GET_LOCAL            1
+        0057    | OP_CONSTANT             0 '0'
+        0060    | OP_GREATER          
+        0061    | OP_JUMP_IF_FALSE       61 -> 81
+        0064    | OP_POP              
+        0065  634 OP_GET_LOCAL            0
+        0067    | OP_CONSTANT             2 '1'
+        0070    | OP_SET_PROPERTY         1 'result'
+        0073    | OP_POP              
+        0074  635 OP_CONSTANT             5 'positive'
+        0077    | OP_RETURN           
+        0078  636 OP_JUMP                78 -> 82
+        0081    | OP_POP              
+        0082  637 OP_GET_LOCAL            0
+        0084    | OP_RETURN           
+        0085    | OP_POP              
+        0086    | OP_POP              
+
+
+
+>>> Class: Inner
+    Index: 7
+    Field count: 1
+    Has superclass: no
+
+    Fields:
+      [0] data
+
+    >>> Constructor (init)
+        Arity: 1
+
+      Constants (1):
+        [0] = "data"
+
+      Bytecode:
+        0000  891 OP_GET_LOCAL            0
+        0002    | OP_GET_LOCAL            1
+        0004    | OP_SET_PROPERTY         0 'data'
+        0007    | OP_POP              
+        0008  892 OP_GET_LOCAL            0
+        0010    | OP_RETURN           
+        0011    | OP_POP              
+        0012    | OP_POP              
+
+    Methods:
+
+    >>> Method: init
+        Arity: 1
+        Has return: yes
+
+      Constants (1):
+        [0] = "data"
+
+      Bytecode:
+        0000  891 OP_GET_LOCAL            0
+        0002    | OP_GET_LOCAL            1
+        0004    | OP_SET_PROPERTY         0 'data'
+        0007    | OP_POP              
+        0008  892 OP_GET_LOCAL            0
+        0010    | OP_RETURN           
+        0011    | OP_POP              
+        0012    | OP_POP              
+
+
+    >>> Method: get
+        Arity: 0
+        Has return: yes
+
+      Constants (1):
+        [0] = "data"
+
+      Bytecode:
+        0000  895 OP_GET_LOCAL            0
+        0002    | OP_GET_PROPERTY         0 'data'
+        0005    | OP_RETURN           
+        0006  896 OP_GET_LOCAL            0
+        0008    | OP_RETURN           
+        0009    | OP_POP              
+
+
+
+>>> Class: SwitchTest
+    Index: 3
+    Field count: 1
+    Has superclass: no
+
+    Fields:
+      [0] value
+
+    >>> Constructor (init)
+        Arity: 1
+
+      Constants (1):
+        [0] = "value"
+
+      Bytecode:
+        0000  553 OP_GET_LOCAL            0
+        0002    | OP_GET_LOCAL            1
+        0004    | OP_SET_PROPERTY         0 'value'
+        0007    | OP_POP              
+        0008  554 OP_GET_LOCAL            0
+        0010    | OP_RETURN           
+        0011    | OP_POP              
+        0012    | OP_POP              
+
+    Methods:
+
+    >>> Method: init
+        Arity: 1
+        Has return: yes
+
+      Constants (1):
+        [0] = "value"
+
+      Bytecode:
+        0000  553 OP_GET_LOCAL            0
+        0002    | OP_GET_LOCAL            1
+        0004    | OP_SET_PROPERTY         0 'value'
+        0007    | OP_POP              
+        0008  554 OP_GET_LOCAL            0
+        0010    | OP_RETURN           
+        0011    | OP_POP              
+        0012    | OP_POP              
+
+
+    >>> Method: test_method
+        Arity: 1
+        Has return: yes
+
+      Constants (4):
+        [0] = 1
+        [1] = "value"
+        [2] = 2
+        [3] = 3
+
+      Bytecode:
+        0000  557 OP_GET_LOCAL            1
+        0002  558 OP_DUP              
+        0003    | OP_CONSTANT             0 '1'
+        0006    | OP_EQUAL            
+        0007    | OP_JUMP_IF_FALSE        7 -> 25
+        0010    | OP_POP              
+        0011    | OP_POP              
+        0012  559 OP_GET_LOCAL            0
+        0014    | OP_GET_PROPERTY         1 'value'
+        0017    | OP_CONSTANT             0 '1'
+        0020    | OP_ADD              
+        0021    | OP_RETURN           
+        0022    | OP_JUMP                22 -> 81
+        0025    | OP_POP              
+        0026  560 OP_DUP              
+        0027    | OP_CONSTANT             2 '2'
+        0030    | OP_EQUAL            
+        0031    | OP_JUMP_IF_FALSE       31 -> 49
+        0034    | OP_POP              
+        0035    | OP_POP              
+        0036  561 OP_GET_LOCAL            0
+        0038    | OP_GET_PROPERTY         1 'value'
+        0041    | OP_CONSTANT             2 '2'
+        0044    | OP_ADD              
+        0045    | OP_RETURN           
+        0046    | OP_JUMP                46 -> 81
+        0049    | OP_POP              
+        0050  562 OP_DUP              
+        0051    | OP_CONSTANT             3 '3'
+        0054    | OP_EQUAL            
+        0055    | OP_JUMP_IF_FALSE       55 -> 73
+        0058    | OP_POP              
+        0059    | OP_POP              
+        0060  563 OP_GET_LOCAL            0
+        0062    | OP_GET_PROPERTY         1 'value'
+        0065    | OP_CONSTANT             3 '3'
+        0068    | OP_ADD              
+        0069    | OP_RETURN           
+        0070    | OP_JUMP                70 -> 81
+        0073    | OP_POP              
+        0074  564 OP_POP              
+        0075  565 OP_GET_LOCAL            0
+        0077    | OP_GET_PROPERTY         1 'value'
+        0080    | OP_RETURN           
+        0081  567 OP_GET_LOCAL            0
+        0083    | OP_RETURN           
+        0084    | OP_POP              
+        0085    | OP_POP              
+
+
+
+>>> Class: ComplexClass
+    Index: 5
+    Field count: 2
+    Has superclass: no
+
+    Fields:
+      [0] a
+      [1] b
+
+    >>> Constructor (init)
+        Arity: 2
+
+      Constants (2):
+        [0] = "a"
+        [1] = "b"
+
+      Bytecode:
+        0000  725 OP_GET_LOCAL            0
+        0002    | OP_GET_LOCAL            1
+        0004    | OP_SET_PROPERTY         0 'a'
+        0007    | OP_POP              
+        0008  726 OP_GET_LOCAL            0
+        0010    | OP_GET_LOCAL            2
+        0012    | OP_SET_PROPERTY         1 'b'
+        0015    | OP_POP              
+        0016  727 OP_GET_LOCAL            0
+        0018    | OP_RETURN           
+        0019    | OP_POP              
+        0020    | OP_POP              
+        0021    | OP_POP              
+
+    Methods:
+
+    >>> Method: init
+        Arity: 2
+        Has return: yes
+
+      Constants (2):
+        [0] = "a"
+        [1] = "b"
+
+      Bytecode:
+        0000  725 OP_GET_LOCAL            0
+        0002    | OP_GET_LOCAL            1
+        0004    | OP_SET_PROPERTY         0 'a'
+        0007    | OP_POP              
+        0008  726 OP_GET_LOCAL            0
+        0010    | OP_GET_LOCAL            2
+        0012    | OP_SET_PROPERTY         1 'b'
+        0015    | OP_POP              
+        0016  727 OP_GET_LOCAL            0
+        0018    | OP_RETURN           
+        0019    | OP_POP              
+        0020    | OP_POP              
+        0021    | OP_POP              
+
+
+    >>> Method: nested_if_in_method
+        Arity: 1
+        Has return: yes
+
+      Constants (9):
+        [0] = 0
+        [1] = 10
+        [2] = "a"
+        [3] = 100
+        [4] = "very negative"
+        [5] = "negative"
+        [6] = "zero"
+        [7] = "very positive"
+        [8] = "positive"
+
+      Bytecode:
+        0000  730 OP_GET_LOCAL            1
+        0002    | OP_CONSTANT             0 '0'
+        0005    | OP_LESS             
+        0006    | OP_JUMP_IF_FALSE        6 -> 56
+        0009    | OP_POP              
+        0010  731 OP_GET_LOCAL            1
+        0012    | OP_CONSTANT             1 '10'
+        0015    | OP_NEGATE           
+        0016    | OP_LESS             
+        0017    | OP_JUMP_IF_FALSE       17 -> 38
+        0020    | OP_POP              
+        0021  732 OP_GET_LOCAL            0
+        0023    | OP_CONSTANT             3 '100'
+        0026    | OP_NEGATE           
+        0027    | OP_SET_PROPERTY         2 'a'
+        0030    | OP_POP              
+        0031  733 OP_CONSTANT             4 'very negative'
+        0034    | OP_RETURN           
+        0035  734 OP_JUMP                35 -> 53
+        0038    | OP_POP              
+        0039  735 OP_GET_LOCAL            0
+        0041    | OP_CONSTANT             1 '10'
+        0044    | OP_NEGATE           
+        0045    | OP_SET_PROPERTY         2 'a'
         0048    | OP_POP              
-        0049  167 OP_GET_LOCAL            0
-        0051    | OP_GET_LOCAL            0
-        0053    | OP_GET_PROPERTY         3 'vy'
-        0056    | OP_CONSTANT             4 '0.9900'
-        0059    | OP_MULTIPLY         
-        0060    | OP_SET_PROPERTY         3 'vy'
-        0063    | OP_POP              
-        0064  168 OP_GET_LOCAL            0
-        0066    | OP_RETURN           
-        0067    | OP_POP              
+        0049  736 OP_CONSTANT             5 'negative'
+        0052    | OP_RETURN           
+        0053  738 OP_JUMP                53 -> 124
+        0056    | OP_POP              
+        0057    | OP_GET_LOCAL            1
+        0059    | OP_CONSTANT             0 '0'
+        0062    | OP_EQUAL            
+        0063    | OP_JUMP_IF_FALSE       63 -> 83
+        0066    | OP_POP              
+        0067  739 OP_GET_LOCAL            0
+        0069    | OP_CONSTANT             0 '0'
+        0072    | OP_SET_PROPERTY         2 'a'
+        0075    | OP_POP              
+        0076  740 OP_CONSTANT             6 'zero'
+        0079    | OP_RETURN           
+        0080  741 OP_JUMP                80 -> 124
+        0083    | OP_POP              
+        0084  742 OP_GET_LOCAL            1
+        0086    | OP_CONSTANT             1 '10'
+        0089    | OP_GREATER          
+        0090    | OP_JUMP_IF_FALSE       90 -> 110
+        0093    | OP_POP              
+        0094  743 OP_GET_LOCAL            0
+        0096    | OP_CONSTANT             3 '100'
+        0099    | OP_SET_PROPERTY         2 'a'
+        0102    | OP_POP              
+        0103  744 OP_CONSTANT             7 'very positive'
+        0106    | OP_RETURN           
+        0107  745 OP_JUMP               107 -> 124
+        0110    | OP_POP              
+        0111  746 OP_GET_LOCAL            0
+        0113    | OP_CONSTANT             1 '10'
+        0116    | OP_SET_PROPERTY         2 'a'
+        0119    | OP_POP              
+        0120  747 OP_CONSTANT             8 'positive'
+        0123    | OP_RETURN           
+        0124  750 OP_GET_LOCAL            0
+        0126    | OP_RETURN           
+        0127    | OP_POP              
+        0128    | OP_POP              
+
+
+    >>> Method: loop_in_method
+        Arity: 0
+        Has return: yes
+
+      Constants (6):
+        [0] = "sum"
+        [1] = 0
+        [2] = "i"
+        [3] = 10
+        [4] = "a"
+        [5] = 1
+
+      Bytecode:
+        0000  753 OP_CONSTANT             1 '0'
+        0003  754 OP_CONSTANT             1 '0'
+        0006  755 OP_GET_LOCAL            2
+        0008    | OP_CONSTANT             3 '10'
+        0011    | OP_LESS             
+        0012    | OP_JUMP_IF_FALSE       12 -> 41
+        0015    | OP_POP              
+        0016  756 OP_GET_LOCAL            1
+        0018    | OP_GET_LOCAL            0
+        0020    | OP_GET_PROPERTY         4 'a'
+        0023    | OP_ADD              
+        0024    | OP_SET_LOCAL            1
+        0026    | OP_POP              
+        0027  757 OP_GET_LOCAL            2
+        0029    | OP_DUP              
+        0030    | OP_CONSTANT             5 '1'
+        0033    | OP_ADD              
+        0034    | OP_SET_LOCAL            2
+        0036    | OP_POP              
+        0037    | OP_POP              
+        0038  758 OP_LOOP                38 -> 6
+        0041    | OP_POP              
+        0042  759 OP_GET_LOCAL            1
+        0044    | OP_RETURN           
+        0045  760 OP_GET_LOCAL            0
+        0047    | OP_RETURN           
+        0048    | OP_POP              
+        0049    | OP_POP              
+        0050    | OP_POP              
+
+
+    >>> Method: switch_in_method
+        Arity: 1
+        Has return: yes
+
+      Constants (12):
+        [0] = 1
+        [1] = "b"
+        [2] = 111
+        [3] = "one"
+        [4] = 2
+        [5] = 222
+        [6] = "two"
+        [7] = 3
+        [8] = 333
+        [9] = "three"
+        [10] = 999
+        [11] = "other"
+
+      Bytecode:
+        0000  763 OP_GET_LOCAL            1
+        0002  764 OP_DUP              
+        0003    | OP_CONSTANT             0 '1'
+        0006    | OP_EQUAL            
+        0007    | OP_JUMP_IF_FALSE        7 -> 28
+        0010    | OP_POP              
+        0011    | OP_POP              
+        0012  765 OP_GET_LOCAL            0
+        0014    | OP_CONSTANT             2 '111'
+        0017    | OP_SET_PROPERTY         1 'b'
+        0020    | OP_POP              
+        0021  766 OP_CONSTANT             3 'one'
+        0024    | OP_RETURN           
+        0025    | OP_JUMP                25 -> 97
+        0028    | OP_POP              
+        0029  767 OP_DUP              
+        0030    | OP_CONSTANT             4 '2'
+        0033    | OP_EQUAL            
+        0034    | OP_JUMP_IF_FALSE       34 -> 55
+        0037    | OP_POP              
+        0038    | OP_POP              
+        0039  768 OP_GET_LOCAL            0
+        0041    | OP_CONSTANT             5 '222'
+        0044    | OP_SET_PROPERTY         1 'b'
+        0047    | OP_POP              
+        0048  769 OP_CONSTANT             6 'two'
+        0051    | OP_RETURN           
+        0052    | OP_JUMP                52 -> 97
+        0055    | OP_POP              
+        0056  770 OP_DUP              
+        0057    | OP_CONSTANT             7 '3'
+        0060    | OP_EQUAL            
+        0061    | OP_JUMP_IF_FALSE       61 -> 82
+        0064    | OP_POP              
+        0065    | OP_POP              
+        0066  771 OP_GET_LOCAL            0
+        0068    | OP_CONSTANT             8 '333'
+        0071    | OP_SET_PROPERTY         1 'b'
+        0074    | OP_POP              
+        0075  772 OP_CONSTANT             9 'three'
+        0078    | OP_RETURN           
+        0079    | OP_JUMP                79 -> 97
+        0082    | OP_POP              
+        0083  773 OP_POP              
+        0084  774 OP_GET_LOCAL            0
+        0086    | OP_CONSTANT            10 '999'
+        0089    | OP_SET_PROPERTY         1 'b'
+        0092    | OP_POP              
+        0093  775 OP_CONSTANT            11 'other'
+        0096    | OP_RETURN           
+        0097  777 OP_GET_LOCAL            0
+        0099    | OP_RETURN           
+        0100    | OP_POP              
+        0101    | OP_POP              
+
+
+    >>> Method: closure_in_method
+        Arity: 0
+        Has return: yes
+
+      Constants (3):
+        [0] = "local"
+        [1] = 100
+        [2] = <value>
+
+      Bytecode:
+        0000  780 OP_CONSTANT             1 '100'
+        0003  783 OP_CLOSURE              2 '<function 34>'
+        0006    | OP_NIL              
+        0007    | OP_CONSTANT           257 'nil'
+        0010  784 OP_GET_LOCAL            2
+        0012    | OP_CALL                 0
+        0014    | OP_RETURN           
+        0015  785 OP_GET_LOCAL            0
+        0017    | OP_RETURN           
+        0018    | OP_POP              
+        0019    | OP_CLOSE_UPVALUE    
+        0020    | OP_CLOSE_UPVALUE    
+
+
+
+>>> Class: MathOps
+    Index: 6
+    Field count: 1
+    Has superclass: no
+
+    Fields:
+      [0] value
+
+    >>> Constructor (init)
+        Arity: 1
+
+      Constants (1):
+        [0] = "value"
+
+      Bytecode:
+        0000  810 OP_GET_LOCAL            0
+        0002    | OP_GET_LOCAL            1
+        0004    | OP_SET_PROPERTY         0 'value'
+        0007    | OP_POP              
+        0008  811 OP_GET_LOCAL            0
+        0010    | OP_RETURN           
+        0011    | OP_POP              
+        0012    | OP_POP              
+
+    Methods:
+
+    >>> Method: init
+        Arity: 1
+        Has return: yes
+
+      Constants (1):
+        [0] = "value"
+
+      Bytecode:
+        0000  810 OP_GET_LOCAL            0
+        0002    | OP_GET_LOCAL            1
+        0004    | OP_SET_PROPERTY         0 'value'
+        0007    | OP_POP              
+        0008  811 OP_GET_LOCAL            0
+        0010    | OP_RETURN           
+        0011    | OP_POP              
+        0012    | OP_POP              
+
+
+    >>> Method: increment
+        Arity: 0
+        Has return: yes
+
+      Constants (2):
+        [0] = "value"
+        [1] = 1
+
+      Bytecode:
+        0000  814 OP_GET_LOCAL            0
+        0002    | OP_DUP              
+        0003    | OP_GET_PROPERTY         0 'value'
+        0006    | OP_SWAP             
+        0007    | OP_DUP              
+        0008    | OP_GET_PROPERTY         0 'value'
+        0011    | OP_CONSTANT             1 '1'
+        0014    | OP_ADD              
+        0015    | OP_SET_PROPERTY         0 'value'
+        0018    | OP_POP              
+        0019    | OP_POP              
+        0020  815 OP_GET_LOCAL            0
+        0022    | OP_GET_PROPERTY         0 'value'
+        0025    | OP_RETURN           
+        0026  816 OP_GET_LOCAL            0
+        0028    | OP_RETURN           
+        0029    | OP_POP              
+
+
+    >>> Method: decrement
+        Arity: 0
+        Has return: yes
+
+      Constants (2):
+        [0] = "value"
+        [1] = 1
+
+      Bytecode:
+        0000  819 OP_GET_LOCAL            0
+        0002    | OP_DUP              
+        0003    | OP_GET_PROPERTY         0 'value'
+        0006    | OP_SWAP             
+        0007    | OP_DUP              
+        0008    | OP_GET_PROPERTY         0 'value'
+        0011    | OP_CONSTANT             1 '1'
+        0014    | OP_SUBTRACT         
+        0015    | OP_SET_PROPERTY         0 'value'
+        0018    | OP_POP              
+        0019    | OP_POP              
+        0020  820 OP_GET_LOCAL            0
+        0022    | OP_GET_PROPERTY         0 'value'
+        0025    | OP_RETURN           
+        0026  821 OP_GET_LOCAL            0
+        0028    | OP_RETURN           
+        0029    | OP_POP              
+
+
+    >>> Method: add
+        Arity: 1
+        Has return: yes
+
+      Constants (1):
+        [0] = "value"
+
+      Bytecode:
+        0000  824 OP_GET_LOCAL            0
+        0002    | OP_GET_LOCAL            0
+        0004    | OP_GET_PROPERTY         0 'value'
+        0007    | OP_GET_LOCAL            1
+        0009    | OP_ADD              
+        0010    | OP_SET_PROPERTY         0 'value'
+        0013    | OP_POP              
+        0014  825 OP_GET_LOCAL            0
+        0016    | OP_GET_PROPERTY         0 'value'
+        0019    | OP_RETURN           
+        0020  826 OP_GET_LOCAL            0
+        0022    | OP_RETURN           
+        0023    | OP_POP              
+        0024    | OP_POP              
+
+
+    >>> Method: multiply
+        Arity: 1
+        Has return: yes
+
+      Constants (1):
+        [0] = "value"
+
+      Bytecode:
+        0000  829 OP_GET_LOCAL            0
+        0002    | OP_GET_LOCAL            0
+        0004    | OP_GET_PROPERTY         0 'value'
+        0007    | OP_GET_LOCAL            1
+        0009    | OP_MULTIPLY         
+        0010    | OP_SET_PROPERTY         0 'value'
+        0013    | OP_POP              
+        0014  830 OP_GET_LOCAL            0
+        0016    | OP_GET_PROPERTY         0 'value'
+        0019    | OP_RETURN           
+        0020  831 OP_GET_LOCAL            0
+        0022    | OP_RETURN           
+        0023    | OP_POP              
+        0024    | OP_POP              
+
+
+    >>> Method: reset
+        Arity: 0
+        Has return: yes
+
+      Constants (2):
+        [0] = "value"
+        [1] = 0
+
+      Bytecode:
+        0000  834 OP_GET_LOCAL            0
+        0002    | OP_CONSTANT             1 '0'
+        0005    | OP_SET_PROPERTY         0 'value'
+        0008    | OP_POP              
+        0009  835 OP_GET_LOCAL            0
+        0011    | OP_RETURN           
+        0012    | OP_POP              
+
+
+
+>>> Class: Calculator
+    Index: 1
+    Field count: 1
+    Has superclass: no
+
+    Fields:
+      [0] result
+
+    >>> Constructor (init)
+        Arity: 1
+
+      Constants (1):
+        [0] = "result"
+
+      Bytecode:
+        0000  267 OP_GET_LOCAL            0
+        0002    | OP_GET_LOCAL            1
+        0004    | OP_SET_PROPERTY         0 'result'
+        0007    | OP_POP              
+        0008  268 OP_GET_LOCAL            0
+        0010    | OP_RETURN           
+        0011    | OP_POP              
+        0012    | OP_POP              
+
+    Methods:
+
+    >>> Method: init
+        Arity: 1
+        Has return: yes
+
+      Constants (1):
+        [0] = "result"
+
+      Bytecode:
+        0000  267 OP_GET_LOCAL            0
+        0002    | OP_GET_LOCAL            1
+        0004    | OP_SET_PROPERTY         0 'result'
+        0007    | OP_POP              
+        0008  268 OP_GET_LOCAL            0
+        0010    | OP_RETURN           
+        0011    | OP_POP              
+        0012    | OP_POP              
+
+
+    >>> Method: add
+        Arity: 1
+        Has return: yes
+
+      Constants (1):
+        [0] = "result"
+
+      Bytecode:
+        0000  271 OP_GET_LOCAL            0
+        0002    | OP_GET_LOCAL            0
+        0004    | OP_GET_PROPERTY         0 'result'
+        0007    | OP_GET_LOCAL            1
+        0009    | OP_ADD              
+        0010    | OP_SET_PROPERTY         0 'result'
+        0013    | OP_POP              
+        0014  272 OP_GET_LOCAL            0
+        0016    | OP_RETURN           
+        0017  273 OP_GET_LOCAL            0
+        0019    | OP_RETURN           
+        0020    | OP_POP              
+        0021    | OP_POP              
+
+
+    >>> Method: multiply
+        Arity: 1
+        Has return: yes
+
+      Constants (1):
+        [0] = "result"
+
+      Bytecode:
+        0000  276 OP_GET_LOCAL            0
+        0002    | OP_GET_LOCAL            0
+        0004    | OP_GET_PROPERTY         0 'result'
+        0007    | OP_GET_LOCAL            1
+        0009    | OP_MULTIPLY         
+        0010    | OP_SET_PROPERTY         0 'result'
+        0013    | OP_POP              
+        0014  277 OP_GET_LOCAL            0
+        0016    | OP_RETURN           
+        0017  278 OP_GET_LOCAL            0
+        0019    | OP_RETURN           
+        0020    | OP_POP              
+        0021    | OP_POP              
+
+
+    >>> Method: get
+        Arity: 0
+        Has return: yes
+
+      Constants (1):
+        [0] = "result"
+
+      Bytecode:
+        0000  281 OP_GET_LOCAL            0
+        0002    | OP_GET_PROPERTY         0 'result'
+        0005    | OP_RETURN           
+        0006  282 OP_GET_LOCAL            0
+        0008    | OP_RETURN           
+        0009    | OP_POP              
 
 
 

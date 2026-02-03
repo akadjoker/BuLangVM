@@ -40,6 +40,25 @@ Compiler::~Compiler()
 {
   delete lexer;
 }
+
+// ============================================
+// GLOBAL VARIABLE INDEXING
+// ============================================
+
+uint16 Compiler::getOrCreateGlobalIndex(const std::string& name)
+{
+  auto it = globalIndices_.find(name);
+  if (it != globalIndices_.end())
+  {
+    return it->second;  // Already indexed
+  }
+  
+  // Create new index
+  uint16 index = nextGlobalIndex_++;
+  globalIndices_[name] = index;
+  return index;
+}
+
 // ============================================
 // INICIALIZAÇÃO DA TABELA
 // ============================================
@@ -179,6 +198,17 @@ ProcessDef *Compiler::compile(const std::string &source)
   declaredGlobals_.clear();
   upvalueCount_ = 0;
   isProcess_ = true;  // Top-level code IS a process
+
+  // OPTIMIZATION: Sync global indices with natives already registered
+  // This ensures native functions use the same indices as assigned during registration
+  globalIndices_.clear();
+  nextGlobalIndex_ = 0;
+  for (size_t i = 0; i < vm_->natives.size(); i++)
+  {
+    const std::string& name = vm_->natives[i].name->chars();
+    globalIndices_[name] = nextGlobalIndex_++;
+    declaredGlobals_.insert(name);  // Mark as declared so namedVariable finds it
+  }
 
   compileStartTime = std::chrono::steady_clock::now();
 

@@ -1,0 +1,935 @@
+// ============================================
+// BuLang VM - Edge Case Tests
+// Testa funcionalidades criticas apos otimizacoes
+// ============================================
+
+var tests_passed = 0;
+var tests_failed = 0;
+
+def assert_eq(name, expected, actual) {
+    if (expected == actual) {
+        tests_passed++;
+        print("[PASS] " + name);
+    } else {
+        tests_failed++;
+        write("[FAIL] {}: expected {}, got {}\n", name, expected, actual);
+    }
+}
+
+def assert_true(name, condition) {
+    if (condition) {
+        tests_passed++;
+        print("[PASS] " + name);
+    } else {
+        tests_failed++;
+        print("[FAIL] " + name);
+    }
+}
+
+// ============================================
+// 1. GLOBAL VARIABLES
+// ============================================
+print("\n=== 1. Global Variables ===");
+
+var g1 = 10;
+var g2 = 20;
+var g3 = g1 + g2;
+
+assert_eq("Global var assignment", 10, g1);
+assert_eq("Global var addition", 30, g3);
+
+g1 = 100;
+assert_eq("Global var reassignment", 100, g1);
+
+var g_str = "hello";
+assert_eq("Global string", "hello", g_str);
+
+// ============================================
+// 2. GLOBAL FUNCTIONS
+// ============================================
+print("\n=== 2. Global Functions ===");
+
+def add(a, b) {
+    return a + b;
+}
+
+def multiply(a, b) {
+    return a * b;
+}
+
+assert_eq("Function call", 15, add(10, 5));
+assert_eq("Function with globals", 130, add(g1, g3));
+assert_eq("Nested function calls", 50, multiply(add(2, 3), 10));
+
+// ============================================
+// 3. LOCAL VARIABLES
+// ============================================
+print("\n=== 3. Local Variables ===");
+
+def test_locals() {
+    var x = 5;
+    var y = 10;
+    var z = x + y;
+    return z;
+}
+
+assert_eq("Local variables", 15, test_locals());
+
+def test_local_shadow() {
+    var g1 = 999;  // Shadow global
+    return g1;
+}
+
+assert_eq("Local shadows global", 999, test_local_shadow());
+assert_eq("Global unchanged after shadow", 100, g1);
+
+// ============================================
+// 4. NESTED FUNCTIONS
+// ============================================
+print("\n=== 4. Nested Functions ===");
+
+def outer_simple() {
+    def inner() {
+        return 42;
+    }
+    return inner();
+}
+
+assert_eq("Simple nested function", 42, outer_simple());
+
+def outer_with_params(x) {
+    def inner(y) {
+        return x + y;
+    }
+    return inner(10);
+}
+
+assert_eq("Nested with params", 15, outer_with_params(5));
+
+// ============================================
+// 5. CLOSURES / UPVALUES
+// ============================================
+print("\n=== 5. Closures / Upvalues ===");
+
+def make_counter() {
+    var count = 0;
+    def increment() {
+        count++;
+        return count;
+    }
+    return increment;
+}
+
+var counter = make_counter();
+assert_eq("Closure first call", 1, counter());
+assert_eq("Closure second call", 2, counter());
+assert_eq("Closure third call", 3, counter());
+
+def closure_capture_multiple() {
+    var a = 10;
+    var b = 20;
+    def inner() {
+        return a + b;
+    }
+    a = 100;
+    b = 200;
+    return inner();
+}
+
+assert_eq("Closure captures updated values", 300, closure_capture_multiple());
+
+// ============================================
+// 6. CLASSES
+// ============================================
+print("\n=== 6. Classes ===");
+
+class Point {
+    var x = 0;
+    var y = 0;
+
+    def init(px, py) {
+        self.x = px;
+        self.y = py;
+    }
+
+    def sum() {
+        return self.x + self.y;
+    }
+
+    def move(dx, dy) {
+        self.x = self.x + dx;
+        self.y = self.y + dy;
+    }
+}
+
+var p = Point(10, 20);
+assert_eq("Class init x", 10, p.x);
+assert_eq("Class init y", 20, p.y);
+assert_eq("Class method", 30, p.sum());
+
+p.move(5, 5);
+assert_eq("Class method modifies state", 40, p.sum());
+
+// ============================================
+// 7. NATIVE FUNCTIONS
+// ============================================
+print("\n=== 7. Native Functions ===");
+
+var arr = [];
+arr.push(1);
+arr.push(2);
+arr.push(3);
+assert_eq("Array len", 3, len(arr));
+assert_eq("Array access", 2, arr[1]);
+
+var t = clock();
+assert_true("clock() returns number", t >= 0);
+
+// ============================================
+// 8. RECURSION
+// ============================================
+print("\n=== 8. Recursion ===");
+
+def fib(n) {
+    if (n <= 1) return n;
+    return fib(n - 1) + fib(n - 2);
+}
+
+assert_eq("Fibonacci 0", 0, fib(0));
+assert_eq("Fibonacci 1", 1, fib(1));
+assert_eq("Fibonacci 10", 55, fib(10));
+
+def factorial(n) {
+    if (n <= 1) return 1;
+    return n * factorial(n - 1);
+}
+
+assert_eq("Factorial 5", 120, factorial(5));
+assert_eq("Factorial 10", 3628800, factorial(10));
+
+// ============================================
+// 9. LOOPS WITH GLOBALS
+// ============================================
+print("\n=== 9. Loops with Globals ===");
+
+var loop_sum = 0;
+var i = 0;
+while (i < 10) {
+    loop_sum = loop_sum + i;
+    i++;
+}
+assert_eq("Loop sum", 45, loop_sum);
+
+var arr2 = [];
+i = 0;
+while (i < 5) {
+    arr2.push(i * 2);
+    i++;
+}
+assert_eq("Loop array build", 5, len(arr2));
+assert_eq("Loop array value", 6, arr2[3]);
+
+// ============================================
+// 10. FUNCTION AS ARGUMENT
+// ============================================
+print("\n=== 10. Function as Argument ===");
+
+def apply(func, value) {
+    return func(value);
+}
+
+def double(x) {
+    return x * 2;
+}
+
+def square(x) {
+    return x * x;
+}
+
+assert_eq("Function as arg (double)", 20, apply(double, 10));
+assert_eq("Function as arg (square)", 25, apply(square, 5));
+
+def apply_twice(func, value) {
+    return func(func(value));
+}
+
+assert_eq("Apply twice", 40, apply_twice(double, 10));
+
+// ============================================
+// 11. MIXED SCENARIOS
+// ============================================
+print("\n=== 11. Mixed Scenarios ===");
+
+class Calculator {
+    var result = 0;
+
+    def init(start) {
+        self.result = start;
+    }
+
+    def add(x) {
+        self.result = self.result + x;
+        return self;
+    }
+
+    def multiply(x) {
+        self.result = self.result * x;
+        return self;
+    }
+
+    def get() {
+        return self.result;
+    }
+}
+
+var calc = Calculator(10);
+calc.add(5);
+calc.multiply(2);
+assert_eq("Chained class methods", 30, calc.get());
+
+def create_adder(base) {
+    def adder(x) {
+        return base + x;
+    }
+    return adder;
+}
+
+var add5 = create_adder(5);
+var add10 = create_adder(10);
+assert_eq("Closure factory 1", 15, add5(10));
+assert_eq("Closure factory 2", 25, add10(15));
+
+// ============================================
+// 12. STRESS TEST - MANY GLOBALS
+// ============================================
+print("\n=== 12. Stress Test - Many Globals ===");
+
+var v0=0; var v1=1; var v2=2; var v3=3; var v4=4;
+var v5=5; var v6=6; var v7=7; var v8=8; var v9=9;
+var v10=10; var v11=11; var v12=12; var v13=13; var v14=14;
+var v15=15; var v16=16; var v17=17; var v18=18; var v19=19;
+
+var sum_globals = v0+v1+v2+v3+v4+v5+v6+v7+v8+v9+v10+v11+v12+v13+v14+v15+v16+v17+v18+v19;
+assert_eq("Sum of 20 globals", 190, sum_globals);
+
+// ============================================
+// 13. INCREMENT OPERATORS
+// ============================================
+print("\n=== 13. Increment Operators ===");
+
+var inc_test = 0;
+inc_test++;
+assert_eq("Postfix increment", 1, inc_test);
+
+++inc_test;
+assert_eq("Prefix increment", 2, inc_test);
+
+inc_test--;
+assert_eq("Postfix decrement", 1, inc_test);
+
+--inc_test;
+assert_eq("Prefix decrement", 0, inc_test);
+
+// ============================================
+// 14. CLASS METHODS WITH COMPLEX RETURNS
+// ============================================
+print("\n=== 14. Class Methods with Complex Returns ===");
+
+class ComplexReturns {
+    var value = 0;
+
+    def init(v) {
+        self.value = v;
+    }
+
+    def early_return(x) {
+        if (x < 0) {
+            return -1;
+        }
+        if (x == 0) {
+            return 0;
+        }
+        return self.value + x;
+    }
+
+    def nested_if_return(x) {
+        if (x > 10) {
+            if (x > 20) {
+                return 100;
+            } else {
+                return 50;
+            }
+        }
+        return 10;
+    }
+
+    def while_with_return(limit) {
+        var i = 0;
+        while (i < limit) {
+            if (i == 5) {
+                return i;
+            }
+            i++;
+        }
+        return -1;
+    }
+}
+
+var cr = ComplexReturns(42);
+assert_eq("Early return negative", -1, cr.early_return(-5));
+assert_eq("Early return zero", 0, cr.early_return(0));
+assert_eq("Early return normal", 52, cr.early_return(10));
+assert_eq("Nested if return 1", 100, cr.nested_if_return(25));
+assert_eq("Nested if return 2", 50, cr.nested_if_return(15));
+assert_eq("Nested if return 3", 10, cr.nested_if_return(5));
+assert_eq("While with return", 5, cr.while_with_return(10));
+assert_eq("While without return", -1, cr.while_with_return(3));
+
+// ============================================
+// 15. IF/ELSE EDGE CASES
+// ============================================
+print("\n=== 15. If/Else Edge Cases ===");
+
+def test_nested_if_else(x) {
+    if (x > 10) {
+        if (x > 20) {
+            if (x > 30) {
+                return "very high";
+            } else {
+                return "high";
+            }
+        } else {
+            return "medium";
+        }
+    } else {
+        if (x > 5) {
+            return "low";
+        } else {
+            return "very low";
+        }
+    }
+}
+
+assert_eq("Nested if/else 1", "very high", test_nested_if_else(35));
+assert_eq("Nested if/else 2", "high", test_nested_if_else(25));
+assert_eq("Nested if/else 3", "medium", test_nested_if_else(15));
+assert_eq("Nested if/else 4", "low", test_nested_if_else(7));
+assert_eq("Nested if/else 5", "very low", test_nested_if_else(3));
+
+// ============================================
+// 16. WHILE LOOPS EDGE CASES
+// ============================================
+print("\n=== 16. While Loops Edge Cases ===");
+
+def test_while_break() {
+    var sum = 0;
+    var i = 0;
+    while (i < 100) {
+        if (i == 10) {
+            break;
+        }
+        sum = sum + i;
+        i++;
+    }
+    return sum;
+}
+
+assert_eq("While with break", 45, test_while_break());
+
+def test_nested_while() {
+    var sum = 0;
+    var i = 0;
+    while (i < 5) {
+        var j = 0;
+        while (j < 3) {
+            sum = sum + 1;
+            j++;
+        }
+        i++;
+    }
+    return sum;
+}
+
+assert_eq("Nested while loops", 15, test_nested_while());
+
+def test_while_continue() {
+    var sum = 0;
+    var i = 0;
+    while (i < 10) {
+        i++;
+        if (i == 5) {
+            continue;
+        }
+        sum = sum + i;
+    }
+    return sum;
+}
+
+assert_eq("While with continue", 50, test_while_continue());
+
+// ============================================
+// 17. BLOCK SCOPES WITH BRACKETS
+// ============================================
+print("\n=== 17. Block Scopes with Brackets ===");
+
+def test_block_scope() {
+    var x = 10;
+    {
+        var x = 20;
+        {
+            var x = 30;
+            assert_eq("Block scope innermost", 30, x);
+        }
+        assert_eq("Block scope middle", 20, x);
+    }
+    return x;
+}
+
+assert_eq("Block scope outer", 10, test_block_scope());
+
+def test_block_with_globals() {
+    var local_x = 100;
+    {
+        g1 = 500;  // Modify global
+        var local_y = 200;
+        {
+            var local_z = 300;
+            assert_eq("Block inner local", 300, local_z);
+        }
+        assert_eq("Block middle local", 200, local_y);
+    }
+    assert_eq("Block global modified", 500, g1);
+    return local_x;
+}
+
+assert_eq("Block outer local", 100, test_block_with_globals());
+
+// ============================================
+// 18. SWITCH/CASE (SEM BREAK)
+// ============================================
+print("\n=== 18. Switch/Case ===");
+
+def test_switch_basic(x) {
+    switch (x) {
+        case 1:
+            return "one";
+        case 2:
+            return "two";
+        case 3:
+            return "three";
+        default:
+            return "other";
+    }
+}
+
+assert_eq("Switch case 1", "one", test_switch_basic(1));
+assert_eq("Switch case 2", "two", test_switch_basic(2));
+assert_eq("Switch case 3", "three", test_switch_basic(3));
+assert_eq("Switch default", "other", test_switch_basic(99));
+
+def test_switch_with_vars(x) {
+    var result = 0;
+    switch (x) {
+        case 1:
+            result = 10;
+        case 2:
+            result = 20;
+        case 3:
+            result = 30;
+        default:
+            result = -1;
+    }
+    return result;
+}
+
+assert_eq("Switch case assign 1", 10, test_switch_with_vars(1));
+assert_eq("Switch case assign 2", 20, test_switch_with_vars(2));
+assert_eq("Switch default assign", -1, test_switch_with_vars(5));
+
+class SwitchTest {
+    var value = 0;
+    
+    def init(v) {
+        self.value = v;
+    }
+    
+    def test_method(x) {
+        switch (x) {
+            case 1:
+                return self.value + 1;
+            case 2:
+                return self.value + 2;
+            case 3:
+                return self.value + 3;
+            default:
+                return self.value;
+        }
+    }
+}
+
+var st = SwitchTest(100);
+assert_eq("Switch in class method 1", 101, st.test_method(1));
+assert_eq("Switch in class method 2", 102, st.test_method(2));
+assert_eq("Switch in class method default", 100, st.test_method(99));
+
+// ============================================
+// 19. ELIF STATEMENTS
+// ============================================
+print("\n=== 19. Elif Statements ===");
+
+def test_elif_basic(x) {
+    if (x < 0) {
+        return "negative";
+    } elif (x == 0) {
+        return "zero";
+    } elif (x < 10) {
+        return "small";
+    } elif (x < 100) {
+        return "medium";
+    } else {
+        return "large";
+    }
+}
+
+assert_eq("Elif negative", "negative", test_elif_basic(-5));
+assert_eq("Elif zero", "zero", test_elif_basic(0));
+assert_eq("Elif small", "small", test_elif_basic(5));
+assert_eq("Elif medium", "medium", test_elif_basic(50));
+assert_eq("Elif large", "large", test_elif_basic(500));
+
+def test_elif_with_globals(x) {
+    if (x == 1) {
+        g1 = 1000;
+        return "one";
+    } elif (x == 2) {
+        g1 = 2000;
+        return "two";
+    } elif (x == 3) {
+        g1 = 3000;
+        return "three";
+    } else {
+        g1 = 9999;
+        return "other";
+    }
+}
+
+assert_eq("Elif modifies global 1", "one", test_elif_with_globals(1));
+assert_eq("Elif global value 1", 1000, g1);
+assert_eq("Elif modifies global 2", "two", test_elif_with_globals(2));
+assert_eq("Elif global value 2", 2000, g1);
+assert_eq("Elif modifies global else", "other", test_elif_with_globals(99));
+assert_eq("Elif global value else", 9999, g1);
+
+class ElifTest {
+    var result = 0;
+    
+    def classify(x) {
+        if (x < 0) {
+            self.result = -1;
+            return "negative";
+        } elif (x == 0) {
+            self.result = 0;
+            return "zero";
+        } elif (x > 0) {
+            self.result = 1;
+            return "positive";
+        }
+    }
+}
+
+var et = ElifTest();
+assert_eq("Elif in class negative", "negative", et.classify(-10));
+assert_eq("Elif in class result negative", -1, et.result);
+assert_eq("Elif in class zero", "zero", et.classify(0));
+assert_eq("Elif in class result zero", 0, et.result);
+assert_eq("Elif in class positive", "positive", et.classify(10));
+assert_eq("Elif in class result positive", 1, et.result);
+
+// ============================================
+// 20. STRUCTS
+// ============================================
+print("\n=== 20. Structs ===");
+
+// Struct sem var, com argumentos
+struct Vector2 {
+    x, y
+}
+
+var v1 = Vector2(10, 20);
+assert_eq("Struct field x", 10, v1.x);
+assert_eq("Struct field y", 20, v1.y);
+
+v1.x = 100;
+v1.y = 200;
+assert_eq("Struct field modified x", 100, v1.x);
+assert_eq("Struct field modified y", 200, v1.y);
+
+// Struct com var, sem argumentos
+struct Color {
+    var r;
+    var g;
+    var b;
+}
+
+var c1 = Color();
+c1.r = 255;
+c1.g = 128;
+c1.b = 64;
+assert_eq("Struct with var r", 255, c1.r);
+assert_eq("Struct with var g", 128, c1.g);
+assert_eq("Struct with var b", 64, c1.b);
+
+// Struct sem var, múltiplos campos
+struct Point3D {
+    x, y, z
+}
+
+var p3d = Point3D(1, 2, 3);
+assert_eq("Struct 3 fields x", 1, p3d.x);
+assert_eq("Struct 3 fields y", 2, p3d.y);
+assert_eq("Struct 3 fields z", 3, p3d.z);
+
+// Struct misto (var e sem var)
+struct Rectangle {
+    var x;
+    var y;
+    width, height
+}
+
+var rect = Rectangle();
+rect.x = 10;
+rect.y = 20;
+rect.width = 100;
+rect.height = 50;
+assert_eq("Struct mixed var x", 10, rect.x);
+assert_eq("Struct mixed var y", 20, rect.y);
+assert_eq("Struct mixed width", 100, rect.width);
+assert_eq("Struct mixed height", 50, rect.height);
+
+def use_struct(pt) {
+    return pt.x + pt.y;
+}
+
+assert_eq("Struct passed to function", 300, use_struct(v1));
+
+// ============================================
+// 21. CLASSES - EDGE CASES AVANÇADOS
+// ============================================
+print("\n=== 21. Classes - Edge Cases Avançados ===");
+
+class ComplexClass {
+    var a = 0;
+    var b = 0;
+    
+    def init(x, y) {
+        self.a = x;
+        self.b = y;
+    }
+    
+    def nested_if_in_method(val) {
+        if (val < 0) {
+            if (val < -10) {
+                self.a = -100;
+                return "very negative";
+            } else {
+                self.a = -10;
+                return "negative";
+            }
+        } elif (val == 0) {
+            self.a = 0;
+            return "zero";
+        } else {
+            if (val > 10) {
+                self.a = 100;
+                return "very positive";
+            } else {
+                self.a = 10;
+                return "positive";
+            }
+        }
+    }
+    
+    def loop_in_method() {
+        var sum = 0;
+        var i = 0;
+        while (i < 10) {
+            sum = sum + self.a;
+            i++;
+        }
+        return sum;
+    }
+    
+    def switch_in_method(x) {
+        switch (x) {
+            case 1:
+                self.b = 111;
+                return "one";
+            case 2:
+                self.b = 222;
+                return "two";
+            case 3:
+                self.b = 333;
+                return "three";
+            default:
+                self.b = 999;
+                return "other";
+        }
+    }
+    
+    def closure_in_method() {
+        var local = 100;
+        def inner() {
+            return self.a + local;
+        }
+        return inner();
+    }
+}
+
+var cc = ComplexClass(5, 10);
+assert_eq("Complex class nested if 1", "very negative", cc.nested_if_in_method(-15));
+assert_eq("Complex class state after nested if", -100, cc.a);
+assert_eq("Complex class nested if 2", "very positive", cc.nested_if_in_method(20));
+assert_eq("Complex class state after nested if 2", 100, cc.a);
+
+assert_eq("Complex class loop", 1000, cc.loop_in_method());
+
+assert_eq("Complex class switch", "two", cc.switch_in_method(2));
+assert_eq("Complex class state after switch", 222, cc.b);
+
+assert_eq("Complex class closure", 200, cc.closure_in_method());
+
+// ============================================
+// 22. CLASSES COM MÚLTIPLOS MÉTODOS
+// ============================================
+print("\n=== 22. Classes com Múltiplos Métodos ===");
+
+class MathOps {
+    var value = 0;
+    
+    def init(v) {
+        self.value = v;
+    }
+    
+    def increment() {
+        self.value++;
+        return self.value;
+    }
+    
+    def decrement() {
+        self.value--;
+        return self.value;
+    }
+    
+    def add(x) {
+        self.value = self.value + x;
+        return self.value;
+    }
+    
+    def multiply(x) {
+        self.value = self.value * x;
+        return self.value;
+    }
+    
+    def reset() {
+        self.value = 0;
+    }
+}
+
+var mo = MathOps(10);
+assert_eq("Multi method increment", 11, mo.increment());
+assert_eq("Multi method increment 2", 12, mo.increment());
+assert_eq("Multi method decrement", 11, mo.decrement());
+assert_eq("Multi method add", 21, mo.add(10));
+assert_eq("Multi method multiply", 42, mo.multiply(2));
+mo.reset();
+assert_eq("Multi method reset", 0, mo.value);
+
+// ============================================
+// 23. ARRAYS DE STRUCTS E CLASSES
+// ============================================
+print("\n=== 23. Arrays de Structs e Classes ===");
+
+var points = [];
+points.push(Vector2(1, 2));
+points.push(Vector2(3, 4));
+points.push(Vector2(5, 6));
+
+assert_eq("Array of structs len", 3, len(points));
+assert_eq("Array of structs element 0 x", 1, points[0].x);
+assert_eq("Array of structs element 1 y", 4, points[1].y);
+assert_eq("Array of structs element 2 x", 5, points[2].x);
+
+var ops = [];
+ops.push(MathOps(10));
+ops.push(MathOps(20));
+ops.push(MathOps(30));
+
+assert_eq("Array of classes len", 3, len(ops));
+assert_eq("Array of classes element 0", 10, ops[0].value);
+assert_eq("Array of classes element 1", 20, ops[1].value);
+
+ops[0].increment();
+assert_eq("Array of classes method call", 11, ops[0].value);
+
+var sum_ops = 0;
+var i = 0;
+while (i < len(ops)) {
+    sum_ops = sum_ops + ops[i].value;
+    i++;
+}
+assert_eq("Loop over array of classes", 61, sum_ops);
+
+// ============================================
+// 24. CLASSES ANINHADAS E COMPOSIÇÃO
+// ============================================
+print("\n=== 24. Classes Aninhadas e Composição ===");
+
+class Inner {
+    var data = 0;
+    
+    def init(d) {
+        self.data = d;
+    }
+    
+    def get() {
+        return self.data;
+    }
+}
+
+class Outer {
+    var inner = nil;
+    var value = 0;
+    
+    def init(v) {
+        self.value = v;
+        self.inner = Inner(v * 2);
+    }
+    
+    def get_inner_data() {
+        return self.inner.get();
+    }
+    
+    def update_inner(d) {
+        self.inner.data = d;
+    }
+}
+
+var outer = Outer(50);
+assert_eq("Nested class outer value", 50, outer.value);
+assert_eq("Nested class inner data", 100, outer.get_inner_data());
+outer.update_inner(999);
+assert_eq("Nested class inner updated", 999, outer.inner.data);
+
+// ============================================
+// SUMMARY
+// ============================================
+print("\n========================================");
+write("Tests Passed: {}\n", tests_passed);
+write("Tests Failed: {}\n", tests_failed);
+print("========================================");
+
+if (tests_failed == 0) {
+    print("ALL TESTS PASSED!");
+} else {
+    print("SOME TESTS FAILED!");
+}
