@@ -152,7 +152,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
         }                                                            \
     } while (0)
 
-#define READ_CONSTANT() (func->chunk->constants[READ_BYTE()])
+#define READ_CONSTANT() (func->chunk->constants[READ_SHORT()])
     LOAD_FRAME();
 
     // printf("[DEBUG] Starting run_fiber: ip=%p, func=%s, offset=%ld\n",
@@ -491,7 +491,26 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                     PUSH(makeDouble(da - db));
                 }
                 break;
+            } else if (a.isBool() && b.isNumber()) 
+            {
+                double da = a.asBool() ? 1.0 : 0.0;
+                double db = b.isInt() ? (double)b.asInt() : b.asDouble();
+                PUSH(makeDouble(da - db));
+                break;
+            } else if (a.isNumber() && b.isBool()) 
+            {
+                double da = a.isInt() ? (double)a.asInt() : a.asDouble();
+                double db = b.asBool() ? 1.0 : 0.0;
+                PUSH(makeDouble(da - db));
+                break;
+            } else if (a.isBool() && b.isBool()) 
+            {
+                double da = a.asBool() ? 1.0 : 0.0;
+                double db = b.asBool() ? 1.0 : 0.0;
+                PUSH(makeDouble(da - db));
+                break;
             }
+            
 
             THROW_RUNTIME_ERROR("Cannot apply '-' to %s and %s", getValueTypeName(a), getValueTypeName(b));
             break;
@@ -3872,7 +3891,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
         case OP_SUPER_INVOKE:
         {
             uint8_t ownerClassId = READ_BYTE();
-            uint8_t nameIdx = READ_BYTE();
+            uint16_t nameIdx = READ_SHORT();
             uint8_t argCount = READ_BYTE();
 
             Value nameValue = func->chunk->constants[nameIdx];

@@ -246,14 +246,14 @@ void Compiler::varDeclaration()
     if (match(TOKEN_LPAREN))
     {
         std::vector<Token> names;
-        std::vector<uint8_t> globals;
+        std::vector<uint16_t> globals;
 
         // Colectar nomes das variáveis
         do {
             consume(TOKEN_IDENTIFIER, "Expect variable name in multi-assignment");
             names.push_back(previous);
 
-            uint8_t global = identifierConstant(previous);
+            uint16_t global = identifierConstant(previous);
             globals.push_back(global);
 
             if (scopeDepth > 0)
@@ -303,7 +303,7 @@ void Compiler::varDeclaration()
         consume(TOKEN_IDENTIFIER, "Expect variable name");
         Token nameToken = previous;
 
-        uint8_t global = identifierConstant(nameToken);
+        uint16_t global = identifierConstant(nameToken);
 
         if (scopeDepth > 0)
         {
@@ -544,10 +544,21 @@ void Compiler::or_(bool canAssign)
     patchJump(endJump);
 }
 
-uint8 Compiler::identifierConstant(Token &name)
+uint16 Compiler::identifierConstant(Token &name)
 {
 
     return makeConstant(vm_->makeString(name.lexeme.c_str()));
+}
+
+// Helper para emitir opcode de variável - usa emitShort para globais (índice de constante)
+void Compiler::emitVarOp(uint8 op, int arg)
+{
+    bool isGlobal = (op == OP_GET_GLOBAL || op == OP_SET_GLOBAL);
+    emitByte(op);
+    if (isGlobal)
+        emitShort((uint16)arg);
+    else
+        emitByte((uint8)arg);
 }
 
 void Compiler::handle_assignment(uint8 getOp, uint8 setOp, int arg, bool canAssign)
@@ -556,66 +567,66 @@ void Compiler::handle_assignment(uint8 getOp, uint8 setOp, int arg, bool canAssi
     if (match(TOKEN_PLUS_PLUS))
     {
         // i++ (postfix) - retorna valor ANTIGO
-        emitBytes(getOp, (uint8)arg);        // [old_value]
+        emitVarOp(getOp, arg);               // [old_value]
         emitByte(OP_DUP);                    // [old_value, old_value]
         emitConstant(vm_->makeInt(1));       // [old_value, old_value, 1]
         emitByte(OP_ADD);                    // [old_value, new_value]
-        emitBytes(setOp, (uint8)arg);        // [old_value, new_value] (SET usa PEEK, não remove!)
+        emitVarOp(setOp, arg);               // [old_value, new_value] (SET usa PEEK, não remove!)
         emitByte(OP_POP);                    // [old_value] - remove o new_value
     }
     else if (match(TOKEN_MINUS_MINUS))
     {
         // i-- (postfix) - retorna valor ANTIGO
-        emitBytes(getOp, (uint8)arg);        // [old_value]
+        emitVarOp(getOp, arg);               // [old_value]
         emitByte(OP_DUP);                    // [old_value, old_value]
         emitConstant(vm_->makeInt(1));       // [old_value, old_value, 1]
         emitByte(OP_SUBTRACT);               // [old_value, new_value]
-        emitBytes(setOp, (uint8)arg);        // [old_value, new_value] (SET usa PEEK)
+        emitVarOp(setOp, arg);               // [old_value, new_value] (SET usa PEEK)
         emitByte(OP_POP);                    // [old_value] - remove o new_value
     }
     else if (canAssign && match(TOKEN_EQUAL))
     {
         expression();
-        emitBytes(setOp, (uint8)arg);
+        emitVarOp(setOp, arg);
     }
     else if (canAssign && match(TOKEN_PLUS_EQUAL))
     {
-        emitBytes(getOp, (uint8)arg);
+        emitVarOp(getOp, arg);
         expression();
         emitByte(OP_ADD);
-        emitBytes(setOp, (uint8)arg);
+        emitVarOp(setOp, arg);
     }
     else if (canAssign && match(TOKEN_MINUS_EQUAL))
     {
-        emitBytes(getOp, (uint8)arg);
+        emitVarOp(getOp, arg);
         expression();
         emitByte(OP_SUBTRACT);
-        emitBytes(setOp, (uint8)arg);
+        emitVarOp(setOp, arg);
     }
     else if (canAssign && match(TOKEN_STAR_EQUAL))
     {
-        emitBytes(getOp, (uint8)arg);
+        emitVarOp(getOp, arg);
         expression();
         emitByte(OP_MULTIPLY);
-        emitBytes(setOp, (uint8)arg);
+        emitVarOp(setOp, arg);
     }
     else if (canAssign && match(TOKEN_SLASH_EQUAL))
     {
-        emitBytes(getOp, (uint8)arg);
+        emitVarOp(getOp, arg);
         expression();
         emitByte(OP_DIVIDE);
-        emitBytes(setOp, (uint8)arg);
+        emitVarOp(setOp, arg);
     }
     else if (canAssign && match(TOKEN_PERCENT_EQUAL))
     {
-        emitBytes(getOp, (uint8)arg);
+        emitVarOp(getOp, arg);
         expression();
         emitByte(OP_MODULO);
-        emitBytes(setOp, (uint8)arg);
+        emitVarOp(setOp, arg);
     }
     else
     {
-        emitBytes(getOp, (uint8)arg);
+        emitVarOp(getOp, arg);
     }
 }
 
@@ -675,7 +686,7 @@ void Compiler::namedVariable(Token &name, bool canAssign)
     handle_assignment(getOp, setOp, arg, canAssign);
 }
 
-void Compiler::defineVariable(uint8 global)
+void Compiler::defineVariable(uint16 global)
 {
     if (scopeDepth > 0)
     {
@@ -684,7 +695,8 @@ void Compiler::defineVariable(uint8 global)
         return;
     }
 
-    emitBytes(OP_DEFINE_GLOBAL, global);
+    emitByte(OP_DEFINE_GLOBAL);
+    emitShort(global);
 }
 
 void Compiler::declareVariable()
@@ -1540,8 +1552,9 @@ void Compiler::funDeclaration()
     if (func->upvalueCount > 0)
     {
         // É uma CLOSURE (captura variáveis)
-        uint8 constant = makeConstant(vm_->makeFunction(func->index));
-        emitBytes(OP_CLOSURE, constant);
+        uint16 constant = makeConstant(vm_->makeFunction(func->index));
+        emitByte(OP_CLOSURE);
+        emitShort(constant);
         // Emite info de cada upvalue (isLocal, index)
         for (int i = 0; i < func->upvalueCount; i++)
         {
@@ -1562,7 +1575,7 @@ void Compiler::funDeclaration()
     }
     else
     {
-        uint8 nameConstant = identifierConstant(nameToken);
+        uint16 nameConstant = identifierConstant(nameToken);
         defineVariable(nameConstant); // Global
     }
 }
@@ -1630,7 +1643,7 @@ void Compiler::processDeclaration()
     // Warning("Process '%s' registered with index %d and %d fibers", nameToken.lexeme.c_str(), proc->index, numFibers_);
 
     emitConstant(vm_->makeProcess(proc->index));
-    uint8 nameConstant = identifierConstant(nameToken);
+    uint16 nameConstant = identifierConstant(nameToken);
     defineVariable(nameConstant);
 
     proc->finalize();
@@ -1869,7 +1882,7 @@ void Compiler::prefixIncrement(bool canAssign)
     if (match(TOKEN_DOT))
     {
         consume(TOKEN_IDENTIFIER, "Expect property name after '.'.");
-        uint8_t nameIdx = identifierConstant(previous);
+        uint16_t nameIdx = identifierConstant(previous);
 
         // Resolver o objeto (usando a nova lógica completa!)
         // Nota: Aqui podíamos duplicar a lógica abaixo ou criar um helper,
@@ -1886,14 +1899,17 @@ void Compiler::prefixIncrement(bool canAssign)
         else
         {
             arg = identifierConstant(name);
-            emitBytes(OP_GET_GLOBAL, (uint8)arg);
+            emitByte(OP_GET_GLOBAL);
+            emitShort((uint16)arg);
         }
 
         emitByte(OP_DUP);
-        emitBytes(OP_GET_PROPERTY, nameIdx);
+        emitByte(OP_GET_PROPERTY);
+        emitShort(nameIdx);
         emitConstant(vm_->makeInt(1));
         emitByte(OP_ADD);
-        emitBytes(OP_SET_PROPERTY, nameIdx);
+        emitByte(OP_SET_PROPERTY);
+        emitShort(nameIdx);
     }
     // -----------------------------------------------------------
     // CENÁRIO B: É uma VARIÁVEL (++i, ++upvalue, ++private)
@@ -1975,7 +1991,7 @@ void Compiler::prefixDecrement(bool canAssign)
     if (match(TOKEN_DOT))
     {
         consume(TOKEN_IDENTIFIER, "Expect property name after '.'.");
-        uint8_t nameIdx = identifierConstant(previous);
+        uint16_t nameIdx = identifierConstant(previous);
 
         // Resolver objeto (Local ou Global)
         int arg = resolveLocal(name);
@@ -1986,14 +2002,17 @@ void Compiler::prefixDecrement(bool canAssign)
         else
         {
             arg = identifierConstant(name);
-            emitBytes(OP_GET_GLOBAL, (uint8)arg);
+            emitByte(OP_GET_GLOBAL);
+            emitShort((uint16)arg);
         }
 
-        emitByte(OP_DUP);                    // [obj, obj]
-        emitBytes(OP_GET_PROPERTY, nameIdx); // [obj, val_antigo]
-        emitConstant(vm_->makeInt(1));       // [obj, val_antigo, 1]
-        emitByte(OP_SUBTRACT);               // [obj, val_novo]  
-        emitBytes(OP_SET_PROPERTY, nameIdx); // [val_novo]
+        emitByte(OP_DUP);                        // [obj, obj]
+        emitByte(OP_GET_PROPERTY);
+        emitShort(nameIdx);                      // [obj, val_antigo]
+        emitConstant(vm_->makeInt(1));           // [obj, val_antigo, 1]
+        emitByte(OP_SUBTRACT);                   // [obj, val_novo]
+        emitByte(OP_SET_PROPERTY);
+        emitShort(nameIdx);                      // [val_novo]
     }
     // -----------------------------------------------------------
     // CENÁRIO B: É uma VARIÁVEL (Locais, Upvalues, Globais, Privates)
@@ -2071,7 +2090,7 @@ void Compiler::frameStatement()
     else
     {
         // frame; = frame(100);
-        emitBytes(OP_CONSTANT, makeConstant(vm_->makeInt(100)));
+        emitConstant(vm_->makeInt(100));
     }
 
     consume(TOKEN_SEMICOLON, "Expect ';' after frame");
@@ -2315,7 +2334,7 @@ void Compiler::yieldStatement()
     else
     {
 
-        emitBytes(OP_CONSTANT, makeConstant(vm_->makeDouble(1.0)));
+        emitConstant(vm_->makeDouble(1.0));
     }
 
     consume(TOKEN_SEMICOLON, "Expect ';' after yild");
@@ -2362,21 +2381,23 @@ void Compiler::dot(bool canAssign)
     consume(TOKEN_IDENTIFIER, "Expect property name after '.'");
     Token propName = previous;
 
-    uint8_t nameIdx = identifierConstant(propName);
+    uint16_t nameIdx = identifierConstant(propName);
 
     //  METHOD CALL
     if (match(TOKEN_LPAREN))
     {
 
         uint8_t argCount = argumentList();
-        emitBytes(OP_INVOKE, nameIdx);
+        emitByte(OP_INVOKE);
+        emitShort(nameIdx);
         emitByte(argCount);
     }
     // SIMPLE ASSIGNMENT
     else if (canAssign && match(TOKEN_EQUAL))
     {
         expression();
-        emitBytes(OP_SET_PROPERTY, nameIdx);
+        emitByte(OP_SET_PROPERTY);
+        emitShort(nameIdx);
     }
     //  COMPOUND ASSIGNMENTS
     else if (canAssign && match(TOKEN_PLUS_EQUAL))
@@ -2384,42 +2405,52 @@ void Compiler::dot(bool canAssign)
         // self.x += value
         // Stack antes: [self]
         emitByte(OP_DUP);                    // [self, self]
-        emitBytes(OP_GET_PROPERTY, nameIdx); // [self, old_x]
+        emitByte(OP_GET_PROPERTY);
+        emitShort(nameIdx);                  // [self, old_x]
         expression();                        // [self, old_x, value]
         emitByte(OP_ADD);                    // [self, new_x]
-        emitBytes(OP_SET_PROPERTY, nameIdx); // []
+        emitByte(OP_SET_PROPERTY);
+        emitShort(nameIdx);                  // []
     }
     else if (canAssign && match(TOKEN_MINUS_EQUAL))
     {
         emitByte(OP_DUP);
-        emitBytes(OP_GET_PROPERTY, nameIdx);
+        emitByte(OP_GET_PROPERTY);
+        emitShort(nameIdx);
         expression();
         emitByte(OP_SUBTRACT);
-        emitBytes(OP_SET_PROPERTY, nameIdx);
+        emitByte(OP_SET_PROPERTY);
+        emitShort(nameIdx);
     }
     else if (canAssign && match(TOKEN_STAR_EQUAL))
     {
         emitByte(OP_DUP);
-        emitBytes(OP_GET_PROPERTY, nameIdx);
+        emitByte(OP_GET_PROPERTY);
+        emitShort(nameIdx);
         expression();
         emitByte(OP_MULTIPLY);
-        emitBytes(OP_SET_PROPERTY, nameIdx);
+        emitByte(OP_SET_PROPERTY);
+        emitShort(nameIdx);
     }
     else if (canAssign && match(TOKEN_SLASH_EQUAL))
     {
         emitByte(OP_DUP);
-        emitBytes(OP_GET_PROPERTY, nameIdx);
+        emitByte(OP_GET_PROPERTY);
+        emitShort(nameIdx);
         expression();
         emitByte(OP_DIVIDE);
-        emitBytes(OP_SET_PROPERTY, nameIdx);
+        emitByte(OP_SET_PROPERTY);
+        emitShort(nameIdx);
     }
     else if (canAssign && match(TOKEN_PERCENT_EQUAL))
     {
         emitByte(OP_DUP);
-        emitBytes(OP_GET_PROPERTY, nameIdx);
+        emitByte(OP_GET_PROPERTY);
+        emitShort(nameIdx);
         expression();
         emitByte(OP_MODULO);
-        emitBytes(OP_SET_PROPERTY, nameIdx);
+        emitByte(OP_SET_PROPERTY);
+        emitShort(nameIdx);
     }
     //  INCREMENT/DECREMENT
     else if (canAssign && match(TOKEN_PLUS_PLUS))
@@ -2427,13 +2458,16 @@ void Compiler::dot(bool canAssign)
         // self.x++ (postfix) - retorna valor ANTIGO
         // Stack: [self]
         emitByte(OP_DUP);                    // [self, self]
-        emitBytes(OP_GET_PROPERTY, nameIdx); // [self, old_x]
+        emitByte(OP_GET_PROPERTY);
+        emitShort(nameIdx);                  // [self, old_x]
         emitByte(OP_SWAP);                   // [old_x, self]
         emitByte(OP_DUP);                    // [old_x, self, self]
-        emitBytes(OP_GET_PROPERTY, nameIdx); // [old_x, self, old_x]
+        emitByte(OP_GET_PROPERTY);
+        emitShort(nameIdx);                  // [old_x, self, old_x]
         emitConstant(vm_->makeInt(1));       // [old_x, self, old_x, 1]
         emitByte(OP_ADD);                    // [old_x, self, new_x]
-        emitBytes(OP_SET_PROPERTY, nameIdx); // [old_x, new_x]
+        emitByte(OP_SET_PROPERTY);
+        emitShort(nameIdx);                  // [old_x, new_x]
         emitByte(OP_POP);                    // [old_x] ← resultado correto!
     }
     else if (canAssign && match(TOKEN_MINUS_MINUS))
@@ -2441,19 +2475,23 @@ void Compiler::dot(bool canAssign)
         // self.x-- (postfix) - retorna valor ANTIGO
         // Stack: [self]
         emitByte(OP_DUP);                    // [self, self]
-        emitBytes(OP_GET_PROPERTY, nameIdx); // [self, old_x]
+        emitByte(OP_GET_PROPERTY);
+        emitShort(nameIdx);                  // [self, old_x]
         emitByte(OP_SWAP);                   // [old_x, self]
         emitByte(OP_DUP);                    // [old_x, self, self]
-        emitBytes(OP_GET_PROPERTY, nameIdx); // [old_x, self, old_x]
+        emitByte(OP_GET_PROPERTY);
+        emitShort(nameIdx);                  // [old_x, self, old_x]
         emitConstant(vm_->makeInt(1));       // [old_x, self, old_x, 1]
         emitByte(OP_SUBTRACT);               // [old_x, self, new_x]
-        emitBytes(OP_SET_PROPERTY, nameIdx); // [old_x, new_x]
+        emitByte(OP_SET_PROPERTY);
+        emitShort(nameIdx);                  // [old_x, new_x]
         emitByte(OP_POP);                    // [old_x] ← resultado correto!
     }
     //  GET ONLY
     else
     {
-        emitBytes(OP_GET_PROPERTY, nameIdx);
+        emitByte(OP_GET_PROPERTY);
+        emitShort(nameIdx);
     }
 }
 
@@ -2564,7 +2602,7 @@ void Compiler::structDeclaration()
     isProcess_ = false;
     consume(TOKEN_IDENTIFIER, "Expect struct name");
     Token structName = previous;
-    uint8_t nameConstant = identifierConstant(structName);
+    uint16_t nameConstant = identifierConstant(structName);
 
     validateIdentifierName(structName);
     if (hadError)
@@ -2674,7 +2712,7 @@ void Compiler::super(bool canAssign)
     consume(TOKEN_DOT, "Expect '.' after 'super'");
     consume(TOKEN_IDENTIFIER, "Expect superclass method name");
     Token methodName = previous;
-    uint8_t nameIdx = identifierConstant(methodName);
+    uint16_t nameIdx = identifierConstant(methodName);
 
     consume(TOKEN_LPAREN, "Expect '(' after method name");
 
@@ -2690,8 +2728,9 @@ void Compiler::super(bool canAssign)
     //        currentClass->index,
     //        currentClass->superclass->name->chars());
 
-    emitBytes(OP_SUPER_INVOKE, currentClass->index);
-    emitByte(nameIdx);
+    emitByte(OP_SUPER_INVOKE);
+    emitByte(currentClass->index);
+    emitShort(nameIdx);
     emitByte(argCount);
 }
 
@@ -2700,7 +2739,7 @@ void Compiler::classDeclaration()
     isProcess_ = false;
     consume(TOKEN_IDENTIFIER, "Expect class name");
     Token className = previous;
-    uint8_t nameConstant = identifierConstant(className);
+    uint16_t nameConstant = identifierConstant(className);
 
     validateIdentifierName(className);
     if (hadError)

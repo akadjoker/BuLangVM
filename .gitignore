@@ -1,14 +1,31 @@
-/build
-/tmp
-/bin/game
-/bin/main
-/bin/testStructs
-/bulang-web/playground/build
-/bulang-web/playground
-/bin/bulang-web/playground
-/bin/flixel
-/bin/tests
- 
-  
-.claude
-.cache
+# Build directories
+build/
+*/build/
+bin/
+*/bin/
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+
+# Compiled objects
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dylib
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,6 +1,0 @@
-class Test {
-  def init() {}
-}
-
-var x = Test;
-x.foo();

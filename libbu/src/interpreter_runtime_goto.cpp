@@ -118,7 +118,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 #define NPEEK(n) (fiber->stackTop[-1 - (n)])
 #define READ_BYTE() (*ip++)
 #define READ_SHORT() (ip += 2, (uint16)((ip[-2] << 8) | ip[-1]))
-#define READ_CONSTANT() (func->chunk->constants[READ_BYTE()])
+#define READ_CONSTANT() (func->chunk->constants[READ_SHORT()])
 
 #define BINARY_OP_PREP()           \
     Value b = fiber->stackTop[-1]; \
@@ -571,26 +571,39 @@ op_subtract:
 {
     BINARY_OP_PREP();
 
-    if (a.isInt() && b.isInt())
-    {
-        PUSH(makeInt(a.asInt() - b.asInt()));
-        DISPATCH();
-    }
-    if (a.isInt() && b.isDouble())
-    {
-        PUSH(makeDouble(a.asInt() - b.asDouble()));
-        DISPATCH();
-    }
-    if (a.isDouble() && b.isInt())
-    {
-        PUSH(makeDouble(a.asDouble() - b.asInt()));
-        DISPATCH();
-    }
-    if (a.isDouble() && b.isDouble())
-    {
-        PUSH(makeDouble(a.asDouble() - b.asDouble()));
-        DISPATCH();
-    }
+         if (a.isNumber() && b.isNumber())
+            {
+                if (a.isInt() && b.isInt())
+                {
+                    PUSH(makeInt(a.asInt() - b.asInt()));
+                }
+                else
+                {
+                    double da = a.isInt() ? (double)a.asInt() : a.asDouble();
+                    double db = b.isInt() ? (double)b.asInt() : b.asDouble();
+                    PUSH(makeDouble(da - db));
+                }
+                DISPATCH();
+            } else if (a.isBool() && b.isNumber()) 
+            {
+                double da = a.asBool() ? 1.0 : 0.0;
+                double db = b.isInt() ? (double)b.asInt() : b.asDouble();
+                PUSH(makeDouble(da - db));
+                DISPATCH();
+            } else if (a.isNumber() && b.isBool()) 
+            {
+                double da = a.isInt() ? (double)a.asInt() : a.asDouble();
+                double db = b.asBool() ? 1.0 : 0.0;
+                PUSH(makeDouble(da - db));
+                DISPATCH();
+            } else if (a.isBool() && b.isBool()) 
+            {
+                double da = a.asBool() ? 1.0 : 0.0;
+                double db = b.asBool() ? 1.0 : 0.0;
+                PUSH(makeDouble(da - db));
+                DISPATCH();
+            }
+            
 
     THROW_RUNTIME_ERROR("Cannot apply '-' to %s and %s", getValueTypeName(a), getValueTypeName(b));
 }
@@ -3928,7 +3941,7 @@ op_invoke:
 op_super_invoke:
 {
     uint8_t ownerClassId = READ_BYTE();
-    uint8_t nameIdx = READ_BYTE();
+    uint16_t nameIdx = READ_SHORT();
     uint8_t argCount = READ_BYTE();
 
     Value nameValue = func->chunk->constants[nameIdx];
