@@ -126,8 +126,4 @@ enum Opcode : uint8
     // Multi-return (88)
     OP_RETURN_N = 88,  // Returns N values from script function
 
-    // Extended collections (89-90) - support >255 elements
-    OP_DEFINE_ARRAY_LONG = 89,  // Array with uint16 count
-    OP_DEFINE_MAP_LONG = 90,    // Map with uint16 count
-
 };
