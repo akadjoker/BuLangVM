@@ -12,144 +12,221 @@ GLOBAL FUNCTIONS
     Has return: no
     Index: 0
 
-  Constants (17):
-    [0] = "Calculator"
-    [1] = <value type 22>
-    [2] = "calc"
-    [3] = "r1"
-    [4] = "addPrefix"
-    [5] = 5
-    [6] = "r2"
-    [7] = "addPostfix"
-    [8] = 10
-    [9] = "r1="
-    [10] = " r2="
-    [11] = " total="
-    [12] = "total"
-    [13] = 6
-    [14] = 16
-    [15] = "OK"
-    [16] = "FAIL"
+  Constants (54):
+    [0] = "v0"
+    [1] = 0
+    [2] = "v1"
+    [3] = "v2"
+    [4] = "v3"
+    [5] = "v4"
+    [6] = "v5"
+    [7] = "v6"
+    [8] = "v7"
+    [9] = "v8"
+    [10] = "v9"
+    [11] = "v10"
+    [12] = "v11"
+    [13] = "v12"
+    [14] = "v13"
+    [15] = "v14"
+    [16] = "v15"
+    [17] = "v16"
+    [18] = "v17"
+    [19] = "v18"
+    [20] = "v19"
+    [21] = "v20"
+    [22] = "v21"
+    [23] = "v22"
+    [24] = "v23"
+    [25] = "v24"
+    [26] = "v25"
+    [27] = "v26"
+    [28] = "v27"
+    [29] = "v28"
+    [30] = "v29"
+    [31] = "v30"
+    [32] = "v31"
+    [33] = "v32"
+    [34] = "v33"
+    [35] = "v34"
+    [36] = "v35"
+    [37] = "v36"
+    [38] = "v37"
+    [39] = "v38"
+    [40] = "v39"
+    [41] = "v40"
+    [42] = "v41"
+    [43] = "v42"
+    [44] = "v43"
+    [45] = "v44"
+    [46] = "v45"
+    [47] = "v46"
+    [48] = "v47"
+    [49] = "v48"
+    [50] = "v49"
+    [51] = "i"
+    [52] = 100
+    [53] = 1
 
   Bytecode:
-    0000    2 OP_CONSTANT             1 '<class 0>'
-    0003    | OP_DEFINE_GLOBAL        0 'Calculator'
-    0006   11 OP_GET_GLOBAL           0 'Calculator'
-    0009    | OP_CALL                 0
-    0011    | OP_DEFINE_GLOBAL        2 'calc'
-    0014   12 OP_GET_GLOBAL           2 'calc'
-    0017    | OP_CONSTANT             5 '5'
-    0020    | OP_INVOKE               4 'addPrefix' (1 args)
-    0024    | OP_DEFINE_GLOBAL        3 'r1'
-    0027   13 OP_GET_GLOBAL           2 'calc'
-    0030    | OP_CONSTANT             8 '10'
-    0033    | OP_INVOKE               7 'addPostfix' (1 args)
-    0037    | OP_DEFINE_GLOBAL        6 'r2'
-    0040   14 OP_CONSTANT             9 'r1='
-    0043    | OP_GET_GLOBAL           3 'r1'
-    0046    | OP_ADD              
-    0047    | OP_CONSTANT            10 ' r2='
-    0050    | OP_ADD              
-    0051    | OP_GET_GLOBAL           6 'r2'
-    0054    | OP_ADD              
-    0055    | OP_CONSTANT            11 ' total='
-    0058    | OP_ADD              
-    0059    | OP_GET_GLOBAL           2 'calc'
-    0062    | OP_GET_PROPERTY        12 'total'
-    0065    | OP_ADD              
-    0066    | OP_PRINT                1
-    0068   15 OP_GET_GLOBAL           3 'r1'
-    0071    | OP_CONSTANT            13 '6'
-    0074    | OP_EQUAL            
-    0075    | OP_JUMP_IF_FALSE       75 -> 100
-    0078    | OP_POP              
-    0079    | OP_GET_GLOBAL           6 'r2'
-    0082    | OP_CONSTANT            14 '16'
-    0085    | OP_EQUAL            
-    0086    | OP_JUMP_IF_FALSE       86 -> 100
-    0089    | OP_POP              
-    0090    | OP_GET_GLOBAL           2 'calc'
-    0093    | OP_GET_PROPERTY        12 'total'
-    0096    | OP_CONSTANT            14 '16'
-    0099    | OP_EQUAL            
-    0100    | OP_JUMP_IF_FALSE      100 -> 112
-    0103    | OP_POP              
-    0104   16 OP_CONSTANT            15 'OK'
-    0107    | OP_PRINT                1
-    0109   17 OP_JUMP               109 -> 118
-    0112    | OP_POP              
-    0113   18 OP_CONSTANT            16 'FAIL'
-    0116    | OP_PRINT                1
-    0118   20 OP_NIL              
-    0119    | OP_RETURN           
+    0000    2 OP_CONSTANT             1 '0'
+    0003    | OP_DEFINE_GLOBAL        0 'v0'
+    0006    | OP_CONSTANT             1 '0'
+    0009    | OP_DEFINE_GLOBAL        2 'v1'
+    0012    | OP_CONSTANT             1 '0'
+    0015    | OP_DEFINE_GLOBAL        3 'v2'
+    0018    | OP_CONSTANT             1 '0'
+    0021    | OP_DEFINE_GLOBAL        4 'v3'
+    0024    | OP_CONSTANT             1 '0'
+    0027    | OP_DEFINE_GLOBAL        5 'v4'
+    0030    3 OP_CONSTANT             1 '0'
+    0033    | OP_DEFINE_GLOBAL        6 'v5'
+    0036    | OP_CONSTANT             1 '0'
+    0039    | OP_DEFINE_GLOBAL        7 'v6'
+    0042    | OP_CONSTANT             1 '0'
+    0045    | OP_DEFINE_GLOBAL        8 'v7'
+    0048    | OP_CONSTANT             1 '0'
+    0051    | OP_DEFINE_GLOBAL        9 'v8'
+    0054    | OP_CONSTANT             1 '0'
+    0057    | OP_DEFINE_GLOBAL       10 'v9'
+    0060    4 OP_CONSTANT             1 '0'
+    0063    | OP_DEFINE_GLOBAL       11 'v10'
+    0066    | OP_CONSTANT             1 '0'
+    0069    | OP_DEFINE_GLOBAL       12 'v11'
+    0072    | OP_CONSTANT             1 '0'
+    0075    | OP_DEFINE_GLOBAL       13 'v12'
+    0078    | OP_CONSTANT             1 '0'
+    0081    | OP_DEFINE_GLOBAL       14 'v13'
+    0084    | OP_CONSTANT             1 '0'
+    0087    | OP_DEFINE_GLOBAL       15 'v14'
+    0090    5 OP_CONSTANT             1 '0'
+    0093    | OP_DEFINE_GLOBAL       16 'v15'
+    0096    | OP_CONSTANT             1 '0'
+    0099    | OP_DEFINE_GLOBAL       17 'v16'
+    0102    | OP_CONSTANT             1 '0'
+    0105    | OP_DEFINE_GLOBAL       18 'v17'
+    0108    | OP_CONSTANT             1 '0'
+    0111    | OP_DEFINE_GLOBAL       19 'v18'
+    0114    | OP_CONSTANT             1 '0'
+    0117    | OP_DEFINE_GLOBAL       20 'v19'
+    0120    6 OP_CONSTANT             1 '0'
+    0123    | OP_DEFINE_GLOBAL       21 'v20'
+    0126    | OP_CONSTANT             1 '0'
+    0129    | OP_DEFINE_GLOBAL       22 'v21'
+    0132    | OP_CONSTANT             1 '0'
+    0135    | OP_DEFINE_GLOBAL       23 'v22'
+    0138    | OP_CONSTANT             1 '0'
+    0141    | OP_DEFINE_GLOBAL       24 'v23'
+    0144    | OP_CONSTANT             1 '0'
+    0147    | OP_DEFINE_GLOBAL       25 'v24'
+    0150    7 OP_CONSTANT             1 '0'
+    0153    | OP_DEFINE_GLOBAL       26 'v25'
+    0156    | OP_CONSTANT             1 '0'
+    0159    | OP_DEFINE_GLOBAL       27 'v26'
+    0162    | OP_CONSTANT             1 '0'
+    0165    | OP_DEFINE_GLOBAL       28 'v27'
+    0168    | OP_CONSTANT             1 '0'
+    0171    | OP_DEFINE_GLOBAL       29 'v28'
+    0174    | OP_CONSTANT             1 '0'
+    0177    | OP_DEFINE_GLOBAL       30 'v29'
+    0180    8 OP_CONSTANT             1 '0'
+    0183    | OP_DEFINE_GLOBAL       31 'v30'
+    0186    | OP_CONSTANT             1 '0'
+    0189    | OP_DEFINE_GLOBAL       32 'v31'
+    0192    | OP_CONSTANT             1 '0'
+    0195    | OP_DEFINE_GLOBAL       33 'v32'
+    0198    | OP_CONSTANT             1 '0'
+    0201    | OP_DEFINE_GLOBAL       34 'v33'
+    0204    | OP_CONSTANT             1 '0'
+    0207    | OP_DEFINE_GLOBAL       35 'v34'
+    0210    9 OP_CONSTANT             1 '0'
+    0213    | OP_DEFINE_GLOBAL       36 'v35'
+    0216    | OP_CONSTANT             1 '0'
+    0219    | OP_DEFINE_GLOBAL       37 'v36'
+    0222    | OP_CONSTANT             1 '0'
+    0225    | OP_DEFINE_GLOBAL       38 'v37'
+    0228    | OP_CONSTANT             1 '0'
+    0231    | OP_DEFINE_GLOBAL       39 'v38'
+    0234    | OP_CONSTANT             1 '0'
+    0237    | OP_DEFINE_GLOBAL       40 'v39'
+    0240   10 OP_CONSTANT             1 '0'
+    0243    | OP_DEFINE_GLOBAL       41 'v40'
+    0246    | OP_CONSTANT             1 '0'
+    0249    | OP_DEFINE_GLOBAL       42 'v41'
+    0252    | OP_CONSTANT             1 '0'
+    0255    | OP_DEFINE_GLOBAL       43 'v42'
+    0258    | OP_CONSTANT             1 '0'
+    0261    | OP_DEFINE_GLOBAL       44 'v43'
+    0264    | OP_CONSTANT             1 '0'
+    0267    | OP_DEFINE_GLOBAL       45 'v44'
+    0270   11 OP_CONSTANT             1 '0'
+    0273    | OP_DEFINE_GLOBAL       46 'v45'
+    0276    | OP_CONSTANT             1 '0'
+    0279    | OP_DEFINE_GLOBAL       47 'v46'
+    0282    | OP_CONSTANT             1 '0'
+    0285    | OP_DEFINE_GLOBAL       48 'v47'
+    0288    | OP_CONSTANT             1 '0'
+    0291    | OP_DEFINE_GLOBAL       49 'v48'
+    0294    | OP_CONSTANT             1 '0'
+    0297    | OP_DEFINE_GLOBAL       50 'v49'
+    0300   12 OP_CONSTANT             1 '0'
+    0303    | OP_DEFINE_GLOBAL       51 'i'
+    0306   13 OP_GET_GLOBAL          51 'i'
+    0309    | OP_CONSTANT            52 '100'
+    0312    | OP_LESS             
+    0313    | OP_JUMP_IF_FALSE      313 -> 398
+    0316    | OP_POP              
+    0317   14 OP_GET_GLOBAL           0 'v0'
+    0320    | OP_DUP              
+    0321    | OP_CONSTANT            53 '1'
+    0324    | OP_ADD              
+    0325    | OP_SET_GLOBAL           0 'v0'
+    0328    | OP_POP              
+    0329    | OP_POP              
+    0330    | OP_GET_GLOBAL          11 'v10'
+    0333    | OP_DUP              
+    0334    | OP_CONSTANT            53 '1'
+    0337    | OP_ADD              
+    0338    | OP_SET_GLOBAL          11 'v10'
+    0341    | OP_POP              
+    0342    | OP_POP              
+    0343    | OP_GET_GLOBAL          21 'v20'
+    0346    | OP_DUP              
+    0347    | OP_CONSTANT            53 '1'
+    0350    | OP_ADD              
+    0351    | OP_SET_GLOBAL          21 'v20'
+    0354    | OP_POP              
+    0355    | OP_POP              
+    0356    | OP_GET_GLOBAL          31 'v30'
+    0359    | OP_DUP              
+    0360    | OP_CONSTANT            53 '1'
+    0363    | OP_ADD              
+    0364    | OP_SET_GLOBAL          31 'v30'
+    0367    | OP_POP              
+    0368    | OP_POP              
+    0369    | OP_GET_GLOBAL          41 'v40'
+    0372    | OP_DUP              
+    0373    | OP_CONSTANT            53 '1'
+    0376    | OP_ADD              
+    0377    | OP_SET_GLOBAL          41 'v40'
+    0380    | OP_POP              
+    0381    | OP_POP              
+    0382   15 OP_GET_GLOBAL          51 'i'
+    0385    | OP_DUP              
+    0386    | OP_CONSTANT            53 '1'
+    0389    | OP_ADD              
+    0390    | OP_SET_GLOBAL          51 'i'
+    0393    | OP_POP              
+    0394    | OP_POP              
+    0395   16 OP_LOOP               395 -> 306
+    0398    | OP_POP              
+    0399   17 OP_NIL              
+    0400    | OP_RETURN           
 
 
 ========================================
 CLASSES
 ========================================
-
-
->>> Class: Calculator
-    Index: 0
-    Field count: 1
-    Has superclass: no
-
-    Fields:
-      [0] total
-
-    Methods:
-
-    >>> Method: addPrefix
-        Arity: 1
-        Has return: yes
-
-      Constants (2):
-        [0] = "total"
-        [1] = 1
-
-      Bytecode:
-        0000    5 OP_GET_LOCAL            0
-        0002    | OP_GET_LOCAL            0
-        0004    | OP_GET_PROPERTY         0 'total'
-        0007    | OP_GET_LOCAL            1
-        0009    | OP_CONSTANT             1 '1'
-        0012    | OP_ADD              
-        0013    | OP_SET_LOCAL            1
-        0015    | OP_ADD              
-        0016    | OP_SET_PROPERTY         0 'total'
-        0019    | OP_RETURN           
-        0020    6 OP_GET_LOCAL            0
-        0022    | OP_RETURN           
-        0023    | OP_POP              
-        0024    | OP_POP              
-
-
-    >>> Method: addPostfix
-        Arity: 1
-        Has return: yes
-
-      Constants (2):
-        [0] = "total"
-        [1] = 1
-
-      Bytecode:
-        0000    8 OP_GET_LOCAL            0
-        0002    | OP_GET_LOCAL            0
-        0004    | OP_GET_PROPERTY         0 'total'
-        0007    | OP_GET_LOCAL            1
-        0009    | OP_DUP              
-        0010    | OP_CONSTANT             1 '1'
-        0013    | OP_ADD              
-        0014    | OP_SET_LOCAL            1
-        0016    | OP_POP              
-        0017    | OP_ADD              
-        0018    | OP_SET_PROPERTY         0 'total'
-        0021    | OP_RETURN           
-        0022    9 OP_GET_LOCAL            0
-        0024    | OP_RETURN           
-        0025    | OP_POP              
-        0026    | OP_POP              
-
 
 
 ========================================
