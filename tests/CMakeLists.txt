@@ -48,8 +48,7 @@ file(GLOB SOURCES "src/*.cpp")
 list(REMOVE_ITEM SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/benchmark.cpp")
 add_executable(tests   ${SOURCES})
 
-# Benchmark executable
-add_executable(benchmark src/benchmark.cpp)
+
 
 target_include_directories(libbu PUBLIC  include src)
 
@@ -74,9 +73,5 @@ endif()
 
 if (UNIX)
     target_link_libraries(tests  m )
-endif()
-target_link_libraries(benchmark libbu)
-if (UNIX)
-    target_link_libraries(benchmark m)
 endif()
 
