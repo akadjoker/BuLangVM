@@ -12,48 +12,76 @@ GLOBAL FUNCTIONS
     Has return: no
     Index: 0
 
-  Constants (9):
-    [0] = "Counter"
+  Constants (17):
+    [0] = "Calculator"
     [1] = <value type 22>
-    [2] = "c"
-    [3] = "inc"
-    [4] = "n="
-    [5] = "get"
-    [6] = 2
-    [7] = "OK"
-    [8] = "FAIL"
+    [2] = "calc"
+    [3] = "r1"
+    [4] = "addPrefix"
+    [5] = 5
+    [6] = "r2"
+    [7] = "addPostfix"
+    [8] = 10
+    [9] = "r1="
+    [10] = " r2="
+    [11] = " total="
+    [12] = "total"
+    [13] = 6
+    [14] = 16
+    [15] = "OK"
+    [16] = "FAIL"
 
   Bytecode:
     0000    2 OP_CONSTANT             1 '<class 0>'
-    0003    | OP_DEFINE_GLOBAL        0 'Counter'
-    0006    7 OP_GET_GLOBAL           0 'Counter'
+    0003    | OP_DEFINE_GLOBAL        0 'Calculator'
+    0006   11 OP_GET_GLOBAL           0 'Calculator'
     0009    | OP_CALL                 0
-    0011    | OP_DEFINE_GLOBAL        2 'c'
-    0014    8 OP_GET_GLOBAL           2 'c'
-    0017    | OP_INVOKE               3 'inc' (0 args)
-    0021    | OP_POP              
-    0022    9 OP_GET_GLOBAL           2 'c'
-    0025    | OP_INVOKE               3 'inc' (0 args)
-    0029    | OP_POP              
-    0030   10 OP_CONSTANT             4 'n='
-    0033    | OP_GET_GLOBAL           2 'c'
-    0036    | OP_INVOKE               5 'get' (0 args)
-    0040    | OP_ADD              
-    0041    | OP_PRINT                1
-    0043   11 OP_GET_GLOBAL           2 'c'
-    0046    | OP_INVOKE               5 'get' (0 args)
-    0050    | OP_CONSTANT             6 '2'
-    0053    | OP_EQUAL            
-    0054    | OP_JUMP_IF_FALSE       54 -> 66
-    0057    | OP_POP              
-    0058   12 OP_CONSTANT             7 'OK'
-    0061    | OP_PRINT                1
-    0063   13 OP_JUMP                63 -> 72
-    0066    | OP_POP              
-    0067   14 OP_CONSTANT             8 'FAIL'
-    0070    | OP_PRINT                1
-    0072   16 OP_NIL              
-    0073    | OP_RETURN           
+    0011    | OP_DEFINE_GLOBAL        2 'calc'
+    0014   12 OP_GET_GLOBAL           2 'calc'
+    0017    | OP_CONSTANT             5 '5'
+    0020    | OP_INVOKE               4 'addPrefix' (1 args)
+    0024    | OP_DEFINE_GLOBAL        3 'r1'
+    0027   13 OP_GET_GLOBAL           2 'calc'
+    0030    | OP_CONSTANT             8 '10'
+    0033    | OP_INVOKE               7 'addPostfix' (1 args)
+    0037    | OP_DEFINE_GLOBAL        6 'r2'
+    0040   14 OP_CONSTANT             9 'r1='
+    0043    | OP_GET_GLOBAL           3 'r1'
+    0046    | OP_ADD              
+    0047    | OP_CONSTANT            10 ' r2='
+    0050    | OP_ADD              
+    0051    | OP_GET_GLOBAL           6 'r2'
+    0054    | OP_ADD              
+    0055    | OP_CONSTANT            11 ' total='
+    0058    | OP_ADD              
+    0059    | OP_GET_GLOBAL           2 'calc'
+    0062    | OP_GET_PROPERTY        12 'total'
+    0065    | OP_ADD              
+    0066    | OP_PRINT                1
+    0068   15 OP_GET_GLOBAL           3 'r1'
+    0071    | OP_CONSTANT            13 '6'
+    0074    | OP_EQUAL            
+    0075    | OP_JUMP_IF_FALSE       75 -> 100
+    0078    | OP_POP              
+    0079    | OP_GET_GLOBAL           6 'r2'
+    0082    | OP_CONSTANT            14 '16'
+    0085    | OP_EQUAL            
+    0086    | OP_JUMP_IF_FALSE       86 -> 100
+    0089    | OP_POP              
+    0090    | OP_GET_GLOBAL           2 'calc'
+    0093    | OP_GET_PROPERTY        12 'total'
+    0096    | OP_CONSTANT            14 '16'
+    0099    | OP_EQUAL            
+    0100    | OP_JUMP_IF_FALSE      100 -> 112
+    0103    | OP_POP              
+    0104   16 OP_CONSTANT            15 'OK'
+    0107    | OP_PRINT                1
+    0109   17 OP_JUMP               109 -> 118
+    0112    | OP_POP              
+    0113   18 OP_CONSTANT            16 'FAIL'
+    0116    | OP_PRINT                1
+    0118   20 OP_NIL              
+    0119    | OP_RETURN           
 
 
 ========================================
@@ -61,55 +89,66 @@ CLASSES
 ========================================
 
 
->>> Class: Counter
+>>> Class: Calculator
     Index: 0
     Field count: 1
     Has superclass: no
 
     Fields:
-      [0] n
+      [0] total
 
     Methods:
 
-    >>> Method: inc
-        Arity: 0
+    >>> Method: addPrefix
+        Arity: 1
         Has return: yes
 
       Constants (2):
-        [0] = "n"
+        [0] = "total"
         [1] = 1
 
       Bytecode:
-        0000    4 OP_GET_LOCAL            0
-        0002    | OP_DUP              
-        0003    | OP_GET_PROPERTY         0 'n'
-        0006    | OP_SWAP             
-        0007    | OP_DUP              
-        0008    | OP_GET_PROPERTY         0 'n'
-        0011    | OP_CONSTANT             1 '1'
-        0014    | OP_ADD              
-        0015    | OP_SET_PROPERTY         0 'n'
-        0018    | OP_POP              
-        0019    | OP_POP              
-        0020    | OP_GET_LOCAL            0
+        0000    5 OP_GET_LOCAL            0
+        0002    | OP_GET_LOCAL            0
+        0004    | OP_GET_PROPERTY         0 'total'
+        0007    | OP_GET_LOCAL            1
+        0009    | OP_CONSTANT             1 '1'
+        0012    | OP_ADD              
+        0013    | OP_SET_LOCAL            1
+        0015    | OP_ADD              
+        0016    | OP_SET_PROPERTY         0 'total'
+        0019    | OP_RETURN           
+        0020    6 OP_GET_LOCAL            0
         0022    | OP_RETURN           
         0023    | OP_POP              
+        0024    | OP_POP              
 
 
-    >>> Method: get
-        Arity: 0
+    >>> Method: addPostfix
+        Arity: 1
         Has return: yes
 
-      Constants (1):
-        [0] = "n"
+      Constants (2):
+        [0] = "total"
+        [1] = 1
 
       Bytecode:
-        0000    5 OP_GET_LOCAL            0
-        0002    | OP_GET_PROPERTY         0 'n'
-        0005    | OP_RETURN           
-        0006    | OP_GET_LOCAL            0
-        0008    | OP_RETURN           
-        0009    | OP_POP              
+        0000    8 OP_GET_LOCAL            0
+        0002    | OP_GET_LOCAL            0
+        0004    | OP_GET_PROPERTY         0 'total'
+        0007    | OP_GET_LOCAL            1
+        0009    | OP_DUP              
+        0010    | OP_CONSTANT             1 '1'
+        0013    | OP_ADD              
+        0014    | OP_SET_LOCAL            1
+        0016    | OP_POP              
+        0017    | OP_ADD              
+        0018    | OP_SET_PROPERTY         0 'total'
+        0021    | OP_RETURN           
+        0022    9 OP_GET_LOCAL            0
+        0024    | OP_RETURN           
+        0025    | OP_POP              
+        0026    | OP_POP              
 
 
 
