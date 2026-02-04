@@ -407,15 +407,6 @@ op_get_global:
 {
     // OPTIMIZATION: Direct array access using index instead of hash lookup
     uint16 index = READ_SHORT();
-    
-    // Ensure globalsArray is large enough
-    if (index >= globalsArray.size())
-    {
-        const char* varName = (index < globalIndexToName_.size()) ? globalIndexToName_[index]->chars() : "<unknown>";
-        runtimeError("Undefined global variable '%s' at index %d", varName, index);
-        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
-    }
-    
     Value value = globalsArray[index];
     
     PUSH(value);
@@ -426,13 +417,6 @@ op_set_global:
 {
     // OPTIMIZATION: Direct array access using index instead of hash lookup
     uint16 index = READ_SHORT();
-    
-    // Ensure globalsArray is large enough
-    while (index >= globalsArray.size())
-    {
-        globalsArray.push(Value());
-    }
-    
     globalsArray[index] = PEEK();
     DISPATCH();
 }
@@ -441,13 +425,6 @@ op_define_global:
 {
     // OPTIMIZATION: Direct array access using index instead of hash lookup
     uint16 index = READ_SHORT();
-    
-    // Ensure globalsArray is large enough
-    while (index >= globalsArray.size())
-    {
-        globalsArray.push(Value());
-    }
-    
     globalsArray[index] = POP();
     DISPATCH();
 }

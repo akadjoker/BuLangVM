@@ -211,13 +211,20 @@ ProcessDef *Compiler::compile(const std::string &source)
   // This ensures native functions, structs, and classes use the same indices
   // as assigned during registration
   globalIndices_.clear();
+  globalIndexToName_.clear();
   nextGlobalIndex_ = 0;
 
   // Sync native functions
   for (size_t i = 0; i < vm_->natives.size(); i++)
   {
     const std::string& name = vm_->natives[i].name->chars();
-    globalIndices_[name] = nextGlobalIndex_++;
+    uint16 index = nextGlobalIndex_++;
+    globalIndices_[name] = index;
+    if (index >= globalIndexToName_.size())
+    {
+      globalIndexToName_.resize(index + 1);
+    }
+    globalIndexToName_[index] = name;
     declaredGlobals_.insert(name);
   }
 
@@ -225,7 +232,13 @@ ProcessDef *Compiler::compile(const std::string &source)
   for (size_t i = 0; i < vm_->nativeStructs.size(); i++)
   {
     const std::string& name = vm_->nativeStructs[i]->name->chars();
-    globalIndices_[name] = nextGlobalIndex_++;
+    uint16 index = nextGlobalIndex_++;
+    globalIndices_[name] = index;
+    if (index >= globalIndexToName_.size())
+    {
+      globalIndexToName_.resize(index + 1);
+    }
+    globalIndexToName_[index] = name;
     declaredGlobals_.insert(name);
   }
 
@@ -233,7 +246,13 @@ ProcessDef *Compiler::compile(const std::string &source)
   for (size_t i = 0; i < vm_->nativeClasses.size(); i++)
   {
     const std::string& name = vm_->nativeClasses[i]->name->chars();
-    globalIndices_[name] = nextGlobalIndex_++;
+    uint16 index = nextGlobalIndex_++;
+    globalIndices_[name] = index;
+    if (index >= globalIndexToName_.size())
+    {
+      globalIndexToName_.resize(index + 1);
+    }
+    globalIndexToName_[index] = name;
     declaredGlobals_.insert(name);
   }
 
@@ -323,6 +342,51 @@ ProcessDef *Compiler::compileExpression(const std::string &source)
   currentClass = nullptr;
   enclosingStack_.clear();
   declaredGlobals_.clear();
+  globalIndices_.clear();
+  globalIndexToName_.clear();
+  nextGlobalIndex_ = 0;
+
+  // Sync native functions
+  for (size_t i = 0; i < vm_->natives.size(); i++)
+  {
+    const std::string& name = vm_->natives[i].name->chars();
+    uint16 index = nextGlobalIndex_++;
+    globalIndices_[name] = index;
+    if (index >= globalIndexToName_.size())
+    {
+      globalIndexToName_.resize(index + 1);
+    }
+    globalIndexToName_[index] = name;
+    declaredGlobals_.insert(name);
+  }
+
+  // Sync native structs
+  for (size_t i = 0; i < vm_->nativeStructs.size(); i++)
+  {
+    const std::string& name = vm_->nativeStructs[i]->name->chars();
+    uint16 index = nextGlobalIndex_++;
+    globalIndices_[name] = index;
+    if (index >= globalIndexToName_.size())
+    {
+      globalIndexToName_.resize(index + 1);
+    }
+    globalIndexToName_[index] = name;
+    declaredGlobals_.insert(name);
+  }
+
+  // Sync native classes
+  for (size_t i = 0; i < vm_->nativeClasses.size(); i++)
+  {
+    const std::string& name = vm_->nativeClasses[i]->name->chars();
+    uint16 index = nextGlobalIndex_++;
+    globalIndices_[name] = index;
+    if (index >= globalIndexToName_.size())
+    {
+      globalIndexToName_.resize(index + 1);
+    }
+    globalIndexToName_[index] = name;
+    declaredGlobals_.insert(name);
+  }
   advance();
 
   if (check(TOKEN_EOF))
