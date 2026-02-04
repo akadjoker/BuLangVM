@@ -1365,6 +1365,21 @@ void Interpreter::dumpAllFunctions(FILE *f)
                 fprintf(f, "%s", v.asBool() ? "true" : "false");
             } else if (v.isNil()) {
                 fprintf(f, "nil");
+            } else if (v.type == ValueType::CLASS) {
+                int classId = v.asClassId();
+                if (classId < (int)classes.size() && classes[classId]) {
+                    fprintf(f, "<class '%s'>", classes[classId]->name->chars());
+                } else {
+                    fprintf(f, "<class %d>", classId);
+                }
+            } else if (v.type == ValueType::FUNCTION) {
+                fprintf(f, "<function %d>", v.asFunctionId());
+            } else if (v.type == ValueType::MODULEREFERENCE) {
+                uint32_t packed = v.as.unsignedInteger;
+                fprintf(f, "<module_reference %d %d %d>", 
+                    packed >> 24, (packed >> 12) & 0xFFF, packed & 0xFFF);
+            } else if (v.type == ValueType::STRUCT) {
+                fprintf(f, "<struct %d>", v.asStructId());
             } else {
                 fprintf(f, "<value type %d>", (int)v.type);
             }
