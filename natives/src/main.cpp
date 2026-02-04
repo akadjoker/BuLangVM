@@ -93,8 +93,9 @@ public:
     std::chrono::steady_clock::time_point startTime;
     double elapsed;
     bool running;
+    bool loop;  // keyword as property name test
 
-    NativeTimer() : elapsed(0), running(false) {}
+    NativeTimer() : elapsed(0), running(false), loop(false) {}
 
     void start()
     {
@@ -185,6 +186,21 @@ static Value timer_get_elapsed(Interpreter *vm, void *ptr)
 {
     NativeTimer *timer = static_cast<NativeTimer *>(ptr);
     return vm->makeDouble(timer->getElapsed());
+}
+
+// Propriedade: loop (keyword test) - getter
+static Value timer_get_loop(Interpreter *vm, void *ptr)
+{
+    NativeTimer *timer = static_cast<NativeTimer *>(ptr);
+    return vm->makeBool(timer->loop);
+}
+
+// Propriedade: loop (keyword test) - setter
+static void timer_set_loop(Interpreter *vm, void *ptr, Value value)
+{
+    (void)vm;
+    NativeTimer *timer = static_cast<NativeTimer *>(ptr);
+    timer->loop = value.asBool();
 }
 
 // ============================================
@@ -324,6 +340,9 @@ void registerNativeBindings(Interpreter *vm)
 
     // Adicionar propriedade read-only
     vm->addNativeProperty(timerClass, "elapsed", timer_get_elapsed, nullptr);
+
+    // Adicionar propriedade com nome de keyword (teste)
+    vm->addNativeProperty(timerClass, "loop", timer_get_loop, timer_set_loop);
 
     // ========================================
     // REGISTRAR CLASSE CONTAINER (exemplo de retornar classe nativa)
