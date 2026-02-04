@@ -4119,8 +4119,7 @@ op_set_index:
         {
 
             runtimeError("Array index must be an number");
-            PUSH(value);
-            DISPATCH();
+            return {FiberResult::ERROR, instructionsRun, 0, 0};
         }
 
         ArrayInstance *arr = container.asArray();
@@ -4134,6 +4133,7 @@ op_set_index:
         if (i < 0 || i >= size)
         {
             runtimeError("Array index %d out of bounds (size=%d)", i, size);
+            return {FiberResult::ERROR, instructionsRun, 0, 0};
         }
         else
         {
@@ -4150,8 +4150,7 @@ op_set_index:
         if (!index.isString())
         {
             runtimeError("Map key must be string");
-            PUSH(value);
-            DISPATCH();
+             return {FiberResult::ERROR, instructionsRun, 0, 0};
         }
 
         MapInstance *map = container.asMap();
@@ -4169,8 +4168,7 @@ op_set_index:
         if (!index.isInt())
         {
             runtimeError("Buffer index must be integer");
-            PUSH(value);
-            DISPATCH();
+            return {FiberResult::ERROR, instructionsRun, 0, 0};
         }
 
         int idx = index.asInt();
@@ -4178,6 +4176,7 @@ op_set_index:
         if (idx < 0 || idx >= buffer->count)
         {
             THROW_RUNTIME_ERROR("Buffer index %d out of bounds (size=%d)", idx, buffer->count);
+            return {FiberResult::ERROR, instructionsRun, 0, 0};
         }
 
         switch (buffer->type)
@@ -4232,8 +4231,7 @@ op_set_index:
     if (container.isString())
     {
         runtimeError("Strings are immutable");
-        PUSH(value);
-        DISPATCH();
+        return {FiberResult::ERROR, instructionsRun, 0, 0};
     }
 
     runtimeError("Cannot index assign this type");
@@ -4257,8 +4255,7 @@ op_get_index:
         if (!index.isNumber())
         {
             runtimeError("Array index must be a number");
-            PUSH(makeNil());
-            DISPATCH();
+            return {FiberResult::ERROR, instructionsRun, 0, 0};
         }
 
         ArrayInstance *arr = container.asArray();
@@ -4272,7 +4269,7 @@ op_get_index:
         if (i < 0 || i >= size)
         {
             runtimeError("Array index %d out of bounds (size=%d)", i, size);
-            PUSH(makeNil());
+            return {FiberResult::ERROR, instructionsRun, 0, 0};
         }
         else
         {
@@ -4287,8 +4284,7 @@ op_get_index:
         if (!index.isInt())
         {
             runtimeError("String index must be integer");
-            PUSH(makeNil());
-            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            return {FiberResult::ERROR, instructionsRun, 0, 0};
         }
 
         String *str = container.asString();
@@ -4303,8 +4299,7 @@ op_get_index:
         if (!index.isString())
         {
             runtimeError("Map key must be string");
-            PUSH(makeNil());
-            DISPATCH();
+            return {FiberResult::ERROR, instructionsRun, 0, 0};
         }
 
         MapInstance *map = container.asMap();
