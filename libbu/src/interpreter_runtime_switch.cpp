@@ -1636,9 +1636,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 
                     break;
                 }
-                else
-
-                    if (object.isStructInstance())
+                else                 if (object.isStructInstance())
                 {
 
                     StructInstance *inst = object.asStructInstance();
@@ -1662,9 +1660,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                     }
                     break;
                 }
-                else
-
-                    if (object.isClassInstance())
+                else if (object.isClassInstance())
                 {
                     ClassInstance *instance = object.asClassInstance();
 
@@ -1693,9 +1689,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                     PUSH(makeNil());
                     return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
                 }
-                else
-
-                    if (object.isNativeClassInstance())
+                else if (object.isNativeClassInstance())
                 {
 
                     NativeClassInstance *instance = object.asNativeClassInstance();
@@ -1716,9 +1710,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                     PUSH(makeNil());
                     return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
                 }
-                else
-
-                if (object.isNativeStructInstance())
+                else if (object.isNativeStructInstance())
                 {
 
                     NativeStructInstance *inst = object.asNativeStructInstance();
@@ -2796,12 +2788,10 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                     if (!key.isString())
                     {
                         runtimeError("Map key must be string");
-                        ARGS_CLEANUP();
-                        PUSH(makeNil());
-                        break;
+                      return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
                     }
 
-                    //  HashMap não tem remove, mas podes setar para nil
+                  
                     map->table.set(key.asString(), makeNil());
                     ARGS_CLEANUP();
                     PUSH(makeNil());
@@ -4249,7 +4239,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                     // Key não existe - retorna nil
                     PUSH(makeNil());
                 }
-                return {FiberResult::ERROR, instructionsRun, 0, 0};
+                break;
             }
 
             // === BUFER ===
