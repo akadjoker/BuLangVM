@@ -150,6 +150,7 @@ int main(int argc, char **argv)
             scriptFile = argv[i];
         }
     }
+     
 
     // Default to main.bu if no script specified
     if (!scriptFile)

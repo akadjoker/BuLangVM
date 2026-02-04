@@ -33,8 +33,8 @@
 #endif
 
 // Use switch dispatch (comment out to use computed goto)
-//#undef USE_COMPUTED_GOTO
-#define USE_COMPUTED_GOTO 1
+#undef USE_COMPUTED_GOTO
+//#define USE_COMPUTED_GOTO 1
 
 #define BU_ENABLE_SOCKETS 1
 #define BU_ENABLE_FILE_IO 1
