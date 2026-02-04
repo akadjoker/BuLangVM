@@ -702,6 +702,11 @@ Function *Interpreter::compile(const char *source)
     String* str = createString(name.c_str());
     globalIndexToName_.push(str);
   }
+
+  if (globalsArray.size() < globalIndexToName_.size())
+  {
+    globalsArray.resize(globalIndexToName_.size());
+  }
   
   Function *mainFunc = proc->fibers[0].frames[0].func;
   return mainFunc;
@@ -719,6 +724,11 @@ Function *Interpreter::compileExpression(const char *source)
   {
     String* str = createString(name.c_str());
     globalIndexToName_.push(str);
+  }
+
+  if (globalsArray.size() < globalIndexToName_.size())
+  {
+    globalsArray.resize(globalIndexToName_.size());
   }
   
   Function *mainFunc = proc->fibers[0].frames[0].func;
@@ -743,6 +753,11 @@ bool Interpreter::run(const char *source, bool _dump)
   {
     String* str = createString(name.c_str());
     globalIndexToName_.push(str);
+  }
+
+  if (globalsArray.size() < globalIndexToName_.size())
+  {
+    globalsArray.resize(globalIndexToName_.size());
   }
 
   if (_dump)
@@ -781,6 +796,11 @@ bool Interpreter::compile(const char *source, bool dump)
   {
     String* str = createString(name.c_str());
     globalIndexToName_.push(str);
+  }
+
+  if (globalsArray.size() < globalIndexToName_.size())
+  {
+    globalsArray.resize(globalIndexToName_.size());
   }
 
   if (dump)
