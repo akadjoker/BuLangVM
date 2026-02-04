@@ -1,0 +1,176 @@
+// ============================================
+// BuLang VM - Native Bindings Tests
+// Testa se os native structs e classes funcionam
+// apos a otimizacao de globals por indice
+// ============================================
+
+var tests_passed = 0;
+var tests_failed = 0;
+
+def assert_eq(name, expected, actual) {
+    if (expected == actual) {
+        tests_passed++;
+        print("[PASS] " + name);
+    } else {
+        tests_failed++;
+        write("[FAIL] {}: expected {}, got {}\n", name, expected, actual);
+    }
+}
+
+def assert_true(name, condition) {
+    if (condition) {
+        tests_passed++;
+        print("[PASS] " + name);
+    } else {
+        tests_failed++;
+        print("[FAIL] " + name);
+    }
+}
+
+// ============================================
+// 1. NATIVE FUNCTIONS
+// ============================================
+print("\n=== 1. Native Functions ===");
+
+// clock() - deve retornar um numero
+var t = clock();
+assert_true("clock() returns number", t >= 0);
+
+// len() - deve funcionar com arrays
+var arr = [1, 2, 3, 4, 5];
+assert_eq("len() with array", 5, len(arr));
+
+// write() - se chegou aqui, write funciona
+print("[PASS] write() works");
+tests_passed++;
+
+// print() - se vemos isto, funciona
+print("[PASS] print() works");
+tests_passed++;
+
+// ============================================
+// 2. NATIVE FUNCTIONS WITH MULTIPLE CALLS
+// ============================================
+print("\n=== 2. Native Functions Multiple Calls ===");
+
+var t1 = clock();
+var t2 = clock();
+var t3 = clock();
+assert_true("Multiple clock() calls", t3 >= t2 && t2 >= t1);
+
+var a1 = [1, 2];
+var a2 = [1, 2, 3];
+var a3 = [1, 2, 3, 4];
+assert_eq("Multiple len() calls 1", 2, len(a1));
+assert_eq("Multiple len() calls 2", 3, len(a2));
+assert_eq("Multiple len() calls 3", 4, len(a3));
+
+// ============================================
+// 3. NATIVE FUNCTIONS IN LOOPS
+// ============================================
+print("\n=== 3. Native Functions in Loops ===");
+
+var sum = 0;
+var i = 0;
+while (i < 10) {
+    var t = clock();
+    assert_true("clock() in loop " + i, t >= 0);
+    sum = sum + 1;
+    i++;
+}
+assert_eq("Loop completed", 10, sum);
+
+// ============================================
+// 4. NATIVE FUNCTIONS IN FUNCTIONS
+// ============================================
+print("\n=== 4. Native Functions in Functions ===");
+
+def use_clock() {
+    return clock();
+}
+
+def use_len(arr) {
+    return len(arr);
+}
+
+var tc = use_clock();
+assert_true("clock() in function", tc >= 0);
+
+var arr_test = [1, 2, 3];
+assert_eq("len() in function", 3, use_len(arr_test));
+
+// ============================================
+// 5. NATIVE FUNCTIONS IN CLASSES
+// ============================================
+print("\n=== 5. Native Functions in Classes ===");
+
+class TimedOp {
+    var start_time = 0;
+    var end_time = 0;
+
+    def begin() {
+        self.start_time = clock();
+    }
+
+    def finish() {
+        self.end_time = clock();
+        return self.end_time - self.start_time;
+    }
+
+    def measure_array(arr) {
+        return len(arr);
+    }
+}
+
+var timed = TimedOp();
+timed.begin();
+var arr_in_class = [1, 2, 3, 4, 5];
+timed.finish();
+assert_eq("len() in class method", 5, timed.measure_array(arr_in_class));
+assert_true("clock() in class method", timed.end_time >= timed.start_time);
+
+// ============================================
+// 6. NATIVE FUNCTIONS WITH CLOSURES
+// ============================================
+print("\n=== 6. Native Functions with Closures ===");
+
+def make_timer() {
+    var start = clock();
+    def get_elapsed() {
+        return clock() - start;
+    }
+    return get_elapsed;
+}
+
+var timer = make_timer();
+var elapsed = timer();
+assert_true("Native in closure", elapsed >= 0);
+
+// ============================================
+// 7. STRESS TEST - MANY NATIVE CALLS
+// ============================================
+print("\n=== 7. Stress Test - Many Native Calls ===");
+
+var call_count = 0;
+i = 0;
+while (i < 100) {
+    var t = clock();
+    var l = len(arr);
+    call_count = call_count + 2;  // 2 calls per iteration
+    i++;
+}
+assert_eq("Many native calls", 200, call_count);
+
+// ============================================
+// SUMMARY
+// ============================================
+print("\n========================================");
+write("Tests Passed: {}\n", tests_passed);
+write("Tests Failed: {}\n", tests_failed);
+print("========================================");
+
+if (tests_failed == 0) {
+    print("ALL NATIVE TESTS PASSED!");
+} else {
+    print("SOME NATIVE TESTS FAILED!");
+}

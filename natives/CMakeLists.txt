@@ -1,4 +1,4 @@
-project(tests)
+project(natives)
 cmake_policy(SET CMP0072 NEW)
  cmake_minimum_required(VERSION 3.28)
 
@@ -46,8 +46,7 @@ add_compile_options(
 
 file(GLOB SOURCES "src/*.cpp")
 list(REMOVE_ITEM SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/benchmark.cpp")
-list(REMOVE_ITEM SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/test_bindings.cpp")
-add_executable(tests   ${SOURCES})
+add_executable(natives   ${SOURCES})
 
 
 
@@ -58,22 +57,22 @@ target_include_directories(libbu PUBLIC  include src)
 if(CMAKE_BUILD_TYPE MATCHES Debug)
 
 if (UNIX)
-target_compile_options(tests PRIVATE -fsanitize=address -fsanitize=undefined -fsanitize=leak -g  -D_DEBUG -DVERBOSE)
-target_link_options(tests PRIVATE -fsanitize=address -fsanitize=undefined -fsanitize=leak -g  -D_DEBUG) 
+target_compile_options(natives PRIVATE -fsanitize=address -fsanitize=undefined -fsanitize=leak -g  -D_DEBUG -DVERBOSE)
+target_link_options(natives PRIVATE -fsanitize=address -fsanitize=undefined -fsanitize=leak -g  -D_DEBUG) 
 endif()
  
    
 endif()
 
-target_link_libraries(tests libbu)
+target_link_libraries(natives libbu)
 
 if (WIN32)
-    target_link_libraries(tests Winmm.lib)
+    target_link_libraries(natives Winmm.lib)
 endif()
 
 
 if (UNIX)
-    target_link_libraries(tests  m )
+    target_link_libraries(natives  m )
 endif()
 
 

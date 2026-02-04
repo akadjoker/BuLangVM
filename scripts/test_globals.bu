@@ -1,0 +1,12 @@
+var x = 5;
+var y = 10;
+var z = x + y;
+print(x);
+print(y);
+print(z);
+
+var a = 1;
+var b = 2;
+var c = 3;
+var d = a + b + c;
+print(d);

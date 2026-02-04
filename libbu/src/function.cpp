@@ -68,7 +68,8 @@ int Interpreter::registerNative(const char *name, NativeFunction func, int arity
 
  //   Info("Registered native: %s (index=%d)", name, def.index);
 
-    globals.set(nName, makeNative(def.index));
+    // OPTIMIZATION: Removed HashMap globals - using globalsArray directly
+    // globals.set(nName, makeNative(def.index));
 
     // OPTIMIZATION: Also add to globalsArray for direct indexed access
     // The index in globalsArray will match the index assigned by the compiler

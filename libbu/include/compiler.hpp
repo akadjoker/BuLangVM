@@ -170,6 +170,8 @@ public:
 
   ProcessDef *compile(const std::string &source);
   ProcessDef *compileExpression(const std::string &source);
+  
+  const std::vector<std::string>& getGlobalIndexToName() const { return globalIndexToName_; }
 
   void clear();
 
@@ -247,6 +249,7 @@ private:
 
   // Global variable indexing for optimization
   std::unordered_map<std::string, uint16> globalIndices_;  // Map global name -> index
+  std::vector<std::string> globalIndexToName_;  // Map index -> name (for debug messages)
   uint16 nextGlobalIndex_ = 0;  // Next available global index
   
   uint16 getOrCreateGlobalIndex(const std::string& name);  // Get or assign global index

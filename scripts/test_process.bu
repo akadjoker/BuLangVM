@@ -1,0 +1,92 @@
+var tests_passed = 0;
+var tests_failed = 0;
+
+def assert_eq(name, expected, actual)
+{
+    if (expected == actual)
+    {
+        tests_passed++;
+        print("[PASS] " + name);
+    } else
+    {
+        tests_failed++;
+        write("[FAIL] {}: expected {}, got {}\n", name, expected, actual);
+    }
+}
+
+def assert_true(name, condition)
+{
+    if (condition)
+    {
+        tests_passed++;
+        print("[PASS] " + name);
+    } else
+    {
+        tests_failed++;
+        print("[FAIL] " + name);
+    }
+}
+
+def assert_near(name, expected, actual, tolerance)
+{
+    var diff = expected - actual;
+    if (diff < 0) { diff = -diff; }
+    if (diff <= tolerance)
+    {
+        tests_passed++;
+        print("[PASS] " + name);
+    } else
+    {
+        tests_failed++;
+        write("[FAIL] {}: expected ~{}, got {} (diff={})\n", name, expected, actual, diff);
+    }
+}
+
+var counter = 0;
+var p1_ran = false;
+var p2_ran = false;
+
+process worker1() 
+{
+    p1_ran = true;
+    for (var i = 0; i < 5; i++) 
+    {
+        counter = counter + 1;
+        frame; // Yield
+    }
+}
+
+process worker2() 
+{
+    p2_ran = true;
+    for (var i = 0; i < 5; i++) 
+    {
+        counter = counter + 1;
+        frame; // Yield
+    }
+}
+
+// Inicia processos
+worker1();
+worker2();
+
+// No inicio, apenas foram agendados, codigo não correu  
+assert_eq("Processes scheduled but not run", 0, counter);
+assert_eq("Process 1 not started yet", false, p1_ran);
+assert_eq("Process 2 not started yet", false, p2_ran);
+
+print("Processes scheduled - C++ will run update() loop...");
+
+// O resto do código aqui só roda DEPOIS dos processos terminarem
+// porque o main() do C++ roda vm.update() até não haver mais processos
+
+// Nota: Este código só executa APÓS todos os processos terminarem!
+// Por isso não podemos testar valores intermediários aqui.
+
+write("\n========================================\n");
+write("Tests Passed: {}\n", tests_passed);
+write("Tests Failed: {}\n", tests_failed);
+write("========================================\n");
+if (tests_failed == 0) {
+    print("ALL PROCESS TESTS PASSED!");
+}

@@ -1,0 +1,68 @@
+// Test Garbage Collector - Force GC and verify globals survive
+
+print("=== GC Stress Test ===");
+print("");
+
+// Create globals with SPECIFIC values that we'll verify
+var global_array = [100, 200, 300, 400, 500];
+var global_map = {"test": "original", "number": 999};
+var global_string = "IMMUTABLE_STRING";
+var global_number = 12345;
+var global_nested = [[11, 22], {"inner": "value"}, [33, 44, 55]];
+
+print("Initial state:");
+print("  Array: [" + str(global_array[0]) + ", " + str(global_array[1]) + ", " + str(global_array[2]) + ", " + str(global_array[3]) + ", " + str(global_array[4]) + "]");
+print("  Map test: " + global_map["test"]);
+print("  Map number: " + str(global_map["number"]));
+print("  String: " + global_string);
+print("  Number: " + str(global_number));
+print("  Nested[0][1]: " + str(global_nested[0][1]));
+print("  Nested[1]['inner']: " + global_nested[1]["inner"]);
+print("");
+
+// Create MASSIVE garbage to force multiple GC cycles
+print("Creating massive garbage (10,000 temporary objects)...");
+var outer = 0;
+while (outer < 100) {
+    var inner = 0;
+    while (inner < 100) {
+        var garbage = [outer, inner, outer * inner];
+        inner = inner + 1;
+    }
+    outer = outer + 1;
+}
+print("Done creating garbage");
+print("");
+
+// Verify ALL values are EXACTLY the same
+print("After GC - Verifying integrity:");
+var errors = 0;
+
+if (global_array[0] != 100) { print("ERROR: array[0]"); errors = errors + 1; }
+if (global_array[1] != 200) { print("ERROR: array[1]"); errors = errors + 1; }
+if (global_array[2] != 300) { print("ERROR: array[2]"); errors = errors + 1; }
+if (global_array[3] != 400) { print("ERROR: array[3]"); errors = errors + 1; }
+if (global_array[4] != 500) { print("ERROR: array[4]"); errors = errors + 1; }
+if (global_map["test"] != "original") { print("ERROR: map test"); errors = errors + 1; }
+if (global_map["number"] != 999) { print("ERROR: map number"); errors = errors + 1; }
+if (global_string != "IMMUTABLE_STRING") { print("ERROR: string"); errors = errors + 1; }
+if (global_number != 12345) { print("ERROR: number"); errors = errors + 1; }
+if (global_nested[0][1] != 22) { print("ERROR: nested[0][1]"); errors = errors + 1; }
+if (global_nested[1]["inner"] != "value") { print("ERROR: nested inner"); errors = errors + 1; }
+if (len(global_nested[2]) != 3) { print("ERROR: nested[2] length"); errors = errors + 1; }
+
+if (errors == 0) {
+    print("  ✓ Array: [100, 200, 300, 400, 500] - INTACT");
+    print("  ✓ Map: {test: 'original', number: 999} - INTACT");
+    print("  ✓ String: 'IMMUTABLE_STRING' - INTACT");
+    print("  ✓ Number: 12345 - INTACT");
+    print("  ✓ Nested structures - INTACT");
+    print("");
+    print("✓✓✓ GC TEST PASSED ✓✓✓");
+    print("✓ Globals survived 10,000 garbage objects");
+    print("✓ No corruption detected");
+} else {
+    print("");
+    print("XXX GC TEST FAILED XXX");
+    print("XXX " + str(errors) + " corruption(s) detected");
+}

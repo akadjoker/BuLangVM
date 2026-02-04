@@ -1,0 +1,115 @@
+var tests_passed = 0;
+var tests_failed = 0;
+
+def assert_eq(name, expected, actual)
+{
+    if (expected == actual)
+    {
+        tests_passed++;
+        print("[PASS] " + name);
+    } else
+    {
+        tests_failed++;
+        write("[FAIL] {}: expected {}, got {}\n", name, expected, actual);
+    }
+}
+
+def assert_true(name, condition)
+{
+    if (condition)
+    {
+        tests_passed++;
+        print("[PASS] " + name);
+    } else
+    {
+        tests_failed++;
+        print("[FAIL] " + name);
+    }
+}
+
+def assert_near(name, expected, actual, tolerance)
+{
+    var diff = expected - actual;
+    if (diff < 0) { diff = -diff; }
+    if (diff <= tolerance)
+    {
+        tests_passed++;
+        print("[PASS] " + name);
+    } else
+    {
+        tests_failed++;
+        write("[FAIL] {}: expected ~{}, got {} (diff={})\n", name, expected, actual, diff);
+    }
+}
+
+ 
+// ==========================================
+// CASO 1: Iteração Simples em Array
+// ==========================================
+var numbers = [10, 20, 30, 40];
+var sum = 0;
+var iterations = 0;
+
+foreach (num in numbers)
+{
+    sum = sum + num;
+    iterations = iterations + 1;
+}
+
+assert_eq("Foreach sum all elements", 100, sum);
+assert_eq("Foreach correct iteration count", 4, iterations);
+
+// ==========================================
+// CASO 2: Iteração com Strings
+// ==========================================
+var words = ["Ola", " ", "Mundo"];
+var sentence = "";
+
+foreach (w in words)
+{
+    sentence = sentence + w;
+}
+
+assert_eq("Foreach with strings", "Ola Mundo", sentence);
+
+// ==========================================
+// CASO 3: Break dentro do Foreach
+// ==========================================
+var values = [1, 2, 3, 4, 5, 6];
+var stoppedAt = 0;
+
+foreach (v in values)
+{
+    stoppedAt = v;
+    if (v == 3)
+    {
+        break; // Testa se o break sai limpo do foreach
+    }
+}
+
+assert_eq("Break inside foreach", 3, stoppedAt);
+
+// ==========================================
+// CASO 4: Foreach em Array Vazio
+// ==========================================
+var empty = [];
+var run = false;
+
+foreach (item in empty)
+{
+    run = true;
+}
+
+assert_true("Foreach should not run on empty array", !run);
+
+// ==========================================
+// CASO 5: Scope da Variável (Se suportado)
+// ==========================================
+// A variavel 'item' não deve estragar variaveis externas com mesmo nome
+var item = 999;
+foreach (item in numbers)
+{
+    // faz nada, só itera
+}
+assert_eq("Foreach variable scope isolation", 999, item);
+ 
