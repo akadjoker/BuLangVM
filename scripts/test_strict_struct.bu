@@ -1,8 +1,8 @@
 // Test: strict variable declaration with struct
 
 struct Pessoa {
-    nome;
-    idade;
+    var nome;
+    var idade;
 }
 
 // ✓ This should work: declaring with var

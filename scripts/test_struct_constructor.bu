@@ -1,0 +1,26 @@
+// Test: struct with constructor arguments
+
+struct Pessoa {
+    var nome;
+    var idade;
+}
+
+// ✓ This should work: passing arguments to struct constructor
+var p1 = Pessoa("João", 25);
+print("Nome:", p1.nome);
+print("Idade:", p1.idade);
+
+// ✓ Another instance with different values
+var p2 = Pessoa("Maria", 30);
+print("Nome:", p2.nome);
+print("Idade:", p2.idade);
+
+// ✓ Test with partial initialization
+var p3 = Pessoa("Pedro");
+print("Nome:", p3.nome);
+print("Idade:", p3.idade);
+
+// ✓ Test with no arguments
+var p4 = Pessoa();
+print("Nome:", p4.nome);
+print("Idade:", p4.idade);

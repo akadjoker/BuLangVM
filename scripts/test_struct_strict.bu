@@ -3,8 +3,8 @@ print("=== Teste de Structs ===");
 
 // Declarar struct
 struct Pessoa {
-    nome;
-    idade;
+    var nome;
+    var idade;
 }
 
 // Teste 1: Criar instância sem var - DEVE DAR ERRO

@@ -12,74 +12,78 @@ GLOBAL FUNCTIONS
     Has return: no
     Index: 0
 
-  Constants (5):
-    [0] = <class 'Animal'>
-    [1] = "nome"
-    [2] = "Rex"
-    [3] = "falar"
-    [4] = "Miau"
+  Constants (11):
+    [0] = "Pessoa"
+    [1] = <struct 0>
+    [2] = "João"
+    [3] = 25
+    [4] = "Nome:"
+    [5] = "nome"
+    [6] = "Idade:"
+    [7] = "idade"
+    [8] = "Maria"
+    [9] = 30
+    [10] = "Pedro"
 
   Bytecode:
-    0000    3 OP_CONSTANT             0 '<class 0>'
+    0000    6 OP_CONSTANT             1 '<struct 0>'
     0003    | OP_DEFINE_GLOBAL       15
-    0006   12 OP_GET_GLOBAL          15
-    0009    | OP_CALL                 0
-    0011    | OP_DEFINE_GLOBAL       16
-    0014   13 OP_GET_GLOBAL          16
-    0017    | OP_CONSTANT             2 'Rex'
-    0020    | OP_SET_PROPERTY         1 'nome'
-    0023    | OP_POP              
-    0024   14 OP_GET_GLOBAL          16
-    0027    | OP_INVOKE               3 'falar' (0 args)
-    0031    | OP_POP              
-    0032   17 OP_GET_GLOBAL          15
-    0035    | OP_CALL                 0
-    0037    | OP_DEFINE_GLOBAL       17
-    0040   18 OP_GET_GLOBAL          17
-    0043    | OP_CONSTANT             4 'Miau'
-    0046    | OP_SET_PROPERTY         1 'nome'
-    0049    | OP_POP              
-    0050   19 OP_GET_GLOBAL          17
-    0053    | OP_INVOKE               3 'falar' (0 args)
-    0057    | OP_POP              
-    0058   23 OP_NIL              
-    0059    | OP_RETURN           
+    0006    9 OP_GET_GLOBAL          15
+    0009    | OP_CONSTANT             2 'João'
+    0012    | OP_CONSTANT             3 '25'
+    0015    | OP_CALL                 2
+    0017    | OP_DEFINE_GLOBAL       16
+    0020   10 OP_CONSTANT             4 'Nome:'
+    0023    | OP_GET_GLOBAL          16
+    0026    | OP_GET_PROPERTY         5 'nome'
+    0029    | OP_PRINT                2
+    0031   11 OP_CONSTANT             6 'Idade:'
+    0034    | OP_GET_GLOBAL          16
+    0037    | OP_GET_PROPERTY         7 'idade'
+    0040    | OP_PRINT                2
+    0042   14 OP_GET_GLOBAL          15
+    0045    | OP_CONSTANT             8 'Maria'
+    0048    | OP_CONSTANT             9 '30'
+    0051    | OP_CALL                 2
+    0053    | OP_DEFINE_GLOBAL       17
+    0056   15 OP_CONSTANT             4 'Nome:'
+    0059    | OP_GET_GLOBAL          17
+    0062    | OP_GET_PROPERTY         5 'nome'
+    0065    | OP_PRINT                2
+    0067   16 OP_CONSTANT             6 'Idade:'
+    0070    | OP_GET_GLOBAL          17
+    0073    | OP_GET_PROPERTY         7 'idade'
+    0076    | OP_PRINT                2
+    0078   19 OP_GET_GLOBAL          15
+    0081    | OP_CONSTANT            10 'Pedro'
+    0084    | OP_CALL                 1
+    0086    | OP_DEFINE_GLOBAL       18
+    0089   20 OP_CONSTANT             4 'Nome:'
+    0092    | OP_GET_GLOBAL          18
+    0095    | OP_GET_PROPERTY         5 'nome'
+    0098    | OP_PRINT                2
+    0100   21 OP_CONSTANT             6 'Idade:'
+    0103    | OP_GET_GLOBAL          18
+    0106    | OP_GET_PROPERTY         7 'idade'
+    0109    | OP_PRINT                2
+    0111   24 OP_GET_GLOBAL          15
+    0114    | OP_CALL                 0
+    0116    | OP_DEFINE_GLOBAL       19
+    0119   25 OP_CONSTANT             4 'Nome:'
+    0122    | OP_GET_GLOBAL          19
+    0125    | OP_GET_PROPERTY         5 'nome'
+    0128    | OP_PRINT                2
+    0130   26 OP_CONSTANT             6 'Idade:'
+    0133    | OP_GET_GLOBAL          19
+    0136    | OP_GET_PROPERTY         7 'idade'
+    0139    | OP_PRINT                2
+    0141   27 OP_NIL              
+    0142    | OP_RETURN           
 
 
 ========================================
 CLASSES
 ========================================
-
-
->>> Class: Animal
-    Index: 0
-    Field count: 1
-    Has superclass: no
-
-    Fields:
-      [0] nome
-
-    Methods:
-
-    >>> Method: falar
-        Arity: 0
-        Has return: yes
-
-      Constants (3):
-        [0] = "O animal"
-        [1] = "nome"
-        [2] = "faz algum som"
-
-      Bytecode:
-        0000    7 OP_CONSTANT             0 'O animal'
-        0003    | OP_GET_LOCAL            0
-        0005    | OP_GET_PROPERTY         1 'nome'
-        0008    | OP_CONSTANT             2 'faz algum som'
-        0011    | OP_PRINT                3
-        0013    8 OP_GET_LOCAL            0
-        0015    | OP_RETURN           
-        0016    | OP_POP              
-
 
 
 ========================================
