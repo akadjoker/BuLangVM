@@ -170,6 +170,8 @@ public:
 
   ProcessDef *compile(const std::string &source);
   ProcessDef *compileExpression(const std::string &source);
+  
+  const std::vector<std::string>& getGlobalIndexToName() const { return globalIndexToName_; }
 
   void clear();
 
@@ -245,6 +247,13 @@ private:
   std::vector<std::string> warnings;
   std::set<std::string> declaredGlobals_;  // Track declared global variable names
 
+  // Global variable indexing for optimization
+  std::unordered_map<std::string, uint16> globalIndices_;  // Map global name -> index
+  std::vector<std::string> globalIndexToName_;  // Map index -> name (for debug messages)
+  uint16 nextGlobalIndex_ = 0;  // Next available global index
+  
+  uint16 getOrCreateGlobalIndex(const std::string& name);  // Get or assign global index
+
   // Token management
   void advance();
   Token peek(int offset = 0);
@@ -286,10 +295,11 @@ private:
   // Bytecode emission
   void emitByte(uint8 byte);
   void emitBytes(uint8 byte1, uint8 byte2);
+  void emitShort(uint16 value);
   void emitDiscard(uint8 count);
   void emitReturn();
   void emitConstant(Value value);
-  uint8 makeConstant(Value value);
+  uint16 makeConstant(Value value);
 
   int emitJump(uint8 instruction);
   void patchJump(int offset);
@@ -357,15 +367,16 @@ private:
   void emitGosubTo(int targetOffset);
   void patchJumpTo(int operandOffset, int targetOffset);
 
+  void emitVarOp(uint8 op, int arg);
   void handle_assignment(uint8 getOp, uint8 setOp, int arg, bool canAssign);
 
   void prefixIncrement(bool canAssign);
   void prefixDecrement(bool canAssign);
 
   // Variables
-  uint8 identifierConstant(Token &name);
+  uint16 identifierConstant(Token &name);
   void namedVariable(Token &name, bool canAssign);
-  void defineVariable(uint8 global);
+  void defineVariable(uint16 global);
   void declareVariable();
   void addLocal(Token &name);
   int resolveLocal(Token &name);

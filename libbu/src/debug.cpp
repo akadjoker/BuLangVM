@@ -41,16 +41,16 @@ size_t Debug::disassembleInstruction(const Code &chunk, size_t offset)
     // ========== LITERALS (0-3) ==========
   case OP_CONSTANT:
   {
-    if (!hasBytes(chunk, offset, 1))
+    if (!hasBytes(chunk, offset, 2))
     {
       printf("OP_CONSTANT <truncated>\n");
       return chunk.count;
     }
-    uint8_t constant = chunk.code[offset + 1];
+    uint16_t constant = (uint16_t)(chunk.code[offset + 1] << 8) | chunk.code[offset + 2];
     printf("%-20s %4d '", "OP_CONSTANT", constant);
     printValue(chunk.constants[constant]);
     printf("'\n");
-    return offset + 2;
+    return offset + 3;
   }
   case OP_NIL:
     return simpleInstruction("OP_NIL", offset);
@@ -117,11 +117,11 @@ size_t Debug::disassembleInstruction(const Code &chunk, size_t offset)
   case OP_SET_LOCAL:
     return byteInstruction("OP_SET_LOCAL", chunk, offset);
   case OP_GET_GLOBAL:
-    return constantNameInstruction("OP_GET_GLOBAL", chunk, offset);
+    return globalIndexInstruction("OP_GET_GLOBAL", chunk, offset);
   case OP_SET_GLOBAL:
-    return constantNameInstruction("OP_SET_GLOBAL", chunk, offset);
+    return globalIndexInstruction("OP_SET_GLOBAL", chunk, offset);
   case OP_DEFINE_GLOBAL:
-    return constantNameInstruction("OP_DEFINE_GLOBAL", chunk, offset);
+    return globalIndexInstruction("OP_DEFINE_GLOBAL", chunk, offset);
   case OP_GET_PRIVATE:
     return byteInstruction("OP_GET_PRIVATE", chunk, offset);
   case OP_SET_PRIVATE:
@@ -149,14 +149,15 @@ size_t Debug::disassembleInstruction(const Code &chunk, size_t offset)
 
   case OP_CLOSURE:
   {
-    if (!hasBytes(chunk, offset, 1))
+    if (!hasBytes(chunk, offset, 2))
     {
       printf("OP_CLOSURE <truncated>\n");
       return chunk.count;
     }
 
-    offset++; // Avança para o byte do constant index
-    uint8 constant = chunk.code[offset++];
+    offset++; // Avança para os bytes do constant index
+    uint16 constant = (uint16)(chunk.code[offset] << 8) | chunk.code[offset + 1];
+    offset += 2;
     printf("%-20s %4d '", "OP_CLOSURE", constant);
     printValue(chunk.constants[constant]);
     printf("'\n");
@@ -201,15 +202,9 @@ size_t Debug::disassembleInstruction(const Code &chunk, size_t offset)
 
     // ========== COLLECTIONS (44-45) ==========
   case OP_DEFINE_ARRAY:
-    return byteInstruction("OP_DEFINE_ARRAY", chunk, offset);
+    return shortInstruction("OP_DEFINE_ARRAY", chunk, offset);
   case OP_DEFINE_MAP:
-    return byteInstruction("OP_DEFINE_MAP", chunk, offset);
-
-    // ========== EXTENDED COLLECTIONS (89-90) ==========
-  case OP_DEFINE_ARRAY_LONG:
-    return shortInstruction("OP_DEFINE_ARRAY_LONG", chunk, offset);
-  case OP_DEFINE_MAP_LONG:
-    return shortInstruction("OP_DEFINE_MAP_LONG", chunk, offset);
+    return shortInstruction("OP_DEFINE_MAP", chunk, offset);
 
     // ========== PROPERTIES (46-49) ==========
   case OP_GET_PROPERTY:
@@ -224,14 +219,14 @@ size_t Debug::disassembleInstruction(const Code &chunk, size_t offset)
     // ========== METHODS (50-51) ==========
   case OP_INVOKE:
   {
-    if (!hasBytes(chunk, offset, 2))
+    if (!hasBytes(chunk, offset, 3))
     {
       printf("OP_INVOKE <truncated>\n");
       return chunk.count;
     }
 
-    uint8_t nameIdx = chunk.code[offset + 1];
-    uint8_t argCount = chunk.code[offset + 2];
+    uint16_t nameIdx = (uint16_t)(chunk.code[offset + 1] << 8) | chunk.code[offset + 2];
+    uint8_t argCount = chunk.code[offset + 3];
 
     Value c = chunk.constants[nameIdx];
     const char *nm = (c.isString() ? c.asString()->chars() : "<non-string>");
@@ -239,20 +234,20 @@ size_t Debug::disassembleInstruction(const Code &chunk, size_t offset)
     printf("%-20s %4u '%s' (%u args)\n", "OP_INVOKE", (unsigned)nameIdx, nm,
            (unsigned)argCount);
 
-    return offset + 3;
+    return offset + 4;
   }
 
   case OP_SUPER_INVOKE:
   {
-    if (!hasBytes(chunk, offset, 3))
+    if (!hasBytes(chunk, offset, 4))
     {
       printf("OP_SUPER_INVOKE <truncated>\n");
       return chunk.count;
     }
 
     uint8_t ownerClassId = chunk.code[offset + 1];
-    uint8_t nameIdx = chunk.code[offset + 2];
-    uint8_t argCount = chunk.code[offset + 3];
+    uint16_t nameIdx = (uint16_t)(chunk.code[offset + 2] << 8) | chunk.code[offset + 3];
+    uint8_t argCount = chunk.code[offset + 4];
 
     Value c = chunk.constants[nameIdx];
     const char *nm = (c.isString() ? c.asString()->chars() : "<non-string>");
@@ -260,7 +255,7 @@ size_t Debug::disassembleInstruction(const Code &chunk, size_t offset)
     printf("%-20s class=%u name=%u '%s' (%u args)\n", "OP_SUPER_INVOKE",
            (unsigned)ownerClassId, (unsigned)nameIdx, nm, (unsigned)argCount);
 
-    return offset + 4;
+    return offset + 5;
   }
 
     // ========== I/O (52-53) ==========
@@ -368,34 +363,48 @@ size_t Debug::simpleInstruction(const char *name, size_t offset)
 size_t Debug::constantInstruction(const char *name, const Code &chunk,
                                   size_t offset)
 {
-  if (!hasBytes(chunk, offset, 1))
+  if (!hasBytes(chunk, offset, 2))
   {
     printf("%s <truncated>\n", name);
     return chunk.count;
   }
 
-  uint8 constantIdx = chunk.code[offset + 1];
+  uint16 constantIdx = (uint16)(chunk.code[offset + 1] << 8) | chunk.code[offset + 2];
   printf("%-20s %4u '", name, (unsigned)constantIdx);
   printValue(chunk.constants[constantIdx]);
   printf("'\n");
-  return offset + 2;
+  return offset + 3;
 }
 
 size_t Debug::constantNameInstruction(const char *name, const Code &chunk,
                                       size_t offset)
 {
-  if (!hasBytes(chunk, offset, 1))
+  if (!hasBytes(chunk, offset, 2))
   {
     printf("%s <truncated>\n", name);
     return chunk.count;
   }
 
-  uint8 constantIdx = chunk.code[offset + 1];
+  uint16 constantIdx = (uint16)(chunk.code[offset + 1] << 8) | chunk.code[offset + 2];
   Value c = chunk.constants[constantIdx];
   const char *nm = (c.isString() ? c.asString()->chars() : "<non-string>");
 
   printf("%-20s %4u '%s'\n", name, (unsigned)constantIdx, nm);
-  return offset + 2;
+  return offset + 3;
+}
+
+size_t Debug::globalIndexInstruction(const char *name, const Code &chunk,
+                                     size_t offset)
+{
+  if (!hasBytes(chunk, offset, 2))
+  {
+    printf("%s <truncated>\n", name);
+    return chunk.count;
+  }
+
+  uint16 globalIdx = (uint16)(chunk.code[offset + 1] << 8) | chunk.code[offset + 2];
+  printf("%-20s %4u (global array index)\n", name, (unsigned)globalIdx);
+  return offset + 3;
 }
 
 size_t Debug::byteInstruction(const char *name, const Code &chunk,

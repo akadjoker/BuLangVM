@@ -429,9 +429,10 @@ struct NativeClassInstance : GCObject
 {
   NativeClassDef *klass;
   void *userData;
-  bool persistent;  // Se true, não é coletado pelo GC
+  bool persistent;      // Se true, não é coletado pelo GC
+  bool ownsUserData;    // Se true, o destrutor é chamado ao libertar
 
-  NativeClassInstance() : GCObject(GCObjectType::NATIVE_CLASS), persistent(false) {}
+  NativeClassInstance() : GCObject(GCObjectType::NATIVE_CLASS), persistent(false), ownsUserData(true) {}
 };
 
 struct NativeStructInstance : GCObject
@@ -638,7 +639,10 @@ class Interpreter
 
   HashMap<String *, uint16, StringHasher, StringEq> moduleNames; // Nome  ID
   Vector<ModuleDef *> modules;                                   // Array de módulos!
-  HashMap<String *, Value, StringHasher, StringEq> globals;
+  HashMap<String *, Value, StringHasher, StringEq> globals;      // For named lookups (debug, reflection)
+  Vector<Value> globalsArray;                                    // OPTIMIZATION: Direct indexed access
+  HashMap<String *, uint16, StringHasher, StringEq> nativeGlobalIndices; // Native name -> globalsArray index
+  Vector<String*> globalIndexToName_;                            // For debug: index -> name mapping (VM strings)
 
   // Plugin system internals
   static constexpr int MAX_PLUGIN_PATHS = 8;
@@ -907,12 +911,12 @@ class Interpreter
 
   FORCE_INLINE void freeNativeClass(NativeClassInstance *n)
   {
-    // Chama destrutor nativo para liberar userData
-    if (n->klass && n->klass->destructor && n->userData)
+    // Chama destrutor nativo para liberar userData APENAS se ownsUserData é true
+    if (n->ownsUserData && n->klass && n->klass->destructor && n->userData)
     {
       n->klass->destructor(this, n->userData);
     }
-    
+
     size_t size = sizeof(NativeClassInstance);
     totalAllocated -= size;
     n->~NativeClassInstance();

@@ -439,17 +439,8 @@ void Compiler::arrayLiteral(bool canAssign)
 
     if (!hadError)
     {
-        if (count <= 255)
-        {
-            emitBytes(OP_DEFINE_ARRAY, count);
-        }
-        else
-        {
-            // Use long version for >255 elements (16-bit count)
-            emitByte(OP_DEFINE_ARRAY_LONG);
-            emitByte((count >> 8) & 0xff);
-            emitByte(count & 0xff);
-        }
+        emitByte(OP_DEFINE_ARRAY);
+        emitShort((uint16)count);
     }
 }
 
@@ -520,16 +511,7 @@ void Compiler::mapLiteral(bool canAssign)
 
     if (!hadError)
     {
-        if (count <= 255)
-        {
-            emitBytes(OP_DEFINE_MAP, count);
-        }
-        else
-        {
-            // Use long version for >255 entries (16-bit count)
-            emitByte(OP_DEFINE_MAP_LONG);
-            emitByte((count >> 8) & 0xff);
-            emitByte(count & 0xff);
-        }
+        emitByte(OP_DEFINE_MAP);
+        emitShort((uint16)count);
     }
 }

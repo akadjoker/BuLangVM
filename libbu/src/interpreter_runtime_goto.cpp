@@ -118,7 +118,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 #define NPEEK(n) (fiber->stackTop[-1 - (n)])
 #define READ_BYTE() (*ip++)
 #define READ_SHORT() (ip += 2, (uint16)((ip[-2] << 8) | ip[-1]))
-#define READ_CONSTANT() (func->chunk->constants[READ_BYTE()])
+#define READ_CONSTANT() (func->chunk->constants[READ_SHORT()])
 
 #define BINARY_OP_PREP()           \
     Value b = fiber->stackTop[-1]; \
@@ -281,10 +281,6 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
 
         // Multi-return (88)
         &&op_return_n,
-
-        // Extended collections (89-90)
-        &&op_define_array_long,
-        &&op_define_map_long,
     };
 
 #define SAFE_CALL_NATIVE(fiber, argCount, callFunc)                                    \
@@ -325,7 +321,6 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
     do                                     \
     {                                      \
         instructionsRun++;                 \
-        uint8 nextOp = *ip;                \
         goto *dispatch_table[READ_BYTE()]; \
     } while (0)
 
@@ -410,35 +405,27 @@ op_set_private:
 
 op_get_global:
 {
-
-    const Value &name = READ_CONSTANT();
-    Value value;
-
-    if (!globals.get(name.asString(), &value))
-    {
-        runtimeError("Undefined variable '%s'", name.asString()->chars());
-        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
-    }
+    // OPTIMIZATION: Direct array access using index instead of hash lookup
+    uint16 index = READ_SHORT();
+    Value value = globalsArray[index];
+    
     PUSH(value);
     DISPATCH();
 }
 
 op_set_global:
 {
-
-    const Value &name = READ_CONSTANT();
-    const Value &value = PEEK();
-    if (globals.set(name.asString(), value))
-    {
-    }
+    // OPTIMIZATION: Direct array access using index instead of hash lookup
+    uint16 index = READ_SHORT();
+    globalsArray[index] = PEEK();
     DISPATCH();
 }
 
 op_define_global:
 {
-
-    const Value &name = READ_CONSTANT();
-    globals.set(name.asString(), POP());
+    // OPTIMIZATION: Direct array access using index instead of hash lookup
+    uint16 index = READ_SHORT();
+    globalsArray[index] = POP();
     DISPATCH();
 }
 
@@ -3941,7 +3928,7 @@ op_invoke:
 op_super_invoke:
 {
     uint8_t ownerClassId = READ_BYTE();
-    uint8_t nameIdx = READ_BYTE();
+    uint16_t nameIdx = READ_SHORT();
     uint8_t argCount = READ_BYTE();
 
     Value nameValue = func->chunk->constants[nameIdx];
@@ -4047,45 +4034,6 @@ op_return_sub:
 
 op_define_array:
 {
-
-    uint8_t count = READ_BYTE();
-    Value array = makeArray();
-    ArrayInstance *instance = array.asArray();
-    instance->values.resize(count);
-    for (int i = count - 1; i >= 0; i--)
-    {
-        instance->values[i] = POP();
-    }
-    PUSH(array);
-    DISPATCH();
-}
-op_define_map:
-{
-    uint8_t count = READ_BYTE();
-
-    Value map = makeMap();
-    MapInstance *inst = map.asMap();
-
-    for (int i = 0; i < count; i++)
-    {
-        Value value = POP();
-        Value key = POP();
-
-        if (!key.isString())
-        {
-            runtimeError("Map key must be string");
-            PUSH(makeNil());
-            DISPATCH();
-        }
-
-        inst->table.set(key.asString(), value);
-    }
-
-    PUSH(map);
-    DISPATCH();
-}
-op_define_array_long:
-{
     uint16_t count = READ_SHORT();
     Value array = makeArray();
     ArrayInstance *instance = array.asArray();
@@ -4097,7 +4045,7 @@ op_define_array_long:
     PUSH(array);
     DISPATCH();
 }
-op_define_map_long:
+op_define_map:
 {
     uint16_t count = READ_SHORT();
 
@@ -4141,8 +4089,7 @@ op_set_index:
         {
 
             runtimeError("Array index must be an number");
-            PUSH(value);
-            DISPATCH();
+            return {FiberResult::ERROR, instructionsRun, 0, 0};
         }
 
         ArrayInstance *arr = container.asArray();
@@ -4156,6 +4103,7 @@ op_set_index:
         if (i < 0 || i >= size)
         {
             runtimeError("Array index %d out of bounds (size=%d)", i, size);
+            return {FiberResult::ERROR, instructionsRun, 0, 0};
         }
         else
         {
@@ -4172,8 +4120,7 @@ op_set_index:
         if (!index.isString())
         {
             runtimeError("Map key must be string");
-            PUSH(value);
-            DISPATCH();
+             return {FiberResult::ERROR, instructionsRun, 0, 0};
         }
 
         MapInstance *map = container.asMap();
@@ -4191,8 +4138,7 @@ op_set_index:
         if (!index.isInt())
         {
             runtimeError("Buffer index must be integer");
-            PUSH(value);
-            DISPATCH();
+            return {FiberResult::ERROR, instructionsRun, 0, 0};
         }
 
         int idx = index.asInt();
@@ -4200,6 +4146,7 @@ op_set_index:
         if (idx < 0 || idx >= buffer->count)
         {
             THROW_RUNTIME_ERROR("Buffer index %d out of bounds (size=%d)", idx, buffer->count);
+            return {FiberResult::ERROR, instructionsRun, 0, 0};
         }
 
         switch (buffer->type)
@@ -4254,8 +4201,7 @@ op_set_index:
     if (container.isString())
     {
         runtimeError("Strings are immutable");
-        PUSH(value);
-        DISPATCH();
+        return {FiberResult::ERROR, instructionsRun, 0, 0};
     }
 
     runtimeError("Cannot index assign this type");
@@ -4279,8 +4225,7 @@ op_get_index:
         if (!index.isNumber())
         {
             runtimeError("Array index must be a number");
-            PUSH(makeNil());
-            DISPATCH();
+            return {FiberResult::ERROR, instructionsRun, 0, 0};
         }
 
         ArrayInstance *arr = container.asArray();
@@ -4294,7 +4239,7 @@ op_get_index:
         if (i < 0 || i >= size)
         {
             runtimeError("Array index %d out of bounds (size=%d)", i, size);
-            PUSH(makeNil());
+            return {FiberResult::ERROR, instructionsRun, 0, 0};
         }
         else
         {
@@ -4309,8 +4254,7 @@ op_get_index:
         if (!index.isInt())
         {
             runtimeError("String index must be integer");
-            PUSH(makeNil());
-            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            return {FiberResult::ERROR, instructionsRun, 0, 0};
         }
 
         String *str = container.asString();
@@ -4325,8 +4269,7 @@ op_get_index:
         if (!index.isString())
         {
             runtimeError("Map key must be string");
-            PUSH(makeNil());
-            DISPATCH();
+            return {FiberResult::ERROR, instructionsRun, 0, 0};
         }
 
         MapInstance *map = container.asMap();

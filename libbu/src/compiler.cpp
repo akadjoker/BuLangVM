@@ -40,6 +40,33 @@ Compiler::~Compiler()
 {
   delete lexer;
 }
+
+// ============================================
+// GLOBAL VARIABLE INDEXING
+// ============================================
+
+uint16 Compiler::getOrCreateGlobalIndex(const std::string& name)
+{
+  auto it = globalIndices_.find(name);
+  if (it != globalIndices_.end())
+  {
+    return it->second;  // Already indexed
+  }
+  
+  // Create new index
+  uint16 index = nextGlobalIndex_++;
+  globalIndices_[name] = index;
+  
+  // Ensure reverse mapping array is large enough
+  if (index >= globalIndexToName_.size())
+  {
+    globalIndexToName_.resize(index + 1);
+  }
+  globalIndexToName_[index] = name;
+  
+  return index;
+}
+
 // ============================================
 // INICIALIZAÇÃO DA TABELA
 // ============================================
@@ -180,6 +207,55 @@ ProcessDef *Compiler::compile(const std::string &source)
   upvalueCount_ = 0;
   isProcess_ = true;  // Top-level code IS a process
 
+  // OPTIMIZATION: Sync global indices with all natives already registered
+  // This ensures native functions, structs, and classes use the same indices
+  // as assigned during registration
+  globalIndices_.clear();
+  globalIndexToName_.clear();
+  nextGlobalIndex_ = 0;
+
+  // Sync native functions
+  for (size_t i = 0; i < vm_->natives.size(); i++)
+  {
+    const std::string& name = vm_->natives[i].name->chars();
+    uint16 index = nextGlobalIndex_++;
+    globalIndices_[name] = index;
+    if (index >= globalIndexToName_.size())
+    {
+      globalIndexToName_.resize(index + 1);
+    }
+    globalIndexToName_[index] = name;
+    declaredGlobals_.insert(name);
+  }
+
+  // Sync native structs
+  for (size_t i = 0; i < vm_->nativeStructs.size(); i++)
+  {
+    const std::string& name = vm_->nativeStructs[i]->name->chars();
+    uint16 index = nextGlobalIndex_++;
+    globalIndices_[name] = index;
+    if (index >= globalIndexToName_.size())
+    {
+      globalIndexToName_.resize(index + 1);
+    }
+    globalIndexToName_[index] = name;
+    declaredGlobals_.insert(name);
+  }
+
+  // Sync native classes
+  for (size_t i = 0; i < vm_->nativeClasses.size(); i++)
+  {
+    const std::string& name = vm_->nativeClasses[i]->name->chars();
+    uint16 index = nextGlobalIndex_++;
+    globalIndices_[name] = index;
+    if (index >= globalIndexToName_.size())
+    {
+      globalIndexToName_.resize(index + 1);
+    }
+    globalIndexToName_[index] = name;
+    declaredGlobals_.insert(name);
+  }
+
   compileStartTime = std::chrono::steady_clock::now();
 
   tokens = lexer->scanAll();
@@ -266,6 +342,51 @@ ProcessDef *Compiler::compileExpression(const std::string &source)
   currentClass = nullptr;
   enclosingStack_.clear();
   declaredGlobals_.clear();
+  globalIndices_.clear();
+  globalIndexToName_.clear();
+  nextGlobalIndex_ = 0;
+
+  // Sync native functions
+  for (size_t i = 0; i < vm_->natives.size(); i++)
+  {
+    const std::string& name = vm_->natives[i].name->chars();
+    uint16 index = nextGlobalIndex_++;
+    globalIndices_[name] = index;
+    if (index >= globalIndexToName_.size())
+    {
+      globalIndexToName_.resize(index + 1);
+    }
+    globalIndexToName_[index] = name;
+    declaredGlobals_.insert(name);
+  }
+
+  // Sync native structs
+  for (size_t i = 0; i < vm_->nativeStructs.size(); i++)
+  {
+    const std::string& name = vm_->nativeStructs[i]->name->chars();
+    uint16 index = nextGlobalIndex_++;
+    globalIndices_[name] = index;
+    if (index >= globalIndexToName_.size())
+    {
+      globalIndexToName_.resize(index + 1);
+    }
+    globalIndexToName_[index] = name;
+    declaredGlobals_.insert(name);
+  }
+
+  // Sync native classes
+  for (size_t i = 0; i < vm_->nativeClasses.size(); i++)
+  {
+    const std::string& name = vm_->nativeClasses[i]->name->chars();
+    uint16 index = nextGlobalIndex_++;
+    globalIndices_[name] = index;
+    if (index >= globalIndexToName_.size())
+    {
+      globalIndexToName_.resize(index + 1);
+    }
+    globalIndexToName_[index] = name;
+    declaredGlobals_.insert(name);
+  }
   advance();
 
   if (check(TOKEN_EOF))
@@ -565,6 +686,12 @@ void Compiler::emitBytes(uint8 byte1, uint8 byte2)
   emitByte(byte2);
 }
 
+void Compiler::emitShort(uint16 value)
+{
+  emitByte((value >> 8) & 0xFF);
+  emitByte(value & 0xFF);
+}
+
 void Compiler::emitDiscard(uint8 count)
 {
   emitByte(OP_DISCARD);
@@ -573,40 +700,33 @@ void Compiler::emitDiscard(uint8 count)
 
 void Compiler::emitReturn()
 {
-  // vamos testar no
-  //  for (int i = 0; i < localCount_; i++)
-  //  {
-  //    if (locals_[i].isCaptured)
-  //    {
-  //      emitByte(OP_CLOSE_UPVALUE);
-  //    }
-  //  }
   emitByte(OP_NIL);
   emitByte(OP_RETURN);
 }
 
-uint8 Compiler::makeConstant(Value value)
+uint16 Compiler::makeConstant(Value value)
 {
   if (hadError)
     return 0;
 
   int constant = currentChunk->addConstant(value);
-  if (constant > UINT8_MAX)
+  if (constant > UINT16_MAX)
   {
-    error("Function too large (>256 constants). Split code into smaller functions");
+    error("Function too large (>65536 constants)");
     hadError = true;
     return 0;
   }
 
-  return (uint8)constant;
+  return (uint16)constant;
 }
 
 void Compiler::emitConstant(Value value)
 {
-  uint8 constant = makeConstant(value);
+  uint16 constant = makeConstant(value);
   if (hadError)
     return;
-  emitBytes(OP_CONSTANT, constant);
+  emitByte(OP_CONSTANT);
+  emitShort(constant);
 }
 
 // ============================================
