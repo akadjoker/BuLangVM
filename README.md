@@ -1,5 +1,17 @@
 # BuLangVM - BuLang Syntax Quick Summary
 
+## Porque o BuLang existe
+Criei o BuLang porque, em projetos reais, Lua/Python acabam por exigir muito
+trabalho de bindings e glue code para expor classes e sistemas do motor.
+O objetivo do BuLang e reduzir esse custo: classes nativas e structs entram
+direto no script, com menos friccao, menos boilerplate e mais velocidade no
+fluxo de trabalho.
+
+Em resumo:
+- Menos tempo a escrever bindings
+- Classes nativas simples de expor
+- Script leve e direto para gameplay e tools
+
 Este README e um resumo curto da sintaxe da BuLang, baseado nos exemplos e testes do repo.
 
 **Tipos basicos**
