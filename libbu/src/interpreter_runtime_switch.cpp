@@ -4044,8 +4044,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                 if (!key.isString())
                 {
                     runtimeError("Map key must be string");
-                    PUSH(makeNil());
-                    break;
+                   return {FiberResult::ERROR, instructionsRun, 0, 0};
                 }
 
                 inst->table.set(key.asString(), value);
@@ -4073,8 +4072,8 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                 {
 
                     runtimeError("Array index must be an number");
-                    PUSH(value);
-                    break;
+                    return {FiberResult::ERROR, instructionsRun, 0, 0};
+                    
                 }
 
                 ArrayInstance *arr = container.asArray();
@@ -4088,6 +4087,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                 if (i < 0 || i >= size)
                 {
                     runtimeError("Array index %d out of bounds (size=%d)", i, size);
+                    return {FiberResult::ERROR, instructionsRun, 0, 0};
                 }
                 else
                 {
@@ -4104,8 +4104,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                 if (!index.isString())
                 {
                     runtimeError("Map key must be string");
-                    PUSH(value);
-                    break;
+                    return {FiberResult::ERROR, instructionsRun, 0, 0};
                 }
 
                 MapInstance *map = container.asMap();
@@ -4121,8 +4120,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                 if (!index.isInt())
                 {
                     runtimeError("Buffer index must be integer");
-                    PUSH(makeNil());
-                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                    return {FiberResult::ERROR, instructionsRun, 0, 0};
                 }
 
                 BufferInstance *buffer = container.asBuffer();
@@ -4131,8 +4129,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                 if (idx < 0 || idx >= buffer->count)
                 {
                     runtimeError("Buffer index %d out of bounds (size=%d)", idx, buffer->count);
-                    PUSH(makeNil());
-                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                    return {FiberResult::ERROR, instructionsRun, 0, 0};
                 }
 
                 size_t offset = idx * get_type_size(buffer->type);
@@ -4221,8 +4218,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                 if (!index.isNumber())
                 {
                     runtimeError("Array index must be a number");
-                    PUSH(makeNil());
-                    break;
+                    return {FiberResult::ERROR, instructionsRun, 0, 0};
                 }
 
                 ArrayInstance *arr = container.asArray();
@@ -4236,7 +4232,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                 if (i < 0 || i >= size)
                 {
                     runtimeError("Array index %d out of bounds (size=%d)", i, size);
-                    PUSH(makeNil());
+                    return {FiberResult::ERROR, instructionsRun, 0, 0};
                 }
                 else
                 {
@@ -4251,8 +4247,8 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                 if (!index.isInt())
                 {
                     runtimeError("String index must be integer");
-                    PUSH(makeNil());
-                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                        
+                    return {FiberResult::ERROR, instructionsRun, 0, 0};
                 }
 
                 String *str = container.asString();
@@ -4267,8 +4263,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                 if (!index.isString())
                 {
                     runtimeError("Map key must be string");
-                    PUSH(makeNil());
-                    break;
+                    return {FiberResult::ERROR, instructionsRun, 0, 0};
                 }
 
                 MapInstance *map = container.asMap();
@@ -4283,7 +4278,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                     // Key não existe - retorna nil
                     PUSH(makeNil());
                 }
-                break;
+                return {FiberResult::ERROR, instructionsRun, 0, 0};
             }
 
             // === BUFER ===
@@ -4292,8 +4287,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                 if (!index.isInt())
                 {
                     runtimeError("Buffer index must be integer");
-                    PUSH(makeNil());
-                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                    return {FiberResult::ERROR, instructionsRun, 0, 0};
                 }
 
                 BufferInstance *buffer = container.asBuffer();
@@ -4302,8 +4296,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                 if (idx < 0 || idx >= buffer->count)
                 {
                     runtimeError("Buffer index %d out of bounds (size=%d)", idx, buffer->count);
-                    PUSH(makeNil());
-                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                    return {FiberResult::ERROR, instructionsRun, 0, 0};
                 }
 
                 size_t offset = idx * get_type_size(buffer->type);
@@ -4351,8 +4344,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
                 default:
                 {
                     runtimeError("Invalid buffer type");
-                    PUSH(makeNil());
-                    return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                    return {FiberResult::ERROR, instructionsRun, 0, 0};
                 }
                 }
 
@@ -4360,8 +4352,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
             }
 
             runtimeError("Cannot index this type");
-            PUSH(makeNil());
-            return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+            return {FiberResult::ERROR, instructionsRun, 0, 0};
         }
         case OP_ITER_NEXT:
         {
@@ -4372,7 +4363,7 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
             if (!seq.isArray())
             {
                 runtimeError(" Iterator next Type is not iterable");
-                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
+                return {FiberResult::ERROR, instructionsRun, 0, 0};
             }
 
             ArrayInstance *array = seq.as.array;
