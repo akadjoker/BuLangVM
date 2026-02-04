@@ -1,0 +1,68 @@
+// Teste de Verbatim Strings (@"...")
+print("=== Teste de Verbatim Strings ===");
+print("");
+
+// Teste 1: String verbatim simples
+print("Teste 1: String simples");
+var texto1 = @"Olá mundo!";
+print(texto1);
+print("");
+
+// Teste 2: String com \n literal (não interpretado)
+print("Teste 2: Backslash-n literal");
+var texto2 = @"Linha com \n literal";
+print(texto2);
+print("");
+
+// Teste 3: String com quebras de linha reais
+print("Teste 3: Quebras de linha reais");
+var texto3 = @"Linha 1
+Linha 2
+Linha 3";
+print(texto3);
+print("");
+
+// Teste 4: String com aspas escapadas usando ""
+print("Teste 4: Aspas escapadas com \"\"");
+var texto4 = @"Ele disse ""Olá"" para mim";
+print(texto4);
+print("");
+
+// Teste 5: String vazia
+print("Teste 5: String vazia");
+var texto5 = @"";
+print("Vazia: [" + texto5 + "]");
+print("");
+
+// Teste 6: String com múltiplos escapes literais
+print("Teste 6: Múltiplos escapes literais");
+var texto6 = @"Path: C:\Users\Nome\Documents\arquivo.txt";
+print(texto6);
+print("");
+
+// Teste 7: String com tabs literais
+print("Teste 7: Tab literal");
+var texto7 = @"Coluna1\tColuna2\tColuna3";
+print(texto7);
+print("");
+
+// Teste 8: String multilinha complexa
+print("Teste 8: Multilinha complexa");
+var sql = @"SELECT *
+FROM users
+WHERE name = ""John""
+  AND age > 18";
+print(sql);
+print("");
+
+// Teste 9: Comparação verbatim vs normal
+print("Teste 9: Comparação");
+var normal = "Linha1\nLinha2";
+var verbatim = @"Linha1\nLinha2";
+print("Normal:");
+print(normal);
+print("Verbatim:");
+print(verbatim);
+print("");
+
+print("=== Testes completos ===");

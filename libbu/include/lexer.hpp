@@ -56,6 +56,7 @@ private:
     // Token scanners
     Token number();
     Token string();
+    Token verbatimString();
     Token identifier();
 
     void initKeywords();
