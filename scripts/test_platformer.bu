@@ -1,0 +1,131 @@
+// Platformer logic test (no rendering)
+
+print("=== Platformer Logic Test ===");
+
+def assert(cond, msg)
+{
+    if (!cond)
+    {
+        print("ASSERT FAIL:", msg);
+    }
+}
+
+class Vec2
+{
+    var x = 0.0;
+    var y = 0.0;
+    def init(px, py) { self.x = px; self.y = py; }
+}
+
+class Player
+{
+    var pos;
+    var vel;
+    var on_ground = false;
+
+    def init()
+    {
+        self.pos = Vec2(0.0, 0.0);
+        self.vel = Vec2(0.0, 0.0);
+        self.on_ground = false;
+    }
+
+    def apply_input(move, jump)
+    {
+        self.vel.x = move * 5.0;
+        if (jump && self.on_ground)
+        {
+            self.vel.y = 8.0;
+            self.on_ground = false;
+        }
+    }
+
+    def step(dt)
+    {
+        // gravity
+        self.vel.y = self.vel.y - (9.8 * dt);
+        // integrate
+        self.pos.x = self.pos.x + (self.vel.x * dt);
+        self.pos.y = self.pos.y + (self.vel.y * dt);
+        // ground collision
+        if (self.pos.y <= 0.0)
+        {
+            self.pos.y = 0.0;
+            self.vel.y = 0.0;
+            self.on_ground = true;
+        }
+    }
+}
+
+class Enemy
+{
+    var pos;
+    var vel;
+    var left = -5.0;
+    var right = 5.0;
+
+    def init(px, py, l, r)
+    {
+        self.pos = Vec2(px, py);
+        self.vel = Vec2(1.0, 0.0);
+        self.left = l;
+        self.right = r;
+    }
+
+    def step(dt)
+    {
+        self.pos.x = self.pos.x + (self.vel.x * dt);
+        if (self.pos.x < self.left) { self.pos.x = self.left; self.vel.x = -self.vel.x; }
+        if (self.pos.x > self.right) { self.pos.x = self.right; self.vel.x = -self.vel.x; }
+    }
+}
+
+class World
+{
+    var player;
+    var enemies;
+    var time = 0.0;
+
+    def init()
+    {
+        self.player = Player();
+        self.enemies = [];
+        self.enemies.push(Enemy(2.0, 0.0, 1.0, 4.0));
+        self.enemies.push(Enemy(-3.0, 0.0, -6.0, -2.0));
+    }
+
+    def step(dt, move, jump)
+    {
+        self.time = self.time + dt;
+        self.player.apply_input(move, jump);
+        self.player.step(dt);
+
+        var i = 0;
+        while (i < len(self.enemies))
+        {
+            self.enemies[i].step(dt);
+            i = i + 1;
+        }
+    }
+}
+
+var world = World();
+
+// simulate some frames
+var frames = 0;
+while (frames < 120)
+{
+    var jump = (frames == 5);
+    world.step(1.0 / 60.0, 1.0, jump);
+    frames = frames + 1;
+}
+
+assert(world.player.pos.x > 0.0, "player moved right");
+assert(world.player.pos.y == 0.0, "player landed on ground");
+assert(len(world.enemies) == 2, "enemy count");
+
+print("Player x =", world.player.pos.x, "y =", world.player.pos.y);
+print("Enemy0 x =", world.enemies[0].pos.x);
+print("Enemy1 x =", world.enemies[1].pos.x);
+
+print("=== Platformer Logic Test Done ===");

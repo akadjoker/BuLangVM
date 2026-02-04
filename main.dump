@@ -12,73 +12,138 @@ GLOBAL FUNCTIONS
     Has return: no
     Index: 0
 
-  Constants (11):
-    [0] = "Pessoa"
-    [1] = <struct 0>
-    [2] = "João"
-    [3] = 25
-    [4] = "Nome:"
-    [5] = "nome"
-    [6] = "Idade:"
-    [7] = "idade"
-    [8] = "Maria"
-    [9] = 30
-    [10] = "Pedro"
+  Constants (25):
+    [0] = "=== Teste de Verbatim Strings ==="
+    [1] = ""
+    [2] = "Teste 1: String simples"
+    [3] = "Olá mundo!"
+    [4] = "Teste 2: Backslash-n literal"
+    [5] = "Linha com \n literal"
+    [6] = "Teste 3: Quebras de linha reais"
+    [7] = "Linha 1
+Linha 2
+Linha 3"
+    [8] = "Teste 4: Aspas escapadas com """
+    [9] = "Ele disse "Olá" para mim"
+    [10] = "Teste 5: String vazia"
+    [11] = "Vazia: ["
+    [12] = "]"
+    [13] = "Teste 6: Múltiplos escapes literais"
+    [14] = "Path: C:\Users\Nome\Documents\arquivo.txt"
+    [15] = "Teste 7: Tab literal"
+    [16] = "Coluna1\tColuna2\tColuna3"
+    [17] = "Teste 8: Multilinha complexa"
+    [18] = "SELECT *
+FROM users
+WHERE name = "John"
+  AND age > 18"
+    [19] = "Teste 9: Comparação"
+    [20] = "Linha1
+Linha2"
+    [21] = "Linha1\nLinha2"
+    [22] = "Normal:"
+    [23] = "Verbatim:"
+    [24] = "=== Testes completos ==="
 
   Bytecode:
-    0000    6 OP_CONSTANT             1 '<struct 0>'
-    0003    | OP_DEFINE_GLOBAL       15
-    0006    9 OP_GET_GLOBAL          15
-    0009    | OP_CONSTANT             2 'João'
-    0012    | OP_CONSTANT             3 '25'
-    0015    | OP_CALL                 2
-    0017    | OP_DEFINE_GLOBAL       16
-    0020   10 OP_CONSTANT             4 'Nome:'
-    0023    | OP_GET_GLOBAL          16
-    0026    | OP_GET_PROPERTY         5 'nome'
-    0029    | OP_PRINT                2
-    0031   11 OP_CONSTANT             6 'Idade:'
-    0034    | OP_GET_GLOBAL          16
-    0037    | OP_GET_PROPERTY         7 'idade'
-    0040    | OP_PRINT                2
+    0000    2 OP_CONSTANT             0 '=== Teste de Verbatim Strings ==='
+    0003    | OP_PRINT                1
+    0005    3 OP_CONSTANT             1 ''
+    0008    | OP_PRINT                1
+    0010    6 OP_CONSTANT             2 'Teste 1: String simples'
+    0013    | OP_PRINT                1
+    0015    7 OP_CONSTANT             3 'Olá mundo!'
+    0018    | OP_DEFINE_GLOBAL       14
+    0021    8 OP_GET_GLOBAL          14
+    0024    | OP_PRINT                1
+    0026    9 OP_CONSTANT             1 ''
+    0029    | OP_PRINT                1
+    0031   12 OP_CONSTANT             4 'Teste 2: Backslash-n literal'
+    0034    | OP_PRINT                1
+    0036   13 OP_CONSTANT             5 'Linha com \n literal'
+    0039    | OP_DEFINE_GLOBAL       15
     0042   14 OP_GET_GLOBAL          15
-    0045    | OP_CONSTANT             8 'Maria'
-    0048    | OP_CONSTANT             9 '30'
-    0051    | OP_CALL                 2
-    0053    | OP_DEFINE_GLOBAL       17
-    0056   15 OP_CONSTANT             4 'Nome:'
-    0059    | OP_GET_GLOBAL          17
-    0062    | OP_GET_PROPERTY         5 'nome'
-    0065    | OP_PRINT                2
-    0067   16 OP_CONSTANT             6 'Idade:'
-    0070    | OP_GET_GLOBAL          17
-    0073    | OP_GET_PROPERTY         7 'idade'
-    0076    | OP_PRINT                2
-    0078   19 OP_GET_GLOBAL          15
-    0081    | OP_CONSTANT            10 'Pedro'
-    0084    | OP_CALL                 1
-    0086    | OP_DEFINE_GLOBAL       18
-    0089   20 OP_CONSTANT             4 'Nome:'
-    0092    | OP_GET_GLOBAL          18
-    0095    | OP_GET_PROPERTY         5 'nome'
-    0098    | OP_PRINT                2
-    0100   21 OP_CONSTANT             6 'Idade:'
-    0103    | OP_GET_GLOBAL          18
-    0106    | OP_GET_PROPERTY         7 'idade'
-    0109    | OP_PRINT                2
-    0111   24 OP_GET_GLOBAL          15
-    0114    | OP_CALL                 0
-    0116    | OP_DEFINE_GLOBAL       19
-    0119   25 OP_CONSTANT             4 'Nome:'
-    0122    | OP_GET_GLOBAL          19
-    0125    | OP_GET_PROPERTY         5 'nome'
-    0128    | OP_PRINT                2
-    0130   26 OP_CONSTANT             6 'Idade:'
-    0133    | OP_GET_GLOBAL          19
-    0136    | OP_GET_PROPERTY         7 'idade'
-    0139    | OP_PRINT                2
-    0141   27 OP_NIL              
-    0142    | OP_RETURN           
+    0045    | OP_PRINT                1
+    0047   15 OP_CONSTANT             1 ''
+    0050    | OP_PRINT                1
+    0052   18 OP_CONSTANT             6 'Teste 3: Quebras de linha reais'
+    0055    | OP_PRINT                1
+    0057   21 OP_CONSTANT             7 'Linha 1
+Linha 2
+Linha 3'
+    0060    | OP_DEFINE_GLOBAL       16
+    0063   22 OP_GET_GLOBAL          16
+    0066    | OP_PRINT                1
+    0068   23 OP_CONSTANT             1 ''
+    0071    | OP_PRINT                1
+    0073   26 OP_CONSTANT             8 'Teste 4: Aspas escapadas com ""'
+    0076    | OP_PRINT                1
+    0078   27 OP_CONSTANT             9 'Ele disse "Olá" para mim'
+    0081    | OP_DEFINE_GLOBAL       17
+    0084   28 OP_GET_GLOBAL          17
+    0087    | OP_PRINT                1
+    0089   29 OP_CONSTANT             1 ''
+    0092    | OP_PRINT                1
+    0094   32 OP_CONSTANT            10 'Teste 5: String vazia'
+    0097    | OP_PRINT                1
+    0099   33 OP_CONSTANT             1 ''
+    0102    | OP_DEFINE_GLOBAL       18
+    0105   34 OP_CONSTANT            11 'Vazia: ['
+    0108    | OP_GET_GLOBAL          18
+    0111    | OP_ADD              
+    0112    | OP_CONSTANT            12 ']'
+    0115    | OP_ADD              
+    0116    | OP_PRINT                1
+    0118   35 OP_CONSTANT             1 ''
+    0121    | OP_PRINT                1
+    0123   38 OP_CONSTANT            13 'Teste 6: Múltiplos escapes literais'
+    0126    | OP_PRINT                1
+    0128   39 OP_CONSTANT            14 'Path: C:\Users\Nome\Documents\arquivo.txt'
+    0131    | OP_DEFINE_GLOBAL       19
+    0134   40 OP_GET_GLOBAL          19
+    0137    | OP_PRINT                1
+    0139   41 OP_CONSTANT             1 ''
+    0142    | OP_PRINT                1
+    0144   44 OP_CONSTANT            15 'Teste 7: Tab literal'
+    0147    | OP_PRINT                1
+    0149   45 OP_CONSTANT            16 'Coluna1\tColuna2\tColuna3'
+    0152    | OP_DEFINE_GLOBAL       20
+    0155   46 OP_GET_GLOBAL          20
+    0158    | OP_PRINT                1
+    0160   47 OP_CONSTANT             1 ''
+    0163    | OP_PRINT                1
+    0165   50 OP_CONSTANT            17 'Teste 8: Multilinha complexa'
+    0168    | OP_PRINT                1
+    0170   54 OP_CONSTANT            18 'SELECT *
+FROM users
+WHERE name = "John"
+  AND age > 18'
+    0173    | OP_DEFINE_GLOBAL       21
+    0176   55 OP_GET_GLOBAL          21
+    0179    | OP_PRINT                1
+    0181   56 OP_CONSTANT             1 ''
+    0184    | OP_PRINT                1
+    0186   59 OP_CONSTANT            19 'Teste 9: Comparação'
+    0189    | OP_PRINT                1
+    0191   60 OP_CONSTANT            20 'Linha1
+Linha2'
+    0194    | OP_DEFINE_GLOBAL       22
+    0197   61 OP_CONSTANT            21 'Linha1\nLinha2'
+    0200    | OP_DEFINE_GLOBAL       23
+    0203   62 OP_CONSTANT            22 'Normal:'
+    0206    | OP_PRINT                1
+    0208   63 OP_GET_GLOBAL          22
+    0211    | OP_PRINT                1
+    0213   64 OP_CONSTANT            23 'Verbatim:'
+    0216    | OP_PRINT                1
+    0218   65 OP_GET_GLOBAL          23
+    0221    | OP_PRINT                1
+    0223   66 OP_CONSTANT             1 ''
+    0226    | OP_PRINT                1
+    0228   68 OP_CONSTANT            24 '=== Testes completos ==='
+    0231    | OP_PRINT                1
+    0233   69 OP_NIL              
+    0234    | OP_RETURN           
 
 
 ========================================

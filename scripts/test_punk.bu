@@ -1,0 +1,105 @@
+// Mini Flashpunk-style engine test (script only)
+
+print("=== Test Punk Engine ===");
+
+def assert(cond, msg)
+{
+    if (!cond)
+    {
+        print("ASSERT FAIL:", msg);
+    }
+}
+
+class Entity
+{
+    var name = "";
+    var x = 0.0;
+    var y = 0.0;
+    var w = 1.0;
+    var h = 1.0;
+    var vx = 0.0;
+    var vy = 0.0;
+    var active = true;
+
+    def init(n, px, py, pw, ph)
+    {
+        self.name = n;
+        self.x = px;
+        self.y = py;
+        self.w = pw;
+        self.h = ph;
+    }
+
+    def update(dt)
+    {
+        self.x = self.x + (self.vx * dt);
+        self.y = self.y + (self.vy * dt);
+    }
+
+    def overlaps(other)
+    {
+        return !(self.x + self.w <= other.x ||
+                 other.x + other.w <= self.x ||
+                 self.y + self.h <= other.y ||
+                 other.y + other.h <= self.y);
+    }
+}
+
+class World
+{
+    var entities = [];
+    var time = 0.0;
+
+    def init()
+    {
+        self.entities = [];
+    }
+
+    def add(e)
+    {
+        self.entities.push(e);
+    }
+
+    def update(dt)
+    {
+        self.time = self.time + dt;
+        var i = 0;
+        while (i < len(self.entities))
+        {
+            var e = self.entities[i];
+            if (e.active)
+            {
+                e.update(dt);
+            }
+            i = i + 1;
+        }
+    }
+
+    def collide(a, b)
+    {
+        return a.overlaps(b);
+    }
+}
+
+// Build a tiny scene
+var world = World();
+var player = Entity("player", 0.0, 0.0, 1.0, 1.0);
+var enemy  = Entity("enemy", 3.0, 0.0, 1.0, 1.0);
+
+player.vx = 2.0; // move right
+world.add(player);
+world.add(enemy);
+
+// Simulate
+var frames = 0;
+while (frames < 120)
+{
+    world.update(1.0 / 60.0);
+    frames = frames + 1;
+}
+
+print("player x =", player.x, "enemy x =", enemy.x);
+assert(player.x > 0.0, "player moved");
+assert(world.collide(player, enemy) == true, "player reached enemy");
+
+print("=== Test Punk Engine Done ===");

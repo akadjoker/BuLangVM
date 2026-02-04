@@ -1,9 +1,6 @@
-//include "bunny.bu";
+//include "test_syntax_master.bu";
+//include "test_particles.bu";
+//include  "test_platformer.bu";
+//include  "test_punk.bu";
 
-a =2;
-print(a);
-
-{
- c=2;
- print(c);
-}
+ 
