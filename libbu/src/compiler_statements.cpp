@@ -189,27 +189,25 @@ void Compiler::printStatement()
 {
     uint8_t argCount = 0;
 
- 
-        consume(TOKEN_LPAREN, "Expect '('");
+    consume(TOKEN_LPAREN, "Expect '('");
 
-        if (!check(TOKEN_RPAREN))
+    if (!check(TOKEN_RPAREN))
+    {
+        do
         {
-            do
+            expression();
+            if (hadError)
+                return;
+            argCount++;
+
+            if (argCount > 255)
             {
-                expression();
-                if (hadError)
-                    return;
-                argCount++;
+                error("Cannot have more than 255 arguments");
+            }
+        } while (match(TOKEN_COMMA));
+    }
 
-                if (argCount > 255)
-                {
-                    error("Cannot have more than 255 arguments");
-                }
-            } while (match(TOKEN_COMMA));
-        }
-
-        consume(TOKEN_RPAREN, "Expect ')' after arguments");
-    
+    consume(TOKEN_RPAREN, "Expect ')' after arguments");
 
     consume(TOKEN_SEMICOLON, "Expect ';'");
 
@@ -242,7 +240,8 @@ void Compiler::varDeclaration()
         std::vector<uint16_t> globals;
 
         // Colectar nomes das variáveis
-        do {
+        do
+        {
             consume(TOKEN_IDENTIFIER, "Expect variable name in multi-assignment");
             names.push_back(previous);
 
@@ -254,7 +253,8 @@ void Compiler::varDeclaration()
             {
                 declareVariable();
                 validateIdentifierName(previous);
-                if (hadError) return;
+                if (hadError)
+                    return;
             }
         } while (match(TOKEN_COMMA));
 
@@ -263,7 +263,8 @@ void Compiler::varDeclaration()
 
         // Compilar a expressão (deixa N valores na stack)
         expression();
-        if (hadError) return;
+        if (hadError)
+            return;
 
         // Atribuir cada valor (do último para o primeiro - stack é LIFO)
         // Os valores estão na stack: [v0, v1, v2, ...] com vN-1 no topo
@@ -358,7 +359,8 @@ void Compiler::variable(bool canAssign)
     // Com detecção de conflitos
     // =====================================================
 
-    struct UsingMatch {
+    struct UsingMatch
+    {
         uint16 moduleId;
         uint16 id;
         std::string moduleName;
@@ -562,22 +564,22 @@ void Compiler::handle_assignment(uint8 getOp, uint8 setOp, int arg, bool canAssi
     if (match(TOKEN_PLUS_PLUS))
     {
         // i++ (postfix) - retorna valor ANTIGO
-        emitVarOp(getOp, arg);               // [old_value]
-        emitByte(OP_DUP);                    // [old_value, old_value]
-        emitConstant(vm_->makeInt(1));       // [old_value, old_value, 1]
-        emitByte(OP_ADD);                    // [old_value, new_value]
-        emitVarOp(setOp, arg);               // [old_value, new_value] (SET usa PEEK, não remove!)
-        emitByte(OP_POP);                    // [old_value] - remove o new_value
+        emitVarOp(getOp, arg);         // [old_value]
+        emitByte(OP_DUP);              // [old_value, old_value]
+        emitConstant(vm_->makeInt(1)); // [old_value, old_value, 1]
+        emitByte(OP_ADD);              // [old_value, new_value]
+        emitVarOp(setOp, arg);         // [old_value, new_value] (SET usa PEEK, não remove!)
+        emitByte(OP_POP);              // [old_value] - remove o new_value
     }
     else if (match(TOKEN_MINUS_MINUS))
     {
         // i-- (postfix) - retorna valor ANTIGO
-        emitVarOp(getOp, arg);               // [old_value]
-        emitByte(OP_DUP);                    // [old_value, old_value]
-        emitConstant(vm_->makeInt(1));       // [old_value, old_value, 1]
-        emitByte(OP_SUBTRACT);               // [old_value, new_value]
-        emitVarOp(setOp, arg);               // [old_value, new_value] (SET usa PEEK)
-        emitByte(OP_POP);                    // [old_value] - remove o new_value
+        emitVarOp(getOp, arg);         // [old_value]
+        emitByte(OP_DUP);              // [old_value, old_value]
+        emitConstant(vm_->makeInt(1)); // [old_value, old_value, 1]
+        emitByte(OP_SUBTRACT);         // [old_value, new_value]
+        emitVarOp(setOp, arg);         // [old_value, new_value] (SET usa PEEK)
+        emitByte(OP_POP);              // [old_value] - remove o new_value
     }
     else if (canAssign && match(TOKEN_EQUAL))
     {
@@ -677,7 +679,7 @@ void Compiler::namedVariable(Token &name, bool canAssign)
 
     // === 5. Fallback final: assume GLOBAL (será criado ou erro em runtime) ===
     // OPTIMIZATION: Check if it's a native class/struct first (they use HashMap)
-    String* nameStr = vm_->createString(name.lexeme.c_str());
+    String *nameStr = vm_->createString(name.lexeme.c_str());
     if (vm_->globals.exist(nameStr))
     {
         // É uma classe/struct nativo - usa constant pool (método antigo)
@@ -687,7 +689,7 @@ void Compiler::namedVariable(Token &name, bool canAssign)
         handle_assignment(getOp, setOp, arg, canAssign);
         return;
     }
-    
+
     // Não é nativo - usa indexed array (novo método)
     arg = getOrCreateGlobalIndex(name.lexeme);
     getOp = OP_GET_GLOBAL;
@@ -1342,9 +1344,11 @@ void Compiler::returnStatement()
         uint8_t count = 0;
         if (!check(TOKEN_RPAREN))
         {
-            do {
+            do
+            {
                 expression();
-                if (hadError) return;
+                if (hadError)
+                    return;
                 count++;
                 if (count > 255)
                 {
@@ -1717,7 +1721,7 @@ void Compiler::compileFunction(Function *func, bool isProcess)
     // Restore locals_ array from enclosingStack_ before popping
     while (enclosingStack_.size() > savedStackSize)
     {
-        EnclosingContext& ctx = enclosingStack_.back();
+        EnclosingContext &ctx = enclosingStack_.back();
         // Restore locals_ array content
         for (size_t i = 0; i < ctx.locals.size(); i++)
         {
@@ -1836,10 +1840,10 @@ void Compiler::prefixIncrement(bool canAssign)
 
         // Agora sim, emite o código correto para QUALQUER tipo de variável
         // ++i retorna o valor NOVO
-        emitVarOp(getOp, arg);                  // [old_value]
-        emitConstant(vm_->makeInt(1));          // [old_value, 1]
-        emitByte(OP_ADD);                       // [new_value]
-        emitVarOp(setOp, arg);                  // [new_value] (SET usa PEEK, não remove!)
+        emitVarOp(getOp, arg);         // [old_value]
+        emitConstant(vm_->makeInt(1)); // [old_value, 1]
+        emitByte(OP_ADD);              // [new_value]
+        emitVarOp(setOp, arg);         // [new_value] (SET usa PEEK, não remove!)
         // SET já deixa o new_value na stack, não precisa de DUP
     }
 }
@@ -1880,13 +1884,13 @@ void Compiler::prefixDecrement(bool canAssign)
             emitShort((uint16)arg);
         }
 
-        emitByte(OP_DUP);                        // [obj, obj]
+        emitByte(OP_DUP); // [obj, obj]
         emitByte(OP_GET_PROPERTY);
-        emitShort(nameIdx);                      // [obj, val_antigo]
-        emitConstant(vm_->makeInt(1));           // [obj, val_antigo, 1]
-        emitByte(OP_SUBTRACT);                   // [obj, val_novo]
+        emitShort(nameIdx);            // [obj, val_antigo]
+        emitConstant(vm_->makeInt(1)); // [obj, val_antigo, 1]
+        emitByte(OP_SUBTRACT);         // [obj, val_novo]
         emitByte(OP_SET_PROPERTY);
-        emitShort(nameIdx);                      // [val_novo]
+        emitShort(nameIdx); // [val_novo]
     }
     // -----------------------------------------------------------
     // CENÁRIO B: É uma VARIÁVEL (Locais, Upvalues, Globais, Privates)
@@ -1946,10 +1950,10 @@ void Compiler::prefixDecrement(bool canAssign)
         }
 
         // --i retorna o valor NOVO
-        emitVarOp(getOp, arg);                  // [old_value]
-        emitConstant(vm_->makeInt(1));          // [old_value, 1]
-        emitByte(OP_SUBTRACT);                  // [new_value]
-        emitVarOp(setOp, arg);                  // [new_value] (SET usa PEEK, não remove!)
+        emitVarOp(getOp, arg);         // [old_value]
+        emitConstant(vm_->makeInt(1)); // [old_value, 1]
+        emitByte(OP_SUBTRACT);         // [new_value]
+        emitVarOp(setOp, arg);         // [new_value] (SET usa PEEK, não remove!)
         // SET já deixa o new_value na stack
     }
 }
@@ -2199,7 +2203,8 @@ void Compiler::parseRequire()
                 // IMPORTANT: Resync global indices after loading plugin
                 // The plugin may have registered new native functions, structs, and classes
                 // that need to be available to the compiler
-                vm_->nativeGlobalIndices.forEach([this](String* nameStr, uint16 index) {
+                vm_->nativeGlobalIndices.forEach([this](String *nameStr, uint16 index)
+                                                 {
                     const std::string name = nameStr->chars();
                     if (globalIndices_.find(name) == globalIndices_.end())
                     {
@@ -2211,8 +2216,7 @@ void Compiler::parseRequire()
                         }
                         globalIndexToName_[index] = name;
                         declaredGlobals_.insert(name);
-                    }
-                });
+                    } });
                 // Update nextGlobalIndex to be after all registered natives
                 nextGlobalIndex_ = static_cast<uint16>(vm_->globalsArray.size());
             }
@@ -2311,13 +2315,13 @@ void Compiler::dot(bool canAssign)
     {
         // self.x += value
         // Stack antes: [self]
-        emitByte(OP_DUP);                    // [self, self]
+        emitByte(OP_DUP); // [self, self]
         emitByte(OP_GET_PROPERTY);
-        emitShort(nameIdx);                  // [self, old_x]
-        expression();                        // [self, old_x, value]
-        emitByte(OP_ADD);                    // [self, new_x]
+        emitShort(nameIdx); // [self, old_x]
+        expression();       // [self, old_x, value]
+        emitByte(OP_ADD);   // [self, new_x]
         emitByte(OP_SET_PROPERTY);
-        emitShort(nameIdx);                  // []
+        emitShort(nameIdx); // []
     }
     else if (canAssign && match(TOKEN_MINUS_EQUAL))
     {
@@ -2364,35 +2368,35 @@ void Compiler::dot(bool canAssign)
     {
         // self.x++ (postfix) - retorna valor ANTIGO
         // Stack: [self]
-        emitByte(OP_DUP);                    // [self, self]
+        emitByte(OP_DUP); // [self, self]
         emitByte(OP_GET_PROPERTY);
-        emitShort(nameIdx);                  // [self, old_x]
-        emitByte(OP_SWAP);                   // [old_x, self]
-        emitByte(OP_DUP);                    // [old_x, self, self]
+        emitShort(nameIdx); // [self, old_x]
+        emitByte(OP_SWAP);  // [old_x, self]
+        emitByte(OP_DUP);   // [old_x, self, self]
         emitByte(OP_GET_PROPERTY);
-        emitShort(nameIdx);                  // [old_x, self, old_x]
-        emitConstant(vm_->makeInt(1));       // [old_x, self, old_x, 1]
-        emitByte(OP_ADD);                    // [old_x, self, new_x]
+        emitShort(nameIdx);            // [old_x, self, old_x]
+        emitConstant(vm_->makeInt(1)); // [old_x, self, old_x, 1]
+        emitByte(OP_ADD);              // [old_x, self, new_x]
         emitByte(OP_SET_PROPERTY);
-        emitShort(nameIdx);                  // [old_x, new_x]
-        emitByte(OP_POP);                    // [old_x] ← resultado correto!
+        emitShort(nameIdx); // [old_x, new_x]
+        emitByte(OP_POP);   // [old_x] ← resultado correto!
     }
     else if (canAssign && match(TOKEN_MINUS_MINUS))
     {
         // self.x-- (postfix) - retorna valor ANTIGO
         // Stack: [self]
-        emitByte(OP_DUP);                    // [self, self]
+        emitByte(OP_DUP); // [self, self]
         emitByte(OP_GET_PROPERTY);
-        emitShort(nameIdx);                  // [self, old_x]
-        emitByte(OP_SWAP);                   // [old_x, self]
-        emitByte(OP_DUP);                    // [old_x, self, self]
+        emitShort(nameIdx); // [self, old_x]
+        emitByte(OP_SWAP);  // [old_x, self]
+        emitByte(OP_DUP);   // [old_x, self, self]
         emitByte(OP_GET_PROPERTY);
-        emitShort(nameIdx);                  // [old_x, self, old_x]
-        emitConstant(vm_->makeInt(1));       // [old_x, self, old_x, 1]
-        emitByte(OP_SUBTRACT);               // [old_x, self, new_x]
+        emitShort(nameIdx);            // [old_x, self, old_x]
+        emitConstant(vm_->makeInt(1)); // [old_x, self, old_x, 1]
+        emitByte(OP_SUBTRACT);         // [old_x, self, new_x]
         emitByte(OP_SET_PROPERTY);
-        emitShort(nameIdx);                  // [old_x, new_x]
-        emitByte(OP_POP);                    // [old_x] ← resultado correto!
+        emitShort(nameIdx); // [old_x, new_x]
+        emitByte(OP_POP);   // [old_x] ← resultado correto!
     }
     //  GET ONLY
     else
@@ -2578,12 +2582,15 @@ void Compiler::structDeclaration()
     match(TOKEN_SEMICOLON);
 
     emitConstant(vm_->makeStruct(structDef->index));
-    
+
     // OPTIMIZATION: Use global index for struct name instead of constant pool
-    if (scopeDepth == 0) {
+    if (scopeDepth == 0)
+    {
         uint16_t global = getOrCreateGlobalIndex(structName.lexeme);
         defineVariable(global);
-    } else {
+    }
+    else
+    {
         defineVariable(nameConstant);
     }
 }
@@ -2800,8 +2807,6 @@ void Compiler::classDeclaration()
         Warning("Class '%s' has no init() method - fields will be uninitialized (nil)",
                 className.lexeme.c_str());
     }
-
-    //    Debug::dumpFunction(classDef->constructor);
 }
 
 void Compiler::method(ClassDef *classDef)
