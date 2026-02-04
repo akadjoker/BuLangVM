@@ -677,12 +677,13 @@ void Compiler::namedVariable(Token &name, bool canAssign)
         }
     }
 
-    // === 5. Fallback final: assume GLOBAL (será criado ou erro em runtime) ===
+    // === 5. Fallback final: ERRO - variável não declarada ===
+    // Se chegou aqui, a variável não foi declarada com 'var'
     // OPTIMIZATION: Check if it's a native class/struct first (they use HashMap)
     String *nameStr = vm_->createString(name.lexeme.c_str());
     if (vm_->globals.exist(nameStr))
     {
-        // É uma classe/struct nativo - usa constant pool (método antigo)
+        // É uma classe/struct nativo - permite acesso
         arg = identifierConstant(name);
         getOp = OP_GET_GLOBAL;
         setOp = OP_SET_GLOBAL;
@@ -690,11 +691,13 @@ void Compiler::namedVariable(Token &name, bool canAssign)
         return;
     }
 
-    // Não é nativo - usa indexed array (novo método)
-    arg = getOrCreateGlobalIndex(name.lexeme);
-    getOp = OP_GET_GLOBAL;
-    setOp = OP_SET_GLOBAL;
-    handle_assignment(getOp, setOp, arg, canAssign);
+    // Variável não foi declarada com 'var' - ERRO!
+    // Mesmo em scope local, não permitimos criar globais implicitamente
+    fail("Undefined variable '%s'. Use 'var %s = ...' to declare it first.",
+          name.lexeme.c_str(), name.lexeme.c_str());
+    
+    // Emite código dummy para continuar compilação
+    emitByte(OP_NIL);
 }
 
 void Compiler::defineVariable(uint16 global)
@@ -2587,6 +2590,7 @@ void Compiler::structDeclaration()
     if (scopeDepth == 0)
     {
         uint16_t global = getOrCreateGlobalIndex(structName.lexeme);
+        declaredGlobals_.insert(structName.lexeme);
         defineVariable(global);
     }
     else
