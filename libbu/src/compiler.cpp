@@ -208,17 +208,15 @@ ProcessDef *Compiler::compile(const std::string &source)
   isProcess_ = true;  // Top-level code IS a process
 
   // OPTIMIZATION: Sync global indices with all natives already registered
-  // This ensures native functions, structs, and classes use the same indices
-  // as assigned during registration
+  // Use the ACTUAL indices from nativeGlobalIndices (set during registration)
+  // instead of assuming sequential order by type
   globalIndices_.clear();
   globalIndexToName_.clear();
-  nextGlobalIndex_ = 0;
 
-  // Sync native functions
-  for (size_t i = 0; i < vm_->natives.size(); i++)
-  {
-    const std::string& name = vm_->natives[i].name->chars();
-    uint16 index = nextGlobalIndex_++;
+  // Copy actual indices from VM's nativeGlobalIndices map
+  // This ensures compiler uses the same indices as runtime
+  vm_->nativeGlobalIndices.forEach([this](String* nameStr, uint16 index) {
+    const std::string name = nameStr->chars();
     globalIndices_[name] = index;
     if (index >= globalIndexToName_.size())
     {
@@ -226,35 +224,10 @@ ProcessDef *Compiler::compile(const std::string &source)
     }
     globalIndexToName_[index] = name;
     declaredGlobals_.insert(name);
-  }
+  });
 
-  // Sync native structs
-  for (size_t i = 0; i < vm_->nativeStructs.size(); i++)
-  {
-    const std::string& name = vm_->nativeStructs[i]->name->chars();
-    uint16 index = nextGlobalIndex_++;
-    globalIndices_[name] = index;
-    if (index >= globalIndexToName_.size())
-    {
-      globalIndexToName_.resize(index + 1);
-    }
-    globalIndexToName_[index] = name;
-    declaredGlobals_.insert(name);
-  }
-
-  // Sync native classes
-  for (size_t i = 0; i < vm_->nativeClasses.size(); i++)
-  {
-    const std::string& name = vm_->nativeClasses[i]->name->chars();
-    uint16 index = nextGlobalIndex_++;
-    globalIndices_[name] = index;
-    if (index >= globalIndexToName_.size())
-    {
-      globalIndexToName_.resize(index + 1);
-    }
-    globalIndexToName_[index] = name;
-    declaredGlobals_.insert(name);
-  }
+  // Next global index starts after all registered natives
+  nextGlobalIndex_ = static_cast<uint16>(vm_->globalsArray.size());
 
   compileStartTime = std::chrono::steady_clock::now();
 
@@ -344,13 +317,10 @@ ProcessDef *Compiler::compileExpression(const std::string &source)
   declaredGlobals_.clear();
   globalIndices_.clear();
   globalIndexToName_.clear();
-  nextGlobalIndex_ = 0;
 
-  // Sync native functions
-  for (size_t i = 0; i < vm_->natives.size(); i++)
-  {
-    const std::string& name = vm_->natives[i].name->chars();
-    uint16 index = nextGlobalIndex_++;
+  // Use actual indices from VM's nativeGlobalIndices map
+  vm_->nativeGlobalIndices.forEach([this](String* nameStr, uint16 index) {
+    const std::string name = nameStr->chars();
     globalIndices_[name] = index;
     if (index >= globalIndexToName_.size())
     {
@@ -358,35 +328,11 @@ ProcessDef *Compiler::compileExpression(const std::string &source)
     }
     globalIndexToName_[index] = name;
     declaredGlobals_.insert(name);
-  }
+  });
 
-  // Sync native structs
-  for (size_t i = 0; i < vm_->nativeStructs.size(); i++)
-  {
-    const std::string& name = vm_->nativeStructs[i]->name->chars();
-    uint16 index = nextGlobalIndex_++;
-    globalIndices_[name] = index;
-    if (index >= globalIndexToName_.size())
-    {
-      globalIndexToName_.resize(index + 1);
-    }
-    globalIndexToName_[index] = name;
-    declaredGlobals_.insert(name);
-  }
+  // Next global index starts after all registered natives
+  nextGlobalIndex_ = static_cast<uint16>(vm_->globalsArray.size());
 
-  // Sync native classes
-  for (size_t i = 0; i < vm_->nativeClasses.size(); i++)
-  {
-    const std::string& name = vm_->nativeClasses[i]->name->chars();
-    uint16 index = nextGlobalIndex_++;
-    globalIndices_[name] = index;
-    if (index >= globalIndexToName_.size())
-    {
-      globalIndexToName_.resize(index + 1);
-    }
-    globalIndexToName_[index] = name;
-    declaredGlobals_.insert(name);
-  }
   advance();
 
   if (check(TOKEN_EOF))
