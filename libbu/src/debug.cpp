@@ -4,6 +4,22 @@
 #include "opcode.hpp"
 #include <cstdio>
 
+// Global names para disassembly
+static const char** g_globalNames = nullptr;
+static int g_globalNamesCount = 0;
+
+void Debug::setGlobalNames(const char** names, int count)
+{
+  g_globalNames = names;
+  g_globalNamesCount = count;
+}
+
+void Debug::clearGlobalNames()
+{
+  g_globalNames = nullptr;
+  g_globalNamesCount = 0;
+}
+
 void Debug::disassembleChunk(const Code &chunk, const char *name)
 {
   printf("== %s ==\n", name);
@@ -403,7 +419,17 @@ size_t Debug::globalIndexInstruction(const char *name, const Code &chunk,
   }
 
   uint16 globalIdx = (uint16)(chunk.code[offset + 1] << 8) | chunk.code[offset + 2];
-  printf("%-20s %4u (global array index)\n", name, (unsigned)globalIdx);
+  
+  // Se temos nomes globais, mostra o nome
+  if (g_globalNames && globalIdx < g_globalNamesCount && g_globalNames[globalIdx])
+  {
+    printf("%-20s %4u '%s'\n", name, (unsigned)globalIdx, g_globalNames[globalIdx]);
+  }
+  else
+  {
+    printf("%-20s %4u\n", name, (unsigned)globalIdx);
+  }
+  
   return offset + 3;
 }
 

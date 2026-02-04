@@ -7,6 +7,10 @@ class Code;
 class Debug
 {
 public:
+    // Para uso do Compiler - setar nomes globais antes de dump
+    static void setGlobalNames(const char** names, int count);
+    static void clearGlobalNames();
+
     // Disassemble um chunk inteiro
     static void disassembleChunk(const Code &chunk, const char *name);
 
