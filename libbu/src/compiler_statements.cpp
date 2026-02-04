@@ -2195,6 +2195,26 @@ void Compiler::parseRequire()
                          vm_->getLastPluginError());
                     return;
                 }
+
+                // IMPORTANT: Resync global indices after loading plugin
+                // The plugin may have registered new native functions, structs, and classes
+                // that need to be available to the compiler
+                vm_->nativeGlobalIndices.forEach([this](String* nameStr, uint16 index) {
+                    const std::string name = nameStr->chars();
+                    if (globalIndices_.find(name) == globalIndices_.end())
+                    {
+                        // New native from the plugin - add to compiler indices
+                        globalIndices_[name] = index;
+                        if (index >= globalIndexToName_.size())
+                        {
+                            globalIndexToName_.resize(index + 1);
+                        }
+                        globalIndexToName_[index] = name;
+                        declaredGlobals_.insert(name);
+                    }
+                });
+                // Update nextGlobalIndex to be after all registered natives
+                nextGlobalIndex_ = static_cast<uint16>(vm_->globalsArray.size());
             }
         }
 
