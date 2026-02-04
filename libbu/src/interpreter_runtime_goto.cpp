@@ -2812,9 +2812,7 @@ op_invoke:
             if (!key.isString())
             {
                 runtimeError("Map key must be string");
-                ARGS_CLEANUP();
-                PUSH(makeBool(false));
-                DISPATCH();
+                 return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
             }
 
             bool exists = map->table.exist(key.asString());
@@ -2840,7 +2838,7 @@ op_invoke:
                 DISPATCH();
             }
 
-            //  HashMap não tem remove, mas podes setar para nil
+     
             map->table.set(key.asString(), makeNil());
             ARGS_CLEANUP();
             PUSH(makeNil());
