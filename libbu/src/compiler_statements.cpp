@@ -2760,6 +2760,52 @@ void Compiler::classDeclaration()
                     double value = std::strtod(previous.lexeme.c_str(), nullptr);
                     classDef->fieldDefaults.push(vm_->makeDouble(value));
                 }
+                else if (match(TOKEN_MINUS))
+                {
+                    // Support negative numeric literals: -123 / -3.14
+                    if (match(TOKEN_INT))
+                    {
+                        int64_t value = -std::strtoll(previous.lexeme.c_str(), nullptr, 10);
+                        classDef->fieldDefaults.push(vm_->makeInt(value));
+                    }
+                    else if (match(TOKEN_FLOAT))
+                    {
+                        double value = -std::strtod(previous.lexeme.c_str(), nullptr);
+                        classDef->fieldDefaults.push(vm_->makeDouble(value));
+                    }
+                    else
+                    {
+                        // Non-literal expression - compile and discard, use nil
+                        Warning("Field '%s' in class '%s': complex default not supported, using nil (set it in init())",
+                                fieldName.lexeme.c_str(), className.lexeme.c_str());
+                        expression();
+                        emitByte(OP_POP);
+                        classDef->fieldDefaults.push(vm_->makeNil());
+                    }
+                }
+                else if (match(TOKEN_PLUS))
+                {
+                    // Support positive numeric literals: +123 / +3.14
+                    if (match(TOKEN_INT))
+                    {
+                        int64_t value = std::strtoll(previous.lexeme.c_str(), nullptr, 10);
+                        classDef->fieldDefaults.push(vm_->makeInt(value));
+                    }
+                    else if (match(TOKEN_FLOAT))
+                    {
+                        double value = std::strtod(previous.lexeme.c_str(), nullptr);
+                        classDef->fieldDefaults.push(vm_->makeDouble(value));
+                    }
+                    else
+                    {
+                        // Non-literal expression - compile and discard, use nil
+                        Warning("Field '%s' in class '%s': complex default not supported, using nil (set it in init())",
+                                fieldName.lexeme.c_str(), className.lexeme.c_str());
+                        expression();
+                        emitByte(OP_POP);
+                        classDef->fieldDefaults.push(vm_->makeNil());
+                    }
+                }
                 else if (match(TOKEN_STRING))
                 {
                     // Parse string literal
@@ -2781,8 +2827,8 @@ void Compiler::classDeclaration()
                 else
                 {
                     // Non-literal expression - compile and discard, use nil
-                    Warning("Complex expressions as field defaults not supported, using nil for '%s'",
-                            fieldName.lexeme.c_str());
+                    Warning("Field '%s' in class '%s': complex default not supported, using nil (set it in init())",
+                            fieldName.lexeme.c_str(), className.lexeme.c_str());
                     expression();
                     emitByte(OP_POP);
                     classDef->fieldDefaults.push(vm_->makeNil());
