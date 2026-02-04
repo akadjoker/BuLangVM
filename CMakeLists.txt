@@ -23,3 +23,4 @@ add_subdirectory(libbu)
 
 add_subdirectory(tests)
 add_subdirectory(natives)
+add_subdirectory(BuRay)
