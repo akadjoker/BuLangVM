@@ -1,0 +1,13 @@
+// Teste: structs com declaração estrita
+print("=== Teste de Structs ===");
+
+// Declarar struct
+struct Pessoa {
+    nome;
+    idade;
+}
+
+// Teste 1: Criar instância sem var - DEVE DAR ERRO
+p1 = Pessoa();
+p1.nome = "João";
+print(p1.nome);

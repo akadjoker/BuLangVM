@@ -1,0 +1,28 @@
+// Teste: structs com declaração correta
+print("=== Teste de Structs com var ===");
+
+// Declarar struct
+struct Pessoa {
+    nome;
+    idade;
+}
+
+// Teste 1: Criar instância COM var - DEVE FUNCIONAR
+var p1 = Pessoa();
+p1.nome = "João";
+p1.idade = 25;
+print("Nome: " + p1.nome);
+print("Idade: " + p1.idade);
+
+// Teste 2: Criar outra instância
+var p2 = Pessoa();
+p2.nome = "Maria";
+p2.idade = 30;
+print("Nome: " + p2.nome);
+print("Idade: " + p2.idade);
+
+// Teste 3: Campo da struct não declarado - deve permitir pois é propriedade
+p1.cidade = "Lisboa"; // Propriedade dinâmica - deve funcionar
+print("Cidade: " + p1.cidade);
+
+print("=== Sucesso! ===");

@@ -1,0 +1,6 @@
+// Teste: declaração correta com var
+var a = 10;
+print(a);
+
+a = 20; // Agora pode atribuir pois já foi declarada
+print(a);

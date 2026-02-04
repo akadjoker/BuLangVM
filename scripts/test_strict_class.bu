@@ -1,0 +1,22 @@
+// Test: strict variable declaration with class
+
+class Animal {
+    var nome = "Sem nome";
+    
+    def falar() {
+        print("O animal", self.nome, "faz algum som");
+    }
+}
+
+// ✓ This should work: declaring class instance with var
+var a1 = Animal();
+a1.nome = "Rex";
+a1.falar();
+
+// ✓ This should work: another instance
+var a2 = Animal();
+a2.nome = "Miau";
+a2.falar();
+
+// ✗ This should fail: no var keyword
+// a3 = Animal();

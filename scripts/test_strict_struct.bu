@@ -1,0 +1,25 @@
+// Test: strict variable declaration with struct
+
+struct Pessoa {
+    nome;
+    idade;
+}
+
+// ✓ This should work: declaring with var
+var p1 = Pessoa();
+p1.nome = "João";
+p1.idade = 25;
+
+print("Nome:", p1.nome);
+print("Idade:", p1.idade);
+
+// ✓ This should work: another struct instance
+var p2 = Pessoa();
+p2.nome = "Maria";
+p2.idade = 30;
+
+print("Nome:", p2.nome);
+print("Idade:", p2.idade);
+
+// ✗ This should fail: no var keyword
+// p3 = Pessoa();

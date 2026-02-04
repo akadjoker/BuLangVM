@@ -1,0 +1,18 @@
+// Teste: variáveis locais em blocos (não privates de processo)
+print("=== Teste de variáveis locais ===");
+
+// Teste 1: Variável local em bloco
+{
+    var nome = "João";
+    print("Dentro do bloco: " + nome);
+    nome = "Maria"; // Deve funcionar
+    print("Modificada: " + nome);
+}
+
+// Teste 2: Tentar usar sem declarar em bloco (não é private)
+{
+    idade = 30; // DEVE DAR ERRO (idade não é private de processo)
+    print(idade);
+}
+
+print("Fim");

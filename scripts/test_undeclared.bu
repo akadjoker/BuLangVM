@@ -1,0 +1,3 @@
+// Teste: atribuição sem declaração (deve dar erro)
+a = 10;
+print(a);

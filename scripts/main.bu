@@ -1,1 +1,9 @@
-include "bunny.bu";
+//include "bunny.bu";
+
+a =2;
+print(a);
+
+{
+ c=2;
+ print(c);
+}
