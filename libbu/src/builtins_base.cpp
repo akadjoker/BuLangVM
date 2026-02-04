@@ -66,6 +66,100 @@ static void valueToString(const Value &v, std::string &out)
   }
 }
 
+int native_string(Interpreter *vm, int argCount, Value *args)
+{
+  if (argCount != 1)
+  {
+    vm->runtimeError("str() expects exactly one argument");
+    return 0;
+  }
+
+  std::string result;
+  valueToString(args[0], result);
+  vm->pushString(result.c_str());
+  return 1;
+}
+
+int native_int(Interpreter *vm, int argCount, Value *args)
+{
+  if (argCount != 1)
+  {
+    vm->runtimeError("int() expects exactly one argument");
+    return 0;
+  }
+
+  const Value &arg = args[0];
+  int intValue = 0;
+
+  switch (arg.type)
+  {
+  case ValueType::INT:
+    intValue = arg.as.integer;
+    break;
+  case ValueType::UINT:
+    intValue = static_cast<int>(arg.as.unsignedInteger);
+    break;
+  case ValueType::FLOAT:
+    intValue = static_cast<int>(arg.as.real);
+    break;
+  case ValueType::DOUBLE:
+    intValue = static_cast<int>(arg.as.number);
+    break;
+  case ValueType::STRING:
+  {
+    const char *str = arg.asStringChars();
+    intValue = std::strtol(str, nullptr, 10);
+    break;
+  }
+  default:
+    vm->runtimeError("int() cannot convert value of this type to int");
+    return 0;
+  }
+
+  vm->push(vm->makeInt(intValue));
+  return 1;
+}
+
+int native_real(Interpreter *vm, int argCount, Value *args)
+{
+  if (argCount != 1)
+  {
+    vm->runtimeError("real() expects exactly one argument");
+    return 0;
+  }
+
+  const Value &arg = args[0];
+  double floatValue = 0.0;
+
+  switch (arg.type)
+  {
+  case ValueType::INT:
+    floatValue = static_cast<double>(arg.as.integer);
+    break;
+  case ValueType::UINT:
+    floatValue = static_cast<double>(arg.as.unsignedInteger);
+    break;
+  case ValueType::FLOAT:
+    floatValue = arg.as.real;
+    break;
+  case ValueType::DOUBLE:
+    floatValue = static_cast<double>(arg.as.number);
+    break;
+  case ValueType::STRING:
+  {
+    const char *str = arg.asStringChars();
+    floatValue = std::strtod(str, nullptr);
+    break;
+  }
+  default:
+    vm->runtimeError("real() cannot convert value of this type to real");
+    return 0;
+  }
+
+  vm->push(vm->makeDouble(static_cast<double>(floatValue)));
+  return 1;
+}
+
 int native_format(Interpreter *vm, int argCount, Value *args)
 {
   if (argCount < 1 || args[0].type != ValueType::STRING)
@@ -172,83 +266,6 @@ int native_ticks(Interpreter *vm, int argCount, Value *args)
   return 0;
 }
 
-// // Teste multi-return com native function normal
-// int native_multi2(Interpreter *vm, int argCount, Value *args)
-// {
-//   vm->push(vm->makeInt(100));
-//   vm->push(vm->makeInt(200));
-//   return 2;
-// }
-
-// // ===========================================
-// // TEST NATIVE CLASS - Para testar edge cases
-// // ===========================================
-// struct TestNativeData { int value; };
-
-// void* TestNative_ctor(Interpreter* vm, int argc, Value* args) {
-//     TestNativeData* data = new TestNativeData();
-//     data->value = argc > 0 ? args[0].asInt() : 0;
-//     return data;
-// }
-
-// void TestNative_dtor(Interpreter* vm, void* userData) {
-//     delete (TestNativeData*)userData;
-// }
-
-// // Retorna 0 valores (void)
-// int TestNative_void(Interpreter* vm, void* userData, int argc, Value* args) {
-//     Info("TestNative.void_method() called");
-//     return 0;
-// }
-
-// // Retorna 1 valor
-// int TestNative_one(Interpreter* vm, void* userData, int argc, Value* args) {
-//     vm->push(vm->makeInt(42));
-//     return 1;
-// }
-
-// // Retorna 2 valores
-// int TestNative_two(Interpreter* vm, void* userData, int argc, Value* args) {
- 
-//     vm->push(vm->makeInt(100));
-//     vm->push(vm->makeInt(200));
- 
-//     return 2;
-// }
-
-// // Retorna 3 valores
-// int TestNative_three(Interpreter* vm, void* userData, int argc, Value* args) {
-//     vm->push(vm->makeString("hello"));
-//     vm->push(vm->makeInt(42));
-//     vm->push(vm->makeBool(true));
-//     return 3;
-// }
-
-// // Getter para propriedade
-// Value TestNative_getValue(Interpreter* vm, void* userData) {
-//     TestNativeData* data = (TestNativeData*)userData;
-//     return vm->makeInt(data->value);
-// }
-
-// // Setter para propriedade
-// void TestNative_setValue(Interpreter* vm, void* userData, Value val) {
-//     TestNativeData* data = (TestNativeData*)userData;
-//     data->value = val.asInt();
-// }
-
-
-// int native_teste1(Interpreter *vm, int argCount, Value *args)
-// {
-//     vm->pushInt(99);
-//     return 1;
-// }
-// int native_teste2(Interpreter *vm, int argCount, Value *args)
-// {
-//     vm->pushInt(99);
-//     vm->pushInt(69);
-//     return 2;
-// }
-
 
 
 void Interpreter::registerBase()
@@ -259,18 +276,9 @@ void Interpreter::registerBase()
   registerNative("print_stack", native_print_stack, -1);
   registerNative("ticks", native_ticks, 1);
   registerNative("_gc", native_gc, 0);
-
-  // registerNative("teste1", native_teste1, 0);
-  // registerNative("teste2", native_teste2, 0);
-
-
-  // // Registar classe nativa de teste
-  // NativeClassDef* testClass = registerNativeClass("TestNative", TestNative_ctor, TestNative_dtor, 1);
-  // addNativeMethod(testClass, "void_method", TestNative_void);
-  // addNativeMethod(testClass, "one", TestNative_one);
-  // addNativeMethod(testClass, "two", TestNative_two);
-  // addNativeMethod(testClass, "three", TestNative_three);
-  // addNativeProperty(testClass, "value", TestNative_getValue, TestNative_setValue);
+  registerNative("str", native_string, 1);
+  registerNative("int", native_int, 1);
+  registerNative("real", native_real, 1);
 }
 
 void Interpreter::registerAll()

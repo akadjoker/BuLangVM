@@ -676,7 +676,19 @@ void Compiler::namedVariable(Token &name, bool canAssign)
     }
 
     // === 5. Fallback final: assume GLOBAL (será criado ou erro em runtime) ===
-    // OPTIMIZATION: Use direct index instead of hash lookup
+    // OPTIMIZATION: Check if it's a native class/struct first (they use HashMap)
+    String* nameStr = vm_->createString(name.lexeme.c_str());
+    if (vm_->globals.exist(nameStr))
+    {
+        // É uma classe/struct nativo - usa constant pool (método antigo)
+        arg = identifierConstant(name);
+        getOp = OP_GET_GLOBAL;
+        setOp = OP_SET_GLOBAL;
+        handle_assignment(getOp, setOp, arg, canAssign);
+        return;
+    }
+    
+    // Não é nativo - usa indexed array (novo método)
     arg = getOrCreateGlobalIndex(name.lexeme);
     getOp = OP_GET_GLOBAL;
     setOp = OP_SET_GLOBAL;
@@ -2212,6 +2224,14 @@ void Compiler::yieldStatement()
 
 void Compiler::fiberStatement()
 {
+    // Fibers não podem ser criados dentro de loops
+    // São para state machines e animações, não para spawning dinâmico
+    if (loopDepth_ > 0)
+    {
+        error("Cannot spawn fiber inside a loop. Fibers are for state machines, not dynamic spawning.");
+        return;
+    }
+
     consume(TOKEN_IDENTIFIER, "Expect function name after 'fiber'.");
     Token nameToken = previous;
 

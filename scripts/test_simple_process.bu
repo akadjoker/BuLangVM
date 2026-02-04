@@ -1,0 +1,20 @@
+// ============================================
+// Teste simples de processos
+// ============================================
+
+var counter = 0;
+
+process worker() 
+{
+    for (var i = 0; i < 10; i++) 
+    {
+        counter++;
+        frame; // Yield por 1 frame
+    }
+}
+
+// Inicia o processo
+worker();
+
+// Fim do script - o C++ vai rodar update() até o processo terminar
+// Quando terminar, counter deve ser 10

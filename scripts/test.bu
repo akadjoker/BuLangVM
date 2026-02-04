@@ -1,0 +1,22 @@
+
+def test_closure() {
+    def outer() {
+        var x = 0;
+        def inner() {
+            x++;
+            return x;
+        }
+        var i = 0;
+        while (i < 1000) {
+            inner();
+            i++;
+        }
+        return x;
+    }
+    outer();
+}
+
+print("starting");
+test_closure();
+print("done");
+

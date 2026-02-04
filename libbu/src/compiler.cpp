@@ -56,6 +56,14 @@ uint16 Compiler::getOrCreateGlobalIndex(const std::string& name)
   // Create new index
   uint16 index = nextGlobalIndex_++;
   globalIndices_[name] = index;
+  
+  // Ensure reverse mapping array is large enough
+  if (index >= globalIndexToName_.size())
+  {
+    globalIndexToName_.resize(index + 1);
+  }
+  globalIndexToName_[index] = name;
+  
   return index;
 }
 
@@ -199,15 +207,34 @@ ProcessDef *Compiler::compile(const std::string &source)
   upvalueCount_ = 0;
   isProcess_ = true;  // Top-level code IS a process
 
-  // OPTIMIZATION: Sync global indices with natives already registered
-  // This ensures native functions use the same indices as assigned during registration
+  // OPTIMIZATION: Sync global indices with all natives already registered
+  // This ensures native functions, structs, and classes use the same indices
+  // as assigned during registration
   globalIndices_.clear();
   nextGlobalIndex_ = 0;
+
+  // Sync native functions
   for (size_t i = 0; i < vm_->natives.size(); i++)
   {
     const std::string& name = vm_->natives[i].name->chars();
     globalIndices_[name] = nextGlobalIndex_++;
-    declaredGlobals_.insert(name);  // Mark as declared so namedVariable finds it
+    declaredGlobals_.insert(name);
+  }
+
+  // Sync native structs
+  for (size_t i = 0; i < vm_->nativeStructs.size(); i++)
+  {
+    const std::string& name = vm_->nativeStructs[i]->name->chars();
+    globalIndices_[name] = nextGlobalIndex_++;
+    declaredGlobals_.insert(name);
+  }
+
+  // Sync native classes
+  for (size_t i = 0; i < vm_->nativeClasses.size(); i++)
+  {
+    const std::string& name = vm_->nativeClasses[i]->name->chars();
+    globalIndices_[name] = nextGlobalIndex_++;
+    declaredGlobals_.insert(name);
   }
 
   compileStartTime = std::chrono::steady_clock::now();

@@ -29,15 +29,13 @@
 void Interpreter::markRoots()
 {
 
-    if (globals.count)
+    // OPTIMIZATION: Mark globals from globalsArray instead of HashMap
+    for (size_t i = 0; i < globalsArray.size(); i++)
     {
-        globals.forEach([this](String *key, Value val)
-                        { 
-            if(val.isObject())
-            {
-                //printValueNl(val);
-                markValue(val); 
-            } });
+        if (globalsArray[i].isObject())
+        {
+            markValue(globalsArray[i]);
+        }
     }
 
     for (size_t i = 0; i < aliveProcesses.size(); i++)

@@ -30,6 +30,12 @@ private:
         const Code &chunk,
         size_t offset);
 
+    // Para globals com índice direto no array (OPTIMIZATION)
+    static size_t globalIndexInstruction(
+        const char *name,
+        const Code &chunk,
+        size_t offset);
+
     static size_t byteInstruction(
         const char *name,
         const Code &chunk,

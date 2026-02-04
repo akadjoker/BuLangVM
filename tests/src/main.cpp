@@ -2,6 +2,9 @@
 #include <cstdio>
 #include <chrono>
 
+// Forward declaration para bindings nativos de C++
+extern void registerNativeBindings(Interpreter* vm);
+
 using namespace std::chrono;
 
 // Ler ficheiro para string
@@ -31,6 +34,7 @@ static int runFile(const char* path) {
 
     Interpreter vm;
     vm.registerAll();
+    registerNativeBindings(&vm);  // Registrar bindings C++ nativos
     vm.run(source, false);
 
     delete[] source;
@@ -43,6 +47,7 @@ void benchmark(const char* name, const char* code, int iterations = 1) {
     for (int i = 0; i < iterations; i++) {
         Interpreter vm;
         vm.registerAll();
+        registerNativeBindings(&vm);  // Registrar bindings C++ nativos
         vm.run(code, false);
     }
 

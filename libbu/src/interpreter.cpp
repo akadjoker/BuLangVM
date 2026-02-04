@@ -76,13 +76,14 @@ Interpreter::Interpreter()
   staticNames[(int)StaticNames::SKIP] = createString("skip");
   staticNames[(int)StaticNames::REMAINING] = createString("remaining");
 
-  globals.set(createString("TYPE_UINT8"), makeInt(0));
-  globals.set(createString("TYPE_INT16"), makeInt(1));
-  globals.set(createString("TYPE_UINT16"), makeInt(2));
-  globals.set(createString("TYPE_INT32"), makeInt(3));
-  globals.set(createString("TYPE_UINT32"), makeInt(4));
-  globals.set(createString("TYPE_FLOAT"), makeInt(5));
-  globals.set(createString("TYPE_DOUBLE"), makeInt(6));
+  // OPTIMIZATION: Removed HashMap globals - using globalsArray directly
+  // globals.set(createString("TYPE_UINT8"), makeInt(0));
+  // globals.set(createString("TYPE_INT16"), makeInt(1));
+  // globals.set(createString("TYPE_UINT16"), makeInt(2));
+  // globals.set(createString("TYPE_INT32"), makeInt(3));
+  // globals.set(createString("TYPE_UINT32"), makeInt(4));
+  // globals.set(createString("TYPE_FLOAT"), makeInt(5));
+  // globals.set(createString("TYPE_DOUBLE"), makeInt(6));
 }
 
 void Interpreter::freeInstances()
@@ -166,7 +167,7 @@ void Interpreter::freeBlueprints()
   structsMap.destroy();
   classesMap.destroy();
   nativeClassesMap.destroy();
-  globals.destroy();
+  // globals.destroy();  // OPTIMIZATION: HashMap globals removed
 }
 void Interpreter::reset()
 {
@@ -217,14 +218,17 @@ Interpreter::~Interpreter()
   dumpToFile("main.dump");
   Info("VM shutdown");
   Info("Memory allocated : %s", formatBytes(totalAllocated));
-  // Info("Classes          : %zu", getTotalClasses());
-  // Info("Structs          : %zu", getTotalStructs());
-  // Info("Arrays           : %zu", getTotalArrays());
-  // Info("Maps             : %zu", getTotalMaps());
-  // Info("Native classes   : %zu", getTotalNativeClasses());
-  // Info("Native structs   : %zu", getTotalNativeStructs());
-  // Info("Processes        : %zu", aliveProcesses.size());
-unloadAllPlugins();
+  Info("Classes          : %zu", getTotalClasses());
+  Info("Structs          : %zu", getTotalStructs());
+  Info("Arrays           : %zu", getTotalArrays());
+  Info("Maps             : %zu", getTotalMaps());
+  Info("Native classes   : %zu", getTotalNativeClasses());
+  Info("Native structs   : %zu", getTotalNativeStructs());
+  Info("Buffers          : %zu", totalBuffers);
+  Info("Processes        : %zu", aliveProcesses.size());
+  Info("Globals          : %zu", globalsArray.size());
+  
+  unloadAllPlugins();
   for (size_t i = 0; i < modules.size(); i++)
   {
     ModuleDef *mod = modules[i];
@@ -237,7 +241,7 @@ unloadAllPlugins();
   freeInstances();
   freeRunningProcesses();
   freeFunctions();
-  globals.destroy();
+  // globals.destroy();  // OPTIMIZATION: HashMap globals removed
   clearAllGCObjects();  // Must be called before freeBlueprints() so native destructors can access ClassDef/NativeClassDef
   freeBlueprints();
 
@@ -307,8 +311,13 @@ NativeClassDef *Interpreter::registerNativeClass(const char *name,
   // Adiciona ao mapa para lookup por nome
   nativeClassesMap.set(klass->name, klass);
 
-  // Define global
-  globals.set(klass->name, makeNativeClass(id));
+  // OPTIMIZATION: Removed HashMap globals - using globalsArray directly
+  // globals.set(klass->name, makeNativeClass(id));
+
+  // OPTIMIZATION: Also add to globalsArray for direct indexed access
+  uint16 globalIndex = globalsArray.size();
+  globalsArray.push(makeNativeClass(id));
+  nativeGlobalIndices.set(klass->name, globalIndex);
 
   return klass;
 }
@@ -363,7 +372,14 @@ NativeStructDef *Interpreter::registerNativeStruct(const char *name,
   klass->persistent = persistent;
   klass->id = nativeStructs.size();
   nativeStructs.push(klass);
-  globals.set(klass->name, makeNativeStruct(klass->id));
+  // OPTIMIZATION: Removed HashMap globals - using globalsArray directly
+  // globals.set(klass->name, makeNativeStruct(klass->id));
+
+  // OPTIMIZATION: Also add to globalsArray for direct indexed access
+  uint16 globalIndex = globalsArray.size();
+  globalsArray.push(makeNativeStruct(klass->id));
+  nativeGlobalIndices.set(klass->name, globalIndex);
+
   return klass;
 }
 
@@ -505,7 +521,9 @@ void Interpreter::disassemble()
 int Interpreter::addGlobal(const char *name, Value value)
 {
   String *str = createString(name);
-  globals.set(str, value);
+  // OPTIMIZATION: Removed HashMap globals - using globalsArray directly
+  // globals.set(str, value);
+  // TODO: If needed, add to globalsArray instead
   return 0;
 }
 
@@ -674,6 +692,17 @@ void Interpreter::resetFiber()
 Function *Interpreter::compile(const char *source)
 {
   ProcessDef *proc = compiler->compile(source);
+  
+  // Copy global index to name mapping from compiler (convert std::vector to Vector<String*>)
+  const auto& compilerMapping = compiler->getGlobalIndexToName();
+  globalIndexToName_.clear();
+  globalIndexToName_.reserve(compilerMapping.size());
+  for (const auto& name : compilerMapping)
+  {
+    String* str = createString(name.c_str());
+    globalIndexToName_.push(str);
+  }
+  
   Function *mainFunc = proc->fibers[0].frames[0].func;
   return mainFunc;
 }
@@ -681,6 +710,17 @@ Function *Interpreter::compile(const char *source)
 Function *Interpreter::compileExpression(const char *source)
 {
   ProcessDef *proc = compiler->compileExpression(source);
+  
+  // Copy global index to name mapping from compiler
+  const auto& compilerMapping = compiler->getGlobalIndexToName();
+  globalIndexToName_.clear();
+  globalIndexToName_.reserve(compilerMapping.size());
+  for (const auto& name : compilerMapping)
+  {
+    String* str = createString(name.c_str());
+    globalIndexToName_.push(str);
+  }
+  
   Function *mainFunc = proc->fibers[0].frames[0].func;
   return mainFunc;
 }
@@ -693,6 +733,16 @@ bool Interpreter::run(const char *source, bool _dump)
   if (!proc)
   {
     return false;
+  }
+  
+  // Copy global name mapping for debug messages
+  const auto& compilerMapping = compiler->getGlobalIndexToName();
+  globalIndexToName_.clear();
+  globalIndexToName_.reserve(compilerMapping.size());
+  for (const auto& name : compilerMapping)
+  {
+    String* str = createString(name.c_str());
+    globalIndexToName_.push(str);
   }
 
   if (_dump)
@@ -721,6 +771,16 @@ bool Interpreter::compile(const char *source, bool dump)
   if (!proc)
   {
     return false;
+  }
+  
+  // Copy global name mapping for debug messages
+  const auto& compilerMapping = compiler->getGlobalIndexToName();
+  globalIndexToName_.clear();
+  globalIndexToName_.reserve(compilerMapping.size());
+  for (const auto& name : compilerMapping)
+  {
+    String* str = createString(name.c_str());
+    globalIndexToName_.push(str);
   }
 
   if (dump)

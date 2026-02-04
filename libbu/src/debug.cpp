@@ -117,11 +117,11 @@ size_t Debug::disassembleInstruction(const Code &chunk, size_t offset)
   case OP_SET_LOCAL:
     return byteInstruction("OP_SET_LOCAL", chunk, offset);
   case OP_GET_GLOBAL:
-    return constantNameInstruction("OP_GET_GLOBAL", chunk, offset);
+    return globalIndexInstruction("OP_GET_GLOBAL", chunk, offset);
   case OP_SET_GLOBAL:
-    return constantNameInstruction("OP_SET_GLOBAL", chunk, offset);
+    return globalIndexInstruction("OP_SET_GLOBAL", chunk, offset);
   case OP_DEFINE_GLOBAL:
-    return constantNameInstruction("OP_DEFINE_GLOBAL", chunk, offset);
+    return globalIndexInstruction("OP_DEFINE_GLOBAL", chunk, offset);
   case OP_GET_PRIVATE:
     return byteInstruction("OP_GET_PRIVATE", chunk, offset);
   case OP_SET_PRIVATE:
@@ -390,6 +390,20 @@ size_t Debug::constantNameInstruction(const char *name, const Code &chunk,
   const char *nm = (c.isString() ? c.asString()->chars() : "<non-string>");
 
   printf("%-20s %4u '%s'\n", name, (unsigned)constantIdx, nm);
+  return offset + 3;
+}
+
+size_t Debug::globalIndexInstruction(const char *name, const Code &chunk,
+                                     size_t offset)
+{
+  if (!hasBytes(chunk, offset, 2))
+  {
+    printf("%s <truncated>\n", name);
+    return chunk.count;
+  }
+
+  uint16 globalIdx = (uint16)(chunk.code[offset + 1] << 8) | chunk.code[offset + 2];
+  printf("%-20s %4u (global array index)\n", name, (unsigned)globalIdx);
   return offset + 3;
 }
 

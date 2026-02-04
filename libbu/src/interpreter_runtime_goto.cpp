@@ -412,14 +412,16 @@ op_get_global:
     // Ensure globalsArray is large enough
     if (index >= globalsArray.size())
     {
-        runtimeError("Undefined global variable at index %d", index);
+        const char* varName = (index < globalIndexToName_.size()) ? globalIndexToName_[index]->chars() : "<unknown>";
+        runtimeError("Undefined global variable '%s' at index %d", varName, index);
         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
     }
     
     Value value = globalsArray[index];
     if (value.isNil() && index >= globalsArray.size())
     {
-        runtimeError("Uninitialized global variable at index %d", index);
+        const char* varName = (index < globalIndexToName_.size()) ? globalIndexToName_[index]->chars() : "<unknown>";
+        runtimeError("Uninitialized global variable '%s' at index %d", varName, index);
         return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
     }
     
