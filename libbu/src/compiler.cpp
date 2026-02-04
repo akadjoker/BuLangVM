@@ -518,6 +518,100 @@ void Compiler::consume(TokenType type, const char *message)
   errorAtCurrent(message);
 }
 
+bool Compiler::isKeywordToken(TokenType type)
+{
+  // Keywords que podem ser usadas como nomes de campos/propriedades
+  switch (type)
+  {
+    // Control flow
+    case TOKEN_VAR:
+    case TOKEN_DEF:
+    case TOKEN_IF:
+    case TOKEN_ELIF:
+    case TOKEN_ELSE:
+    case TOKEN_WHILE:
+    case TOKEN_FOR:
+    case TOKEN_FOREACH:
+    case TOKEN_IN:
+    case TOKEN_RETURN:
+    case TOKEN_BREAK:
+    case TOKEN_CONTINUE:
+    case TOKEN_DO:
+    case TOKEN_LOOP:
+    case TOKEN_SWITCH:
+    case TOKEN_CASE:
+    case TOKEN_DEFAULT:
+    // Built-ins
+    case TOKEN_PRINT:
+    case TOKEN_PROCESS:
+    case TOKEN_FRAME:
+    case TOKEN_EXIT:
+    case TOKEN_FIBER:
+    case TOKEN_YIELD:
+    case TOKEN_LEN:
+    case TOKEN_FREE:
+    // OOP
+    case TOKEN_STRUCT:
+    case TOKEN_ENUM:
+    case TOKEN_CLASS:
+    case TOKEN_SELF:
+    case TOKEN_THIS:
+    case TOKEN_SUPER:
+    // Modules
+    case TOKEN_INCLUDE:
+    case TOKEN_IMPORT:
+    case TOKEN_USING:
+    case TOKEN_REQUIRE:
+    // Exceptions
+    case TOKEN_TRY:
+    case TOKEN_CATCH:
+    case TOKEN_FINALLY:
+    case TOKEN_THROW:
+    // Math
+    case TOKEN_SIN:
+    case TOKEN_COS:
+    case TOKEN_SQRT:
+    case TOKEN_ABS:
+    case TOKEN_FLOOR:
+    case TOKEN_CEIL:
+    case TOKEN_DEG:
+    case TOKEN_RAD:
+    case TOKEN_TAN:
+    case TOKEN_ATAN:
+    case TOKEN_ATAN2:
+    case TOKEN_POW:
+    case TOKEN_LOG:
+    case TOKEN_EXP:
+    // Array
+    case TOKEN_PUSH:
+    // Timer
+    case TOKEN_CLOCK:
+    case TOKEN_TIME:
+    // Labels
+    case TOKEN_LABEL:
+    case TOKEN_GOTO:
+    case TOKEN_GOSUB:
+    // Literals (podem ser usados como nomes)
+    case TOKEN_TRUE:
+    case TOKEN_FALSE:
+    case TOKEN_NIL:
+      return true;
+    default:
+      return false;
+  }
+}
+
+void Compiler::consumeIdentifierLike(const char *message)
+{
+  // Aceita identifier OU keyword como nome de campo/propriedade
+  if (current.type == TOKEN_IDENTIFIER || isKeywordToken(current.type))
+  {
+    advance();
+    return;
+  }
+  errorAtCurrent(message);
+}
+
 // ============================================
 // ERROR HANDLING
 // ============================================

@@ -2285,7 +2285,7 @@ void Compiler::fiberStatement()
 
 void Compiler::dot(bool canAssign)
 {
-    consume(TOKEN_IDENTIFIER, "Expect property name after '.'");
+    consumeIdentifierLike("Expect property name after '.'");
     Token propName = previous;
 
     uint16_t nameIdx = identifierConstant(propName);
@@ -2544,14 +2544,10 @@ void Compiler::structDeclaration()
         // 2. Loop interno: múltiplos fields separados por vírgula
         do
         {
-            consume(TOKEN_IDENTIFIER, "Expect field name");
+            consumeIdentifierLike("Expect field name");
 
             String *fieldName = vm_->createString(previous.lexeme.c_str());
-            validateIdentifierName(previous);
-            if (hadError)
-            {
-                return;
-            }
+            // Não validar keywords - campos podem ter nomes como "loop", "break", etc.
             bool wasReplaced = structDef->names.set(fieldName, structDef->argCount);
             if (!wasReplaced)
             {
@@ -2722,13 +2718,9 @@ void Compiler::classDeclaration()
         advance(); // Consome 'var'
         do
         {
-            consume(TOKEN_IDENTIFIER, "Expect field name");
+            consumeIdentifierLike("Expect field name");
             Token fieldName = previous;
-            validateIdentifierName(fieldName);
-            if (hadError)
-            {
-                return;
-            }
+            // Não validar keywords - campos podem ter nomes como "loop", "break", etc.
             String *name = vm_->createString(fieldName.lexeme.c_str());
             // classDef->fieldNames.set(name, classDef->fieldCount);
 

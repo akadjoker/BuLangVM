@@ -264,6 +264,10 @@ private:
   bool match(TokenType type);
   void consume(TokenType type, const char *message);
 
+  // Helper para aceitar keywords como identificadores (campos, propriedades)
+  bool isKeywordToken(TokenType type);
+  void consumeIdentifierLike(const char *message);
+
   void beginLoop(int loopStart, bool isForeach = false);
   void endLoop();
   void emitBreak();
