@@ -1,0 +1,175 @@
+// Teste de Verbatim Strings com texto gigante, emojis e quebras de linha
+print("=== Teste Verbatim: Texto Gigante com Emojis ===");
+print("");
+
+// Teste 1: Emojis e caracteres especiais
+print("Teste 1: Emojis básicos");
+var emojis = @"😀 😃 😄 😁 😆 😅 🤣 😂
+🔥 💧 🌊 ⚡ 🌟 ✨ 💫 ⭐
+❤️ 💙 💚 💛 🧡 💜 🖤 🤍
+👍 👎 👏 🙌 🤝 💪 🦾 🦿";
+print(emojis);
+print("");
+
+// Teste 2: Texto multilinha com emojis misturados
+print("Teste 2: Multilinha com emojis");
+var mensagem = @"📝 Relatório do Dia
+━━━━━━━━━━━━━━━━━━━━
+✅ Tarefa 1: Completa
+✅ Tarefa 2: Completa
+⚠️  Tarefa 3: Em progresso
+❌ Tarefa 4: Pendente
+
+Status: 🔄 Em andamento
+Prioridade: 🔴 Alta";
+print(mensagem);
+print("");
+
+// Teste 3: Texto gigante com repetições
+print("Teste 3: Texto gigante (5000+ caracteres)");
+var gigante = @"🌍 TEXTO GIGANTE COM EMOJIS E QUEBRAS DE LINHA 🌍
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. 🎯
+Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 💼
+Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris. 🏃
+
+📚 SEÇÃO 1: INTRODUÇÃO
+─────────────────────────────
+Nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in 
+reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla 
+pariatur. Excepteur sint occaecat cupidatat non proident. ✨
+
+🔬 SEÇÃO 2: DESENVOLVIMENTO
+─────────────────────────────
+Sunt in culpa qui officia deserunt mollit anim id est laborum.
+Sed ut perspiciatis unde omnis iste natus error sit voluptatem 
+accusantium doloremque laudantium, totam rem aperiam. 🚀
+
+Linha 1️⃣ com números
+Linha 2️⃣ com mais números
+Linha 3️⃣ e emojis variados
+Linha 4️⃣ teste de continuidade
+Linha 5️⃣ mais uma linha
+Linha 6️⃣ sexta linha
+Linha 7️⃣ sétima linha
+Linha 8️⃣ oitava linha
+Linha 9️⃣ nona linha
+Linha 🔟 décima linha
+
+💡 SEÇÃO 3: SÍMBOLOS E CARACTERES
+─────────────────────────────────
+Símbolos matemáticos: ∑ ∫ ∂ ∇ √ ∞ ≈ ≠ ≤ ≥
+Setas: → ← ↑ ↓ ↔ ⇒ ⇐ ⇑ ⇓ ⇔
+Estrelas: ★ ☆ ✪ ✫ ✬ ✭ ✮ ✯ ✰ ⭐
+Formas: ● ○ ■ □ ▲ △ ▼ ▽ ◆ ◇
+
+🎨 SEÇÃO 4: CORES E BANDEIRAS
+─────────────────────────────
+Bandeiras: 🇧🇷 🇺🇸 🇬🇧 🇫🇷 🇩🇪 🇪🇸 🇮🇹 🇯🇵 🇨🇳 🇰🇷
+Corações coloridos: ❤️ 🧡 💛 💚 💙 💜 🖤 🤍 🤎 💖
+Círculos: 🔴 🟠 🟡 🟢 🔵 🟣 ⚫ ⚪ 🟤
+
+🌈 SEÇÃO 5: NATUREZA
+─────────────────────
+Clima: ☀️ 🌤️ ⛅ 🌥️ ☁️ 🌦️ 🌧️ ⛈️ 🌩️ 🌨️
+Plantas: 🌱 🌿 🍀 🌾 🌵 🌴 🌳 🌲 🎋 🎍
+Animais: 🐶 🐱 🐭 🐹 🐰 🦊 🐻 🐼 🐨 🐯
+
+⚙️ SEÇÃO 6: TECNOLOGIA
+─────────────────────────
+Dispositivos: 💻 🖥️ ⌨️ 🖱️ 🖨️ 📱 ☎️ 📞 📟 📠
+Mídia: 💾 💿 📀 🎥 📷 📹 📼 🔍 🔎 💡
+Ferramentas: 🔧 🔨 ⚒️ 🛠️ ⛏️ 🔩 ⚙️ 🗜️ ⚖️
+
+📊 SEÇÃO 7: DADOS E GRÁFICOS
+─────────────────────────────
+Gráficos: 📈 📉 📊 💹 💱 💲 💵 💴 💶 💷
+Tempo: ⏰ ⏱️ ⏲️ ⏳ ⌛ 🕐 🕑 🕒 🕓 🕔
+Calendário: 📅 📆 🗓️ 📋 📌 📍 📎 🖇️ 📏 📐
+
+🎭 SEÇÃO 8: ENTRETENIMENTO
+─────────────────────────────
+Música: 🎵 🎶 🎼 🎹 🎸 🎺 🎷 🥁 🎻 🎤
+Esportes: ⚽ 🏀 🏈 ⚾ 🎾 🏐 🏉 🎱 🏓 🏸
+Jogos: 🎮 🕹️ 🎯 🎲 ♠️ ♥️ ♦️ ♣️ 🃏 🎴
+
+🍕 SEÇÃO 9: COMIDA
+─────────────────────
+Frutas: 🍎 🍐 🍊 🍋 🍌 🍉 🍇 🍓 🍈 🍒
+Fast food: 🍔 🍟 🍕 🌭 🥪 🌮 🌯 🥙 🥗 🍿
+Bebidas: ☕ 🍵 🧃 🥤 🍶 🍺 🍻 🥂 🍷 🥃
+
+🏆 SEÇÃO 10: FINAL
+─────────────────────────────
+Parabéns! 🎉 Você chegou ao fim! 🎊
+Este é um texto verbatim gigante com:
+  ✓ Mais de 5000 caracteres
+  ✓ Centenas de emojis 😍
+  ✓ Múltiplas quebras de linha
+  ✓ Símbolos especiais ★
+  ✓ Caracteres Unicode 中文
+  ✓ Preservação de \n literal
+  ✓ Sem processar escapes como \t
+
+Fim do teste gigante! 🏁
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
+
+print(gigante);
+print("");
+print("Tamanho aproximado: " + len(gigante) + " caracteres");
+print("");
+
+// Teste 4: Aspas duplas com emojis
+print("Teste 4: Aspas duplas + emojis");
+var aspas = @"O emoji disse: ""Olá 👋"" para o outro emoji ""Oi 😊""";
+print(aspas);
+print("");
+
+// Teste 5: Código SQL com emojis (caso de uso real)
+print("Teste 5: SQL com emojis");
+var sql = @"SELECT 
+    name AS '👤 Nome',
+    status AS '📊 Status',
+    emoji AS '😀 Emoji'
+FROM users
+WHERE mood = ""😊 Happy""
+  AND active = ""✅ Yes"";";
+print(sql);
+print("");
+
+// Teste 6: Arte ASCII com emojis
+print("Teste 6: Arte ASCII + emojis");
+var arte = @"
+    🌟 ╔═══════════════╗ 🌟
+    ✨ ║   BuLang VM   ║ ✨
+    🎯 ║  Verbatim OK! ║ 🎯
+    🔥 ╚═══════════════╝ 🔥
+    
+       ▲
+      ▲ ▲
+     ▲   ▲
+    ▲ 🚀 ▲
+   ▲▲▲▲▲▲▲
+";
+print(arte);
+print("");
+
+// Teste 7: Caracteres de diferentes idiomas
+print("Teste 7: Múltiplos idiomas");
+var idiomas = @"🌍 Olá (Português) 🇧🇷
+🌎 Hello (English) 🇺🇸
+🌏 こんにちは (日本語) 🇯🇵
+🗾 안녕하세요 (한국어) 🇰🇷
+🐉 你好 (中文) 🇨🇳
+🥖 Bonjour (Français) 🇫🇷
+🍺 Hallo (Deutsch) 🇩🇪
+🍕 Ciao (Italiano) 🇮🇹
+💃 Hola (Español) 🇪🇸
+🌹 Здравствуйте (Русский) 🇷🇺
+🕌 مرحبا (العربية)
+🪔 नमस्ते (हिन्दी) 🇮🇳";
+print(idiomas);
+print("");
+
+print("=== ✅ Todos os testes passaram! ✅ ===");

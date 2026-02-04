@@ -534,6 +534,42 @@ Token Lexer::string()
     advance(); // fecha "
     return makeToken(TOKEN_STRING, value);
 }
+
+Token Lexer::verbatimString()
+{
+    const size_t MAX_STRING_LENGTH = 10000;
+    size_t startPos = current;
+    std::string value;
+
+    while (!isAtEnd())
+    {
+        if (current - startPos > MAX_STRING_LENGTH)
+        {
+            return errorToken("Verbatim string too long (max 10000 chars)");
+        }
+
+        char c = peek();
+
+        if (c == '"')
+        {
+            advance();
+            // Verifica se é uma aspa duplicada "" (escape de aspas em verbatim string)
+            if (peek() == '"')
+            {
+                advance();
+                value += '"'; // adiciona uma aspa literal
+                continue;
+            }
+            // Fim da string verbatim
+            return makeToken(TOKEN_STRING, value);
+        }
+
+        // Adiciona caractere literal (incluindo quebras de linha)
+        value += advance();
+    }
+
+    return errorToken("Unterminated verbatim string");
+}
 // ============================================
 // MAIN API: scanToken()
 // ============================================
@@ -587,6 +623,12 @@ Token Lexer::scanToken()
         return makeToken(TOKEN_DOT, ".");
     
     case '@':
+        // Verifica se é uma verbatim string @"..."
+        if (peek() == '"')
+        {
+            advance(); // consome o "
+            return verbatimString();
+        }
         return makeToken(TOKEN_AT, "@");
 
     // Operators com compound assignment e increment/decrement
