@@ -1,0 +1,41 @@
+// Teste: Verbatim strings vs Buffers (ambos usam @)
+print("=== Teste: @ para strings E buffers ===");
+print("");
+
+// Teste 1: Buffer tradicional @(size, type)
+print("Teste 1: Buffer");
+var buf = @(10, 0); // BUFFER_UINT8 = 0
+buf.fill(42);
+print("Buffer criado com tamanho: " + buf.length());
+print("");
+
+// Teste 2: Verbatim string @"..."
+print("Teste 2: Verbatim String");
+var texto = @"Olá\nmundo";
+print("Texto verbatim: " + texto);
+print("");
+
+// Teste 3: Ambos juntos
+print("Teste 3: Misturados");
+var sql = @"SELECT * FROM users WHERE id = ?";
+var buffer_dados = @(256, 0);
+print("SQL: " + sql);
+print("Buffer: " + buffer_dados.length() + " bytes");
+print("");
+
+// Teste 4: String verbatim multilinha
+print("Teste 4: Multilinha");
+var config = @"[server]
+host = localhost
+port = 8080
+debug = true";
+print(config);
+print("");
+
+// Teste 5: Aspas em verbatim string
+print("Teste 5: Aspas escapadas");
+var json = @"{ ""name"": ""João"", ""age"": 25 }";
+print(json);
+print("");
+
+print("=== ✅ Ambas sintaxes funcionam! ===");
