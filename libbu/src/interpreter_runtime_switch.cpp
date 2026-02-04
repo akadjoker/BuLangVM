@@ -328,12 +328,6 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
             }
             
             Value value = globalsArray[index];
-            if (value.isNil() && index >= globalsArray.size())
-            {
-                const char* varName = (index < globalIndexToName_.size()) ? globalIndexToName_[index]->chars() : "<unknown>";
-                runtimeError("Uninitialized global variable '%s' at index %d", varName, index);
-                return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
-            }
             
             PUSH(value);
             break;

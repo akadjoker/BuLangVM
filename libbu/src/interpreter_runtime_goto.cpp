@@ -321,7 +321,6 @@ FiberResult Interpreter::run_fiber(Fiber *fiber, Process *process)
     do                                     \
     {                                      \
         instructionsRun++;                 \
-        uint8 nextOp = *ip;                \
         goto *dispatch_table[READ_BYTE()]; \
     } while (0)
 
@@ -418,12 +417,6 @@ op_get_global:
     }
     
     Value value = globalsArray[index];
-    if (value.isNil() && index >= globalsArray.size())
-    {
-        const char* varName = (index < globalIndexToName_.size()) ? globalIndexToName_[index]->chars() : "<unknown>";
-        runtimeError("Uninitialized global variable '%s' at index %d", varName, index);
-        return {FiberResult::FIBER_DONE, instructionsRun, 0, 0};
-    }
     
     PUSH(value);
     DISPATCH();
