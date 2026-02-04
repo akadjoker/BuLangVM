@@ -1,1 +1,37 @@
-include "bunny.bu";
+// Test: keywords as field names in STRUCT
+struct Animation
+{
+    var loop;
+    var frames;
+    var speed;
+}
+
+var anim = Animation(true, [1, 2, 3, 4], 1.5);
+
+write("Struct - loop: {}\n", anim.loop);
+write("Struct - speed: {}\n", anim.speed);
+
+// Test: keywords as field names in CLASS
+class Player
+{
+    var loop = false;
+    var continue = 0;
+    var while = "test";
+
+    def init() {
+        self.loop = true;
+        self.continue = 42;
+    }
+
+    def getLoop() {
+        return self.loop;
+    }
+}
+
+var p = Player();
+write("Class - loop: {}\n", p.loop);
+write("Class - continue: {}\n", p.continue);
+write("Class - while: {}\n", p.while);
+write("Class - getLoop(): {}\n", p.getLoop());
+
+write("\n=== All tests passed! ===\n");
