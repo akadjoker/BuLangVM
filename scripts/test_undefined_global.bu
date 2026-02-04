@@ -1,6 +1,0 @@
-// Test that undefined global errors show variable names
-
-var defined_var = 42;
-
-// This should trigger an error with the variable name
-print(undefined_var);

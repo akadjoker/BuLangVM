@@ -1,6 +1,6 @@
 project(tests)
 cmake_policy(SET CMP0072 NEW)
- cmake_minimum_required(VERSION 3.28)
+
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ")
@@ -45,10 +45,7 @@ add_compile_options(
  
 
 file(GLOB SOURCES "src/*.cpp")
-list(REMOVE_ITEM SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/benchmark.cpp")
-list(REMOVE_ITEM SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/test_bindings.cpp")
 add_executable(tests   ${SOURCES})
-
 
 
 target_include_directories(libbu PUBLIC  include src)
@@ -75,5 +72,3 @@ endif()
 if (UNIX)
     target_link_libraries(tests  m )
 endif()
-
-

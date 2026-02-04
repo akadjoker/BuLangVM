@@ -1,0 +1,541 @@
+require "raylib";
+import math;
+import raylib;
+using raylib;
+
+var screenW = 800;
+var screenH = 600;
+var renderW = 400;
+var renderH = 300;
+
+InitWindow(screenW, screenH, "DOOM + Sprites");
+SetTargetFPS(60);
+
+var WHITE = Color(255, 255, 255, 255);
+var BLACK = Color(0, 0, 0, 255);
+var RED = Color(255, 0, 0, 255);
+var GREEN = Color(0, 255, 0, 255);
+var BLUE = Color(0, 0, 255, 255);
+var YELLOW = Color(255, 255, 0, 255);
+var CYAN = Color(0, 255, 255, 255);
+var MAGENTA = Color(255, 0, 255, 255);
+var GRAY = Color(100, 100, 100, 255);
+
+// ==========================================
+// MAPA
+// ==========================================
+var mapW = 16;
+var mapH = 16;
+
+var worldMap = [];
+
+var rows = [
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,2,2,2,0,0,0,0,3,3,3,0,0,1],
+    [1,0,0,2,0,0,0,0,0,0,0,0,3,0,0,1],
+    [1,0,0,2,0,0,0,0,0,0,0,0,3,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,4,4,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,4,4,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,3,0,0,0,0,0,0,0,0,2,0,0,1],
+    [1,0,0,3,0,0,0,0,0,0,0,0,2,0,0,1],
+    [1,0,0,3,3,3,0,0,0,0,2,2,2,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+];
+
+for (var y = 0; y < mapH; y = y + 1)
+{
+    var row = rows[y];
+    for (var x = 0; x < mapW; x = x + 1)
+    {
+        worldMap.push(row[x]);
+    }
+}
+
+def getMap(x, y)
+{
+    if (x < 0 || x >= mapW || y < 0 || y >= mapH)
+        return 1;
+    return worldMap[y * mapW + x];
+}
+
+// ==========================================
+// SPRITES
+// ==========================================
+
+struct Sprite
+{
+    var x, y;
+    var color;
+    var type; // 0 = inimigo, 1 = item
+};
+
+var sprites = [];
+
+// Criar alguns sprites no mapa
+var s1 = Sprite();
+s1.x = 5.5;
+s1.y = 5.5;
+s1.color = RED;
+s1.type = 0;
+sprites.push(s1);
+
+var s2 = Sprite();
+s2.x = 10.5;
+s2.y = 5.5;
+s2.color = GREEN;
+s2.type = 0;
+sprites.push(s2);
+
+var s3 = Sprite();
+s3.x = 7.5;
+s3.y = 10.5;
+s3.color = CYAN;
+s3.type = 1;
+sprites.push(s3);
+
+var s4 = Sprite();
+s4.x = 12.5;
+s4.y = 10.5;
+s4.color = YELLOW;
+s4.type = 0;
+sprites.push(s4);
+
+var s5 = Sprite();
+s5.x = 3.5;
+s5.y = 11.5;
+s5.color = MAGENTA;
+s5.type = 1;
+sprites.push(s5);
+
+// ==========================================
+// PLAYER
+// ==========================================
+
+var posX = 4.0;
+var posY = 8.0;
+var dirX = -1.0;
+var dirY = 0.0;
+var planeX = 0.0;
+var planeY = 0.66;
+
+var moveSpeed = 0.08;
+var rotSpeed = 0.04;
+
+// ==========================================
+// CORES DAS PAREDES
+// ==========================================
+
+def getWallColor(wallType, side, brightness)
+{
+    var baseColor;
+    
+    if (wallType == 1)
+    {
+        baseColor = Color(150, 50, 50, 255);
+    }
+    else if (wallType == 2)
+    {
+        baseColor = Color(50, 150, 50, 255);
+    }
+    else if (wallType == 3)
+    {
+        baseColor = Color(50, 50, 150, 255);
+    }
+    else if (wallType == 4)
+    {
+        baseColor = Color(150, 150, 50, 255);
+    }
+    else
+    {
+        baseColor = GRAY;
+    }
+    
+    if (side == 1)
+    {
+        baseColor = Color(baseColor.r * 0.7, baseColor.g * 0.7, baseColor.b * 0.7, 255);
+    }
+    
+    baseColor = Color(
+        baseColor.r * brightness,
+        baseColor.g * brightness,
+        baseColor.b * brightness,
+        255
+    );
+    
+    return baseColor;
+}
+
+// ==========================================
+// RAYCASTING
+// ==========================================
+
+var zBuffer = [];
+
+def castRays(target)
+{
+    BeginTextureMode(target);
+    
+    // Céu
+    DrawRectangle(0, 0, renderW, renderH / 2, Color(30, 30, 80, 255));
+    
+    // Chão
+    DrawRectangle(0, renderH / 2, renderW, renderH / 2, Color(40, 40, 40, 255));
+    
+    // Limpar zBuffer
+    zBuffer = [];
+    for (var i = 0; i < renderW; i = i + 1)
+    {
+        zBuffer.push(0.0);
+    }
+    
+    for (var x = 0; x < renderW; x = x + 1)
+    {
+        var cameraX = 2.0 * x / renderW - 1.0;
+        var rayDirX = dirX + planeX * cameraX;
+        var rayDirY = dirY + planeY * cameraX;
+
+        var mapX = floor(posX);
+        var mapY = floor(posY);
+        
+        var deltaDistX;
+        var deltaDistY;
+
+        if (rayDirX == 0.0) deltaDistX = 10000000.0;
+        else deltaDistX = abs(1.0 / rayDirX);
+
+        if (rayDirY == 0.0) deltaDistY = 10000000.0;
+        else deltaDistY = abs(1.0 / rayDirY);
+        
+        var stepX, stepY;
+        var sideDistX, sideDistY;
+        
+        if (rayDirX < 0.0)
+        {
+            stepX = -1;
+            sideDistX = (posX - mapX) * deltaDistX;
+        }
+        else
+        {
+            stepX = 1;
+            sideDistX = (mapX + 1.0 - posX) * deltaDistX;
+        }
+        
+        if (rayDirY < 0.0)
+        {
+            stepY = -1;
+            sideDistY = (posY - mapY) * deltaDistY;
+        }
+        else
+        {
+            stepY = 1;
+            sideDistY = (mapY + 1.0 - posY) * deltaDistY;
+        }
+        
+        var hit = 0;
+        var side = 0;
+        var wallType = 0;
+        
+        var steps = 0;
+        while (hit == 0 && steps < 100)
+        {
+            steps = steps + 1;
+            if (sideDistX < sideDistY)
+            {
+                sideDistX = sideDistX + deltaDistX;
+                mapX = mapX + stepX;
+                side = 0;
+            }
+            else
+            {
+                sideDistY = sideDistY + deltaDistY;
+                mapY = mapY + stepY;
+                side = 1;
+            }
+            
+            if (mapX >= 0 && mapX < mapW && mapY >= 0 && mapY < mapH)
+            {
+                wallType = getMap(mapX, mapY);
+                if (wallType > 0) hit = 1;
+            }
+            else
+            {
+                hit = 1;
+                wallType = 1;
+            }
+        }
+        
+        var perpWallDist;
+        if (side == 0)
+        {
+            if (abs(rayDirX) < 0.00001) perpWallDist = 0.00001;
+            else perpWallDist = (mapX - posX + (1 - stepX) / 2) / rayDirX;
+        }
+        else
+        {
+            if (abs(rayDirY) < 0.00001) perpWallDist = 0.00001;
+            else perpWallDist = (mapY - posY + (1 - stepY) / 2) / rayDirY;
+        }
+        
+        if (perpWallDist <= 0.0001) perpWallDist = 0.0001;
+        
+        zBuffer[x] = perpWallDist;
+        
+        var lineHeight = floor(renderH / perpWallDist);
+        
+        var drawStart = -lineHeight / 2 + renderH / 2;
+        if (drawStart < 0) drawStart = 0;
+        
+        var drawEnd = lineHeight / 2 + renderH / 2;
+        if (drawEnd >= renderH) drawEnd = renderH - 1;
+        
+        var brightness = 1.0 / (1.0 + perpWallDist * perpWallDist * 0.02);
+        if (brightness > 1.0) brightness = 1.0;
+        
+        var color = getWallColor(wallType, side, brightness);
+        
+        DrawLine(x, drawStart, x, drawEnd, color);
+    }
+    
+    EndTextureMode();
+}
+
+// ==========================================
+// SPRITE RENDERING (billboard)
+// ==========================================
+
+def drawSprites(target)
+{
+    BeginTextureMode(target);
+    
+    // Ordenar sprites por distância (painter's algorithm)
+    var spriteOrder = [];
+    var spriteDistance = [];
+    
+    for (var i = 0; i < len(sprites); i = i + 1)
+    {
+        spriteOrder.push(i);
+        var s = sprites[i];
+        var dist = (posX - s.x) * (posX - s.x) + (posY - s.y) * (posY - s.y);
+        spriteDistance.push(dist);
+    }
+    
+    // Bubble sort (longe -> perto)
+    for (var i = 0; i < len(sprites); i = i + 1)
+    {
+        for (var j = i + 1; j < len(sprites); j = j + 1)
+        {
+            if (spriteDistance[i] < spriteDistance[j])
+            {
+                var tmpDist = spriteDistance[i];
+                spriteDistance[i] = spriteDistance[j];
+                spriteDistance[j] = tmpDist;
+                
+                var tmpOrder = spriteOrder[i];
+                spriteOrder[i] = spriteOrder[j];
+                spriteOrder[j] = tmpOrder;
+            }
+        }
+    }
+    
+    // Desenhar sprites de trás para frente
+    for (var i = 0; i < len(sprites); i = i + 1)
+    {
+        var s = sprites[spriteOrder[i]];
+        
+        // Posição relativa ao player
+        var spriteX = s.x - posX;
+        var spriteY = s.y - posY;
+        
+        // Inverter matriz camera
+        var invDet = 1.0 / (planeX * dirY - dirX * planeY);
+        
+        var transformX = invDet * (dirY * spriteX - dirX * spriteY);
+        var transformY = invDet * (-planeY * spriteX + planeX * spriteY);
+        
+        // Sprite está atrás do player
+        if (transformY <= 0.0)
+        {
+            continue;
+        }
+        
+        var spriteScreenX = floor((renderW / 2) * (1.0 + transformX / transformY));
+        
+        var spriteHeight = abs(floor(renderH / transformY));
+        var spriteWidth = abs(floor(renderH / transformY));
+        
+        var drawStartY = -spriteHeight / 2 + renderH / 2;
+        if (drawStartY < 0) drawStartY = 0;
+        
+        var drawEndY = spriteHeight / 2 + renderH / 2;
+        if (drawEndY >= renderH) drawEndY = renderH - 1;
+        
+        var drawStartX = -spriteWidth / 2 + spriteScreenX;
+        if (drawStartX < 0) drawStartX = 0;
+        
+        var drawEndX = spriteWidth / 2 + spriteScreenX;
+        if (drawEndX >= renderW) drawEndX = renderW - 1;
+        
+        // Desenhar sprite coluna por coluna
+        for (var stripe = drawStartX; stripe < drawEndX; stripe = stripe + 1)
+        {
+            // Verificar zBuffer (sprite atrás de parede?)
+            if (transformY < zBuffer[stripe])
+            {
+                // Desenhar "textura" do sprite (círculo simples)
+                for (var y = drawStartY; y < drawEndY; y = y + 1)
+                {
+                    // Coordenadas normalizadas (-1 a 1)
+                    var nx = (stripe - spriteScreenX) / (spriteWidth / 2.0);
+                    var ny = (y - (drawStartY + drawEndY) / 2.0) / (spriteHeight / 2.0);
+                    
+                    var dist = sqrt(nx * nx + ny * ny);
+                    
+                    if (dist < 1.0) // Dentro do círculo
+                    {
+                        var brightness = 1.0 / (1.0 + transformY * transformY * 0.02);
+                        if (brightness > 1.0) brightness = 1.0;
+                        
+                        var c = s.color;
+                        var finalColor = Color(
+                            c.r * brightness,
+                            c.g * brightness,
+                            c.b * brightness,
+                            255
+                        );
+                        
+                        // Borda mais escura
+                        if (dist > 0.8)
+                        {
+                            finalColor = Color(
+                                finalColor.r * 0.5,
+                                finalColor.g * 0.5,
+                                finalColor.b * 0.5,
+                                255
+                            );
+                        }
+                        
+                        DrawPixel(stripe, y, finalColor);
+                    }
+                }
+            }
+        }
+    }
+    
+    EndTextureMode();
+}
+
+// ==========================================
+// MINIMAP
+// ==========================================
+
+def drawMinimap()
+{
+    var scale = 15;
+    var offsetX = 10;
+    var offsetY = 10;
+    
+    DrawRectangle(offsetX - 2, offsetY - 2, mapW * scale + 4, mapH * scale + 4, Color(0, 0, 0, 200));
+    
+    for (var y = 0; y < mapH; y = y + 1)
+    {
+        for (var x = 0; x < mapW; x = x + 1)
+        {
+            var tile = getMap(x, y);
+            if (tile > 0)
+            {
+                var c = getWallColor(tile, 0, 0.5);
+                DrawRectangle(offsetX + x * scale, offsetY + y * scale, scale - 1, scale - 1, c);
+            }
+        }
+    }
+    
+    // Sprites no minimap
+    for (var i = 0; i < len(sprites); i = i + 1)
+    {
+        var s = sprites[i];
+        DrawCircle(offsetX + s.x * scale, offsetY + s.y * scale, 3, s.color);
+    }
+    
+    // Player
+    var px = floor(posX * scale);
+    var py = floor(posY * scale);
+    DrawCircle(offsetX + px, offsetY + py, 3, RED);
+    DrawLine(offsetX + px, offsetY + py, offsetX + px + dirX * 10, offsetY + py + dirY * 10, RED);
+}
+
+// ==========================================
+// MAIN LOOP
+// ==========================================
+
+var target = LoadRenderTexture(renderW, renderH);
+var src = Rectangle(0, 0, renderW, -renderH);
+var dest = Rectangle(0, 0, screenW, screenH);
+var origin = Vector2(0, 0);
+
+while (!WindowShouldClose())
+{
+    // INPUT
+    if (IsKeyDown(KEY_W))
+    {
+        if (getMap(floor(posX + dirX * moveSpeed), floor(posY)) == 0)
+            posX = posX + dirX * moveSpeed;
+        if (getMap(floor(posX), floor(posY + dirY * moveSpeed)) == 0)
+            posY = posY + dirY * moveSpeed;
+    }
+    
+    if (IsKeyDown(KEY_S))
+    {
+        if (getMap(floor(posX - dirX * moveSpeed), floor(posY)) == 0)
+            posX = posX - dirX * moveSpeed;
+        if (getMap(floor(posX), floor(posY - dirY * moveSpeed)) == 0)
+            posY = posY - dirY * moveSpeed;
+    }
+    
+    if (IsKeyDown(KEY_A))
+    {
+        var oldDirX = dirX;
+        dirX = dirX * cos(rotSpeed) - dirY * sin(rotSpeed);
+        dirY = oldDirX * sin(rotSpeed) + dirY * cos(rotSpeed);
+        
+        var oldPlaneX = planeX;
+        planeX = planeX * cos(rotSpeed) - planeY * sin(rotSpeed);
+        planeY = oldPlaneX * sin(rotSpeed) + planeY * cos(rotSpeed);
+    }
+    
+    if (IsKeyDown(KEY_D))
+    {
+        var oldDirX = dirX;
+        dirX = dirX * cos(-rotSpeed) - dirY * sin(-rotSpeed);
+        dirY = oldDirX * sin(-rotSpeed) + dirY * cos(-rotSpeed);
+        
+        var oldPlaneX = planeX;
+        planeX = planeX * cos(-rotSpeed) - planeY * sin(-rotSpeed);
+        planeY = oldPlaneX * sin(-rotSpeed) + planeY * cos(-rotSpeed);
+    }
+    
+    // RENDER
+    castRays(target);
+    drawSprites(target);
+    
+    BeginDrawing();
+    ClearBackground(BLACK);
+    
+    var tex = GetRenderTextureTexture(target);
+    DrawTexturePro(tex, src, dest, origin, 0.0, WHITE);
+    
+    drawMinimap();
+    
+    DrawText("WASD = Move | Sprites!", 10, screenH - 30, 16, WHITE);
+    DrawText(format("Sprites: {}", len(sprites)), 10, screenH - 50, 14, WHITE);
+    DrawFPS(screenW - 100, 10);
+    
+    EndDrawing();
+}
+
+CloseWindow();

@@ -1,0 +1,176 @@
+struct Rect
+{
+    var x, y, w, h; // center x/y, half-width, half-height
+};
+
+def pointInRect(rect, px, py)
+{
+    return px >= rect.x - rect.w &&
+           px <= rect.x + rect.w &&
+           py >= rect.y - rect.h &&
+           py <= rect.y + rect.h;
+}
+
+def intersectsRect(r1, r2)
+{
+    return !(r2.x - r2.w > r1.x + r1.w ||
+             r2.x + r2.w < r1.x - r1.w ||
+             r2.y - r2.h > r1.y + r1.h ||
+             r2.y + r2.h < r1.y - r1.h);
+}
+
+struct QuadTree
+{
+    var boundary;
+    var capacity;
+    var bodies;
+    var divided;
+    
+    var nw;
+    var ne;
+    var sw;
+    var se;
+};
+
+def createQuadTree(boundary, capacity)
+{
+    var qt = QuadTree();
+    qt.boundary = boundary;
+    qt.capacity = capacity;
+    qt.bodies = [];
+    qt.divided = false;
+    return qt;
+}
+
+def subdivide(qt)
+{
+    var x = qt.boundary.x;
+    var y = qt.boundary.y;
+    var w = qt.boundary.w / 2.0;
+    var h = qt.boundary.h / 2.0;
+    
+    var ne = Rect(); 
+    ne.x = x + w; 
+    ne.y = y - h; 
+    ne.w = w; 
+    ne.h = h;
+    qt.ne = createQuadTree(ne, qt.capacity);
+    
+    var nw = Rect(); 
+    nw.x = x - w; 
+    nw.y = y - h; 
+    nw.w = w; 
+    nw.h = h;
+    qt.nw = createQuadTree(nw, qt.capacity);
+    
+    var se = Rect(); 
+    se.x = x + w; 
+    se.y = y + h; 
+    se.w = w; 
+    se.h = h;
+    qt.se = createQuadTree(se, qt.capacity);
+    
+    var sw = Rect(); 
+    sw.x = x - w; 
+    sw.y = y + h; 
+    sw.w = w; 
+    sw.h = h;
+    qt.sw = createQuadTree(sw, qt.capacity);
+    
+    qt.divided = true;
+}
+
+def insertQT(qt, body)
+{
+    
+    if (!intersectsRect(qt.boundary, body.bounds))
+    {
+        return false;
+    }
+    
+    // Se tem espaço e não dividiu, guarda aqui
+    if (len(qt.bodies) < qt.capacity && !qt.divided)
+    {
+        qt.bodies.push(body);
+        return true;
+    }
+    
+    // Precisa dividir
+    if (!qt.divided)
+    {
+        subdivide(qt);
+    }
+    
+    // Tenta inserir nos filhos
+    // IMPORTANTE: Um body pode estar em MÚLTIPLOS nós se cruzar fronteiras!
+    var inserted = false;
+    
+    if (insertQT(qt.ne, body)) inserted = true;
+    if (insertQT(qt.nw, body)) inserted = true;
+    if (insertQT(qt.se, body)) inserted = true;
+    if (insertQT(qt.sw, body)) inserted = true;
+    
+    // Se não couber em nenhum filho completamente, fica no pai
+    if (!inserted)
+    {
+        qt.bodies.push(body);
+        inserted = true;
+    }
+    
+    return inserted;
+}
+
+def queryQT(qt, range, found)
+{
+    if (!intersectsRect(qt.boundary, range))
+    {
+        return;
+    }
+    
+    // Adicionar TODOS os bodies deste nó que intersectam a range
+    for (var i = 0; i < len(qt.bodies); i = i + 1)
+    {
+        var body = qt.bodies[i];
+        
+        // Verifica AABB overlap, não só o centro!
+        if (intersectsRect(range, body.bounds))
+        {
+            // Evitar duplicados (body pode estar em múltiplos nós)
+            var alreadyFound = false;
+            for (var j = 0; j < len(found); j = j + 1)
+            {
+                if (found[j].id == body.id)
+                {
+                    alreadyFound = true;
+                }
+            }
+            
+            if (!alreadyFound)
+            {
+                found.push(body);
+            }
+        }
+    }
+    
+    if (qt.divided)
+    {
+        queryQT(qt.nw, range, found);
+        queryQT(qt.ne, range, found);
+        queryQT(qt.sw, range, found);
+        queryQT(qt.se, range, found);
+    }
+}
+
+def drawQuadTree(qt)
+{
+    var b = qt.boundary;
+    DrawRectangleLines(b.x - b.w, b.y - b.h, b.w * 2, b.h * 2, Color(255, 0, 0, 100));
+    
+    if (qt.divided)
+    {
+        drawQuadTree(qt.nw);
+        drawQuadTree(qt.ne);
+        drawQuadTree(qt.sw);
+        drawQuadTree(qt.se);
+    }
+}

@@ -1,0 +1,35 @@
+{
+  "name": "bulang",
+  "displayName": "BuLang",
+  "description": "Syntax highlighting and formatting for BuLang",
+  "version": "0.1.4",
+  "publisher": "akadjoker",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Formatters"
+  ],
+  "main": "./extension.js", 
+  "activationEvents": [
+    "onLanguage:bulang"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "bulang",
+        "aliases": ["BuLang", "bulang"],
+        "extensions": [".bu"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "bulang",
+        "scopeName": "source.bulang",
+        "path": "./syntaxes/bulang.tmLanguage.json"
+      }
+    ]
+  }
+}

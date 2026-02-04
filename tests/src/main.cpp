@@ -1,318 +1,287 @@
+
 #include "interpreter.hpp"
-#include <cstdio>
-#include <chrono>
+#include <cstdlib>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <string>
 
-// Forward declaration para bindings nativos de C++
-extern void registerNativeBindings(Interpreter* vm);
+int testsPassed = 0;
+int testsFailed = 0;
+std::string currentTestFile;
 
-using namespace std::chrono;
-
-// Ler ficheiro para string
-static char* readFile(const char* path) {
-    FILE* file = fopen(path, "rb");
-    if (!file) {
-        fprintf(stderr, "Could not open file \"%s\".\n", path);
-        return nullptr;
-    }
-
-    fseek(file, 0L, SEEK_END);
-    size_t fileSize = ftell(file);
-    rewind(file);
-
-    char* buffer = new char[fileSize + 1];
-    size_t bytesRead = fread(buffer, 1, fileSize, file);
-    buffer[bytesRead] = '\0';
-
-    fclose(file);
-    return buffer;
+// interpreter.cpp
+void beginTestFile(const char *filename)
+{
+  currentTestFile = filename;
+  testsPassed = 0;
+  testsFailed = 0;
 }
 
-// Correr um ficheiro .bu
-static int runFile(const char* path) {
-    char* source = readFile(path);
-    if (!source) return 1;
+void endTestFile()
+{
+  if (testsFailed == 0)
+  {
+    printf("✅ %s: %d passed\n", currentTestFile.c_str(), testsPassed);
+  }
+  else
+  {
+    printf("❌ %s: %d passed, %d failed\n", currentTestFile.c_str(),
+           testsPassed, testsFailed);
+  }
+}
 
-    Interpreter vm;
-    vm.registerAll();
-    registerNativeBindings(&vm);  // Registrar bindings C++ nativos
-    vm.run(source, false);
+void testPass(const char *name)
+{
+  testsPassed++;
+  printf("  ✓ %s\n", name);
+}
 
-    delete[] source;
+void testFail(const char *name, const char *reason)
+{
+  testsFailed++;
+  if (reason)
+  {
+    printf("  ✗ %s: %s\n", name, reason);
+  }
+  else
+  {
+    printf("  ✗ %s\n", name);
+  }
+}
+
+void getTestStats(int *passed, int *failed)
+{
+  *passed = testsPassed;
+  *failed = testsFailed;
+}
+
+void resetTestStats()
+{
+  testsPassed = 0;
+  testsFailed = 0;
+}
+
+std::string valueToString(const Value &value)
+{
+
+  return valueTypeToString(value.type);
+}
+
+static int native_pass(Interpreter *vm, int argc, Value *args)
+{
+  String *name = args[0].asString();
+  Info("✓ %s", name->chars());
+  return 0;
+}
+
+static int native_fail(Interpreter *vm, int argc, Value *args)
+{
+  String *name = args[0].asString();
+  Error("✗ %s\n", name->chars());
+  return 0;
+}
+
+static int native_assert_eq(Interpreter *vm, int argc, Value *args)
+{
+  if (argc < 3)
+  {
+    vm->runtimeError("assert_eq() expects 3 arguments");
     return 0;
+  }
+
+  Value a = args[0];
+  Value b = args[1];
+  const char *name =
+      args[2].isString() ? args[2].asString()->chars() : "equality";
+
+  bool equal = false;
+
+  if (a.type != b.type)
+  {
+    equal = false;
+  }
+  else if (a.isInt())
+  {
+    equal = (a.asInt() == b.asInt());
+  }
+  else if (a.isDouble())
+  {
+    equal = (a.asDouble() == b.asDouble());
+  }
+  else if (a.isBool())
+  {
+    equal = (a.asBool() == b.asBool());
+  }
+  else if (a.isString())
+  {
+    equal = (strcmp(a.asString()->chars(), b.asString()->chars()) == 0);
+  }
+  else if (a.isNil() && b.isNil())
+  {
+    equal = true;
+  }
+
+  if (equal)
+  {
+    testPass(name);
+  }
+  else
+  {
+
+    char bufferA[256];
+    char bufferB[256];
+    valueToBuffer(a, bufferA, sizeof(bufferA));
+    valueToBuffer(b, bufferB, sizeof(bufferB));
+    char reason[256];
+    snprintf(reason, sizeof(reason), "expected '%s', got '%s'",
+             bufferA, bufferB);
+ 
+    testFail(name, reason);
+  }
+
+  return 0;
 }
 
-void benchmark(const char* name, const char* code, int iterations = 1) {
-    auto start = high_resolution_clock::now();
-
-    for (int i = 0; i < iterations; i++) {
-        Interpreter vm;
-        vm.registerAll();
-        registerNativeBindings(&vm);  // Registrar bindings C++ nativos
-        vm.run(code, false);
-    }
-
-    auto end = high_resolution_clock::now();
-    auto duration = duration_cast<microseconds>(end - start);
-
-    printf("[BENCH] %s: %lld μs (%d iterations, %.2f μs/iter)\n",
-           name,
-           (long long)duration.count(),
-           iterations,
-           (double)duration.count() / iterations);
-}
-
-
-
-int main(int argc, char* argv[]) {
-    // Se passar um ficheiro como argumento, corre-o
-    if (argc > 1) {
-        return runFile(argv[1]);
-    }
-    printf("========================================\n");
-    printf("BuLang VM Performance Benchmark\n");
-    printf("========================================\n\n");
-
-    // Teste 1: Incremento simples em loop
-    benchmark("Simple increment loop (10000 iterations)", R"(
-        var i = 0;
-        while (i < 10000) {
-            i++;
-        }
-    )", 10);
-
-    // Teste 2: Múltiplas variáveis globais
-    benchmark("Multiple global variables", R"(
-        var a = 0; var b = 0; var c = 0; var d = 0; var e = 0;
-        var i = 0;
-        while (i < 1000) {
-            a++; b++; c++; d++; e++;
-            i++;
-        }
-    )", 10);
- 
-    // Teste 3: Acesso a variáveis locais em função
-    benchmark("Local variables in function", R"(
-        def test() {
-            var sum = 0;
-            var i = 0;
-            while (i < 1000) {
-                var local = i;
-                sum = sum + local;
-                i++;
-            }
-            return sum;
-        }
-        test();
-    )", 10);
-
-    // Teste 4: Prefix vs Postfix
-    benchmark("Prefix increment", R"(
-        var i = 0;
-        var sum = 0;
-        while (i < 5000) {
-            sum = sum + ++i;
-        }
-    )", 10);
-
-    benchmark("Postfix increment", R"(
-        var i = 0;
-        var sum = 0;
-        while (i < 5000) {
-            sum = sum + i++;
-        }
-    )", 10);
-
-    // Teste 5: Closures/Upvalues
-    benchmark("Closure with upvalue", R"(
-        def outer() {
-            var x = 0;
-            def inner() {
-                x++;
-                return x;
-            }
-            var i = 0;
-            while (i < 1000) {
-                inner();
-                i++;
-            }
-            return x;
-        }
-        outer();
-    )", 10);
-
-    // Teste 6: Classes e métodos
-    benchmark("Class method calls", R"(
-        class Counter {
-            var value = 0;
-            def inc() { self.value++; }
-        }
-        var c = Counter();
-        var i = 0;
-        while (i < 1000) {
-            c.inc();
-            i++;
-        }
-    )", 10);
-
-    // Teste 7: Operações aritméticas
-    benchmark("Arithmetic operations", R"(
-        var sum = 0;
-        var i = 0;
-        while (i < 5000) {
-            sum = sum + i * 2 - 1;
-            i++;
-        }
-    )", 10);
-
-    // Teste 8: Muitas variáveis (stress test para constant pool)
-    benchmark("Many global variables (50)", R"(
-        var v0=0; var v1=0; var v2=0; var v3=0; var v4=0;
-        var v5=0; var v6=0; var v7=0; var v8=0; var v9=0;
-        var v10=0; var v11=0; var v12=0; var v13=0; var v14=0;
-        var v15=0; var v16=0; var v17=0; var v18=0; var v19=0;
-        var v20=0; var v21=0; var v22=0; var v23=0; var v24=0;
-        var v25=0; var v26=0; var v27=0; var v28=0; var v29=0;
-        var v30=0; var v31=0; var v32=0; var v33=0; var v34=0;
-        var v35=0; var v36=0; var v37=0; var v38=0; var v39=0;
-        var v40=0; var v41=0; var v42=0; var v43=0; var v44=0;
-        var v45=0; var v46=0; var v47=0; var v48=0; var v49=0;
-        var i = 0;
-        while (i < 100) {
-            v0++; v10++; v20++; v30++; v40++;
-            i++;
-        }
-    )", 10);
-
-    // Teste 9: Recursão (Fibonacci)
-    benchmark("Recursive Fibonacci (fib(20))", R"(
-        def fib(n) {
-            if (n <= 1) return n;
-            return fib(n - 1) + fib(n - 2);
-        }
-        fib(20);
-    )", 10);
-
-    // Teste 10: Factorial recursivo
-    benchmark("Recursive Factorial (fact(15))", R"(
-        def fact(n) {
-            if (n <= 1) return 1;
-            return n * fact(n - 1);
-        }
-        fact(15);
-    )", 10);
-
-    // Teste 11: Array operations (mais realista)
-    benchmark("Array manipulation (1000 elements)", R"(
-        var arr = [];
-        var i = 0;
-        while (i < 1000) {
-            arr.push(i);
-            i++;
-        }
-        var sum = 0;
-        i = 0;
-        while (i < len(arr)) {
-            sum = sum + arr[i];
-            i++;
-        }
-    )", 10);
-
-    // Teste 12: Objeto com propriedades (simulação de entidades)
-    benchmark("Object property access (1000 iterations)", R"(
-        class Entity {
-            var x = 0.0;
-            var y = 0.0;
-            var vx = 1.0;
-            var vy = 1.0;
-            
-            def update() {
-                self.x = self.x + self.vx;
-                self.y = self.y + self.vy;
-            }
-        }
-        
-        var entities = [];
-        var i = 0;
-        while (i < 10) {
-            entities.push(Entity());
-            i++;
-        }
-        
-        i = 0;
-        while (i < 100) {
-            var j = 0;
-            while (j < len(entities)) {
-                entities[j].update();
-                j++;
-            }
-            i++;
-        }
-    )", 10);
-
-    // Teste 13: Simulação de física (partículas)
-    benchmark("Physics simulation (100 particles, 100 steps)", R"(
-        class Particle {
-            var x = 0.0;
-            var y = 0.0;
-            var vx = 0.0;
-            var vy = 0.0;
-            
-            def init(px, py) {
-                self.x = px;
-                self.y = py;
-                self.vx = (px - 50.0) / 10.0;
-                self.vy = (py - 50.0) / 10.0;
-            }
-            
-            def update() {
-                self.x = self.x + self.vx;
-                self.y = self.y + self.vy;
-                self.vx = self.vx * 0.99;
-                self.vy = self.vy * 0.99;
-            }
-        }
-        
-        var particles = [];
-        var i = 0;
-        while (i < 100) {
-            var p = Particle();
-            p.init(i, i);
-            particles.push(p);
-            i++;
-        }
-        
-        var step = 0;
-        while (step < 100) {
-            i = 0;
-            while (i < len(particles)) {
-                particles[i].update();
-                i++;
-            }
-            step++;
-        }
-    )", 10);
-
-    // Teste 14: Nested loops com arrays
-    benchmark("Nested loops with arrays (100x100)", R"(
-        var matrix = [];
-        var i = 0;
-        while (i < 100) {
-            var row = [];
-            var j = 0;
-            while (j < 100) {
-                row.push(i * j);
-                j++;
-            }
-            matrix.push(row);
-            i++;
-        }
-    )", 10);
- 
-    printf("\n========================================\n");
-    printf("Benchmark complete\n");
-    printf("========================================\n");
-    printf("\nCompare with Python:\n");
-    printf("  python3 tests/src/benchmark.py\n");
-
+static int native_assert(Interpreter *vm, int argc, Value *args)
+{
+  if (argc < 2)
+  {
+    vm->runtimeError("assert() expects 2 arguments");
     return 0;
+  }
+
+  bool condition = args[0].isBool() ? args[0].asBool() : !args[0].isNil();
+  const char *name =
+      args[1].isString() ? args[1].asString()->chars() : "assertion";
+
+  if (condition)
+  {
+    testPass(name);
+  }
+  else
+  {
+    testFail(name, "assertion failed");
+  }
+
+  return 0;
+}
+
+ 
+
+
+int main(int argc, char **argv)
+{
+  Interpreter vm;
+
+  // Regista natives de teste
+  vm.registerNative("pass", native_pass, 1);
+  vm.registerNative("fail", native_fail, 1);
+  vm.registerNative("assert", native_assert, 2);
+  vm.registerNative("assert_eq", native_assert_eq, 3);
+
+  vm.registerAll();
+
+  int totalPassed = 0;
+  int totalFailed = 0;
+  int filesRun = 0;
+  int filesFailed = 0;
+
+  namespace fs = std::filesystem;
+  const fs::path testDir = "scripts/tests";
+
+  if (!fs::exists(testDir))
+  {
+    printf("Error: Test directory '%s' does not exist\n", testDir.c_str());
+    return 1;
+  }
+
+  printf("🧪 Running BuLang Tests\n");
+  printf("======================\n\n");
+
+  for (auto &entry : fs::directory_iterator(testDir))
+  {
+    if (!entry.is_regular_file())
+      continue;
+    if (entry.path().extension() != ".bu")
+      continue;
+
+    std::string path = entry.path().string();
+    std::string filename = entry.path().filename().string();
+
+    // Lê código
+    std::ifstream file(path);
+    if (!file)
+    {
+      printf("❌ Failed to open %s\n", filename.c_str());
+      filesFailed++;
+      continue;
+    }
+
+    std::string code((std::istreambuf_iterator<char>(file)),
+                     std::istreambuf_iterator<char>());
+
+    // Inicia teste
+    beginTestFile(filename.c_str());
+    filesRun++;
+
+    // Compila
+    if (!vm.run(code.c_str(), false))
+    {
+      printf("❌ %s: Compilation failed\n\n", filename.c_str());
+      filesFailed++;
+      continue;
+    }
+
+    // Executa (até todos os processos morrerem)
+    int maxFrames = 50000; // Safety limit
+    int frame = 0;
+
+    while (vm.getTotalAliveProcesses() && frame < maxFrames)
+    {
+      vm.update(0.016f);
+      frame++;
+    }
+
+    if (frame >= maxFrames)
+    {
+      printf("⚠️  Warning: Test hit frame limit (%d frames)\n", maxFrames);
+    }
+
+    // Finaliza teste
+    endTestFile();
+
+    int passed, failed;
+    getTestStats(&passed, &failed);
+
+    totalPassed += passed;
+    totalFailed += failed;
+
+    if (failed > 0)
+    {
+      filesFailed++;
+    }
+
+    printf("\n");
+  }
+
+  // Sumário
+  printf("======================\n");
+  printf("📊 Test Summary\n");
+  printf("======================\n");
+  printf("Files:  %d run, %d failed\n", filesRun, filesFailed);
+  printf("Tests:  %d passed, %d failed\n", totalPassed, totalFailed);
+  printf("======================\n");
+
+  if (totalFailed == 0 && filesFailed == 0)
+  {
+    printf("✅ All tests passed!\n");
+    return 0;
+  }
+  else
+  {
+    printf("❌ Some tests failed\n");
+    return 1;
+  }
 }

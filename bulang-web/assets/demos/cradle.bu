@@ -1,0 +1,198 @@
+require "raylib";
+import math;
+import raylib;
+using raylib;
+
+InitWindow(800, 600, "Newton's Cradle");
+SetTargetFPS(60);
+
+var GRAVITY = 0.6;
+var BOUNCE = 0.99;
+var FRICTION = 0.999;
+var ROPE_LENGTH = 200;
+
+var BLACK = Color(0, 0, 0, 255);
+var WHITE = Color(255, 255, 255, 255);
+var SILVER = Color(192, 192, 192, 255);
+var GRAY = Color(100, 100, 100, 255);
+
+class Pendulum
+{
+    var anchorX, anchorY;
+    var x, y, oldx, oldy;
+    var radius;
+    var dragging;
+    
+    def init(ax, ay, radius)
+    {
+        self.anchorX = ax;
+        self.anchorY = ay;
+        self.x = ax;
+        self.y = ay + ROPE_LENGTH;
+        self.oldx = self.x;
+        self.oldy = self.y;
+        self.radius = radius;
+        self.dragging = false;
+    }
+    
+    def update()
+    {
+        if (self.dragging) return;
+        
+            var vx = (self.x - self.oldx) * FRICTION;
+            var vy = (self.y - self.oldy) * FRICTION;
+            
+            self.oldx = self.x;
+            self.oldy = self.y;
+            
+            self.x = self.x + vx;
+            self.y = self.y + vy + GRAVITY;
+            
+            // Constraint - manter distância do anchor
+            var dx = self.x - self.anchorX;
+            var dy = self.y - self.anchorY;
+            var dist = sqrt(dx*dx + dy*dy);
+            
+            if (dist > 0.01)
+            {
+                var diff = ROPE_LENGTH - dist;
+                var percent = diff / dist;
+                
+                self.x = self.x + dx * percent;
+                self.y = self.y + dy * percent;
+            }
+        
+    }
+    
+    def drag(mx, my)
+    {
+        var dx = self.x - mx;
+        var dy = self.y - my;
+        var distSq = dx*dx + dy*dy;
+        
+        if (IsMouseButtonDown(0))
+        {
+            if (distSq < self.radius*self.radius)
+            {
+                self.dragging = true;
+                self.x = mx;
+                self.y = my;
+                self.oldx = self.x;
+                self.oldy = self.y;
+            }
+        }
+        else
+        {
+            self.dragging = false;
+        }
+    }
+    
+    def draw()
+    {
+        // Corda
+        DrawLine(self.anchorX, self.anchorY, self.x, self.y, GRAY);
+        
+        // Bola
+        DrawCircle(self.x, self.y, self.radius, SILVER);
+        DrawCircle(self.x - self.radius/3, self.y - self.radius/3, self.radius/4, WHITE);
+    }
+}
+
+// Criar 5 pêndulos lado a lado
+var pendulums = [];
+var numBalls = 5;
+var spacing = 50;
+var startX = 400 - (numBalls * spacing) / 2;
+
+for(var i=0; i<numBalls; i=i+1)
+{
+    var p = Pendulum(startX + i * spacing, 100, 20);
+    pendulums.push(p);
+}
+
+while (!WindowShouldClose())
+{
+    var mx = GetMouseX();
+    var my = GetMouseY();
+    
+    // Update physics
+    for(var i=0; i<len(pendulums); i=i+1)
+    {
+        pendulums[i].update();
+        pendulums[i].drag(mx, my);
+    }
+
+    for(var step = 0; step < 8; step = step + 1) 
+    {
+    
+    // Collision entre bolas
+    for(var i=0; i<len(pendulums)-1; i=i+1)
+    {
+        var p1 = pendulums[i];
+        var p2 = pendulums[i+1];
+        
+        var dx = p2.x - p1.x;
+        var dy = p2.y - p1.y;
+        var dist = sqrt(dx*dx + dy*dy);
+        var minDist = p1.radius + p2.radius;
+        
+        if (dist < minDist && dist > 0.01)
+        {
+            // Empurrar para apart
+            var diff = minDist - dist;
+            var percent = (diff / dist) / 2;
+            
+            var offX = dx * percent;
+            var offY = dy * percent;
+            
+            if (!p1.dragging)
+            {
+                p1.x = p1.x - offX;
+                p1.y = p1.y - offY;
+            }
+            if (!p2.dragging)
+            {
+                p2.x = p2.x + offX;
+                p2.y = p2.y + offY;
+            }
+            
+            // Transferir momentum
+            var v1x = p1.x - p1.oldx;
+            var v1y = p1.y - p1.oldy;
+            var v2x = p2.x - p2.oldx;
+            var v2y = p2.y - p2.oldy;
+            
+            if (!p1.dragging)
+            {
+                p1.oldx = p1.x - v2x * BOUNCE;
+                p1.oldy = p1.y - v2y * BOUNCE;
+            }
+            if (!p2.dragging)
+            {
+                p2.oldx = p2.x - v1x * BOUNCE;
+                p2.oldy = p2.y - v1y * BOUNCE;
+            }
+        }
+    }
+    }
+    
+    // Draw
+    BeginDrawing();
+    ClearBackground(BLACK);
+    
+    // Frame do cradle
+    DrawRectangle(startX - 30, 80, numBalls * spacing + 60, 20, Color(80, 50, 30, 255));
+    
+    for(var i=0; i<len(pendulums); i=i+1)
+    {
+        pendulums[i].draw();
+    }
+    
+    DrawText("Arrasta as bolas!", 10, 10, 20, WHITE);
+    DrawText("Newton's Cradle - Click & Drag", 10, 550, 16, GRAY);
+    DrawFPS(700, 10);
+    
+    EndDrawing();
+}
+
+CloseWindow();

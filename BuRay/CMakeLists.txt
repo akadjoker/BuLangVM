@@ -1,6 +1,5 @@
 project(BuRay)
 cmake_policy(SET CMP0072 NEW)
- cmake_minimum_required(VERSION 3.28)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ")
@@ -11,68 +10,62 @@ if (WIN32)
         if(CMAKE_BUILD_TYPE MATCHES Debug)
             add_compile_options(/RTC1 /Od /Zi)
             set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fsanitize=address")
-        endif()     
+        endif()
     endif()
-
 endif()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin/modules)
 
-add_compile_options(
-        # Optimization level
-        -O3
-        
-       
-        
-        # Architecture specific
-        -march=native
-        -mtune=native
-        
-
-        
-        # Vectorization
-        -ftree-vectorize
-        
-        # Strip debug info
-        -DNDEBUG
-        
-        # Inline agressivo
-        -finline-functions
-        -funroll-loops
-
+# Source files for bindings (shared between executable and plugin)
+set(BINDING_SOURCES
+    src/bindings.cpp
+    src/structs.cpp
+    src/core.cpp
+    src/shapes.cpp
+    src/textures.cpp
+    src/text.cpp
+    src/input.cpp
+    src/audio.cpp
+    src/camera.cpp
+    src/models.cpp
 )
-
  
+# ============================================
+# libbu_raylib Plugin (shared library)
+# ============================================
+add_library(bu_raylib SHARED src/plugin.cpp ${BINDING_SOURCES})
 
-file(GLOB SOURCES "src/*.cpp")
-list(REMOVE_ITEM SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/benchmark.cpp")
-add_executable(BuRay   ${SOURCES})
+target_include_directories(bu_raylib PRIVATE include src ${CMAKE_SOURCE_DIR}/libbu/include)
 
-
-
-target_include_directories(libbu PUBLIC  include src)
-
-
+# Plugin-specific compile definitions
+target_compile_definitions(bu_raylib PRIVATE BU_PLUGIN_BUILD)
 
 if(CMAKE_BUILD_TYPE MATCHES Debug)
+    if (UNIX)
+        target_compile_options(bu_raylib PRIVATE -g -D_DEBUG -DVERBOSE -fPIC)
+    endif()
+elseif(CMAKE_BUILD_TYPE MATCHES Release)
+    target_compile_options(bu_raylib PRIVATE -O3 -DNDEBUG -fPIC)
+endif()
 
+# On Unix, shared libraries need -fPIC
 if (UNIX)
-target_compile_options(BuRay PRIVATE -fsanitize=address -fsanitize=undefined -fsanitize=leak -g  -D_DEBUG -DVERBOSE)
-target_link_options(BuRay PRIVATE -fsanitize=address -fsanitize=undefined -fsanitize=leak -g  -D_DEBUG) 
-endif()
- 
-   
+    set_target_properties(bu_raylib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
 
-target_link_libraries(BuRay raylib libbu)
+# Set output name to libbu_raylib.so (or .dll on Windows)
+set_target_properties(bu_raylib PROPERTIES
+    OUTPUT_NAME "bu_raylib"
+    PREFIX "lib"
+)
 
+# Don't link libbu to the plugin - it will use symbols from the main executable
+# This avoids duplicate state issues with static libraries
 if (WIN32)
-    target_link_libraries(BuRay Winmm.lib)
+    # On Windows, we need to link libbu since we can't use -rdynamic
+    target_link_libraries(bu_raylib libbu raylib Winmm.lib)
+else()
+    # On Unix, symbols will be resolved from the main executable
+    target_link_libraries(bu_raylib raylib m dl)
 endif()
-
-
-if (UNIX)
-    target_link_libraries(BuRay  m )
-endif()
-
-

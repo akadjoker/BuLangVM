@@ -178,6 +178,22 @@ void Interpreter::reset()
   // 2. Limpa código compilado (Bytecode das funções)
   freeFunctions();
 
+  // 2.1 Limpa classes/structs do script (evita ponteiros pendurados)
+  for (size_t j = 0; j < classes.size(); j++)
+  {
+    delete classes[j];
+  }
+  classes.clear();
+  classesMap.destroy();
+
+  for (size_t i = 0; i < structs.size(); i++)
+  {
+    structs[i]->names.destroy();
+    delete structs[i];
+  }
+  structs.clear();
+  structsMap.destroy();
+
   clearAllGCObjects();
 
   gcObjects = nullptr;
@@ -218,15 +234,15 @@ Interpreter::~Interpreter()
   dumpToFile("main.dump");
   Info("VM shutdown");
   Info("Memory allocated : %s", formatBytes(totalAllocated));
-  Info("Classes          : %zu", getTotalClasses());
-  Info("Structs          : %zu", getTotalStructs());
-  Info("Arrays           : %zu", getTotalArrays());
-  Info("Maps             : %zu", getTotalMaps());
-  Info("Native classes   : %zu", getTotalNativeClasses());
-  Info("Native structs   : %zu", getTotalNativeStructs());
-  Info("Buffers          : %zu", totalBuffers);
-  Info("Processes        : %zu", aliveProcesses.size());
-  Info("Globals          : %zu", globalsArray.size());
+  // Info("Classes          : %zu", getTotalClasses());
+  // Info("Structs          : %zu", getTotalStructs());
+  // Info("Arrays           : %zu", getTotalArrays());
+  // Info("Maps             : %zu", getTotalMaps());
+  // Info("Native classes   : %zu", getTotalNativeClasses());
+  // Info("Native structs   : %zu", getTotalNativeStructs());
+  // Info("Buffers          : %zu", totalBuffers);
+  // Info("Processes        : %zu", aliveProcesses.size());
+  // Info("Globals          : %zu", globalsArray.size());
   
   unloadAllPlugins();
   for (size_t i = 0; i < modules.size(); i++)

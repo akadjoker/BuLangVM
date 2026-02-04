@@ -1,8 +1,7 @@
-
+cmake_minimum_required(VERSION 3.20)
 cmake_policy(SET CMP0072 NEW)
-cmake_minimum_required(VERSION 3.28)
 
-project(bulang)
+project(wdiv)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -20,7 +19,26 @@ if(CLANG_TIDY_EXE)
 endif()
 
 add_subdirectory(libbu)
+add_subdirectory(external/raylib)
+add_subdirectory(external/box2d)
+add_subdirectory(external/imgui)
 
-add_subdirectory(tests)
-add_subdirectory(natives)
+# Enable PIC for raylib and glfw so they can be linked into shared libraries (plugins)
+set_target_properties(raylib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(glfw PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(box2d PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+add_subdirectory(BuGLFW)
 add_subdirectory(BuRay)
+add_subdirectory(BuSDL)
+#add_subdirectory(BuGTK)
+#add_subdirectory(BuImGui)
+add_subdirectory(BuRlGl)
+# #add_subdirectory(BuGTK)
+# add_subdirectory(BuImGui)
+add_subdirectory(bu)
+add_subdirectory(tests)
+add_subdirectory(testCBiding)
+
+
+ 

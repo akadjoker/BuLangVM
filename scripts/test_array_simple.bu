@@ -1,3 +1,0 @@
-print("Testing arrays");
-var myarr = [];
-print("Array created");
