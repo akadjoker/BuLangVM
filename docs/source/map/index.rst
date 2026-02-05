@@ -59,9 +59,9 @@ Examples
 
    // Create map
    player = {
-       name: "Alice",
-       age: 30,
-       score: 1000
+       "name": "Alice",
+       "age": 30,
+       "score": 1000
    };
    
    // Access values
@@ -72,7 +72,7 @@ Examples
 
 .. code-block:: bulang
 
-   map = {name: "Alice", age: 30};
+   map = {"name": "Alice", "age": 30};
    
    if (map.has("name")) {
        print("Name: {}", map["name"]);
@@ -86,7 +86,7 @@ Examples
 
 .. code-block:: bulang
 
-   map = {name: "Alice", age: 30, city: "NYC"};
+   map = {"name": "Alice", "age": 30, "city": "NYC"};
    
    // Iterate over keys
    foreach (key in map.keys()) {
@@ -100,13 +100,13 @@ Examples
 
 .. code-block:: bulang
 
-   map = {a: 1, b: 2, c: 3};
+   map = {"a": 1, "b": 2, "c": 3};
    
    // Add new entry
    map["d"] = 4;
    
    // Remove entry
-   map.remove("b");  // {a: 1, c: 3, d: 4}
+   map.remove("b");  // {"a": 1, "c": 3, "d": 4}
    
    // Clear all
    map.clear();      // {}

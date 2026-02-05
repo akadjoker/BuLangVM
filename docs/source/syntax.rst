@@ -41,9 +41,9 @@ Data Types
 
    // Maps
    var player = {
-       name: "Hero",
-       hp: 100,
-       level: 5
+       "name": "Hero",
+       "hp": 100,
+       "level": 5
    };
 
 Operators
@@ -136,7 +136,7 @@ For-each loop
 
 .. code-block:: bulang
 
-   forecah(item in [1, 2, 3, 4, 5])
+   foreach(item in [1, 2, 3, 4, 5])
    {
        print(item);
    }
@@ -353,9 +353,9 @@ Try-Catch
 
    try 
    {
-       file = open("data.txt", "r");
-       data = file.read();
-       file.close();
+       file = file.open("data.txt", "r");
+       data = file.read_string(file);
+       file.close(file);
    } catch (e) 
    {
        write("Error: {}", e);
@@ -393,7 +393,7 @@ Import Module
 
    // Import with namespace
    import math;
-   result = math.sqrt(25);
+   result = sqrt(25);
 
    // Import multiple
    import time, file, socket;
@@ -448,9 +448,9 @@ Maps
 
    // Create
    player = {
-       name: "Hero",
-       hp: 100,
-       level: 5
+       "name": "Hero",
+       "hp": 100,
+       "level": 5
    };
 
    // Access
@@ -482,4 +482,3 @@ String Operations
 
    // Format
    msg = format("Score: {}, Time: {}s", 100, 45.5);
-

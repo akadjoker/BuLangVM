@@ -7,6 +7,8 @@ Basic Math
 ----------
 
 Fundamental mathematical operations.
+Note: these functions are compiled to opcodes and are used directly
+(e.g., ``sqrt(x)``), not as ``math.sqrt(x)``.
 
 .. list-table::
    :widths: 20 80
@@ -211,23 +213,23 @@ Examples
 .. code-block:: bulang
 
    // Basic operations
-   a = math.abs(-5);           // 5
-   b = math.sqrt(16);          // 4.0
-   c = math.pow(2, 8);         // 256
-   d = math.floor(3.7);        // 3
-   e = math.ceil(3.2);         // 4
+   a = abs(-5);           // 5
+   b = sqrt(16);          // 4.0
+   c = pow(2, 8);         // 256
+   d = floor(3.7);        // 3
+   e = ceil(3.2);         // 4
 
 **Trigonometry:**
 
 .. code-block:: bulang
 
-   angle = math.rad(45);       // Convert 45° to radians
-   x = math.cos(angle);
-   y = math.sin(angle);
+   angle = rad(45);       // Convert 45° to radians
+   x = cos(angle);
+   y = sin(angle);
    
    // Arc tangent with two arguments
-   direction = math.atan2(dy, dx);
-   degrees = math.deg(direction);
+   direction = atan2(dy, dx);
+   degrees = deg(direction);
 
 **Clamping and Ranges:**
 

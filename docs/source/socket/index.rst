@@ -270,9 +270,9 @@ Examples
    
    // With options
    response = socket.http_get("https://api.example.com/users", {
-       params: {page: 1, limit: 10},
-       headers: {"Authorization": "Bearer token123"},
-       timeout: 30
+       "params": {"page": 1, "limit": 10},
+       "headers": {"Authorization": "Bearer token123"},
+       "timeout": 30
    });
 
 **HTTP POST Request:**
@@ -281,11 +281,11 @@ Examples
 
    // JSON data
    response = socket.http_post("https://api.example.com/users", {
-       json: {
-           name: "John Doe",
-           email: "john@example.com"
+       "json": {
+           "name": "John Doe",
+           "email": "john@example.com"
        },
-       headers: {
+       "headers": {
            "Authorization": "Bearer token"
        }
    });
