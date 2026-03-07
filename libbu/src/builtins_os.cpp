@@ -11,6 +11,8 @@
 #define getcwd _getcwd
 #define chdir _chdir
 #else
+#include <cerrno>
+#include <csignal>
 #include <unistd.h>
 #include <sys/wait.h>
 #endif
@@ -302,6 +304,7 @@ int native_os_spawn_capture(Interpreter *vm, int argCount, Value *args)
     MapInstance *map = result.asMap();
 
     map->table.set(vm->makeString("output").asString(), vm->makeString(output.c_str()));
+    map->table.set(vm->makeString("stdout").asString(), vm->makeString(output.c_str()));
     map->table.set(vm->makeString("code").asString(), vm->makeInt(exitCode));
 
     vm->push(result);
@@ -330,6 +333,7 @@ int native_os_spawn_capture(Interpreter *vm, int argCount, Value *args)
     MapInstance *map = result.asMap();
 
     map->table.set(vm->makeString("output").asString(), vm->makeString(output.c_str()));
+    map->table.set(vm->makeString("stdout").asString(), vm->makeString(output.c_str()));
     map->table.set(vm->makeString("code").asString(), vm->makeInt(exitCode));
     map->table.set(vm->makeString("status").asString(), vm->makeInt(status));
 
@@ -352,8 +356,19 @@ int native_os_kill(Interpreter *vm, int argCount, Value *args)
     }
 
     int pid = args[0].asInt();
+    if (pid <= 0)
+    {
+        vm->push(vm->makeBool(false));
+        return 1;
+    }
 
 #ifdef _WIN32
+    int exitCode = 1;
+    if (argCount >= 2 && args[1].isInt())
+    {
+        exitCode = args[1].asInt();
+    }
+
     HANDLE hProcess = OpenProcess(PROCESS_TERMINATE, FALSE, pid);
     if (!hProcess)
     {
@@ -361,15 +376,38 @@ int native_os_kill(Interpreter *vm, int argCount, Value *args)
         return 1;
     }
 
-    BOOL result = TerminateProcess(hProcess, 1);
+    BOOL result = TerminateProcess(hProcess, (UINT)exitCode);
     CloseHandle(hProcess);
 
     vm->push(vm->makeBool(result != 0));
     return 1;
 
 #else
-    vm->push(vm->makeBool(kill(pid, SIGTERM) == 0));
+    int sig = SIGTERM;
+    if (argCount >= 2 && args[1].isInt())
+    {
+        sig = args[1].asInt();
+    }
+    vm->push(vm->makeBool(kill(pid, sig) == 0));
     return 1;
+#endif
+}
+
+static int os_status_to_exit_code(int status)
+{
+#ifdef _WIN32
+    (void)status;
+    return -1;
+#else
+    if (WIFEXITED(status))
+    {
+        return WEXITSTATUS(status);
+    }
+    if (WIFSIGNALED(status))
+    {
+        return -WTERMSIG(status);
+    }
+    return -1;
 #endif
 }
 
@@ -382,6 +420,24 @@ int native_os_wait(Interpreter *vm, int argCount, Value *args)
     }
 
     int pid = args[0].asInt();
+    if (pid <= 0)
+    {
+        vm->push(vm->makeInt(-1));
+        return 1;
+    }
+
+    int timeoutMs = -1;
+    if (argCount >= 2)
+    {
+        if (args[1].isInt())
+        {
+            timeoutMs = args[1].asInt();
+        }
+        else if (args[1].isDouble())
+        {
+            timeoutMs = (int)args[1].asDouble();
+        }
+    }
 
 #ifdef _WIN32
     HANDLE hProcess = OpenProcess(SYNCHRONIZE | PROCESS_QUERY_INFORMATION,
@@ -392,7 +448,20 @@ int native_os_wait(Interpreter *vm, int argCount, Value *args)
         return 1;
     }
 
-    WaitForSingleObject(hProcess, INFINITE);
+    DWORD waitTimeout = (timeoutMs < 0) ? INFINITE : (DWORD)timeoutMs;
+    DWORD waitResult = WaitForSingleObject(hProcess, waitTimeout);
+    if (waitResult == WAIT_TIMEOUT)
+    {
+        CloseHandle(hProcess);
+        vm->pushNil();
+        return 1;
+    }
+    if (waitResult != WAIT_OBJECT_0)
+    {
+        CloseHandle(hProcess);
+        vm->push(vm->makeInt(-1));
+        return 1;
+    }
 
     DWORD exitCode;
     GetExitCodeProcess(hProcess, &exitCode);
@@ -401,20 +470,141 @@ int native_os_wait(Interpreter *vm, int argCount, Value *args)
     vm->push(vm->makeInt((int)exitCode));
     return 1;
 #else
-    int status;
-    if (waitpid(pid, &status, 0) == -1)
+    int status = 0;
+    if (timeoutMs < 0)
+    {
+        if (waitpid(pid, &status, 0) == -1)
+        {
+            vm->push(vm->makeInt(-1));
+            return 1;
+        }
+    }
+    else
+    {
+        int elapsedMs = 0;
+        const int stepMs = 10;
+        while (true)
+        {
+            pid_t ret = waitpid(pid, &status, WNOHANG);
+            if (ret == pid)
+            {
+                break;
+            }
+            if (ret == -1)
+            {
+                vm->push(vm->makeInt(-1));
+                return 1;
+            }
+            if (elapsedMs >= timeoutMs)
+            {
+                vm->pushNil();
+                return 1;
+            }
+            usleep(stepMs * 1000);
+            elapsedMs += stepMs;
+        }
+    }
+
+    vm->push(vm->makeInt(os_status_to_exit_code(status)));
+    return 1;
+#endif
+}
+
+int native_os_poll(Interpreter *vm, int argCount, Value *args)
+{
+    if (argCount < 1 || !args[0].isInt())
     {
         vm->push(vm->makeInt(-1));
         return 1;
     }
 
-    if (WIFEXITED(status))
+    int pid = args[0].asInt();
+    if (pid <= 0)
     {
-        vm->push(vm->makeInt(WEXITSTATUS(status)));
+        vm->push(vm->makeInt(-1));
         return 1;
     }
 
-    vm->push(vm->makeInt(-1));
+#ifdef _WIN32
+    HANDLE hProcess = OpenProcess(SYNCHRONIZE | PROCESS_QUERY_INFORMATION,
+                                  FALSE, pid);
+    if (!hProcess)
+    {
+        vm->push(vm->makeInt(-1));
+        return 1;
+    }
+
+    DWORD exitCode = 0;
+    if (!GetExitCodeProcess(hProcess, &exitCode))
+    {
+        CloseHandle(hProcess);
+        vm->push(vm->makeInt(-1));
+        return 1;
+    }
+    CloseHandle(hProcess);
+
+    if (exitCode == STILL_ACTIVE)
+    {
+        vm->pushNil();
+        return 1;
+    }
+    vm->push(vm->makeInt((int)exitCode));
+    return 1;
+#else
+    int status = 0;
+    pid_t ret = waitpid(pid, &status, WNOHANG);
+    if (ret == 0)
+    {
+        vm->pushNil();
+        return 1;
+    }
+    if (ret == -1)
+    {
+        vm->push(vm->makeInt(-1));
+        return 1;
+    }
+    vm->push(vm->makeInt(os_status_to_exit_code(status)));
+    return 1;
+#endif
+}
+
+int native_os_is_alive(Interpreter *vm, int argCount, Value *args)
+{
+    if (argCount < 1 || !args[0].isInt())
+    {
+        vm->push(vm->makeBool(false));
+        return 1;
+    }
+
+    int pid = args[0].asInt();
+    if (pid <= 0)
+    {
+        vm->push(vm->makeBool(false));
+        return 1;
+    }
+
+#ifdef _WIN32
+    HANDLE hProcess = OpenProcess(SYNCHRONIZE | PROCESS_QUERY_INFORMATION,
+                                  FALSE, pid);
+    if (!hProcess)
+    {
+        vm->push(vm->makeBool(false));
+        return 1;
+    }
+
+    DWORD exitCode = 0;
+    BOOL ok = GetExitCodeProcess(hProcess, &exitCode);
+    CloseHandle(hProcess);
+    vm->push(vm->makeBool(ok && exitCode == STILL_ACTIVE));
+    return 1;
+#else
+    int result = kill(pid, 0);
+    if (result == 0 || errno == EPERM)
+    {
+        vm->push(vm->makeBool(true));
+        return 1;
+    }
+    vm->push(vm->makeBool(false));
     return 1;
 #endif
 }
@@ -423,14 +613,16 @@ void Interpreter::registerOS()
 {
 #ifdef _WIN32
     const char *platform = "windows";
+#elif defined(__ANDROID__)
+    const char *platform = "android";
+#elif defined(__EMSCRIPTEN__)
+    const char *platform = "emscripten";
 #elif defined(__APPLE__)
     const char *platform = "macos";
 #elif defined(__linux__)
     const char *platform = "linux";
 #elif defined(__unix__)
     const char *platform = "unix";
-#elif defined(__ANDROID__)
-    const char *platform = "android";
 #else
     const char *platform = "unknown";
 #endif
@@ -440,8 +632,10 @@ void Interpreter::registerOS()
         .addFunction("spawn", native_os_spawn, -1)                // Spawn processo
         .addFunction("spawn_shell", native_os_spawn_shell, 1)     // Via shell
         .addFunction("spawn_capture", native_os_spawn_capture, 1) // Captura output
-        .addFunction("wait", native_os_wait, 1)                   // Espera processo
-        .addFunction("kill", native_os_kill, 1)                   // Termina processo
+        .addFunction("wait", native_os_wait, -1)                  // Espera processo (timeout opcional)
+        .addFunction("poll", native_os_poll, 1)                   // Poll sem bloquear
+        .addFunction("is_alive", native_os_is_alive, 1)           // Processo ainda vivo?
+        .addFunction("kill", native_os_kill, -1)                  // Termina processo (signal opcional)
         .addFunction("execute", native_os_execute, 1)
         .addFunction("getenv", native_os_getenv, 1)
         .addFunction("setenv", native_os_setenv, 2)

@@ -1,6 +1,6 @@
 /**
  * @class Map
- * @brief A Red-Black Tree based ordered map container.
+ * @brief A mRED-mBLACK Tree based ordemRED map container.
  * 
  * A self-balancing binary search tree implementation that maintains keys in sorted order
  * while providing O(log n) insertion, deletion, and lookup operations. This is a drop-in
@@ -66,7 +66,7 @@
  * @fn bool get(const K &key, V *out) const
  * @brief Retrieves the value associated with a key.
  * @param key The key to search for
- * @param out Pointer where the value will be stored if found
+ * @param out Pointer where the value will be stomRED if found
  * @return true if the key exists, false otherwise
  * @complexity O(log n)
  */
@@ -109,7 +109,7 @@
  * @param key The key to remove
  * @return true if the key was found and removed, false otherwise
  * @complexity O(log n)
- * @warning Current implementation is incomplete - full Red-Black Tree rebalancing not implemented
+ * @warning Current implementation is incomplete - full mRED-mBLACK Tree rebalancing not implemented
  */
 
 /**
@@ -147,7 +147,7 @@
 template <typename K, typename V, typename Cmp>
 struct Map
 {
-  enum Color : uint8 { RED = 0, BLACK = 1 };
+  enum mColor : uint8 { mRED = 0, mBLACK = 1 };
 
   struct Node
   {
@@ -156,7 +156,7 @@ struct Map
     Node *left;
     Node *right;
     Node *parent;
-    Color color;
+    mColor color;
   };
 
   Node *root = nullptr;
@@ -192,7 +192,7 @@ private:
     n->left = nullptr;
     n->right = nullptr;
     n->parent = parent;
-    n->color = RED;
+    n->mColor = mRED;
     return n;
   }
 
@@ -232,17 +232,17 @@ private:
 
   void fixInsert(Node *z)
   {
-    while (z->parent && z->parent->color == RED)
+    while (z->parent && z->parent->mColor == mRED)
     {
       if (z->parent == z->parent->parent->left)
       {
         Node *y = z->parent->parent->right;
         
-        if (y && y->color == RED)
+        if (y && y->mColor == mRED)
         {
-          z->parent->color = BLACK;
-          y->color = BLACK;
-          z->parent->parent->color = RED;
+          z->parent->mColor = mBLACK;
+          y->mColor = mBLACK;
+          z->parent->parent->mColor = mRED;
           z = z->parent->parent;
         }
         else
@@ -252,8 +252,8 @@ private:
             z = z->parent;
             rotateLeft(z);
           }
-          z->parent->color = BLACK;
-          z->parent->parent->color = RED;
+          z->parent->mColor = mBLACK;
+          z->parent->parent->mColor = mRED;
           rotateRight(z->parent->parent);
         }
       }
@@ -261,11 +261,11 @@ private:
       {
         Node *y = z->parent->parent->left;
         
-        if (y && y->color == RED)
+        if (y && y->mColor == mRED)
         {
-          z->parent->color = BLACK;
-          y->color = BLACK;
-          z->parent->parent->color = RED;
+          z->parent->mColor = mBLACK;
+          y->mColor = mBLACK;
+          z->parent->parent->mColor = mRED;
           z = z->parent->parent;
         }
         else
@@ -275,13 +275,13 @@ private:
             z = z->parent;
             rotateRight(z);
           }
-          z->parent->color = BLACK;
-          z->parent->parent->color = RED;
+          z->parent->mColor = mBLACK;
+          z->parent->parent->mColor = mRED;
           rotateLeft(z->parent->parent);
         }
       }
     }
-    root->color = BLACK;
+    root->mColor = mBLACK;
   }
 
   Node *find(const K &key) const
@@ -340,7 +340,7 @@ public:
     if (!root)
     {
       root = createNode(key, value, nullptr);
-      root->color = BLACK;
+      root->mColor = mBLACK;
       count = 1;
       return true;
     }
@@ -386,7 +386,7 @@ public:
     if (!root)
     {
       root = createNode(key, value, nullptr);
-      root->color = BLACK;
+      root->mColor = mBLACK;
       count = 1;
       return true;
     }
@@ -430,7 +430,7 @@ public:
     if (!root)
     {
       root = createNode(key, value, nullptr);
-      root->color = BLACK;
+      root->mColor = mBLACK;
       count = 1;
       return true;
     }
@@ -510,7 +510,7 @@ public:
   // Remover chave - retorna true se existia
   bool erase(const K &key)
   {
-    // Red-Black Tree delete é complexo, simplificado aqui
+    // mRED-mBLACK Tree delete é complexo, simplificado aqui
     // Para produção, implementar delete completo com rebalanceamento
     Node *n = find(key);
     if (!n) return false;

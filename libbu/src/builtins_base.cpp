@@ -52,6 +52,25 @@ static void valueToString(const Value &v, std::string &out)
     out += v.asStringChars();
     break;
   }
+  case ValueType::PROCESS:
+    snprintf(buffer, 256, "<process:%u>", v.as.integer);
+    out += buffer;
+    break;
+  case ValueType::PROCESS_INSTANCE:
+  {
+    Process *proc = v.asProcess();
+    if (!proc)
+    {
+      out += "<process:null>";
+      break;
+    }
+    if (proc->name)
+      snprintf(buffer, 256, "<process:%u %s>", proc->id, proc->name->chars());
+    else
+      snprintf(buffer, 256, "<process:%u>", proc->id);
+    out += buffer;
+    break;
+  }
   case ValueType::ARRAY:
     out += "[array]";
     break;
@@ -310,6 +329,18 @@ void Interpreter::registerAll()
 #ifdef BU_ENABLE_FILE_IO
   registerFS();
   registerFile();
+#endif
+
+#ifdef BU_ENABLE_JSON
+  registerJSON();
+#endif
+
+#ifdef BU_ENABLE_REGEX
+  registerRegex();
+#endif
+
+#ifdef BU_ENABLE_ZIP
+  registerZip();
 #endif
 
 #ifdef BU_ENABLE_SOCKETS

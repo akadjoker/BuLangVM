@@ -31,7 +31,7 @@ void Interpreter::checkType(int index, ValueType expected, const char *funcName)
 
 const Value &Interpreter::peek(int index)
 {
-    WDIV_ASSERT(currentFiber != nullptr, "No current fiber");
+    WDIV_ASSERT(currentExec() != nullptr, "No current fiber");
 
     int top = getTop();
     int realIndex;
@@ -48,53 +48,53 @@ const Value &Interpreter::peek(int index)
         return null;
     }
 
-    return currentFiber->stack[realIndex];
+    return currentExec()->stack[realIndex];
 }
 
 int Interpreter::getTop()
 {
-    WDIV_ASSERT(currentFiber != nullptr, "No current fiber");
-    return static_cast<int>(currentFiber->stackTop - currentFiber->stack);
+    WDIV_ASSERT(currentExec() != nullptr, "No current fiber");
+    return static_cast<int>(currentExec()->stackTop - currentExec()->stack);
 }
 
 void Interpreter::setTop(int index)
 {
-    WDIV_ASSERT(currentFiber != nullptr, "No current fiber");
+    WDIV_ASSERT(currentExec() != nullptr, "No current fiber");
     if (index < 0 || index > STACK_MAX)
     {
         runtimeError("Invalid stack index");
         return;
     }
-    currentFiber->stackTop = currentFiber->stack + index;
+    currentExec()->stackTop = currentExec()->stack + index;
 }
 
 void Interpreter::push(Value value)
 {
 
-    if (currentFiber->stackTop >= currentFiber->stack + STACK_MAX)
+    if (currentExec()->stackTop >= currentExec()->stack + STACK_MAX)
     {
         runtimeError("Stack overflow");
         return;
     }
-    *currentFiber->stackTop++ = value;
+    *currentExec()->stackTop++ = value;
 }
 
 Value Interpreter::pop()
 {
 
-    if (currentFiber->stackTop <= currentFiber->stack)
+    if (currentExec()->stackTop <= currentExec()->stack)
     {
         runtimeError("Stack underflow");
         return makeNil();
     }
-    return *--currentFiber->stackTop;
+    return *--currentExec()->stackTop;
 }
 
 //  const Value &Interpreter::peek(int distance)
 // {
 
-//     //    int stackSize = currentFiber->stackTop - currentFiber->stack;
-//     ptrdiff_t stackSize = currentFiber->stackTop - currentFiber->stack;
+//     //    int stackSize = currentExec()->stackTop - currentExec()->stack;
+//     ptrdiff_t stackSize = currentExec()->stackTop - currentExec()->stack;
 
 //     if (distance < 0 || distance >= stackSize)
 //     {
@@ -103,7 +103,7 @@ Value Interpreter::pop()
 //         static const Value null = makeNil();
 //         return null;
 //     }
-//     return currentFiber->stackTop[-1 - distance];
+//     return currentExec()->stackTop[-1 - distance];
 // }
 
 // Type checking
@@ -231,7 +231,7 @@ bool Interpreter::toBool(int index)
 void Interpreter::insert(int index)
 {
     // Insere topo no index, shift elementos
-    WDIV_ASSERT(currentFiber != nullptr, "No current fiber");
+    WDIV_ASSERT(currentExec() != nullptr, "No current fiber");
 
     int top = getTop();
     if (index < 0)
@@ -247,17 +247,17 @@ void Interpreter::insert(int index)
     // Shift elementos para direita
     for (int i = top - 1; i >= index; i--)
     {
-        currentFiber->stack[i + 1] = currentFiber->stack[i];
+        currentExec()->stack[i + 1] = currentExec()->stack[i];
     }
 
-    currentFiber->stack[index] = value;
-    currentFiber->stackTop++;
+    currentExec()->stack[index] = value;
+    currentExec()->stackTop++;
 }
 
 void Interpreter::remove(int index)
 {
     // Remove elemento no index
-    WDIV_ASSERT(currentFiber != nullptr, "No current fiber");
+    WDIV_ASSERT(currentExec() != nullptr, "No current fiber");
 
     int top = getTop();
     if (index < 0)
@@ -271,16 +271,16 @@ void Interpreter::remove(int index)
     // Shift elementos para esquerda
     for (int i = index; i < top - 1; i++)
     {
-        currentFiber->stack[i] = currentFiber->stack[i + 1];
+        currentExec()->stack[i] = currentExec()->stack[i + 1];
     }
 
-    currentFiber->stackTop--;
+    currentExec()->stackTop--;
 }
 
 void Interpreter::replace(int index)
 {
 
-    WDIV_ASSERT(currentFiber != nullptr, "No current fiber");
+    WDIV_ASSERT(currentExec() != nullptr, "No current fiber");
 
     int top = getTop();
     if (index < 0)
@@ -291,12 +291,12 @@ void Interpreter::replace(int index)
         return;
     }
 
-    currentFiber->stack[index] = pop();
+    currentExec()->stack[index] = pop();
 }
 void Interpreter::copy(int fromIndex, int toIndex)
 {
 
-    WDIV_ASSERT(currentFiber != nullptr, "No current fiber");
+    WDIV_ASSERT(currentExec() != nullptr, "No current fiber");
 
     int top = getTop();
     if (fromIndex < 0)
@@ -311,14 +311,14 @@ void Interpreter::copy(int fromIndex, int toIndex)
         return;
     }
 
-    currentFiber->stack[toIndex] = currentFiber->stack[fromIndex];
+    currentExec()->stack[toIndex] = currentExec()->stack[fromIndex];
 }
 
 void Interpreter::rotate(int index, int n)
 {
     // Roda n elementos a partir de index
     // rotate(-3, 1): ABC → CAB
-    WDIV_ASSERT(currentFiber != nullptr, "No current fiber");
+    WDIV_ASSERT(currentExec() != nullptr, "No current fiber");
 
     int top = getTop();
     if (index < 0)
@@ -333,25 +333,25 @@ void Interpreter::rotate(int index, int n)
     // Reverse [index, index+count-n)
     for (int i = 0; i < (count - n) / 2; i++)
     {
-        Value temp = currentFiber->stack[index + i];
-        currentFiber->stack[index + i] = currentFiber->stack[index + count - n - 1 - i];
-        currentFiber->stack[index + count - n - 1 - i] = temp;
+        Value temp = currentExec()->stack[index + i];
+        currentExec()->stack[index + i] = currentExec()->stack[index + count - n - 1 - i];
+        currentExec()->stack[index + count - n - 1 - i] = temp;
     }
 
     // Reverse [index+count-n, index+count)
     for (int i = 0; i < n / 2; i++)
     {
-        Value temp = currentFiber->stack[index + count - n + i];
-        currentFiber->stack[index + count - n + i] = currentFiber->stack[index + count - 1 - i];
-        currentFiber->stack[index + count - 1 - i] = temp;
+        Value temp = currentExec()->stack[index + count - n + i];
+        currentExec()->stack[index + count - n + i] = currentExec()->stack[index + count - 1 - i];
+        currentExec()->stack[index + count - 1 - i] = temp;
     }
 
     // Reverse [index, index+count)
     for (int i = 0; i < count / 2; i++)
     {
-        Value temp = currentFiber->stack[index + i];
-        currentFiber->stack[index + i] = currentFiber->stack[index + count - 1 - i];
-        currentFiber->stack[index + count - 1 - i] = temp;
+        Value temp = currentExec()->stack[index + i];
+        currentExec()->stack[index + i] = currentExec()->stack[index + count - 1 - i];
+        currentExec()->stack[index + count - 1 - i] = temp;
     }
 }
 
@@ -371,14 +371,30 @@ bool Interpreter::callFunction(Function *func, int argCount)
         return false;
     }
 
-    if (!currentFiber)
+    Process *proc = currentProcess ? currentProcess : mainProcess;
+    if (!proc)
     {
-        runtimeError("No active fiber to call function");
+        runtimeError("No active process to call function");
+        return false;
+    }
+
+    ProcessExec *fiber = proc;
+    if (currentExec() && currentExec() != fiber)
+    {
+        runtimeError("Execution context mismatch while calling '%s'", func->name->chars());
+        return false;
+    }
+
+    int stackSize = static_cast<int>(fiber->stackTop - fiber->stack);
+    if (stackSize < (argCount + 1))
+    {
+        runtimeError("Function call '%s' is missing callee/arguments on stack",
+                     func->name->chars());
         return false;
     }
 
     // Verifica overflow de frames
-    if (currentFiber->frameCount >= FRAMES_MAX)
+    if (fiber->frameCount >= FRAMES_MAX)
     {
         runtimeError("Stack overflow - too many nested calls");
         return false;
@@ -392,27 +408,50 @@ bool Interpreter::callFunction(Function *func, int argCount)
 
 //    Debug::disassembleChunk(*func->chunk, func->name->chars());
 
-    CallFrame *frame = &currentFiber->frames[currentFiber->frameCount];
+    CallFrame *frame = &fiber->frames[fiber->frameCount];
     frame->func = func;
+    frame->closure = nullptr;
     frame->ip = func->chunk->code;
+    frame->slots = fiber->stackTop - argCount - 1; // slot 0 = callee/self
 
-    frame->slots = currentFiber->stackTop - argCount;
+    int targetFrames = fiber->frameCount;
+    fiber->frameCount++;
 
-    currentFiber->frameCount++;
+    bool prevStop = stopOnCallReturn_;
+    Process *prevProcess = callReturnProcess_;
+    int prevTarget = callReturnTargetFrameCount_;
 
-    int targetFrames = currentFiber->frameCount - 1;
+    stopOnCallReturn_ = true;
+    callReturnProcess_ = proc;
+    callReturnTargetFrameCount_ = targetFrames;
 
-    while (currentFiber->frameCount > targetFrames)
+    while (true)
     {
-        FiberResult result = run_fiber(currentFiber,currentProcess);
-
-        if (result.reason == FiberResult::ERROR)
+        ProcessResult result = run_process(proc);
+        if (result.reason == ProcessResult::ERROR)
         {
+            stopOnCallReturn_ = prevStop;
+            callReturnProcess_ = prevProcess;
+            callReturnTargetFrameCount_ = prevTarget;
+            return false;
+        }
+        if (result.reason == ProcessResult::CALL_RETURN)
+        {
+            stopOnCallReturn_ = prevStop;
+            callReturnProcess_ = prevProcess;
+            callReturnTargetFrameCount_ = prevTarget;
+            return true;
+        }
+        if (result.reason == ProcessResult::PROCESS_DONE)
+        {
+            stopOnCallReturn_ = prevStop;
+            callReturnProcess_ = prevProcess;
+            callReturnTargetFrameCount_ = prevTarget;
+            runtimeError("Function '%s' ended process before returning to caller",
+                         func->name->chars());
             return false;
         }
     }
-
-    return true;
 }
 
 bool Interpreter::callFunction(const char *name, int argCount)
@@ -429,6 +468,15 @@ bool Interpreter::callFunction(const char *name, int argCount)
     }
 
 
+    if (getTop() < argCount)
+    {
+        runtimeError("Not enough arguments on stack to call '%s'", name);
+        return false;
+    }
+
+    // callFunction expects stack layout: callee, arg1..argN
+    push(makeFunction(func->index));
+    rotate(getTop() - argCount - 1, 1); // move callee before args
     return callFunction(func, argCount);
 }
 
@@ -466,6 +514,15 @@ bool Interpreter::callFunctionAuto(const char *name, int argCount)
         return false;
     }
 
+    if (getTop() < argCount)
+    {
+        runtimeError("Not enough arguments on stack to call '%s'", name);
+        return false;
+    }
+
+    // callFunction expects stack layout: callee, arg1..argN
+    push(makeFunction(func->index));
+    rotate(getTop() - argCount - 1, 1); // move callee before args
     return callFunction(func, argCount);
 }
 
@@ -494,16 +551,33 @@ bool Interpreter::callMethod(Value instance, const char *methodName, int argCoun
         return false;
     }
 
-    Process *proc = mainProcess;
-    Fiber *fiber = &proc->fibers[0];
+    Process *proc = currentProcess ? currentProcess : mainProcess;
+    if (!proc)
+    {
+        runtimeError("No active process to call method '%s'", methodName);
+        return false;
+    }
+    ProcessExec *fiber = proc;
+    if (currentExec() && currentExec() != fiber)
+    {
+        runtimeError("Execution context mismatch while calling method '%s'", methodName);
+        return false;
+    }
+
+    if (fiber->stackTop + argCount + 1 > fiber->stack + STACK_MAX)
+    {
+        runtimeError("Stack overflow calling method '%s'", methodName);
+        return false;
+    }
+
     int savedFrameCount = fiber->frameCount;
     Value *savedStackTop = fiber->stackTop;
 
     // Push self (slot 0) + args
-    push(instance);
+    *fiber->stackTop++ = instance;
     for (int i = 0; i < argCount; i++)
     {
-        push(args[i]);
+        *fiber->stackTop++ = args[i];
     }
 
     if (fiber->frameCount >= FRAMES_MAX)
@@ -519,20 +593,43 @@ bool Interpreter::callMethod(Value instance, const char *methodName, int argCoun
     frame->ip = method->chunk->code;
     frame->slots = fiber->stackTop - argCount - 1; // self is before args
 
+    bool prevStop = stopOnCallReturn_;
+    Process *prevProcess = callReturnProcess_;
+    int prevTarget = callReturnTargetFrameCount_;
+
+    stopOnCallReturn_ = true;
+    callReturnProcess_ = proc;
+    callReturnTargetFrameCount_ = savedFrameCount;
+
     // Execute the method
-    while (fiber->frameCount > savedFrameCount)
+    while (true)
     {
-        FiberResult result = run_fiber(fiber, proc);
-        if (result.reason == FiberResult::FIBER_DONE || result.reason == FiberResult::ERROR)
+        ProcessResult result = run_process(proc);
+        if (result.reason == ProcessResult::ERROR)
         {
-            break;
+            stopOnCallReturn_ = prevStop;
+            callReturnProcess_ = prevProcess;
+            callReturnTargetFrameCount_ = prevTarget;
+            fiber->stackTop = savedStackTop;
+            return false;
+        }
+        if (result.reason == ProcessResult::CALL_RETURN)
+        {
+            stopOnCallReturn_ = prevStop;
+            callReturnProcess_ = prevProcess;
+            callReturnTargetFrameCount_ = prevTarget;
+            return true;
+        }
+        if (result.reason == ProcessResult::PROCESS_DONE)
+        {
+            stopOnCallReturn_ = prevStop;
+            callReturnProcess_ = prevProcess;
+            callReturnTargetFrameCount_ = prevTarget;
+            fiber->stackTop = savedStackTop;
+            runtimeError("Method '%s' ended process before returning to caller", methodName);
+            return false;
         }
     }
-
-    // Restore stack
-    fiber->stackTop = savedStackTop;
-
-    return true;
 }
 
 Process *Interpreter::callProcess(ProcessDef *proc, int argCount)
@@ -543,7 +640,7 @@ Process *Interpreter::callProcess(ProcessDef *proc, int argCount)
         return nullptr;
     }
 
-    Function *processFunc = proc->fibers[0].frames[0].func;
+    Function *processFunc = proc->frames[0].func;
 
     // Verifica arity
     if (argCount != processFunc->arity)
@@ -565,27 +662,29 @@ Process *Interpreter::callProcess(ProcessDef *proc, int argCount)
     // Se tem argumentos, inicializa
     if (argCount > 0)
     {
-        Fiber *procFiber = &instance->fibers[0];
+        ProcessExec *procFiber = instance;
+        int localSlot = 0;
 
-        // Copia args da stack atual para a fiber do processo
         for (int i = 0; i < argCount; i++)
         {
-            procFiber->stack[i] = currentFiber->stackTop[-argCount + i];
-        }
-        procFiber->stackTop = procFiber->stack + argCount;
+            Value arg = currentExec()->stackTop[-argCount + i];
 
-        // Mapeia args para privates (se definido)
-        for (size_t i = 0; i < proc->argsNames.size() && i < (size_t)argCount; i++)
-        {
-            uint8_t privIdx = proc->argsNames[i];
-            if (privIdx != 255)
+            if (i < (int)proc->argsNames.size() && proc->argsNames[i] != 255)
             {
-                instance->privates[privIdx] = procFiber->stack[i];
+                // Arg mapeia para um private (x, y, etc.) - copia direto
+                instance->privates[proc->argsNames[i]] = arg;
+            }
+            else
+            {
+                // Arg é um local normal
+                procFiber->stack[localSlot] = arg;
+                localSlot++;
             }
         }
+        procFiber->stackTop = procFiber->stack + localSlot;
 
         // Remove args da stack atual
-        currentFiber->stackTop -= argCount;
+        currentExec()->stackTop -= argCount;
     }
 
     // ID e FATHER
@@ -595,10 +694,10 @@ Process *Interpreter::callProcess(ProcessDef *proc, int argCount)
         instance->privates[(int)PrivateIndex::FATHER] = makeInt(currentProcess->id);
     }
 
-    if (hooks.onStart)
-    {
-        hooks.onStart(instance);
-    }
+    // if (hooks.onStart)
+    // {
+    //     hooks.onStart(instance);
+    // }
 
     return instance;
 }

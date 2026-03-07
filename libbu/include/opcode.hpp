@@ -58,8 +58,10 @@ enum Opcode : uint8
     // Functions (38-43)
     OP_CALL = 38,
     OP_RETURN = 39,
-    OP_SPAWN = 40,
-    OP_YIELD = 41,
+    // Fast-path opcode for array.push(value)
+    OP_ARRAY_PUSH = 40,
+    // Reserved legacy opcode (single-fiber mode disables fiber/yield bytecode)
+    OP_RESERVED_41 = 41,
     OP_FRAME = 42,
     OP_EXIT = 43,
 
@@ -125,5 +127,12 @@ enum Opcode : uint8
 
     // Multi-return (88)
     OP_RETURN_N = 88,  // Returns N values from script function
+
+    // Type reference (89)
+    OP_TYPE = 89,  // Resolve process name to blueprint index
+
+    // Process utilities (90-91)
+    OP_PROC = 90,    // Convert process ID (int) to Process value
+    OP_GET_ID = 91,  // Get first alive process ID by blueprint index
 
 };

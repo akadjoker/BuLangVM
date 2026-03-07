@@ -27,7 +27,7 @@
 
 struct Function;
 struct CallFrame;
-struct Fiber;
+struct ProcessExec;
 struct Process;
 class Interpreter;
 class Compiler;
@@ -124,6 +124,7 @@ enum class StaticNames : uint8 {
   // indexOf
 
   typedef int(*NativeFunction)(Interpreter * vm, int argCount, Value *args);
+  typedef int(*NativeFunctionProcess)(Interpreter * vm, Process *process, int argCount, Value *args);
   typedef int(*NativeMethod)(Interpreter * vm, void *instance, int argCount,
                                Value *args);
   typedef void *(*NativeConstructor)(Interpreter * vm, int argCount, Value *args);
@@ -153,6 +154,14 @@ struct NativeDef
 {
   String *name{nullptr};
   NativeFunction func;
+  int arity{0};
+  uint32 index{0};
+};
+
+struct NativeProcessDef
+{
+  String *name{nullptr};
+  NativeFunctionProcess func;
   int arity{0};
   uint32 index{0};
 };
@@ -473,30 +482,30 @@ struct CallFrame
 
 struct VMHooks
 {
-  void (*onStart)(Process *p) = nullptr;
-  void (*onUpdate)(Process *p, float dt) = nullptr;
-  void (*onRender)(Process *p) = nullptr;
-  void (*onDestroy)(Process *p, int exitCode) = nullptr;
+  void (*onCreate)(Interpreter *vm, Process *p) = nullptr;
+  void (*onStart)(Interpreter *vm,Process *p) = nullptr;
+  void (*onUpdate)(Interpreter *vm,Process *p, float dt) = nullptr;
+  void (*onRender)(Interpreter *vm,Process *p) = nullptr;
+  void (*onDestroy)(Interpreter *vm,Process *p, int exitCode) = nullptr;
 };
 
-struct FiberResult
+struct ProcessResult
 {
   enum Reason : uint8
   {
-    FIBER_YIELD,   // yield N
     PROCESS_FRAME, // frame(N)
-    FIBER_DONE,    // return/end
+    CALL_RETURN,   // return to native C++ caller boundary
+    PROCESS_DONE,    // return/end
     ERROR
   };
 
   Reason reason;
-  int instructionsRun;
-  float yieldMs;    // Se FIBER_YIELD
   int framePercent; // Se PROCESS_FRAME
 };
 
 struct TryHandler
 {
+  static constexpr int MAX_PENDING_RETURNS = 16;
   uint8_t *catchIP;
   uint8_t *finallyIP;
   Value *stackRestore;
@@ -504,27 +513,26 @@ struct TryHandler
   bool hasPendingError;
   Value pendingError;
   bool catchConsumed;
-  Value pendingReturn;
+  Value pendingReturns[MAX_PENDING_RETURNS];
+  uint8_t pendingReturnCount;
   bool hasPendingReturn;
 
   TryHandler() : catchIP(nullptr), finallyIP(nullptr),
                  stackRestore(nullptr), inFinally(false),
-                 hasPendingError(false)
+                 hasPendingError(false), pendingReturnCount(0)
   {
     pendingError.as.byte = 0;
     pendingError.type = ValueType::NIL;
     catchConsumed = false;
-    pendingReturn.as.byte = 0;
-    pendingReturn.type = ValueType::NIL;
     hasPendingReturn = false;
   }
 };
 
-struct Fiber
+struct ProcessExec
 {
 
-  FiberState state; // Estado da FIBER (yield)
-  float resumeTime; // Quando acorda (yield)
+  ProcessState state; // Estado de execução do processo
+  float resumeTime;   // Quando acorda (yield/frame)
 
   uint8 *ip;
   Value stack[STACK_MAX];
@@ -536,8 +544,8 @@ struct Fiber
   TryHandler tryHandlers[TRY_MAX];
   int tryDepth;
 
-  Fiber()
-      : state(FiberState::DEAD), resumeTime(0), ip(nullptr), stackTop(stack),
+  ProcessExec()
+      : state(ProcessState::DEAD), resumeTime(0), ip(nullptr), stackTop(stack),
         frameCount(0), gosubTop(0), tryDepth(0) {}
 };
 enum class PrivateIndex : uint8
@@ -551,37 +559,46 @@ enum class PrivateIndex : uint8
   FLAGS = 6,
   ID = 7,
   FATHER = 8,
+  iRED = 9,
+  iGREEN = 10,
+  iBLUE = 11,
+  iALPHA = 12,
+  TAG = 13,
+  STATE = 14,
+  SPEED = 15,
+  GROUP = 16,
+  VELX = 17,
+  VELY = 18,
+  HP = 19,
+  PROGRESS = 20,
+  LIFE = 21,
+  ACTIVE = 22,
+  SHOW = 23,
+  XOLD = 24,
+  YOLD = 25,
+  SIZEX =26,
+  SIZEY =27,
+  
 
 };
 
-struct ProcessDef
+struct ProcessDef : public ProcessExec
 {
   int index;
   Vector<uint8> argsNames;
   String *name{nullptr};
-  Fiber *fibers{nullptr};
   Value privates[MAX_PRIVATES];
-  int totalFibers;
-  int nextFiberIndex;
   void finalize();
   void release();
 };
 
-struct Process
+struct Process : public ProcessExec
 {
 
   String *name{nullptr};
   uint32 id{0};
-
-  FiberState state;        //  Estado do PROCESSO (frame)
-  float resumeTime = 0.0f; // Quando acorda (frame)
-
-  Fiber *fibers{nullptr};
-  int totalFibers{0};
-  int nextFiberIndex{0};
-  int currentFiberIndex{0};
-  Fiber *current{nullptr};
-
+  int blueprint{-1}; // Índice do ProcessDef que é a "blueprint" desse processo
+  void *userData{nullptr}; 
   Value privates[MAX_PRIVATES];
 
   int exitCode = 0;
@@ -599,12 +616,14 @@ class Interpreter
   HashMap<String *, Function *, StringHasher, StringEq> functionsMap;
   HashMap<String *, ProcessDef *, StringHasher, StringEq> processesMap;
   HashMap<String *, NativeDef, StringHasher, StringEq> nativesMap;
+  HashMap<String *, NativeProcessDef, StringHasher, StringEq> nativeProcessesMap;
   HashMap<String *, StructDef *, StringHasher, StringEq> structsMap;
   HashMap<String *, ClassDef *, StringHasher, StringEq> classesMap;
   HashMap<String *, NativeClassDef *, StringHasher, StringEq> nativeClassesMap;
   HashMap<const char *, int, CStringHash, CStringEq> privateIndexMap;
 
   Vector<NativeDef> natives;
+  Vector<NativeProcessDef> nativeProcesses; 
   Vector<Function *> functions;
   Vector<Function *> functionsClass;
   Vector<ProcessDef *> processes;
@@ -672,17 +691,43 @@ class Interpreter
   float accumulator = 0.0f;
   const float FIXED_DT = 1.0f / 60.0f;
 
-  Fiber *currentFiber;
   Process *currentProcess;
   Process *mainProcess;
+  // Internal boundary used by C++->script calls (callFunction/callMethod).
+  // When the target frame returns, run_process stops with CALL_RETURN instead
+  // of continuing to execute the caller frame.
+  bool stopOnCallReturn_{false};
+  Process *callReturnProcess_{nullptr};
+  int callReturnTargetFrameCount_{-1};
   bool hasFatalError_;
+  bool debugMode_;
 
   Compiler *compiler;
+  FileLoaderCallback fileLoaderCallback_ = nullptr;
+  void *fileLoaderUserdata_ = nullptr;
   Upvalue *openUpvalues;
 
   VMHooks hooks;
 
   Vector<String*> staticNames;
+
+  FORCE_INLINE ProcessExec *currentExec()
+  {
+    if (currentProcess)
+      return static_cast<ProcessExec *>(currentProcess);
+    if (mainProcess)
+      return static_cast<ProcessExec *>(mainProcess);
+    return nullptr;
+  }
+
+  FORCE_INLINE const ProcessExec *currentExec() const
+  {
+    if (currentProcess)
+      return static_cast<const ProcessExec *>(currentProcess);
+    if (mainProcess)
+      return static_cast<const ProcessExec *>(mainProcess);
+    return nullptr;
+  }
 
   void freeInstances();
   void freeBlueprints();
@@ -692,14 +737,13 @@ class Interpreter
   void blackenObject(GCObject *obj);
   void traceReferences();
 
-  Fiber *get_ready_fiber(Process *proc);
   void resetFiber();
-  void initFiber(Fiber *fiber, Function *func);
+  void initFiber(ProcessExec *fiber, Function *func);
   void setPrivateTable();
   void checkType(int index, ValueType expected, const char *funcName);
 
   void addFunctionsClasses(Function *fun);
-  bool findAndJumpToHandler(Value error, uint8 *&ip, Fiber *fiber);
+  bool findAndJumpToHandler(Value error, uint8 *&ip, ProcessExec *fiber);
 
   friend class Compiler;
   friend class ModuleBuilder;
@@ -986,6 +1030,12 @@ public:
  
 
   void dumpToFile(const char *filename);
+  bool saveBytecode(const char *filename);
+  bool loadBytecode(const char *filename);
+  bool compileToBytecode(const char *source, const char *filename, bool dump = false);
+
+  void setDebugMode(bool enabled) { debugMode_ = enabled; }
+  bool isDebugMode() const { return debugMode_; }
 
   void setFileLoader(FileLoaderCallback loader, void *userdata = nullptr);
 
@@ -1008,7 +1058,7 @@ public:
   void addStructField(NativeStructDef *def, const char *fieldName,
                       size_t offset, FieldType type, bool readOnly = false);
 
-  ProcessDef *addProcess(const char *name, Function *func, int totalFibers);
+  ProcessDef *addProcess(const char *name, Function *func);
   void destroyProcess(Process *proc);
   Process *spawnProcess(ProcessDef *proc);
 
@@ -1035,11 +1085,13 @@ public:
 
   uint32 getTotalProcesses() const;
   uint32 getTotalAliveProcesses() const;
+  Process *findProcessById(uint32 id);
+  const Vector<Process *>& getAliveProcesses() const { return aliveProcesses; }
 
   void destroyFunction(Function *func);
-  void addFiber(Process *proc, Function *func);
 
   int registerNative(const char *name, NativeFunction func, int arity);
+  int registerNativeProcess(const char *name, NativeFunctionProcess func, int arity);
 
   void print(Value value);
 
@@ -1051,6 +1103,9 @@ public:
   void registerFS();
   void registerTime();
   void registerFile();
+  void registerJSON();
+  void registerRegex();
+  void registerZip();
   void registerSocket();
   void registerAll();
 
@@ -1060,7 +1115,7 @@ public:
   int registerFunction(const char *name, Function *func);
 
   void run_process_step(Process *proc);
-  FiberResult run_fiber(Fiber *fiber, Process *proc);
+  ProcessResult run_process(Process *process);
 
   float getCurrentTime() const;
 
@@ -1103,9 +1158,11 @@ public:
   size_t getTotalNativeClasses() { return totalNativeClasses; }
   size_t getTotalNativeStructs() { return totalNativeStructs; }
 
-  // Fiber/Process context (for callbacks from external libraries like GTK)
-  Fiber* getCurrentFiber() { return currentFiber; }
-  void setCurrentFiber(Fiber* fiber) { currentFiber = fiber; }
+  void killAliveProcess();
+
+  // ProcessExec/Process context (for callbacks from external libraries like GTK)
+  ProcessExec* getCurrentExec() { return currentExec(); }
+  void setCurrentExec(Process* process) { currentProcess = process; }
   Process* getCurrentProcess() { return currentProcess; }
   void setCurrentProcess(Process* process) { currentProcess = process; }
 
@@ -1127,6 +1184,7 @@ public:
   void disassemble();
 
   int addGlobal(const char *name, Value value);
+  bool setGlobal(const char *name, Value value);
   String *addGlobalEx(const char *name, Value value);
   Value getGlobal(const char *name);
   Value getGlobal(uint32 index);
@@ -1342,6 +1400,15 @@ public:
     return v;
   }
 
+  FORCE_INLINE Value makeNativeProcess(int idx)
+  {
+    Value v;
+    v.type = ValueType::NATIVEPROCESS;
+    v.as.integer = idx;
+    return v;
+  }
+
+
   FORCE_INLINE Value makeNativeClass(int idx)
   {
     Value v;
@@ -1355,6 +1422,14 @@ public:
     Value v;
     v.type = ValueType::PROCESS;
     v.as.integer = idx;
+    return v;
+  }
+
+  FORCE_INLINE Value makeProcessInstance(Process *proc)
+  {
+    Value v;
+    v.type = ValueType::PROCESS_INSTANCE;
+    v.as.process = proc;
     return v;
   }
 

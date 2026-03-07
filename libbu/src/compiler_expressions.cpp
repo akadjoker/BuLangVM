@@ -58,6 +58,12 @@ void Compiler::mathUnary(bool canAssign)
     case TOKEN_TAN:
         emitByte(OP_TAN);
         break;
+    case TOKEN_ASIN:
+        emitByte(OP_ASIN);
+        break;
+    case TOKEN_ACOS:
+        emitByte(OP_ACOS);
+        break;
     case TOKEN_ATAN:
         emitByte(OP_ATAN);
         break;
@@ -126,6 +132,34 @@ void Compiler::expressionClock(bool canAssign)
     consume(TOKEN_RPAREN, "Expect ')' after '('");
 
     emitByte(OP_CLOCK);
+}
+
+void Compiler::typeExpression(bool canAssign)
+{
+    (void)canAssign;
+    consume(TOKEN_IDENTIFIER, "Expect process name after 'type'");
+    emitConstant(vm_->makeString(previous.lexeme.c_str()));
+    emitByte(OP_TYPE);
+}
+
+void Compiler::procExpression(bool canAssign)
+{
+    (void)canAssign;
+    consume(TOKEN_LPAREN, "Expect '(' after 'proc'");
+    expression();
+    if (hadError) return;
+    consume(TOKEN_RPAREN, "Expect ')' after expression");
+    emitByte(OP_PROC);
+}
+
+void Compiler::getIdExpression(bool canAssign)
+{
+    (void)canAssign;
+    consume(TOKEN_LPAREN, "Expect '(' after 'get_id'");
+    expression();
+    if (hadError) return;
+    consume(TOKEN_RPAREN, "Expect ')' after expression");
+    emitByte(OP_GET_ID);
 }
 
 void Compiler::number(bool canAssign)
@@ -370,6 +404,28 @@ void Compiler::binary(bool canAssign)
     default:
         return;
     }
+}
+
+void Compiler::ternary(bool canAssign)
+{
+    (void)canAssign;
+
+    // Condition value is already on stack.
+    int elseJump = emitJump(OP_JUMP_IF_FALSE);
+    emitByte(OP_POP); // Pop condition for true branch
+
+    // True expression
+    parsePrecedence(PREC_ASSIGNMENT);
+    consume(TOKEN_COLON, "Expect ':' in conditional expression");
+
+    int endJump = emitJump(OP_JUMP);
+
+    // False expression
+    patchJump(elseJump);
+    emitByte(OP_POP); // Pop condition for false branch
+    parsePrecedence(PREC_ASSIGNMENT);
+
+    patchJump(endJump);
 }
 
 void Compiler::bufferLiteral(bool canAssign)

@@ -625,11 +625,6 @@ void ProcessPool::recycle(Process *proc)
 
 void ProcessPool::destroy(Process *proc)
 {
-    if (proc->fibers)
-    {
-        free(proc->fibers);
-        proc->fibers = nullptr;
-    }
     delete proc;
 }
 
@@ -640,11 +635,6 @@ void ProcessPool::clear()
     for (size_t j = 0; j < pool.size(); j++)
     {
         Process *proc = pool[j];
-        if (proc->fibers)
-        {
-            free(proc->fibers);
-            proc->fibers = nullptr;
-        }
         delete proc;
     }
     pool.clear();
@@ -664,12 +654,6 @@ void ProcessPool::shrink()
     {
         Process *proc = pool.back();
         pool.pop();
-
-        if (proc->fibers)
-        {
-            free(proc->fibers);
-            proc->fibers = nullptr;
-        }
         delete proc;
     }
 }

@@ -180,11 +180,13 @@ int native_clamp(Interpreter *vm, int argCount, Value *args)
         int v = args[0].asInt();
         int lo = args[1].asInt();
         int hi = args[2].asInt();
-        if (v < lo) {
+        if (v < lo)
+        {
             vm->push(vm->makeInt(lo));
             return 1;
         }
-        if (v > hi) {
+        if (v > hi)
+        {
             vm->push(vm->makeInt(hi));
             return 1;
         }
@@ -196,11 +198,13 @@ int native_clamp(Interpreter *vm, int argCount, Value *args)
     double lo = args[1].asNumber();
     double hi = args[2].asNumber();
 
-    if (v < lo) {
+    if (v < lo)
+    {
         vm->push(vm->makeDouble(lo));
         return 1;
     }
-    if (v > hi) {
+    if (v > hi)
+    {
         vm->push(vm->makeDouble(hi));
         return 1;
     }
@@ -224,6 +228,32 @@ int native_math_lerp(Interpreter *vm, int argCount, Value *args)
     double b = args[1].asNumber();
     double t = args[2].asNumber();
     vm->push(vm->makeDouble(a + t * (b - a)));
+    return 1;
+}
+
+// catmull(p0, p1, p2, p3, t) -> Catmull-Rom interpolation (scalar)
+int native_math_catmull(Interpreter *vm, int argCount, Value *args)
+{
+    if (argCount != 5)
+    {
+        vm->runtimeError("catmull expects 5 arguments (p0, p1, p2, p3, t)");
+        return 0;
+    }
+
+    const double p0 = args[0].asNumber();
+    const double p1 = args[1].asNumber();
+    const double p2 = args[2].asNumber();
+    const double p3 = args[3].asNumber();
+    const double t = args[4].asNumber();
+
+    const double t2 = t * t;
+    const double t3 = t2 * t;
+    const double out = 0.5 * ((2.0 * p1) +
+                              (-p0 + p2) * t +
+                              (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3) * t2 +
+                              (-p0 + 3.0 * p1 - 3.0 * p2 + p3) * t3);
+
+    vm->push(vm->makeDouble(out));
     return 1;
 }
 
@@ -255,15 +285,17 @@ int native_math_sign(Interpreter *vm, int argCount, Value *args)
     }
 
     double val = args[0].asNumber();
-    if (val > 0) {
-        vm->push(vm->makeInt(1));
+    if (val > 0)
+    {
+        vm->push(vm->makeDouble(1));
         return 1;
     }
-    if (val < 0) {
-        vm->push(vm->makeInt(-1));
+    if (val < 0)
+    {
+        vm->push(vm->makeDouble(-1));
         return 1;
     }
-    vm->push(vm->makeInt(0));
+    vm->push(vm->makeDouble(0));
     return 1;
 }
 
@@ -332,8 +364,8 @@ int native_math_tanh(Interpreter *vm, int argCount, Value *args)
     return 1;
 }
 
-
-static double CLAMP(double x, double min, double max) { return x < min ? min : x > max ? max : x; }
+static double CLAMP(double x, double min, double max) { return x < min ? min : x > max ? max
+                                                                                       : x; }
 
 int native_math_smoothstep(Interpreter *vm, int argCount, Value *args)
 {
@@ -384,7 +416,6 @@ int native_math_smootherstep(Interpreter *vm, int argCount, Value *args)
     {
         vm->runtimeError("smootherstep expects 1 or 3 arguments");
         return 0;
-
     }
 
     t = CLAMP((t - edge0) / (edge1 - edge0), 0.0, 1.0);
@@ -417,7 +448,6 @@ double hermite(double value1, double tangent1, double value2, double tangent2, d
     return result;
 }
 
-
 float repeat(double t, double length)
 {
     return CLAMP(t - std::floor(t / length) * length, 0.0f, length);
@@ -427,7 +457,6 @@ double ping_pong(double t, double length)
     t = repeat(t, length * 2.0f);
     return length - std::abs(t - length);
 }
-
 
 int native_math_hermite(Interpreter *vm, int argCount, Value *args)
 {
@@ -462,7 +491,18 @@ int native_math_ping_pong(Interpreter *vm, int argCount, Value *args)
     return 1;
 }
 
-
+// abs(value) -> absolute value
+ int native_abs(Interpreter *vm, int argCount, Value *args)
+{
+    if (argCount != 1 || !args[0].isNumber())
+    {
+        Error("abs expects 1 number argument");
+        vm->pushDouble(0);
+        return 1;
+    }
+    vm->pushDouble(fabs(args[0].asNumber()));
+    return 1;
+}
 
 void Interpreter::registerMath()
 {
@@ -477,6 +517,7 @@ void Interpreter::registerMath()
 
         // Utils de Jogos/Lógica
         .addFunction("lerp", native_math_lerp, 3)
+        .addFunction("catmull", native_math_catmull, 5)
         .addFunction("map", native_math_map, 5)
         .addFunction("sign", native_math_sign, 1)
         .addFunction("hypot", native_math_hypot, 2)
@@ -497,6 +538,7 @@ void Interpreter::registerMath()
         .addFunction("repeat", native_math_repeat, 2)
         .addFunction("ping_pong", native_math_ping_pong, 2)
 
+        .addFunction("abs", native_abs, 1)
         .addFunction("clamp", native_clamp, 3)
         .addFunction("min", native_min, 2)
         .addFunction("max", native_max, 2)

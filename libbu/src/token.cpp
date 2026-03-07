@@ -112,9 +112,17 @@ const char *tokenTypeToString(TokenType type)
         return "BANG";
     case TOKEN_COLON:
         return "COLON";
+    case TOKEN_QUESTION:
+        return "QUESTION";
     
     case TOKEN_PROCESS:
         return "PROCESS";
+    case TOKEN_TYPE:
+        return "TYPE";
+    case TOKEN_PROC:
+        return "PROC";
+    case TOKEN_GET_ID:
+        return "GET_ID";
     case TOKEN_FRAME:
         return "FRAME";
     case TOKEN_EXIT:

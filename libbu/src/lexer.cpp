@@ -2,7 +2,7 @@
 #include "lexer.hpp"
 #include "utf8_utils.h"
 #include <cctype>
-#include <iostream>
+#include <cstdio>
 
 Lexer::Lexer(const std::string &src)
     : source(src),
@@ -67,11 +67,12 @@ void Lexer::initKeywords()
         {"nil", TOKEN_NIL},
         {"print", TOKEN_PRINT},
         {"process", TOKEN_PROCESS},
+        {"type", TOKEN_TYPE},
         {"frame", TOKEN_FRAME},
         {"len", TOKEN_LEN},
         {"free", TOKEN_FREE},
-        {"fiber", TOKEN_FIBER},
-        {"yield", TOKEN_YIELD},
+        {"proc", TOKEN_PROC},
+        {"get_id", TOKEN_GET_ID},
         {"exit", TOKEN_EXIT},
         {"label", TOKEN_LABEL},
         {"goto", TOKEN_GOTO},
@@ -91,6 +92,8 @@ void Lexer::initKeywords()
 
         {"sin", TOKEN_SIN},
         {"cos", TOKEN_COS},
+        {"asin", TOKEN_ASIN},
+        {"acos", TOKEN_ACOS},
         {"atan", TOKEN_ATAN},
         {"atan2", TOKEN_ATAN2},
         {"sqrt", TOKEN_SQRT},
@@ -619,6 +622,8 @@ Token Lexer::scanToken()
         return makeToken(TOKEN_SEMICOLON, ";");
     case ':':
         return makeToken(TOKEN_COLON, ":");
+    case '?':
+        return makeToken(TOKEN_QUESTION, "?");
     case '.':
         return makeToken(TOKEN_DOT, ".");
     
@@ -765,7 +770,9 @@ void Lexer::printTokens(const std::vector<Token> &toks) const
 {
     for (const Token &token : toks)
     {
-        std::cout << token.toString() << std::endl;
+        const std::string text = token.toString();
+        std::fputs(text.c_str(), stdout);
+        std::fputc('\n', stdout);
     }
 }
 

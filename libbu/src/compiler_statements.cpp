@@ -76,14 +76,6 @@ void Compiler::statement()
     {
         frameStatement();
     }
-    else if (match(TOKEN_YIELD))
-    {
-        yieldStatement();
-    }
-    else if (match(TOKEN_FIBER))
-    {
-        fiberStatement();
-    }
     else if (match(TOKEN_EXIT))
     {
         exitStatement();
@@ -266,13 +258,24 @@ void Compiler::varDeclaration()
         if (hadError)
             return;
 
-        // Atribuir cada valor (do último para o primeiro - stack é LIFO)
-        // Os valores estão na stack: [v0, v1, v2, ...] com vN-1 no topo
-        // Queremos: names[0]=v0, names[1]=v1, etc.
-        // Então atribuímos de trás para frente
-        for (int i = (int)names.size() - 1; i >= 0; i--)
+        if (scopeDepth > 0)
         {
-            if (scopeDepth == 0)
+            // Locais: marcar todas as variáveis como inicializadas
+            // (os valores já estão na stack, um por variável).
+            int count = (int)names.size();
+            int first = localCount_ - count;
+            if (first < 0)
+                first = 0;
+            for (int i = first; i < localCount_; i++)
+            {
+                locals_[i].depth = scopeDepth;
+                locals_[i].usedInitLocal = true;
+            }
+        }
+        else
+        {
+            // Globais: define e consome valores da stack (LIFO)
+            for (int i = (int)names.size() - 1; i >= 0; i--)
             {
                 int privateIdx = vm_->getProcessPrivateIndex(names[i].lexeme.c_str());
                 if (privateIdx != -1)
@@ -281,9 +284,9 @@ void Compiler::varDeclaration()
                             names[i].lexeme.c_str());
                 }
                 declaredGlobals_.insert(names[i].lexeme);
-            }
 
-            defineVariable(globals[i]);
+                defineVariable(globals[i]);
+            }
         }
 
         consume(TOKEN_SEMICOLON, "Expect ';' after multi-assignment");
@@ -679,7 +682,7 @@ void Compiler::namedVariable(Token &name, bool canAssign)
 
     // === 5. Fallback final: ERRO - variável não declarada ===
     // Se chegou aqui, a variável não foi declarada com 'var'
-    // OPTIMIZATION: Check if it's a native class/struct first (they use HashMap)
+
     String *nameStr = vm_->createString(name.lexeme.c_str());
     if (vm_->globals.exist(nameStr))
     {
@@ -693,7 +696,7 @@ void Compiler::namedVariable(Token &name, bool canAssign)
 
     // Variável não foi declarada com 'var' - ERRO!
     // Mesmo em scope local, não permitimos criar globais implicitamente
-    fail("Undefined variable '%s'. Use 'var %s = ...' to declare it first.",
+    fail("Undefined variable '%s'!",
           name.lexeme.c_str(), name.lexeme.c_str());
     
     // Emite código dummy para continuar compilação
@@ -818,7 +821,24 @@ void Compiler::block()
     while (!check(TOKEN_RBRACE) && !check(TOKEN_EOF))
     {
         if (hadError)
-            break;
+        {
+            // Recovery local do bloco atual para evitar erros em cascata:
+            // consome até ao '}' correspondente e sai silenciosamente.
+            int braceDepth = 1;
+            while (!check(TOKEN_EOF) && braceDepth > 0)
+            {
+                if (check(TOKEN_LBRACE))
+                {
+                    braceDepth++;
+                }
+                else if (check(TOKEN_RBRACE))
+                {
+                    braceDepth--;
+                }
+                advance();
+            }
+            return;
+        }
         declaration();
     }
     consume(TOKEN_RBRACE, "Expect '}' after block");
@@ -1088,10 +1108,18 @@ void Compiler::loopStatement()
 
 void Compiler::switchStatement()
 {
+    if (!enterSwitchContext())
+    {
+        return;
+    }
+
     consume(TOKEN_LPAREN, "Expect '(' after 'switch'");
     expression(); // [value]
     if (hadError)
+    {
+        leaveSwitchContext();
         return;
+    }
     consume(TOKEN_RPAREN, "Expect ')' after switch expression");
     consume(TOKEN_LBRACE, "Expect '{' before switch body");
 
@@ -1104,7 +1132,11 @@ void Compiler::switchStatement()
         emitByte(OP_DUP); // [value, value]
         expression();     // [value, value, case_val]
         if (hadError)
+        {
+            recoverToCurrentSwitchEnd();
+            leaveSwitchContext();
             return;
+        }
         consume(TOKEN_COLON, "Expect ':' after case value");
         emitByte(OP_EQUAL); // [value, bool]
 
@@ -1119,7 +1151,11 @@ void Compiler::switchStatement()
         {
             statement();
             if (hadError)
+            {
+                recoverToCurrentSwitchEnd();
+                leaveSwitchContext();
                 return;
+            }
         }
 
         endJumps.push_back(emitJump(OP_JUMP));
@@ -1139,7 +1175,11 @@ void Compiler::switchStatement()
         {
             statement();
             if (hadError)
+            {
+                recoverToCurrentSwitchEnd();
+                leaveSwitchContext();
                 return;
+            }
         }
     }
     else
@@ -1154,10 +1194,22 @@ void Compiler::switchStatement()
     {
         patchJump(jump);
     }
+
+    leaveSwitchContext();
 }
 
 void Compiler::breakStatement()
 {
+    if (switchDepth_ > 0)
+    {
+        int switchLoopDepth = switchLoopDepthStack_[switchDepth_ - 1];
+        if (loopDepth_ <= switchLoopDepth)
+        {
+            error("Switch cases auto-exit; 'break' here would break an outer loop");
+            consume(TOKEN_SEMICOLON, "Expect ';' after 'break'");
+            return;
+        }
+    }
 
     emitBreak();
     consume(TOKEN_SEMICOLON, "Expect ';' after 'break'");
@@ -1489,6 +1541,11 @@ void Compiler::funDeclaration()
     {
         declareVariable(); // Adiciona 'inner' como local de 'outer'
     }
+    else
+    {
+        // Register global name BEFORE compiling body so recursion works
+        declaredGlobals_.insert(nameToken.lexeme);
+    }
 
     // Compila função
     compileFunction(func, false); // false = não é process
@@ -1521,7 +1578,6 @@ void Compiler::funDeclaration()
     else
     {
         // OPTIMIZATION: Use global index instead of constant pool
-        declaredGlobals_.insert(nameToken.lexeme);
         uint16 globalIndex = getOrCreateGlobalIndex(nameToken.lexeme);
         defineVariable(globalIndex); // Global
     }
@@ -1551,11 +1607,10 @@ void Compiler::processDeclaration()
     }
 
     // Compila processo
-    numFibers_ = 1;
     compileFunction(func, true); // true = É PROCESS!
 
     // Cria blueprint (process não vai para globals como callable)
-    ProcessDef *proc = vm_->addProcess(nameToken.lexeme.c_str(), func, numFibers_);
+    ProcessDef *proc = vm_->addProcess(nameToken.lexeme.c_str(), func);
     currentProcess = proc;
 
     for (uint32 i = 0; i < argNames.size(); i++)
@@ -1626,7 +1681,7 @@ void Compiler::compileFunction(Function *func, bool isProcess)
             ctx.locals.push_back(this->locals_[i]);
         }
 
-        enclosingStack_.push_back(ctx); // ✅ Push automático
+        enclosingStack_.push_back(ctx);  
     }
 
     // ========================================
@@ -1677,9 +1732,26 @@ void Compiler::compileFunction(Function *func, bool isProcess)
             if (isProcess)
             {
                 argNames.push(vm_->createString(previous.lexeme.c_str()));
+
+                int privateIndex = vm_->getProcessPrivateIndex(previous.lexeme.c_str());
+                if (privateIndex >= 0 &&
+                    privateIndex != (int)PrivateIndex::ID &&
+                    privateIndex != (int)PrivateIndex::FATHER)
+                {
+                    // Param matches a process private (x, y, etc).
+                    // Do NOT create a local to avoid shadowing the private.
+                }
+                else
+                {
+                    addLocal(previous);
+                    markInitialized();
+                }
             }
-            addLocal(previous);
-            markInitialized();
+            else
+            {
+                addLocal(previous);
+                markInitialized();
+            }
 
         } while (match(TOKEN_COMMA));
     }
@@ -2051,6 +2123,7 @@ void Compiler::includeStatement()
     // COMPILA inline
     this->lexer = new Lexer(source, sourceSize);
     this->tokens = lexer->scanAll();
+    predeclareProcessGlobals();
     this->cursor = 0;
     advance();
 
@@ -2231,65 +2304,6 @@ void Compiler::parseRequire()
     consume(TOKEN_SEMICOLON, "Expect ';' after require");
 }
 
-void Compiler::yieldStatement()
-{
-
-    if (match(TOKEN_LPAREN))
-    {
-        expression(); // Percentagem vai para stack
-        consume(TOKEN_RPAREN, "Expect ')' after percentage");
-    }
-    else
-    {
-
-        emitConstant(vm_->makeDouble(1.0));
-    }
-
-    consume(TOKEN_SEMICOLON, "Expect ';' after yild");
-    emitByte(OP_YIELD);
-}
-
-void Compiler::fiberStatement()
-{
-    // Fibers não podem ser criados dentro de loops
-    // São para state machines e animações, não para spawning dinâmico
-    if (loopDepth_ > 0)
-    {
-        error("Cannot spawn fiber inside a loop. Fibers are for state machines, not dynamic spawning.");
-        return;
-    }
-
-    consume(TOKEN_IDENTIFIER, "Expect function name after 'fiber'.");
-    Token nameToken = previous;
-
-    namedVariable(nameToken, false); // empilha callee
-
-    consume(TOKEN_LPAREN, "Expect '(' after fiber function name.");
-
-    uint8 argCount = 0;
-
-    if (!check(TOKEN_RPAREN))
-    {
-        do
-        {
-            expression();
-
-            if (argCount == 255)
-            {
-                error("Can't have more than 255 arguments");
-            }
-            argCount++;
-        } while (match(TOKEN_COMMA));
-    }
-
-    consume(TOKEN_RPAREN, "Expect ')' after arguments");
-    consume(TOKEN_SEMICOLON, "Expect ';' after fiber call.");
-
-    emitByte(OP_SPAWN);
-    emitByte(argCount);
-    numFibers_ += 1;
-}
-
 void Compiler::dot(bool canAssign)
 {
     consumeIdentifierLike("Expect property name after '.'");
@@ -2300,11 +2314,18 @@ void Compiler::dot(bool canAssign)
     //  METHOD CALL
     if (match(TOKEN_LPAREN))
     {
-
         uint8_t argCount = argumentList();
-        emitByte(OP_INVOKE);
-        emitShort(nameIdx);
-        emitByte(argCount);
+        if (propName.lexeme == "push" && argCount == 1)
+        {
+            emitByte(OP_ARRAY_PUSH);
+            emitByte(argCount);
+        }
+        else
+        {
+            emitByte(OP_INVOKE);
+            emitShort(nameIdx);
+            emitByte(argCount);
+        }
     }
     // SIMPLE ASSIGNMENT
     else if (canAssign && match(TOKEN_EQUAL))
@@ -2411,7 +2432,7 @@ void Compiler::dot(bool canAssign)
 
 void Compiler::subscript(bool canAssign)
 {
-    // arr[index] ou arr[index] = value
+    // arr[index], arr[index] = value ou arr[index] op= value
 
     expression(); // Index expression
     consume(TOKEN_RBRACKET, "Expect ']' after subscript");
@@ -2420,6 +2441,47 @@ void Compiler::subscript(bool canAssign)
     {
         // arr[i] = value
         expression(); // Value
+        emitByte(OP_SET_INDEX);
+    }
+    else if (canAssign && match(TOKEN_PLUS_EQUAL))
+    {
+        // Stack: [container, index]
+        emitByte(OP_COPY2);    // [container, index, container, index]
+        emitByte(OP_GET_INDEX); // [container, index, old_value]
+        expression();          // [container, index, old_value, value]
+        emitByte(OP_ADD);      // [container, index, new_value]
+        emitByte(OP_SET_INDEX); // [new_value]
+    }
+    else if (canAssign && match(TOKEN_MINUS_EQUAL))
+    {
+        emitByte(OP_COPY2);
+        emitByte(OP_GET_INDEX);
+        expression();
+        emitByte(OP_SUBTRACT);
+        emitByte(OP_SET_INDEX);
+    }
+    else if (canAssign && match(TOKEN_STAR_EQUAL))
+    {
+        emitByte(OP_COPY2);
+        emitByte(OP_GET_INDEX);
+        expression();
+        emitByte(OP_MULTIPLY);
+        emitByte(OP_SET_INDEX);
+    }
+    else if (canAssign && match(TOKEN_SLASH_EQUAL))
+    {
+        emitByte(OP_COPY2);
+        emitByte(OP_GET_INDEX);
+        expression();
+        emitByte(OP_DIVIDE);
+        emitByte(OP_SET_INDEX);
+    }
+    else if (canAssign && match(TOKEN_PERCENT_EQUAL))
+    {
+        emitByte(OP_COPY2);
+        emitByte(OP_GET_INDEX);
+        expression();
+        emitByte(OP_MODULO);
         emitByte(OP_SET_INDEX);
     }
     else

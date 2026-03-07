@@ -37,7 +37,7 @@ public:
     bool isStepMode() { return stepMode; }
 
     // Stack inspection
-    void printStack(Fiber *fiber)
+    void printStack(ProcessExec *fiber)
     {
         printf("\n=== STACK (top to bottom) ===\n");
 
@@ -59,7 +59,7 @@ public:
     }
 
     // Call frames
-    void printCallFrames(Fiber *fiber)
+    void printCallFrames(ProcessExec *fiber)
     {
         printf("\n=== CALL FRAMES ===\n");
 
@@ -80,7 +80,7 @@ public:
     }
 
     // Local variables
-    void printLocals(Fiber *fiber)
+    void printLocals(ProcessExec *fiber)
     {
         printf("\n=== LOCAL VARIABLES ===\n");
 
@@ -128,7 +128,7 @@ public:
             printf("  [%u] %s (state=%d)\n",
                    proc->id,
                    proc->name ? proc->name->chars() : "<unnamed>",
-                   (int)proc->mainFiber->state);
+                   (int)proc->state);
 
             // Print privates
             printf("    x=%.0f y=%.0f angle=%.0f\n",
@@ -143,12 +143,13 @@ public:
     void printFibers()
     {
         printf("\n=== FIBERS ===\n");
-        printf("Count: %zu\n", vm->fibers.size());
+        printf("Count: %zu\n", vm->aliveProcesses.size());
 
-        for (Fiber *f : vm->fibers)
+        for (Process *proc : vm->aliveProcesses)
         {
+            ProcessExec *f = proc;
             printf("  [%u] state=%d frames=%d stack=%d\n",
-                   f->id,
+                   proc->id,
                    (int)f->state,
                    f->frameCount,
                    (int)(f->stackTop - f->stack));
@@ -184,7 +185,7 @@ public:
     }
 
     // Interactive prompt
-    void prompt(Fiber *fiber, size_t line)
+    void prompt(ProcessExec *fiber, size_t line)
     {
         printf("\n>>> Breakpoint at line %zu\n", line);
 
@@ -263,7 +264,7 @@ public:
     }
 
     // Called before each instruction
-    void checkBreakpoint(Fiber *fiber)
+    void checkBreakpoint(ProcessExec *fiber)
     {
         if (!enabled)
             return;

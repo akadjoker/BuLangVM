@@ -67,8 +67,12 @@ const char *valueTypeToString(ValueType type)
         return "<function>";
     case ValueType::NATIVE:
         return "<native>";
+    case ValueType::NATIVEPROCESS:
+        return "<native_process>";
     case ValueType::PROCESS:
         return "<process>";
+    case ValueType::PROCESS_INSTANCE:
+        return "<process_instance>";
     case ValueType::STRUCT:
         return "<struct>";
     case ValueType::CLASS:
@@ -150,6 +154,9 @@ void printValue(const Value &value)
         break;
     case ValueType::PROCESS:
         OsPrintf("<process>");
+        break;
+    case ValueType::PROCESS_INSTANCE:
+        OsPrintf("<process_instance>");
         break;
 
     case ValueType::ARRAY:

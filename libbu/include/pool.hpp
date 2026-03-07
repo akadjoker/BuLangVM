@@ -115,16 +115,5 @@ public:
 
 inline bool compareString(String *a, String *b)
 {
-    if (a == nullptr || b == nullptr)
-        return false;
-
-    //  Info("Compare string %s %s hash %d %d len %d %d", a->chars(), b->chars(), a->hash, b->hash, a->length(), b->length());
-
-    if (a->hash != b->hash)
-        return false;
-    if (a == b)
-        return true;
-    if (a->length() != b->length())
-        return false;
-    return memcmp(a->chars(), b->chars(), a->length()) == 0;
+    return compare_strings(a, b);
 }

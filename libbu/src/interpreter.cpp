@@ -5,9 +5,19 @@
 #include "utils.hpp"
 #include <stdarg.h>
 
+#ifndef BU_RUNTIME_ONLY
+#define BU_RUNTIME_ONLY 0
+#endif
+
 Interpreter::Interpreter()
 {
+#if BU_RUNTIME_ONLY
+  compiler = nullptr;
+#else
   compiler = new Compiler(this);
+#endif
+  debugMode_ = false;
+  hasFatalError_ = false;
 
   setPrivateTable();
   staticNames.resize((int)StaticNames::TOTAL_COUNT);
@@ -109,11 +119,19 @@ void Interpreter::freeRunningProcesses()
 {
   for (size_t j = 0; j < cleanProcesses.size(); j++)
   {
+    if (hooks.onDestroy)
+    {
+     // hooks.onDestroy(cleanProcesses[j], cleanProcesses[j]->exitCode);
+    }
     ProcessPool::instance().destroy(cleanProcesses[j]);
   }
   cleanProcesses.clear();
   for (size_t i = 0; i < aliveProcesses.size(); i++)
   {
+    if (hooks.onDestroy)
+    {
+      //hooks.onDestroy(aliveProcesses[i], aliveProcesses[i]->exitCode);
+    }
     ProcessPool::instance().destroy(aliveProcesses[i]);
   }
   aliveProcesses.clear();
@@ -221,12 +239,16 @@ void Interpreter::reset()
   processes.clear();
 
   // 4. Reset de variáveis de estado
-  currentFiber = nullptr;
   currentProcess = nullptr;
   currentTime = 0.0f;
   hasFatalError_ = false;
 
-  compiler->clear();
+#if !BU_RUNTIME_ONLY
+  if (compiler)
+  {
+    compiler->clear();
+  }
+#endif
 }
 
 Interpreter::~Interpreter()
@@ -234,15 +256,15 @@ Interpreter::~Interpreter()
   dumpToFile("main.dump");
   Info("VM shutdown");
   Info("Memory allocated : %s", formatBytes(totalAllocated));
-  // Info("Classes          : %zu", getTotalClasses());
-  // Info("Structs          : %zu", getTotalStructs());
-  // Info("Arrays           : %zu", getTotalArrays());
-  // Info("Maps             : %zu", getTotalMaps());
-  // Info("Native classes   : %zu", getTotalNativeClasses());
-  // Info("Native structs   : %zu", getTotalNativeStructs());
-  // Info("Buffers          : %zu", totalBuffers);
-  // Info("Processes        : %zu", aliveProcesses.size());
-  // Info("Globals          : %zu", globalsArray.size());
+  Info("Classes          : %zu", getTotalClasses());
+  Info("Structs          : %zu", getTotalStructs());
+  Info("Arrays           : %zu", getTotalArrays());
+  Info("Maps             : %zu", getTotalMaps());
+  Info("Native classes   : %zu", getTotalNativeClasses());
+  Info("Native structs   : %zu", getTotalNativeStructs());
+  Info("Buffers          : %zu", totalBuffers);
+  Info("Processes        : %zu", aliveProcesses.size());
+  Info("Globals          : %zu", globalsArray.size());
   
   unloadAllPlugins();
   for (size_t i = 0; i < modules.size(); i++)
@@ -252,7 +274,13 @@ Interpreter::~Interpreter()
   }
 
   modules.clear();
-  delete compiler;
+#if !BU_RUNTIME_ONLY
+  if (compiler)
+  {
+    delete compiler;
+    compiler = nullptr;
+  }
+#endif
 
   freeInstances();
   freeRunningProcesses();
@@ -303,7 +331,14 @@ void Interpreter::freeBuffer(BufferInstance *b)
 
 void Interpreter::setFileLoader(FileLoaderCallback loader, void *userdata)
 {
-  compiler->setFileLoader(loader, userdata);
+  fileLoaderCallback_ = loader;
+  fileLoaderUserdata_ = userdata;
+#if !BU_RUNTIME_ONLY
+  if (compiler)
+  {
+    compiler->setFileLoader(loader, userdata);
+  }
+#endif
 }
 
 NativeClassDef *Interpreter::registerNativeClass(const char *name,
@@ -417,11 +452,10 @@ void Interpreter::addStructField(NativeStructDef *def, const char *fieldName,
 
 void Interpreter::printStack()
 {
-
-  if (currentFiber)
+  ProcessExec *exec = currentExec();
+  if (exec)
   {
-
-    Fiber *fiber = currentFiber;
+    ProcessExec *fiber = exec;
     if (fiber->stackTop == fiber->stack)
       printf("  (empty)\n");
     else
@@ -492,9 +526,9 @@ void Interpreter::disassemble()
     printf("Process #%zu: %s \n", i, proc->name->chars());
     printf("----------------------------------------\n");
 
-    if (proc->fibers[0].frameCount > 0)
+    if (proc->frameCount > 0)
     {
-      Function *func = proc->fibers[0].frames[0].func;
+      Function *func = proc->frames[0].func;
 
       printf("  Function: %s\n", func->name->chars());
       printf("  Arity: %d\n", func->arity);
@@ -536,70 +570,139 @@ void Interpreter::disassemble()
 
 int Interpreter::addGlobal(const char *name, Value value)
 {
-  String *str = createString(name);
-  // OPTIMIZATION: Removed HashMap globals - using globalsArray directly
-  // globals.set(str, value);
-  // TODO: If needed, add to globalsArray instead
-  return 0;
+  String* str = createString(name);
+
+  uint16 index = 0;
+  if (nativeGlobalIndices.get(str, &index))
+  {
+    // Já existe: só atualiza o valor
+    if (index >= globalsArray.size())
+    {
+      globalsArray.resize(index + 1);
+    }
+    if (globalsArray[index].isNative() || globalsArray[index].isNativeProcess() ||
+        globalsArray[index].isNativeClass() || globalsArray[index].isNativeStruct())
+    {
+      Warning("Global '%s' is overriding a native symbol.", name);
+    }
+    globalsArray[index] = value;
+
+    if (index >= globalIndexToName_.size())
+    {
+      globalIndexToName_.resize(index + 1);
+    }
+    globalIndexToName_[index] = str;
+    return index;
+  }
+
+  // Novo global: cria índice estável
+  index = globalsArray.size();
+  globalsArray.push(value);
+  nativeGlobalIndices.set(str, index);
+  globalIndexToName_.push(str);
+
+  return index;
 }
 
-void Interpreter::print(Value value) { printValue(value); }
-
-Fiber *Interpreter::get_ready_fiber(Process *proc)
+bool Interpreter::setGlobal(const char *name, Value value)
 {
-  if (!proc || !proc->fibers)
-    return nullptr;
+  String* str = createString(name);
+  uint16 index = 0;
 
-  int checked = 0;
-  int totalFibers = proc->nextFiberIndex;
-
-  if (totalFibers == 0)
-    return nullptr;
-
-  // printf("[get_ready_fiber] Checking %d fibers, time=%.3f\n", totalFibers,
-  // currentTime);
-
-  while (checked < totalFibers)
+  // Try native globals first
+  if (!nativeGlobalIndices.get(str, &index))
   {
-    int idx = proc->currentFiberIndex;
-    proc->currentFiberIndex = (proc->currentFiberIndex + 1) % totalFibers;
-
-    Fiber *f = &proc->fibers[idx];
-
-    // printf("  Fiber %d: state=%d, resumeTime=%.3f\n", idx, (int)f->state,
-    // f->resumeTime);
-
-    checked++;
-
-    if (f->state == FiberState::DEAD)
+    // Try script globals via globalIndexToName_
+    bool found = false;
+    for (size_t i = 0; i < globalIndexToName_.size(); i++)
     {
-      //  printf("  -> DEAD, skip\n");
-      continue;
-    }
-
-    if (f->state == FiberState::SUSPENDED)
-    {
-      if (currentTime >= f->resumeTime)
+      if (globalIndexToName_[i] && strcmp(globalIndexToName_[i]->chars(), name) == 0)
       {
-        // printf("  -> RESUMING (%.3f >= %.3f)\n", currentTime, f->resumeTime);
-        f->state = FiberState::RUNNING;
-        return f;
+        index = (uint16)i;
+        found = true;
+        break;
       }
-      // printf("  -> Still suspended (wait %.3fms)\n", (f->resumeTime -
-      // currentTime) * 1000);
-      continue;
     }
+    if (!found) return false;
+  }
 
-    if (f->state == FiberState::RUNNING)
+  if (index >= globalsArray.size())
+  {
+    globalsArray.resize(index + 1);
+  }
+
+  if (globalsArray[index].isNative() || globalsArray[index].isNativeProcess() ||
+      globalsArray[index].isNativeClass() || globalsArray[index].isNativeStruct())
+  {
+    Warning("Global '%s' is overriding a native symbol.", name);
+  }
+
+  globalsArray[index] = value;
+  if (index >= globalIndexToName_.size())
+  {
+    globalIndexToName_.resize(index + 1);
+  }
+  globalIndexToName_[index] = str;
+  return true;
+}
+
+Value Interpreter::getGlobal(const char *name)
+{
+  String* str = createString(name);
+  uint16 index = 0;
+
+  // Try native globals first
+  if (nativeGlobalIndices.get(str, &index))
+  {
+    if (index < globalsArray.size()) return globalsArray[index];
+    return makeNil();
+  }
+
+  // Try script globals via globalIndexToName_
+  for (size_t i = 0; i < globalIndexToName_.size(); i++)
+  {
+    if (globalIndexToName_[i] && strcmp(globalIndexToName_[i]->chars(), name) == 0)
     {
-      //  printf("  -> RUNNING, execute\n");
-      return f;
+      if (i < globalsArray.size()) return globalsArray[i];
+      return makeNil();
     }
   }
 
-  //  printf("  -> No ready fiber\n");
-  return nullptr;
+  return makeNil();
 }
+
+Value Interpreter::getGlobal(uint32 index)
+{
+  if (index < globalsArray.size()) return globalsArray[index];
+  return makeNil();
+}
+
+bool Interpreter::tryGetGlobal(const char *name, Value *value)
+{
+  String* str = createString(name);
+  uint16 index = 0;
+
+  // Try native globals first
+  if (nativeGlobalIndices.get(str, &index))
+  {
+    if (index < globalsArray.size()) { *value = globalsArray[index]; return true; }
+    return false;
+  }
+
+  // Try script globals via globalIndexToName_
+  for (size_t i = 0; i < globalIndexToName_.size(); i++)
+  {
+    if (globalIndexToName_[i] && strcmp(globalIndexToName_[i]->chars(), name) == 0)
+    {
+      if (i < globalsArray.size()) { *value = globalsArray[i]; return true; }
+      return false;
+    }
+  }
+
+  return false;
+}
+
+void Interpreter::print(Value value) { printValue(value); }
 
 float Interpreter::getCurrentTime() const { return currentTime; }
 
@@ -614,6 +717,21 @@ void Interpreter::runtimeError(const char *format, ...)
 {
   hasFatalError_ = true;
 
+  if (!debugMode_)
+  {
+    // Release mode: minimal output
+    OsPrintf("Runtime Error: ");
+    va_list args;
+    va_start(args, format);
+    OsVPrintf(format, args);
+    va_end(args);
+    if (currentProcess && currentProcess->name)
+      OsPrintf(" in '%s'", currentProcess->name->chars());
+    OsPrintf("\n");
+    return;
+  }
+
+  // Debug mode: full diagnostics
   OsPrintf("Runtime Error: ");
   va_list args;
   va_start(args, format);
@@ -621,13 +739,21 @@ void Interpreter::runtimeError(const char *format, ...)
   va_end(args);
   OsPrintf("\n");
 
+  if (currentProcess)
+  {
+    OsPrintf("  Process: '%s' (id=%u)\n",
+             currentProcess->name ? currentProcess->name->chars() : "?",
+             currentProcess->id);
+  }
+
   // Print stack trace with line numbers
-  if (currentFiber && currentFiber->frameCount > 0)
+  ProcessExec *exec = currentExec();
+  if (exec && exec->frameCount > 0)
   {
     OsPrintf("\nStack trace:\n");
-    for (int i = currentFiber->frameCount - 1; i >= 0; i--)
+    for (int i = exec->frameCount - 1; i >= 0; i--)
     {
-      CallFrame *frame = &currentFiber->frames[i];
+      CallFrame *frame = &exec->frames[i];
       Function *func = frame->func;
 
       if (func && func->chunk->code && frame->ip >= func->chunk->code)
@@ -645,7 +771,11 @@ void Interpreter::runtimeError(const char *format, ...)
 }
 bool Interpreter::throwException(Value error)
 {
-  Fiber *fiber = currentFiber;
+  ProcessExec *fiber = currentExec();
+  if (!fiber)
+  {
+    return false;
+  }
 
   while (fiber->tryDepth > 0)
   {
@@ -695,18 +825,23 @@ void Interpreter::safetimeError(const char *format, ...)
 
 void Interpreter::resetFiber()
 {
-
-  if (currentFiber)
+  ProcessExec *exec = currentExec();
+  if (exec)
   {
-    currentFiber->stackTop = currentFiber->stack;
-    currentFiber->frameCount = 0;
-    currentFiber->state = FiberState::DEAD;
+    exec->stackTop = exec->stack;
+    exec->frameCount = 0;
+    exec->state = ProcessState::DEAD;
   }
   hasFatalError_ = false;
 }
 
 Function *Interpreter::compile(const char *source)
 {
+#if BU_RUNTIME_ONLY
+  (void)source;
+  safetimeError("compile: compiler disabled in runtime-only build");
+  return nullptr;
+#else
   ProcessDef *proc = compiler->compile(source);
   
   // Copy global index to name mapping from compiler (convert std::vector to Vector<String*>)
@@ -724,12 +859,18 @@ Function *Interpreter::compile(const char *source)
     globalsArray.resize(globalIndexToName_.size());
   }
   
-  Function *mainFunc = proc->fibers[0].frames[0].func;
+  Function *mainFunc = proc->frames[0].func;
   return mainFunc;
+#endif
 }
 
 Function *Interpreter::compileExpression(const char *source)
 {
+#if BU_RUNTIME_ONLY
+  (void)source;
+  safetimeError("compileExpression: compiler disabled in runtime-only build");
+  return nullptr;
+#else
   ProcessDef *proc = compiler->compileExpression(source);
   
   // Copy global index to name mapping from compiler
@@ -747,12 +888,19 @@ Function *Interpreter::compileExpression(const char *source)
     globalsArray.resize(globalIndexToName_.size());
   }
   
-  Function *mainFunc = proc->fibers[0].frames[0].func;
+  Function *mainFunc = proc->frames[0].func;
   return mainFunc;
+#endif
 }
 
 bool Interpreter::run(const char *source, bool _dump)
 {
+#if BU_RUNTIME_ONLY
+  (void)source;
+  (void)_dump;
+  safetimeError("run: source execution disabled in runtime-only build, load bytecode instead");
+  return false;
+#else
   reset();
 
   ProcessDef *proc = compiler->compile(source);
@@ -779,23 +927,27 @@ bool Interpreter::run(const char *source, bool _dump)
   if (_dump)
   {
     disassemble();
-    // Function *mainFunc = proc->fibers[0].frames[0].func;
+    // Function *mainFunc = proc->frames[0].func;
     //   Debug::dumpFunction(mainFunc);
   }
 
   mainProcess = spawnProcess(proc);
   currentProcess = mainProcess;
 
-  Fiber *fiber = &mainProcess->fibers[0];
-
-  //  Debug::disassembleChunk(*fiber->frames[0].func->chunk,"#main");
-
-  run_fiber(fiber, mainProcess);
+  //  Debug::disassembleChunk(*mainProcess->frames[0].func->chunk,"#main");
+  run_process(mainProcess);
 
   return !hasFatalError_;
+#endif
 }
 bool Interpreter::compile(const char *source, bool dump)
 {
+#if BU_RUNTIME_ONLY
+  (void)source;
+  (void)dump;
+  safetimeError("compile: compiler disabled in runtime-only build");
+  return false;
+#else
   reset();
 
   ProcessDef *proc = compiler->compile(source);
@@ -822,18 +974,19 @@ bool Interpreter::compile(const char *source, bool dump)
   if (dump)
   {
     disassemble();
-    // Function *mainFunc = proc->fibers[0].frames[0].func;
+    // Function *mainFunc = proc->frames[0].func;
     //   Debug::dumpFunction(mainFunc);
   }
 
   return !hasFatalError_;
+#endif
 }
 
 void Interpreter::setHooks(const VMHooks &h) { hooks = h; }
 
-void Interpreter::initFiber(Fiber *fiber, Function *func)
+void Interpreter::initFiber(ProcessExec *fiber, Function *func)
 {
-  fiber->state = FiberState::RUNNING;
+  fiber->state = ProcessState::RUNNING;
   fiber->resumeTime = 0.0f;
 
   fiber->stackTop = fiber->stack;
@@ -858,6 +1011,14 @@ void Interpreter::setPrivateTable()
   privateIndexMap.set("flags", 6);
   privateIndexMap.set("id", 7);
   privateIndexMap.set("father", 8);
+  privateIndexMap.set("red", 9);
+  privateIndexMap.set("green", 10);
+  privateIndexMap.set("blue", 11);
+  privateIndexMap.set("alpha", 12);
+  privateIndexMap.set("tag", 13);
+  privateIndexMap.set("state", 14);
+  privateIndexMap.set("speed", 15);
+  privateIndexMap.set("group", 16);
 }
 
 StructDef *Interpreter::addStruct(String *name, int *id)
@@ -1025,7 +1186,7 @@ Value Interpreter::createClassInstance(ClassDef *klass, int argCount, Value *arg
 
     // Guarda estado actual da fiber
     Process *proc = mainProcess;
-    Fiber *fiber = &proc->fibers[0];
+    ProcessExec *fiber = proc;
     int savedFrameCount = fiber->frameCount;
     Value *savedStackTop = fiber->stackTop;
 
@@ -1052,8 +1213,8 @@ Value Interpreter::createClassInstance(ClassDef *klass, int argCount, Value *arg
     // Executa o constructor
     while (fiber->frameCount > savedFrameCount)
     {
-      FiberResult result = run_fiber(fiber, proc);
-      if (result.reason == FiberResult::FIBER_DONE || result.reason == FiberResult::ERROR)
+      ProcessResult result = run_process(proc);
+      if (result.reason == ProcessResult::PROCESS_DONE || result.reason == ProcessResult::ERROR)
       {
         break;
       }
@@ -1132,24 +1293,24 @@ Value Interpreter::createClassInstanceRaw(ClassDef *klass)
   return value;
 }
 
-void Interpreter::addFiber(Process *proc, Function *func)
+void Interpreter::addFunctionsClasses(Function *fun)
 {
-  if (proc->nextFiberIndex >= proc->totalFibers)
+  if (!fun)
   {
-    runtimeError("Too many fibers in process");
     return;
   }
 
-  int index = proc->nextFiberIndex++;
-  initFiber(&proc->fibers[index], func);
+  // Class methods must be part of the serialized function table.
+  if (fun->index >= 0)
+  {
+    return;
+  }
+
+  fun->index = (int)functions.size();
+  functions.push(fun);
 }
 
-void Interpreter::addFunctionsClasses(Function *fun)
-{
-  functionsClass.push(fun);
-}
-
-bool Interpreter::findAndJumpToHandler(Value error, uint8 *&ip, Fiber *fiber)
+bool Interpreter::findAndJumpToHandler(Value error, uint8 *&ip, ProcessExec *fiber)
 {
 
   while (fiber->tryDepth > 0)
@@ -1306,7 +1467,7 @@ NativeClassDef::~NativeClassDef()
 void Interpreter::dumpToFile(const char *filename)
 {
 
-#ifdef __linux__
+#if BU_ENABLE_BYTECODE_DUMP
 
   FILE *f = fopen(filename, "w");
   if (!f)
@@ -1337,7 +1498,7 @@ void Interpreter::dumpToFile(const char *filename)
 
 void Interpreter::dumpAllFunctions(FILE *f)
 {
-#ifdef __linux__
+#if BU_ENABLE_BYTECODE_DUMP
   fprintf(f, "========================================\n");
   fprintf(f, "GLOBAL FUNCTIONS\n");
   fprintf(f, "========================================\n\n");
@@ -1405,7 +1566,7 @@ void Interpreter::dumpAllFunctions(FILE *f)
 
 void Interpreter::dumpAllClasses(FILE *f)
 {
-#ifdef __linux__
+#if BU_ENABLE_BYTECODE_DUMP
   fprintf(f, "\n========================================\n");
   fprintf(f, "CLASSES\n");
   fprintf(f, "========================================\n\n");

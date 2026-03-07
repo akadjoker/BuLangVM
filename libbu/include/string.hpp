@@ -42,9 +42,14 @@ static inline bool compare_strings(String *a, String *b)
 {
   if (a == b)
     return true;
-  if (a->length() != b->length())
+  if (!a || !b)
     return false;
-  return memcmp(a->chars(), b->chars(), a->length()) == 0;
+  if (a->hash != b->hash)
+    return false;
+  const size_t aLen = a->length();
+  if (aLen != b->length())
+    return false;
+  return memcmp(a->chars(), b->chars(), aLen) == 0;
 }
 struct IntEq
 {
@@ -55,11 +60,7 @@ struct StringEq
 {
   bool operator()(String *a, String *b) const
   {
-    if (a == b)
-      return true;
-    if (a->length() != b->length())
-      return false;
-    return memcmp(a->chars(), b->chars(), a->length()) == 0;
+    return compare_strings(a, b);
   }
 };
 

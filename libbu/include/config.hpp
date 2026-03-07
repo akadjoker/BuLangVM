@@ -14,10 +14,10 @@
 #define OS_EMSCRIPTEN
 #elif defined(_WIN32)
 #define OS_WINDOWS
-#elif defined(__linux__)
-#define OS_LINUX
 #elif defined(__ANDROID__)
 #define OS_ANDROID
+#elif defined(__linux__)
+#define OS_LINUX
 #elif defined(__APPLE__)
 #define OS_MAC
 #endif
@@ -32,9 +32,16 @@
 #define LIKELY(x) (x)
 #endif
 
-// Use switch dispatch (comment out to use computed goto)
-#undef USE_COMPUTED_GOTO
-//#define USE_COMPUTED_GOTO 1
+// VM dispatch mode:
+// 1 = computed goto (faster on GCC/Clang)
+// 0 = switch dispatch (portable fallback)
+#ifndef USE_COMPUTED_GOTO
+#define USE_COMPUTED_GOTO 1
+#endif
+
+#if (USE_COMPUTED_GOTO != 0) && (USE_COMPUTED_GOTO != 1)
+#error "USE_COMPUTED_GOTO must be 0 or 1"
+#endif
 
 #define BU_ENABLE_SOCKETS 1
 #define BU_ENABLE_FILE_IO 1
@@ -42,7 +49,18 @@
 #define BU_ENABLE_TIME 1
 #define BU_ENABLE_PATH 1
 #define BU_ENABLE_OS 1
+#define BU_ENABLE_JSON 1
+#define BU_ENABLE_REGEX 1
+#define BU_ENABLE_ZIP 1
 #define BU_ENABLE_TIME 1
+
+#ifndef BU_ENABLE_BYTECODE_DUMP
+#if defined(OS_LINUX) || defined(OS_WINDOWS)
+#define BU_ENABLE_BYTECODE_DUMP 1
+#else
+#define BU_ENABLE_BYTECODE_DUMP 0
+#endif
+#endif
 
 typedef signed char int8;
 typedef signed short int16;
@@ -63,7 +81,7 @@ inline T Max(T a, T b)
     return a > b ? a : b;
 }
 
-#if __linux__
+#if defined(OS_LINUX)
 
 #define CONSOLE_COLOR_RESET "\033[0m"
 #define CONSOLE_COLOR_GREEN "\033[1;32m"

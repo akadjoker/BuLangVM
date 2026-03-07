@@ -77,6 +77,7 @@ enum TokenType
     TOKEN_MINUS_MINUS,     // --
 
     TOKEN_COLON,           // :
+    TOKEN_QUESTION,        // ?
     TOKEN_RBRACKET,        //[
     TOKEN_LBRACKET,        //]
 
@@ -92,12 +93,13 @@ enum TokenType
  
 
     TOKEN_PROCESS,
+    TOKEN_TYPE,
     TOKEN_FRAME,
     TOKEN_EXIT,
-    TOKEN_FIBER,
-    TOKEN_YIELD,
     TOKEN_LEN,
     TOKEN_FREE,
+    TOKEN_PROC,
+    TOKEN_GET_ID,
 
     TOKEN_STRUCT,
     TOKEN_ENUM,
@@ -135,6 +137,8 @@ enum TokenType
     TOKEN_DEG,
     TOKEN_RAD,
     TOKEN_TAN,
+    TOKEN_ASIN,
+    TOKEN_ACOS,
     TOKEN_ATAN,
     TOKEN_ATAN2,
     TOKEN_POW,

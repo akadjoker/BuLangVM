@@ -28,7 +28,7 @@ Compiler::Compiler(Interpreter *vm)
       function(nullptr), currentChunk(nullptr),
       currentProcess(nullptr), hadError(false),
       panicMode(false), scopeDepth(0), localCount_(0), loopDepth_(0),
-      isProcess_(false), tryDepth(0),
+      switchDepth_(0), isProcess_(false), tryDepth(0),
       expressionDepth(0), declarationDepth(0), callDepth(0),
       upvalueCount_(0)
 {
@@ -45,25 +45,25 @@ Compiler::~Compiler()
 // GLOBAL VARIABLE INDEXING
 // ============================================
 
-uint16 Compiler::getOrCreateGlobalIndex(const std::string& name)
+uint16 Compiler::getOrCreateGlobalIndex(const std::string &name)
 {
   auto it = globalIndices_.find(name);
   if (it != globalIndices_.end())
   {
-    return it->second;  // Already indexed
+    return it->second; // Already indexed
   }
-  
+
   // Create new index
   uint16 index = nextGlobalIndex_++;
   globalIndices_[name] = index;
-  
+
   // Ensure reverse mapping array is large enough
   if (index >= globalIndexToName_.size())
   {
     globalIndexToName_.resize(index + 1);
   }
   globalIndexToName_[index] = name;
-  
+
   return index;
 }
 
@@ -111,6 +111,7 @@ void Compiler::initRules()
   rules[TOKEN_MINUS_MINUS] = {&Compiler::prefixDecrement, nullptr, PREC_NONE};
 
   // Logical
+  rules[TOKEN_QUESTION] = {nullptr, &Compiler::ternary, PREC_CONDITIONAL};
   rules[TOKEN_AND_AND] = {nullptr, &Compiler::and_, PREC_AND};
   rules[TOKEN_OR_OR] = {nullptr, &Compiler::or_, PREC_OR};
   rules[TOKEN_BANG] = {&Compiler::unary, nullptr, PREC_NONE};
@@ -136,6 +137,8 @@ void Compiler::initRules()
   rules[TOKEN_SIN] = {&Compiler::mathUnary, nullptr, PREC_NONE};
   rules[TOKEN_COS] = {&Compiler::mathUnary, nullptr, PREC_NONE};
   rules[TOKEN_TAN] = {&Compiler::mathUnary, nullptr, PREC_NONE};
+  rules[TOKEN_ASIN] = {&Compiler::mathUnary, nullptr, PREC_NONE};
+  rules[TOKEN_ACOS] = {&Compiler::mathUnary, nullptr, PREC_NONE};
   rules[TOKEN_ATAN] = {&Compiler::mathUnary, nullptr, PREC_NONE};
   rules[TOKEN_SQRT] = {&Compiler::mathUnary, nullptr, PREC_NONE};
   rules[TOKEN_ABS] = {&Compiler::mathUnary, nullptr, PREC_NONE};
@@ -151,6 +154,9 @@ void Compiler::initRules()
   rules[TOKEN_POW] = {&Compiler::mathBinary, nullptr, PREC_NONE};
 
   rules[TOKEN_CLOCK] = {&Compiler::expressionClock, nullptr, PREC_NONE};
+  rules[TOKEN_TYPE] = {&Compiler::typeExpression, nullptr, PREC_NONE};
+  rules[TOKEN_PROC] = {&Compiler::procExpression, nullptr, PREC_NONE};
+  rules[TOKEN_GET_ID] = {&Compiler::getIdExpression, nullptr, PREC_NONE};
 
   rules[TOKEN_FOREACH] = {nullptr, nullptr, PREC_NONE};
 
@@ -184,6 +190,63 @@ void Compiler::initRules()
   rules[TOKEN_ERROR] = {nullptr, nullptr, PREC_NONE};
 }
 
+void Compiler::predeclareProcessGlobals()
+{
+  if (tokens.empty())
+    return;
+
+  for (size_t i = 0; i + 1 < tokens.size(); i++)
+  {
+    if (tokens[i].type != TOKEN_PROCESS)
+      continue;
+
+    const Token &nameTok = tokens[i + 1];
+    if (nameTok.type != TOKEN_IDENTIFIER)
+      continue;
+
+    // Make forward process calls resolvable regardless of declaration order.
+    declaredGlobals_.insert(nameTok.lexeme);
+    getOrCreateGlobalIndex(nameTok.lexeme);
+  }
+}
+
+bool Compiler::enterSwitchContext()
+{
+  if (switchDepth_ >= MAX_SWITCH_DEPTH)
+  {
+    error("Switch nested too deeply");
+    return false;
+  }
+
+  switchLoopDepthStack_[switchDepth_] = loopDepth_;
+  switchDepth_++;
+  return true;
+}
+
+void Compiler::leaveSwitchContext()
+{
+  if (switchDepth_ > 0)
+    switchDepth_--;
+}
+
+void Compiler::recoverToCurrentSwitchEnd()
+{
+  // Local recovery: consume everything until the matching '}' of current switch.
+  int braceDepth = 1;
+  while (!check(TOKEN_EOF) && braceDepth > 0)
+  {
+    if (check(TOKEN_LBRACE))
+    {
+      braceDepth++;
+    }
+    else if (check(TOKEN_RBRACE))
+    {
+      braceDepth--;
+    }
+    advance();
+  }
+}
+
 // ============================================
 // MAIN ENTRY POINT
 // ============================================
@@ -205,17 +268,17 @@ ProcessDef *Compiler::compile(const std::string &source)
   enclosingStack_.clear();
   declaredGlobals_.clear();
   upvalueCount_ = 0;
-  isProcess_ = true;  // Top-level code IS a process
+  isProcess_ = true; // Top-level code IS a process
+  switchDepth_ = 0;
 
-  // OPTIMIZATION: Sync global indices with all natives already registered
-  // Use the ACTUAL indices from nativeGlobalIndices (set during registration)
-  // instead of assuming sequential order by type
+
   globalIndices_.clear();
   globalIndexToName_.clear();
 
   // Copy actual indices from VM's nativeGlobalIndices map
   // This ensures compiler uses the same indices as runtime
-  vm_->nativeGlobalIndices.forEach([this](String* nameStr, uint16 index) {
+  vm_->nativeGlobalIndices.forEach([this](String *nameStr, uint16 index)
+                                   {
     const std::string name = nameStr->chars();
     globalIndices_[name] = index;
     if (index >= globalIndexToName_.size())
@@ -223,10 +286,28 @@ ProcessDef *Compiler::compile(const std::string &source)
       globalIndexToName_.resize(index + 1);
     }
     globalIndexToName_[index] = name;
-    declaredGlobals_.insert(name);
-  });
+    declaredGlobals_.insert(name); });
 
-  // Next global index starts after all registered natives
+  // Também importar globals registados via addGlobal()
+  for (size_t i = 0; i < vm_->globalIndexToName_.size(); i++)
+  {
+    String *nameStr = vm_->globalIndexToName_[i];
+    if (!nameStr)
+      continue;
+    const std::string name = nameStr->chars();
+    if (globalIndices_.find(name) == globalIndices_.end())
+    {
+      globalIndices_[name] = (uint16)i;
+      if (i >= globalIndexToName_.size())
+      {
+        globalIndexToName_.resize(i + 1);
+      }
+      globalIndexToName_[i] = name;
+      declaredGlobals_.insert(name);
+    }
+  }
+
+
   nextGlobalIndex_ = static_cast<uint16>(vm_->globalsArray.size());
 
   compileStartTime = std::chrono::steady_clock::now();
@@ -240,6 +321,8 @@ ProcessDef *Compiler::compile(const std::string &source)
     return nullptr;
   }
 
+  predeclareProcessGlobals();
+
   function = vm_->addFunction("__main__", 0);
   if (!function)
   {
@@ -252,14 +335,13 @@ ProcessDef *Compiler::compile(const std::string &source)
   currentClass = nullptr;
 
   advance();
-  numFibers_ = 1;
 
   while (!match(TOKEN_EOF) && !hadError)
   {
     declaration();
   }
 
-  currentProcess = vm_->addProcess("__main_process__", function, numFibers_);
+  currentProcess = vm_->addProcess("__main_process__", function);
 
   if (!currentProcess)
   {
@@ -294,14 +376,14 @@ ProcessDef *Compiler::compile(const std::string &source)
 
 ProcessDef *Compiler::compileExpression(const std::string &source)
 {
-  numFibers_ = 1;
   delete lexer;
   stats.maxExpressionDepth = 0;
   stats.maxScopeDepth = 0;
   stats.totalErrors = 0;
   stats.totalWarnings = 0;
-  isProcess_ = true;  // Expression compilation IS a process
+  isProcess_ = true; // Expression compilation IS a process
   upvalueCount_ = 0;
+  switchDepth_ = 0;
   lexer = new Lexer(source);
 
   compileStartTime = std::chrono::steady_clock::now();
@@ -310,7 +392,7 @@ ProcessDef *Compiler::compileExpression(const std::string &source)
   function = vm_->addFunction("__expr__", 0);
   currentChunk = function->chunk;
 
-  currentProcess = vm_->addProcess("__main__", function, 1);
+  currentProcess = vm_->addProcess("__main__", function);
   currentFunctionType = FunctionType::TYPE_SCRIPT;
   currentClass = nullptr;
   enclosingStack_.clear();
@@ -319,7 +401,8 @@ ProcessDef *Compiler::compileExpression(const std::string &source)
   globalIndexToName_.clear();
 
   // Use actual indices from VM's nativeGlobalIndices map
-  vm_->nativeGlobalIndices.forEach([this](String* nameStr, uint16 index) {
+  vm_->nativeGlobalIndices.forEach([this](String *nameStr, uint16 index)
+                                   {
     const std::string name = nameStr->chars();
     globalIndices_[name] = index;
     if (index >= globalIndexToName_.size())
@@ -327,8 +410,26 @@ ProcessDef *Compiler::compileExpression(const std::string &source)
       globalIndexToName_.resize(index + 1);
     }
     globalIndexToName_[index] = name;
-    declaredGlobals_.insert(name);
-  });
+    declaredGlobals_.insert(name); });
+
+  // Também importar globals registados via addGlobal()
+  for (size_t i = 0; i < vm_->globalIndexToName_.size(); i++)
+  {
+    String *nameStr = vm_->globalIndexToName_[i];
+    if (!nameStr)
+      continue;
+    const std::string name = nameStr->chars();
+    if (globalIndices_.find(name) == globalIndices_.end())
+    {
+      globalIndices_[name] = (uint16)i;
+      if (i >= globalIndexToName_.size())
+      {
+        globalIndexToName_.resize(i + 1);
+      }
+      globalIndexToName_[i] = name;
+      declaredGlobals_.insert(name);
+    }
+  }
 
   // Next global index starts after all registered natives
   nextGlobalIndex_ = static_cast<uint16>(vm_->globalsArray.size());
@@ -352,8 +453,7 @@ ProcessDef *Compiler::compileExpression(const std::string &source)
     return nullptr;
   }
 
-  //   currentProcess->totalFibers = numFibers_;
-  // currentProcess->fibers =      (Fiber *)malloc(numFibers_ * sizeof(Fiber));
+
   currentProcess->finalize();
 
   importedModules.clear();
@@ -383,6 +483,7 @@ void Compiler::clear()
   scopeDepth = 0;
   localCount_ = 0;
   loopDepth_ = 0;
+  switchDepth_ = 0;
   cursor = 0;
   currentFunctionType = FunctionType::TYPE_SCRIPT;
 }
@@ -439,24 +540,23 @@ int Compiler::resolveUpvalue(Token &name)
 
 int Compiler::addUpvalue(uint8 index, bool isLocal)
 {
-    for (int i = 0; i < upvalueCount_; i++)
+  for (int i = 0; i < upvalueCount_; i++)
+  {
+    if (upvalues_[i].index == index && upvalues_[i].isLocal == isLocal)
     {
-        if (upvalues_[i].index == index && upvalues_[i].isLocal == isLocal)
-        {
-            return i;  
-        }
+      return i;
     }
-    if (upvalueCount_ >= MAX_LOCALS)
-    {
-        error("Too many closure variables in function");
-        return 0;
-    }
+  }
+  if (upvalueCount_ >= MAX_LOCALS)
+  {
+    error("Too many closure variables in function");
+    return 0;
+  }
 
-   
-    upvalues_[upvalueCount_].isLocal = isLocal;
-    upvalues_[upvalueCount_].index = index;
+  upvalues_[upvalueCount_].isLocal = isLocal;
+  upvalues_[upvalueCount_].index = index;
 
-    return upvalueCount_++;  
+  return upvalueCount_++;
 }
 
 // ============================================
@@ -523,81 +623,82 @@ bool Compiler::isKeywordToken(TokenType type)
   // Keywords que podem ser usadas como nomes de campos/propriedades
   switch (type)
   {
-    // Control flow
-    case TOKEN_VAR:
-    case TOKEN_DEF:
-    case TOKEN_IF:
-    case TOKEN_ELIF:
-    case TOKEN_ELSE:
-    case TOKEN_WHILE:
-    case TOKEN_FOR:
-    case TOKEN_FOREACH:
-    case TOKEN_IN:
-    case TOKEN_RETURN:
-    case TOKEN_BREAK:
-    case TOKEN_CONTINUE:
-    case TOKEN_DO:
-    case TOKEN_LOOP:
-    case TOKEN_SWITCH:
-    case TOKEN_CASE:
-    case TOKEN_DEFAULT:
-    // Built-ins
-    case TOKEN_PRINT:
-    case TOKEN_PROCESS:
-    case TOKEN_FRAME:
-    case TOKEN_EXIT:
-    case TOKEN_FIBER:
-    case TOKEN_YIELD:
-    case TOKEN_LEN:
-    case TOKEN_FREE:
-    // OOP
-    case TOKEN_STRUCT:
-    case TOKEN_ENUM:
-    case TOKEN_CLASS:
-    case TOKEN_SELF:
-    case TOKEN_THIS:
-    case TOKEN_SUPER:
-    // Modules
-    case TOKEN_INCLUDE:
-    case TOKEN_IMPORT:
-    case TOKEN_USING:
-    case TOKEN_REQUIRE:
-    // Exceptions
-    case TOKEN_TRY:
-    case TOKEN_CATCH:
-    case TOKEN_FINALLY:
-    case TOKEN_THROW:
-    // Math
-    case TOKEN_SIN:
-    case TOKEN_COS:
-    case TOKEN_SQRT:
-    case TOKEN_ABS:
-    case TOKEN_FLOOR:
-    case TOKEN_CEIL:
-    case TOKEN_DEG:
-    case TOKEN_RAD:
-    case TOKEN_TAN:
-    case TOKEN_ATAN:
-    case TOKEN_ATAN2:
-    case TOKEN_POW:
-    case TOKEN_LOG:
-    case TOKEN_EXP:
-    // Array
-    case TOKEN_PUSH:
-    // Timer
-    case TOKEN_CLOCK:
-    case TOKEN_TIME:
-    // Labels
-    case TOKEN_LABEL:
-    case TOKEN_GOTO:
-    case TOKEN_GOSUB:
-    // Literals (podem ser usados como nomes)
-    case TOKEN_TRUE:
-    case TOKEN_FALSE:
-    case TOKEN_NIL:
-      return true;
-    default:
-      return false;
+  // Control flow
+  case TOKEN_VAR:
+  case TOKEN_DEF:
+  case TOKEN_IF:
+  case TOKEN_ELIF:
+  case TOKEN_ELSE:
+  case TOKEN_WHILE:
+  case TOKEN_FOR:
+  case TOKEN_FOREACH:
+  case TOKEN_IN:
+  case TOKEN_RETURN:
+  case TOKEN_BREAK:
+  case TOKEN_CONTINUE:
+  case TOKEN_DO:
+  case TOKEN_LOOP:
+  case TOKEN_SWITCH:
+  case TOKEN_CASE:
+  case TOKEN_DEFAULT:
+  // Built-ins
+  case TOKEN_PRINT:
+  case TOKEN_PROCESS:
+  case TOKEN_TYPE:
+  case TOKEN_PROC:
+  case TOKEN_GET_ID:
+  case TOKEN_FRAME:
+  case TOKEN_EXIT:
+  case TOKEN_LEN:
+  case TOKEN_FREE:
+  // OOP
+  case TOKEN_STRUCT:
+  case TOKEN_ENUM:
+  case TOKEN_CLASS:
+  case TOKEN_SELF:
+  case TOKEN_THIS:
+  case TOKEN_SUPER:
+  // Modules
+  case TOKEN_INCLUDE:
+  case TOKEN_IMPORT:
+  case TOKEN_USING:
+  case TOKEN_REQUIRE:
+  // Exceptions
+  case TOKEN_TRY:
+  case TOKEN_CATCH:
+  case TOKEN_FINALLY:
+  case TOKEN_THROW:
+  // Math
+  case TOKEN_SIN:
+  case TOKEN_COS:
+  case TOKEN_SQRT:
+  case TOKEN_ABS:
+  case TOKEN_FLOOR:
+  case TOKEN_CEIL:
+  case TOKEN_DEG:
+  case TOKEN_RAD:
+  case TOKEN_TAN:
+  case TOKEN_ATAN:
+  case TOKEN_ATAN2:
+  case TOKEN_POW:
+  case TOKEN_LOG:
+  case TOKEN_EXP:
+  // Array
+  case TOKEN_PUSH:
+  // Timer
+  case TOKEN_CLOCK:
+  case TOKEN_TIME:
+  // Labels
+  case TOKEN_LABEL:
+  case TOKEN_GOTO:
+  case TOKEN_GOSUB:
+  // Literals (podem ser usados como nomes)
+  case TOKEN_TRUE:
+  case TOKEN_FALSE:
+  case TOKEN_NIL:
+    return true;
+  default:
+    return false;
   }
 }
 
@@ -698,8 +799,6 @@ void Compiler::synchronize()
 
     //  SPECIAL STATEMENTS
     case TOKEN_PRINT:
-    case TOKEN_YIELD:
-    case TOKEN_FIBER:
     case TOKEN_FRAME:
     case TOKEN_EXIT:
       return;
@@ -932,14 +1031,14 @@ void Compiler::resolveGotos()
       continue;
     }
 
-    // Opcode está 1 byte ANTES de jumpOffset (não 3!)
+ 
     int opcodePos = jump.jumpOffset - 1;
-    
+
     if (targetOffset < jump.jumpOffset)
     {
       // Backward jump: usa OP_LOOP
       currentChunk->code[opcodePos] = OP_LOOP;
-      
+
       // Offset backward = distância para trás
       int offset = jump.jumpOffset - targetOffset + 2;
       if (offset > UINT16_MAX)
@@ -947,7 +1046,7 @@ void Compiler::resolveGotos()
         error("Goto distance too large");
         continue;
       }
-      
+
       currentChunk->code[jump.jumpOffset] = (offset >> 8) & 0xff;
       currentChunk->code[jump.jumpOffset + 1] = offset & 0xff;
     }

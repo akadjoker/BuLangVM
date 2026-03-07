@@ -96,7 +96,7 @@ void OsEPrintf(const char *fmt, ...)
 #include <emscripten.h>
 #include "Outputcapture.h"
 
-extern OutputCapture *g_currentOutput;
+OutputCapture *g_currentOutput = nullptr;
 
 void OsPrintf(const char *fmt, ...)
 {

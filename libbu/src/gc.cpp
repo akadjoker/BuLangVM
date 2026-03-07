@@ -50,32 +50,22 @@ void Interpreter::markRoots()
             markValue(proc->privates[j]);
         }
 
-        // Marca todas as fibers
-        if (proc->fibers)
+        ProcessExec *fiber = proc;
+        if (fiber->state != ProcessState::DEAD)
         {
-            for (int f = 0; f < proc->totalFibers; f++)
+            for (Value *v = fiber->stack; v < fiber->stackTop; v++)
             {
-                Fiber *fiber = &proc->fibers[f];
+                if (!v->isObject())
+                    continue;
+                markValue(*v);
+            }
 
-                if (fiber->state != FiberState::DEAD)
+            for (int i = 0; i < fiber->frameCount; i++)
+            {
+                CallFrame *frame = &fiber->frames[i];
+                if (frame->closure)
                 {
-                    // Stack
-                    for (Value *v = fiber->stack; v < fiber->stackTop; v++)
-                    {
-                        if (!v->isObject())
-                            continue;
-                        markValue(*v);
-                    }
-
-                    for (int i = 0; i < fiber->frameCount; i++)
-                    {
-                        CallFrame *frame = &fiber->frames[i];
-                        if (frame->closure)
-                        {
-                            markObject((GCObject *)frame->closure);
-                        }
-                    }
-                   
+                    markObject((GCObject *)frame->closure);
                 }
             }
         }

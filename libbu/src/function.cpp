@@ -46,6 +46,34 @@ bool Interpreter::functionExists(const char *name)
 }
 
 
+int Interpreter::registerNativeProcess(const char *name, NativeFunctionProcess func, int arity)
+{
+    String *nName = createString(name);
+    NativeProcessDef existing;
+    if (nativeProcessesMap.get(nName, &existing))
+    {
+
+        return -1; // Já registrado
+    }
+
+    NativeProcessDef def;
+    def.name = nName;
+    def.func = func;
+    def.arity = arity;
+    def.index = nativeProcesses.size();
+
+    nativeProcessesMap.set(nName, def);
+    nativeProcesses.push(def);
+
+    uint16 globalIndex = globalsArray.size();
+    globalsArray.push(makeNativeProcess(def.index));
+    nativeGlobalIndices.set(nName, globalIndex);
+
+   // Info("Registered native process: %s (index=%d)", name, def.index);
+
+    return def.index;
+}
+
 
 int Interpreter::registerNative(const char *name, NativeFunction func, int arity)
 {

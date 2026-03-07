@@ -127,7 +127,7 @@ endif()
 # Platform Specific
 # ============================================
 if(UNIX AND NOT APPLE)
-    target_link_libraries(libbu PRIVATE pthread)
+    target_link_libraries(libbu PRIVATE miniz pthread)
 endif()
 
 # ============================================
