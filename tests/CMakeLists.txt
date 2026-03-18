@@ -9,7 +9,7 @@ cmake_minimum_required(VERSION 3.20)
 
 # ── Test runner executable ──────────────────────────────────
 
-add_executable(bulang_test bulang_runner.cpp)
+add_executable(bulang_test main.cpp)
 
 target_link_libraries(bulang_test PRIVATE libbu)
 target_include_directories(bulang_test PRIVATE
