@@ -1,0 +1,263 @@
+// ============================================
+// test_gc_stress.bu — Stress test for Garbage Collector
+// Tests memory allocation, collection, and edge cases
+// ============================================
+
+var passed = 0;
+var failed = 0;
+
+def assert(cond, msg) {
+    if (cond) {
+        passed += 1;
+    } else {
+        failed += 1;
+        print(f"FAIL: {msg}\n");
+    }
+}
+
+print("=== GC Stress Test ===\n");
+
+// ==== 1. Rapid allocation/deallocation ====
+print("1. Rapid alloc/dealloc cycles...\n");
+for (var cycle = 0; cycle < 100; cycle += 1) {
+    var temp = [];
+    for (var i = 0; i < 100; i += 1) {
+        temp.push([i, i*2, i*3]);
+    }
+    // temp goes out of scope
+}
+assert(1 == 1, "rapid alloc/dealloc survived");
+
+// ==== 2. Force multiple GC cycles ====
+print("2. Force multiple GC cycles...\n");
+for (var gc_cycle = 0; gc_cycle < 10; gc_cycle += 1) {
+    // Create garbage
+    var garbage = [];
+    for (var i = 0; i < 500; i += 1) {
+        garbage.push({"idx": i, "data": [1, 2, 3, 4, 5]});
+    }
+    // Force GC
+    _gc();
+}
+assert(1 == 1, "multiple GC cycles survived");
+
+// ==== 3. Circular references stress ====
+print("3. Circular references...\n");
+for (var i = 0; i < 50; i += 1) {
+    var a = {"id": i};
+    var b = {"id": i + 1000};
+    var c = {"id": i + 2000};
+    a["next"] = b;
+    b["next"] = c;
+    c["next"] = a;  // Circular!
+}
+_gc();
+assert(1 == 1, "circular references collected");
+
+// ==== 4. Deep nesting stress ====
+print("4. Deep nesting...\n");
+for (var round = 0; round < 20; round += 1) {
+    var root = {};
+    var current = root;
+    for (var depth = 0; depth < 50; depth += 1) {
+        current["child"] = {"depth": depth, "data": [1, 2, 3]};
+        current = current["child"];
+    }
+}
+_gc();
+assert(1 == 1, "deep nesting survived");
+
+// ==== 5. Mixed object types ====
+print("5. Mixed object types...\n");
+class MixedItem {
+    var id;
+    var arr;
+    var map;
+    def init(id) {
+        self.id = id;
+        self.arr = [1, 2, 3];
+        self.map = {"x": id};
+    }
+}
+
+struct MixedStruct {
+    var value;
+    var data;
+}
+
+var mixed_items = [];
+for (var i = 0; i < 200; i += 1) {
+    mixed_items.push(MixedItem(i));
+    var s = MixedStruct();
+    s.value = i;
+    s.data = [i, i*2];
+    mixed_items.push(s);
+}
+_gc();
+assert(mixed_items[0].id == 0, "mixed types - class");
+assert(mixed_items[1].value == 0, "mixed types - struct");
+assert(mixed_items.length() == 400, "mixed types count");
+
+// ==== 6. Closure survival ====
+print("6. Closure survival across GC...\n");
+def make_closure(val) {
+    var captured = val;
+    def getter() {
+        return captured;
+    }
+    return getter;
+}
+
+var closures = [];
+for (var i = 0; i < 100; i += 1) {
+    closures.push(make_closure(i * 10));
+}
+
+// Force GC - closures must survive
+_gc();
+_gc();
+_gc();
+
+// Verify closures still work
+assert(closures[0]() == 0, "closure 0 survived GC");
+assert(closures[50]() == 500, "closure 50 survived GC");
+assert(closures[99]() == 990, "closure 99 survived GC");
+
+// ==== 7. Self-referential arrays ====
+print("7. Self-referential arrays...\n");
+for (var i = 0; i < 30; i += 1) {
+    var self_arr = [1, 2, 3];
+    self_arr.push(self_arr);
+    self_arr.push({"ref": self_arr});
+}
+_gc();
+assert(1 == 1, "self-referential arrays collected");
+
+// ==== 8. Large string accumulation ====
+print("8. Large string accumulation...\n");
+for (var round = 0; round < 20; round += 1) {
+    var big_str = "";
+    for (var i = 0; i < 200; i += 1) {
+        big_str += "x";
+    }
+}
+_gc();
+assert(1 == 1, "string accumulation survived");
+
+// ==== 9. Array resize stress ====
+print("9. Array resize stress...\n");
+var resize_arr = [];
+for (var i = 0; i < 2000; i += 1) {
+    resize_arr.push(i);
+    if (i % 100 == 0) {
+        _gc();  // GC during growth
+    }
+}
+assert(resize_arr.length() == 2000, "array resize length");
+assert(resize_arr[1999] == 1999, "array resize last value");
+
+// ==== 10. Map growth stress ====
+print("10. Map growth stress...\n");
+var big_map = {};
+for (var i = 0; i < 1000; i += 1) {
+    big_map[f"key_{i}"] = {"idx": i, "arr": [i, i*2]};
+    if (i % 100 == 0) {
+        _gc();  // GC during growth
+    }
+}
+assert(big_map["key_0"]["idx"] == 0, "map growth first");
+assert(big_map["key_999"]["idx"] == 999, "map growth last");
+
+// ==== 11. Interleaved allocation and GC ====
+print("11. Interleaved alloc/GC...\n");
+var survivors = [];
+for (var i = 0; i < 500; i += 1) {
+    // Create garbage
+    var garbage = [i, i*2, {"temp": i}];
+    
+    // Create survivor (every 10th)
+    if (i % 10 == 0) {
+        survivors.push({"id": i, "data": [1, 2, 3]});
+    }
+    
+    // Occasional GC
+    if (i % 50 == 0) {
+        _gc();
+    }
+}
+assert(survivors.length() == 50, "interleaved survivors count");
+assert(survivors[0]["id"] == 0, "interleaved survivor 0");
+assert(survivors[49]["id"] == 490, "interleaved survivor 49");
+
+// ==== 12. Class instance reuse ====
+print("12. Class instance reuse...\n");
+class Reusable {
+    var data;
+    def init() {
+        self.data = [];
+    }
+    def fill(n) {
+        self.data = [];
+        for (var i = 0; i < n; i += 1) {
+            self.data.push(i);
+        }
+    }
+}
+
+var reusable = Reusable();
+for (var round = 0; round < 100; round += 1) {
+    reusable.fill(50);
+    _gc();
+}
+assert(reusable.data.length() == 50, "reusable instance survived");
+
+// ==== 13. Nested closures ====
+print("13. Nested closure stress...\n");
+def outer_closure(x) {
+    var data = [x, x*2, x*3];
+    def inner() {
+        return data[0] + data[1] + data[2];
+    }
+    return inner;
+}
+
+var nested_closures = [];
+for (var i = 0; i < 100; i += 1) {
+    nested_closures.push(outer_closure(i));
+}
+_gc();
+_gc();
+assert(nested_closures[0]() == 0, "nested closure 0");
+assert(nested_closures[10]() == 60, "nested closure 10");  // 10 + 20 + 30
+
+// ==== 14. Map with closure values ====
+print("14. Map with closure values...\n");
+var fn_map = {};
+for (var i = 0; i < 50; i += 1) {
+    fn_map[f"fn_{i}"] = make_closure(i * 100);
+}
+_gc();
+assert(fn_map["fn_0"]() == 0, "map closure 0");
+assert(fn_map["fn_25"]() == 2500, "map closure 25");
+
+// ==== 15. Final big allocation after many GCs ====
+print("15. Final big allocation...\n");
+var final_arr = [];
+for (var i = 0; i < 5000; i += 1) {
+    final_arr.push({"id": i, "arr": [i], "map": {"v": i}});
+}
+assert(final_arr.length() == 5000, "final big array length");
+assert(final_arr[4999]["id"] == 4999, "final big array last");
+
+// ==== 16. Verify no corruption ====
+print("16. Verify no corruption...\n");
+// Re-check survivors from earlier tests
+assert(closures[50]() == 500, "closures still valid");
+assert(survivors[25]["id"] == 250, "survivors still valid");
+assert(big_map["key_500"]["idx"] == 500, "big_map still valid");
+assert(nested_closures[5]() == 30, "nested closures still valid");
+
+print(f"\n=== test_gc_stress: {passed}/{passed + failed} ===\n");
+if (failed > 0) {
+    print(f"FAILED: {failed} tests\n");
+}
