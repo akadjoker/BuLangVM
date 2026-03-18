@@ -1,0 +1,227 @@
+// ============================================
+// test_memory_torture.bu — Memory and GC edge cases
+// Try to break allocation, GC, and references
+// ============================================
+
+var passed = 0;
+var failed = 0;
+
+def assert(cond, msg) {
+    if (cond) {
+        passed += 1;
+    } else {
+        failed += 1;
+        print(f"FAIL: {msg}\n");
+    }
+}
+
+// ==== 1. Circular references ====
+var a = {};
+var b = {};
+a["ref"] = b;
+b["ref"] = a;
+assert(a["ref"]["ref"] == a, "circular map reference");
+
+// ==== 2. Self-referential array ====
+var self_arr = [1, 2, 3];
+self_arr.push(self_arr);
+assert(self_arr[3] == self_arr, "self-referential array");
+assert(self_arr[3][0] == 1, "access through self-ref");
+
+// ==== 3. Deep object graph ====
+var root = {};
+var current = root;
+for (var i = 0; i < 100; i += 1) {
+    current["child"] = {"depth": i};
+    current = current["child"];
+}
+// Traverse back
+current = root;
+var depth_count = 0;
+while (current["child"] != nil) {
+    current = current["child"];
+    depth_count += 1;
+}
+assert(depth_count == 100, "deep object graph");
+
+// ==== 4. Many small allocations ====
+var small_allocs = [];
+for (var i = 0; i < 1000; i += 1) {
+    small_allocs.push([i]);
+}
+assert(small_allocs[999][0] == 999, "1000 small allocations");
+
+// ==== 5. Large array ====
+var large = [];
+for (var i = 0; i < 5000; i += 1) {
+    large.push(i);
+}
+assert(large.length() == 5000, "large array length");
+assert(large[4999] == 4999, "large array last element");
+
+// ==== 6. String accumulation ====
+var big_str = "";
+for (var i = 0; i < 100; i += 1) {
+    big_str += "x";
+}
+assert(big_str.length() == 100, "string accumulation");
+
+// ==== 7. Map with many keys ====
+var big_map = {};
+for (var i = 0; i < 500; i += 1) {
+    big_map[f"key_{i}"] = i;
+}
+assert(big_map["key_0"] == 0, "big map first");
+assert(big_map["key_499"] == 499, "big map last");
+
+// ==== 8. Class instances in array ====
+class Item {
+    var id;
+    def init(id) {
+        self.id = id;
+    }
+}
+
+var items = [];
+for (var i = 0; i < 200; i += 1) {
+    items.push(Item(i));
+}
+assert(items[0].id == 0, "first item");
+assert(items[199].id == 199, "last item");
+
+// ==== 9. Closure capturing large state (1 level) ====
+def make_data_holder() {
+    var data = [];
+    for (var i = 0; i < 100; i += 1) {
+        data.push(i * i);
+    }
+    def getter(idx) {
+        return data[idx];
+    }
+    return getter;
+}
+
+var holder = make_data_holder();
+assert(holder(10) == 100, "closure with large data");
+assert(holder(50) == 2500, "closure with large data 2");
+
+// ==== 10. Overwrite and recreate ====
+var reused = [];
+for (var j = 0; j < 10; j += 1) {
+    reused = [];  // Discard old, create new
+    for (var i = 0; i < 100; i += 1) {
+        reused.push(i);
+    }
+}
+assert(reused.length() == 100, "overwrite and recreate");
+
+// ==== 11. Simple closure holding reference ====
+def make_holder() {
+    var x = [1, 2, 3];
+    def getter() { return x[0] + x[1] + x[2]; }
+    return getter;
+}
+
+var simple_holder = make_holder();
+assert(simple_holder() == 6, "closure holding array");
+
+// ==== 12. Map with object values ====
+var obj_map = {};
+for (var i = 0; i < 50; i += 1) {
+    obj_map[f"item_{i}"] = Item(i * 10);
+}
+assert(obj_map["item_25"].id == 250, "map with object values");
+
+// ==== 13. Array of maps ====
+var arr_of_maps = [];
+for (var i = 0; i < 50; i += 1) {
+    arr_of_maps.push({"idx": i, "sqr": i * i});
+}
+assert(arr_of_maps[25]["sqr"] == 625, "array of maps");
+
+// ==== 14. String as map key stress ====
+var str_keys = {};
+for (var i = 0; i < 100; i += 1) {
+    var key = "";
+    for (var j = 0; j < 10; j += 1) {
+        key += "a";
+    }
+    key += f"_{i}";
+    str_keys[key] = i;
+}
+assert(str_keys["aaaaaaaaaa_50"] == 50, "long string keys");
+
+// ==== 15. Rapid create/discard cycle ====
+for (var cycle = 0; cycle < 100; cycle += 1) {
+    var temp = [];
+    for (var i = 0; i < 50; i += 1) {
+        temp.push({"a": i, "b": [1, 2, 3]});
+    }
+    // temp goes out of scope, should be collectable
+}
+assert(1 == 1, "rapid create/discard survived");
+
+// ==== 16. Mixed nested structures ====
+var mixed = {
+    "arr": [1, 2, {"inner": [3, 4, 5]}],
+    "map": {"nested": {"deep": 42}}
+};
+assert(mixed["arr"][2]["inner"][1] == 4, "mixed nested access 1");
+assert(mixed["map"]["nested"]["deep"] == 42, "mixed nested access 2");
+
+// ==== 17. Function returning different types ====
+def poly_return(typ) {
+    if (typ == 0) return 42;
+    if (typ == 1) return "hello";
+    if (typ == 2) return [1, 2, 3];
+    if (typ == 3) return {"x": 1};
+    return nil;
+}
+
+assert(poly_return(0) == 42, "poly return int");
+assert(poly_return(1) == "hello", "poly return str");
+assert(poly_return(2)[1] == 2, "poly return arr");
+assert(poly_return(3)["x"] == 1, "poly return map");
+assert(poly_return(99) == nil, "poly return nil");
+
+// ==== 18. Struct instances ====
+struct Point {
+    var x;
+    var y;
+}
+
+var points = [];
+for (var i = 0; i < 100; i += 1) {
+    var p = Point();
+    p.x = i;
+    p.y = i * 2;
+    points.push(p);
+}
+assert(points[50].x == 50, "struct array x");
+assert(points[50].y == 100, "struct array y");
+
+// ==== 19. Force GC during iteration ====
+var gc_test = [];
+for (var i = 0; i < 200; i += 1) {
+    gc_test.push([i, i*2, i*3]);
+    if (i % 50 == 0) {
+        _gc();  // Force GC
+    }
+}
+assert(gc_test[150][2] == 450, "gc during iteration");
+
+// ==== 20. Closure outliving creator (1 level) ====
+def make_outliver() {
+    var local_data = "I should survive";
+    def getter() { return local_data; }
+    return getter;
+}
+
+var outliver = make_outliver();
+_gc();  // Try to collect - closure should keep data alive
+assert(outliver() == "I should survive", "closure outlives creator");
+
+print(f"\n=== test_memory_torture: {passed}/{passed + failed} ===\n");
+if (failed > 0) {
+    print(f"FAILED: {failed} tests\n");
+}

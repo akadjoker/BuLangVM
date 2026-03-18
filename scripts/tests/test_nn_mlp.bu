@@ -1,0 +1,71 @@
+// Test MLP (Multi-Layer Perceptron) with different optimizers
+import nn;
+
+print("=== MLP XOR Test ===\n");
+
+// XOR training data
+var X = [[0,0], [0,1], [1,0], [1,1]];
+var Y = [[0], [1], [1], [0]];
+
+// Test different optimizers
+var optimizers = ["adam", "sgd", "rmsprop", "adagrad"];
+
+for (var i = 0; i < optimizers.length(); i = i + 1) {
+    var opt = optimizers[i];
+    print("Testing optimizer: " + opt + "\n");
+    
+    var net = Network();
+    net.add(2, 8, "tanh");
+    net.add(8, 1, "sigmoid");
+    net.compile(opt, "mse", 0.1);
+    
+    net.fit(X, Y, 200, 4);
+    
+    // Test predictions
+    var correct = 0;
+    for (var j = 0; j < 4; j = j + 1) {
+        var pred = net.predict(X[j]);
+        var expected = Y[j][0];
+        var result = pred[0] > 0.5 ? 1 : 0;
+        if (result == expected) {
+            correct = correct + 1;
+        }
+    }
+    print("  Accuracy: " + correct + "/4\n");
+}
+
+print("\n=== MLP AND Gate ===\n");
+
+var andX = [[0,0], [0,1], [1,0], [1,1]];
+var andY = [[0], [0], [0], [1]];
+
+var andNet = Network();
+andNet.add(2, 8, "tanh");   // More neurons, tanh activation
+andNet.add(8, 1, "sigmoid");
+andNet.compile("adam", "bce", 0.5);  // Higher learning rate
+andNet.fit(andX, andY, 500, 4);  // More epochs for AND gate
+
+print("AND predictions:\n");
+for (var i = 0; i < 4; i = i + 1) {
+    var p = andNet.predict(andX[i]);
+    print("  " + andX[i][0] + " AND " + andX[i][1] + " = " + p[0] + "\n");
+}
+
+print("\n=== MLP OR Gate ===\n");
+
+var orX = [[0,0], [0,1], [1,0], [1,1]];
+var orY = [[0], [1], [1], [1]];
+
+var orNet = Network();
+orNet.add(2, 4, "relu");
+orNet.add(4, 1, "sigmoid");
+orNet.compile("adam", "bce", 0.1);
+orNet.fit(orX, orY, 100, 4);
+
+print("OR predictions:\n");
+for (var i = 0; i < 4; i = i + 1) {
+    var p = orNet.predict(orX[i]);
+    print("  " + orX[i][0] + " OR " + orX[i][1] + " = " + p[0] + "\n");
+}
+
+print("\n✓ MLP tests completed!\n");

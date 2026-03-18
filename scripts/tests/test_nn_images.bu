@@ -1,0 +1,85 @@
+// Test BMP image save/load round-trip
+import nn;
+
+print("=== BMP Image I/O Test ===\n");
+
+// Create a 4x4 RGB test image
+var width = 4;
+var height = 4;
+var channels = 3;
+
+// Create gradient pattern
+var pixels = [];
+for (var y = 0; y < height; y = y + 1) {
+    for (var x = 0; x < width; x = x + 1) {
+        var r = x / (width - 1);   // Red increases left to right
+        var g = y / (height - 1);  // Green increases top to bottom
+        var b = 0.5;               // Blue constant
+        pixels.push(r);
+        pixels.push(g);
+        pixels.push(b);
+    }
+}
+
+// Save to BMP
+var filename = "/tmp/test_image.bmp";
+var saved = nn.saveImage(filename, width, height, channels, pixels);
+print("Saved BMP: " + saved + "\n");
+
+// Load back
+var (w, h, c, data) = nn.loadImage(filename);
+print("Loaded: " + w + "x" + h + " channels=" + c + "\n");
+
+// Verify dimensions
+var dimOk = (w == width) && (h == height) && (c == channels);
+print("Dimensions match: " + dimOk + "\n");
+
+// Verify pixels (with tolerance for rounding)
+var pixelsOk = true;
+var maxDiff = 0;
+for (var i = 0; i < pixels.length(); i = i + 1) {
+    var diff = pixels[i] - data[i];
+    if (diff < 0) diff = -diff;
+    if (diff > maxDiff) maxDiff = diff;
+    if (diff > 0.01) {  // 1% tolerance
+        pixelsOk = false;
+    }
+}
+print("Pixels match (max diff=" + maxDiff + "): " + pixelsOk + "\n");
+
+print("\n=== RGBA Image Test ===\n");
+
+// Test with alpha channel
+var rgbaPixels = [
+    1, 0, 0, 1,     // Red opaque
+    0, 1, 0, 0.5,   // Green 50% transparent
+    0, 0, 1, 0.25,  // Blue 25% transparent
+    1, 1, 1, 0      // White fully transparent
+];
+
+var rgbaFile = "/tmp/test_rgba.bmp";
+nn.saveImage(rgbaFile, 2, 2, 4, rgbaPixels);
+
+var (rw, rh, rc, rdata) = nn.loadImage(rgbaFile);
+print("RGBA loaded: " + rw + "x" + rh + " channels=" + rc + "\n");
+
+// Check alpha values
+print("Alpha values: ");
+print(rdata[3] + ", " + rdata[7] + ", " + rdata[11] + ", " + rdata[15] + "\n");
+
+print("\n=== loadImageData / getImageData Test ===\n");
+
+// Simulate raw bytes [0-255] from raylib
+var rawBytes = [255, 128, 64, 0, 32, 192, 96, 255, 160];
+
+// Convert to normalized
+var normalized = nn.loadImageData(rawBytes, 3, 1, 3);
+print("Normalized[0]: " + normalized[0] + " (expected: 1.0)\n");
+print("Normalized[1]: " + normalized[1] + " (expected: ~0.5)\n");
+
+// Convert back
+var backToRaw = nn.getImageData(normalized, 3, 1, 3);
+print("Back to raw[0]: " + backToRaw[0] + " (expected: 255)\n");
+print("Back to raw[1]: " + backToRaw[1] + " (expected: 128)\n");
+
+print("\n✓ Image I/O tests completed!\n");

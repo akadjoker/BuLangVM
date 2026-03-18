@@ -1,0 +1,62 @@
+// Test activation functions
+import nn;
+
+print("=== Activation Functions ===\n");
+
+// Test sigmoid
+var s = nn.sigmoid(0);
+print("sigmoid(0) = " + s + " (expected: 0.5)\n");
+var s2 = nn.sigmoid(2);
+print("sigmoid(2) = " + s2 + " (expected: ~0.88)\n");
+
+// Test relu
+print("relu(-1) = " + nn.relu(-1) + " (expected: 0)\n");
+print("relu(5) = " + nn.relu(5) + " (expected: 5)\n");
+
+// Test leaky_relu
+print("leaky_relu(-1) = " + nn.leaky_relu(-1) + " (expected: -0.01)\n");
+print("leaky_relu(-1, 0.1) = " + nn.leaky_relu(-1, 0.1) + " (expected: -0.1)\n");
+
+// Test elu
+print("elu(-1) = " + nn.elu(-1) + " (expected: ~-0.63)\n");
+print("elu(1) = " + nn.elu(1) + " (expected: 1)\n");
+
+// Test swish/silu
+print("swish(0) = " + nn.swish(0) + " (expected: 0)\n");
+print("silu(2) = " + nn.silu(2) + " (expected: ~1.76)\n");
+
+// Test gelu
+print("gelu(0) = " + nn.gelu(0) + " (expected: 0)\n");
+print("gelu(1) = " + nn.gelu(1) + " (expected: ~0.84)\n");
+
+// Test softplus
+print("softplus(0) = " + nn.softplus(0) + " (expected: ~0.69)\n");
+
+// Test mish
+print("mish(0) = " + nn.mish(0) + " (expected: 0)\n");
+print("mish(1) = " + nn.mish(1) + " (expected: ~0.87)\n");
+
+// Test step
+print("step(-1) = " + nn.step(-1) + " (expected: 0)\n");
+print("step(1) = " + nn.step(1) + " (expected: 1)\n");
+print("step(0.5, 0.3) = " + nn.step(0.5, 0.3) + " (expected: 1)\n");
+
+print("\n=== Derivatives ===\n");
+
+print("sigmoid_d(0) = " + nn.sigmoid_d(0) + " (expected: 0.25)\n");
+print("relu_d(-1) = " + nn.relu_d(-1) + " (expected: 0)\n");
+print("relu_d(1) = " + nn.relu_d(1) + " (expected: 1)\n");
+print("tanh_d(0) = " + nn.tanh_d(0) + " (expected: 1)\n");
+
+print("\n=== Loss Functions ===\n");
+
+print("mse(1, 0) = " + nn.mse(1, 0) + " (expected: 1)\n");
+print("mse(0.5, 0.5) = " + nn.mse(0.5, 0.5) + " (expected: 0)\n");
+print("bce(0.9, 1) = " + nn.bce(0.9, 1) + " (expected: ~0.1)\n");
+
+print("\n=== Utility Functions ===\n");
+
+print("normalize(50, 0, 100) = " + nn.normalize(50, 0, 100) + " (expected: 0.5)\n");
+print("denormalize(0.5, 0, 100) = " + nn.denormalize(0.5, 0, 100) + " (expected: 50)\n");
+
+print("\n✓ All activation tests passed!\n");

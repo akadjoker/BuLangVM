@@ -1,0 +1,307 @@
+// ============================================
+// test_stack_torture.bu — Aggressive stack edge cases
+// Try to break the VM stack in creative ways
+// ============================================
+
+var passed = 0;
+var failed = 0;
+
+def assert(cond, msg) {
+    if (cond) {
+        passed += 1;
+    } else {
+        failed += 1;
+        print(f"FAIL: {msg}\n");
+    }
+}
+
+// ==== 1. Deep nested expressions ====
+var deep = ((((((((((1+2)+3)+4)+5)+6)+7)+8)+9)+10)+11);
+assert(deep == 66, "deep nested arithmetic");
+
+// ==== 2. Multiple function returns in expression ====
+def ret1() { return 1; }
+def ret2() { return 2; }
+def ret3() { return 3; }
+
+var multi_ret = ret1() + ret2() * ret3() - ret1() + ret2();
+assert(multi_ret == 8, "multiple returns in expression");
+
+// ==== 3. Recursive expression building ====
+def build(n) {
+    if (n <= 0) return 0;
+    return n + build(n - 1);
+}
+assert(build(100) == 5050, "recursive sum 100");
+
+// ==== 4. Closures capturing at different stack depths ====
+def make_closure_for(val) {
+    def fn() { return val; }
+    return fn;
+}
+
+def make_closures() {
+    var closures = [];
+    for (var i = 0; i < 10; i += 1) {
+        closures.push(make_closure_for(i));
+    }
+    return closures;
+}
+
+var cls = make_closures();
+var closure_sum = 0;
+for (var i = 0; i < 10; i += 1) {
+    closure_sum += cls[i]();
+}
+assert(closure_sum == 45, "closures capturing at different depths");
+
+// ==== 5. Function returning function (1 level closure) ====
+def make_adder(x) {
+    def adder(y) {
+        return x + y;
+    }
+    return adder;
+}
+
+var add5 = make_adder(5);
+var add10 = make_adder(10);
+assert(add5(3) == 8, "closure adder 5+3");
+assert(add10(7) == 17, "closure adder 10+7");
+assert(add5(add10(0)) == 15, "nested closure calls");
+
+// ==== 6. Very long expression chain ====
+var chain = 1;
+chain = chain + 1; chain = chain + 1; chain = chain + 1; chain = chain + 1;
+chain = chain + 1; chain = chain + 1; chain = chain + 1; chain = chain + 1;
+chain = chain + 1; chain = chain + 1; chain = chain + 1; chain = chain + 1;
+chain = chain + 1; chain = chain + 1; chain = chain + 1; chain = chain + 1;
+chain = chain + 1; chain = chain + 1; chain = chain + 1; chain = chain + 1;
+assert(chain == 21, "long assignment chain");
+
+// ==== 7. Method chaining with returns ====
+class Builder {
+    var value;
+
+    def init() {
+        self.value = 0;
+    }
+    def add(n) {
+        self.value += n;
+        return self;
+    }
+    def mul(n) {
+        self.value *= n;
+        return self;
+    }
+    def get() {
+        return self.value;
+    }
+}
+
+var b = Builder();
+var chained = b.add(5).mul(2).add(3).mul(4).get();
+assert(chained == 52, "method chaining");
+
+// ==== 8. Array operations in nested expressions ====
+var arr = [1, 2, 3, 4, 5];
+// arr[0]=1, arr[arr[0]]=arr[1]=2, arr[arr[arr[0]-1]]=arr[arr[0]]=arr[1]=2, arr[4]=5
+// Total: 1 + 2 + 2 + 5 = 10
+var arr_expr = arr[0] + arr[arr[0]] + arr[arr[arr[0] - 1]] + arr[4];
+assert(arr_expr == 10, "nested array indexing");
+
+// ==== 9. Mixed types on stack ====
+def mixed(a, b, c, d, e) {
+    return a + b + c + d + e;
+}
+var mix = mixed(1, 2.5, 3, 4.0, 5);
+assert(mix == 15.5, "mixed types on stack");
+
+// ==== 10. Return in middle of expression ====
+def early_return(flag) {
+    if (flag) {
+        return 100;
+    }
+    return 200;
+}
+
+var short = early_return(1) + early_return(0);
+assert(short == 300, "multiple returns in expression");
+
+// ==== 11. Deeply nested conditionals ====
+def nested_if(a, b, c) {
+    if (a) {
+        if (b) {
+            if (c) {
+                return 10;
+            } else {
+                return 20;
+            }
+        } else {
+            return 30;
+        }
+    } else {
+        return 40;
+    }
+}
+
+var t = nested_if(1, nested_if(1, 1, 1) == 10, 1);
+assert(t == 10, "nested conditionals");
+
+// ==== 12. Exception during stack operation ====
+var exc_result = 0;
+try {
+    var before = 10;
+    var x = 1 / 0;
+    var after = 20;
+    exc_result = after;
+} catch (e) {
+    exc_result = 42;
+}
+assert(exc_result == 42, "exception cleans stack");
+
+// ==== 13. Independent closures ====
+def make_counter() {
+    var count = 0;
+    def increment() {
+        count += 1;
+        return count;
+    }
+    return increment;
+}
+
+var c1 = make_counter();
+var c2 = make_counter();
+c1(); c1(); c1();
+c2();
+assert(c1() == 4, "closure c1");
+assert(c2() == 2, "closure c2 independent");
+
+// ==== 14. Many arguments ====
+def many_args(a, b, c, d, e, f, g, h, i, j) {
+    return a + b + c + d + e + f + g + h + i + j;
+}
+assert(many_args(1, 2, 3, 4, 5, 6, 7, 8, 9, 10) == 55, "10 arguments");
+
+// ==== 15. Nested try-catch with returns ====
+def nested_try() {
+    try {
+        try {
+            throw "inner";
+        } catch (e1) {
+            throw "outer";
+        }
+    } catch (e2) {
+        return e2;
+    }
+    return "none";
+}
+assert(nested_try() == "outer", "nested try-catch returns");
+
+// ==== 16. Return inside loop ====
+def find_first(arr, val) {
+    for (var i = 0; i < arr.length(); i += 1) {
+        if (arr[i] == val) {
+            return i;
+        }
+    }
+    return -1;
+}
+assert(find_first([5, 10, 15, 20], 15) == 2, "return from loop");
+
+// ==== 17. Complex array/map literals ====
+var complex = [1, 2, 3][1] + {"a": 10, "b": 20}["b"];
+assert(complex == 22, "complex literals in expression");
+
+// ==== 18. Recursive fibonacci ====
+def fib(n) {
+    if (n <= 1) return n;
+    return fib(n - 1) + fib(n - 2);
+}
+assert(fib(10) == 55, "recursive fib");
+
+// ==== 19. Callback pattern ====
+def apply_fn(fn, val) {
+    return fn(val);
+}
+
+def double_it(x) { return x * 2; }
+def add_one(x) { return x + 1; }
+
+var cb_result = apply_fn(double_it, apply_fn(add_one, apply_fn(add_one, 1)));
+assert(cb_result == 6, "nested callbacks");
+
+// ==== 20. String interpolation ====
+var name = "test";
+var num = 42;
+var interp = f"{name}_{num}_{num + 1}";
+assert(interp == "test_42_43", "complex interpolation");
+
+// ==== 21. Multiple independent closures ====
+def make_multiplier(x) {
+    def mult(y) {
+        return x * y;
+    }
+    return mult;
+}
+var mul2 = make_multiplier(2);
+var mul3 = make_multiplier(3);
+assert(mul2(5) == 10, "multiplier 2*5");
+assert(mul3(5) == 15, "multiplier 3*5");
+assert(mul2(mul3(4)) == 24, "multiplier combined");
+
+// ==== 22. Stack during map operations ====
+var map_stack = {};
+map_stack["a"] = 1;
+map_stack["b"] = map_stack["a"] + 1;
+map_stack["c"] = map_stack["a"] + map_stack["b"];
+map_stack["d"] = map_stack["a"] + map_stack["b"] + map_stack["c"];
+assert(map_stack["d"] == 6, "map self-reference during build");
+
+// ==== 23. Array modification during iteration ====
+var mod_arr = [1, 2, 3, 4, 5];
+var mod_sum = 0;
+for (var i = 0; i < mod_arr.length(); i += 1) {
+    mod_sum += mod_arr[i];
+    if (i == 2) {
+        mod_arr[4] = 100;
+    }
+}
+assert(mod_sum == 110, "array modified during iteration");
+
+// ==== 24. Multiple return paths ====
+def multi_path(a, b, c) {
+    if (a > 0) {
+        if (b > 0) {
+            return a + b;
+        }
+        return a;
+    }
+    if (c > 0) {
+        return c;
+    }
+    return 0;
+}
+assert(multi_path(1, 2, 3) == 3, "multi path 1");
+assert(multi_path(1, 0, 3) == 1, "multi path 2");
+assert(multi_path(0, 0, 5) == 5, "multi path 3");
+assert(multi_path(0, 0, 0) == 0, "multi path 4");
+
+// ==== 25. Break/continue stack cleanup ====
+var break_sum = 0;
+for (var i = 0; i < 100; i += 1) {
+    if (i == 50) break;
+    break_sum += 1;
+}
+assert(break_sum == 50, "break cleanup");
+
+var cont_sum = 0;
+for (var i = 0; i < 10; i += 1) {
+    if (i % 2 == 0) continue;
+    cont_sum += i;
+}
+assert(cont_sum == 25, "continue cleanup");
+
+print(f"\n=== test_stack_torture: {passed}/{passed + failed} ===\n");
+if (failed > 0) {
+    print(f"FAILED: {failed} tests\n");
+}

@@ -1297,7 +1297,7 @@ var net = Network();
 net.add(2, 8, "tanh");       // 2 inputs → 8 hidden
 net.add(8, 1, "sigmoid");    // 8 → 1 output
 
-// CNN architecture
+// CNN architecture (minimum 8x8 input required for training)
 net.input(28, 28, 1);        // 28x28 grayscale
 net.addConv2D(8, 3, 3, "relu");  // 8 filters 3x3
 net.addMaxPool(2, 2);            // 2x2 pooling

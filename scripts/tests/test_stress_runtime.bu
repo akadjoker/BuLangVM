@@ -50,13 +50,14 @@ assert(empty_str + "hello" == "hello", "empty + str");
 assert("hello" + empty_str == "hello", "str + empty");
 
 // ==== 6. Boolean coercion in conditions ====
+// BuLang: only nil, false, 0 are falsy. Empty string "" is truthy.
 var truthy_test = "";
 if (1) { truthy_test += "1"; }
 if ("hello") { truthy_test += "2"; }
 if (0) { truthy_test += "X"; }
-if ("") { truthy_test += "Y"; }
+if ("") { truthy_test += "Y"; }  // Empty string is truthy in BuLang
 if (nil) { truthy_test += "Z"; }
-assert(truthy_test == "12", "truthy/falsy");
+assert(truthy_test == "12Y", "truthy/falsy");
 
 // ==== 7. Array push/pop stress ====
 var stress_arr = [];

@@ -1,0 +1,131 @@
+// Test CNN layers (Conv2D, MaxPool, flatSize)
+// Note: MiniDNN requires minimum 8x8 input for CNN training
+import nn;
+
+print("=== CNN Layer Tests ===\n");
+
+// Test 1: Simple Conv2D + MaxPool
+print("--- Test 1: Conv2D + MaxPool Dimensions ---\n");
+var net1 = Network();
+net1.input(8, 8, 1);          // 8x8 grayscale
+net1.addConv2D(4, 3, 3, "relu");  // 4 filters, 3x3 kernel -> 6x6x4
+net1.addMaxPool(2, 2);            // Pool 2x2 -> 3x3x4
+
+var flatSize1 = net1.flatSize();
+print("Input: 8x8x1\n");
+print("After Conv2D(4, 3x3): 6x6x4\n");
+print("After MaxPool(2x2): 3x3x4\n");
+print("flatSize: " + flatSize1 + " (expected: 36)\n");
+
+// Add dense layer and compile
+net1.add(flatSize1, 10, "softmax");
+net1.compile("adam", "cross_entropy", 0.01);
+net1.summary();
+
+// Test 2: Deeper CNN
+print("\n--- Test 2: Deeper CNN Dimensions ---\n");
+var net2 = Network();
+net2.input(16, 16, 3);           // 16x16 RGB
+net2.addConv2D(8, 3, 3, "relu"); // 8 filters -> 14x14x8
+net2.addMaxPool(2, 2);           // -> 7x7x8
+net2.addConv2D(16, 3, 3, "relu");// 16 filters -> 5x5x16
+net2.addMaxPool(2, 2);           // -> 2x2x16 (floor division)
+
+var flatSize2 = net2.flatSize();
+print("Input: 16x16x3\n");
+print("After Conv1 + Pool1: 7x7x8\n");
+print("After Conv2 + Pool2: 2x2x16\n");
+print("flatSize: " + flatSize2 + " (expected: 64 = 2*2*16)\n");
+
+net2.add(flatSize2, 32, "relu");
+net2.add(32, 5, "softmax");
+net2.compile("sgd", "cross_entropy", 0.001);
+net2.summary();
+
+// Test 3: Forward pass with real data
+print("\n--- Test 3: Forward Pass (8x8) ---\n");
+
+var miniNet = Network();
+miniNet.input(8, 8, 1);
+miniNet.addConv2D(4, 3, 3, "relu"); // -> 6x6x4
+miniNet.addMaxPool(2, 2);           // -> 3x3x4 = 36
+var fs = miniNet.flatSize();
+print("8x8 input -> 4 filters 3x3 -> pool 2x2 -> flatSize: " + fs + "\n");
+
+miniNet.add(fs, 8, "relu");
+miniNet.add(8, 3, "softmax");
+miniNet.compile("adam", "cross_entropy", 0.01);
+
+// Create sample input (8x8 image)
+var sample = [];
+for (var i = 0; i < 64; i = i + 1) sample.push(i / 64.0);
+
+var output = miniNet.predict(sample);
+print("Output (softmax probabilities): ");
+var sum = 0;
+for (var i = 0; i < output.length(); i = i + 1) {
+    print(output[i] + " ");
+    sum = sum + output[i];
+}
+print("\nSum of probabilities: " + sum + " (should be ~1.0)\n");
+
+// Test 4: Training CNN (8x8)
+print("\n--- Test 4: CNN Training (8x8) ---\n");
+
+var trainNet = Network();
+trainNet.input(8, 8, 1);
+trainNet.addConv2D(4, 3, 3, "relu"); // 6x6x4
+trainNet.addMaxPool(2, 2);           // 3x3x4 = 36
+var tf = trainNet.flatSize();
+trainNet.add(tf, 2, "softmax");
+trainNet.compile("adam", "cross_entropy", 0.01);
+
+// Create tiny dataset for 8x8 images
+// Pattern 1: bright center -> class 0
+// Pattern 2: bright edges -> class 1
+var pattern0 = [
+    0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+    0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+    0.1, 0.1, 0.9, 0.9, 0.9, 0.9, 0.1, 0.1,
+    0.1, 0.1, 0.9, 0.9, 0.9, 0.9, 0.1, 0.1,
+    0.1, 0.1, 0.9, 0.9, 0.9, 0.9, 0.1, 0.1,
+    0.1, 0.1, 0.9, 0.9, 0.9, 0.9, 0.1, 0.1,
+    0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+    0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1
+];
+
+var pattern1 = [
+    0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9,
+    0.9, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.9,
+    0.9, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.9,
+    0.9, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.9,
+    0.9, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.9,
+    0.9, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.9,
+    0.9, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.9,
+    0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9
+];
+
+var X = [pattern0, pattern0, pattern1, pattern1];
+var Y = [
+    [1, 0],  // Class 0: center
+    [1, 0],
+    [0, 1],  // Class 1: edges
+    [0, 1]
+];
+
+print("Training CNN on 4 samples (8x8)...\n");
+trainNet.fit(X, Y, 100, 2);
+
+// Test predictions
+print("Testing trained CNN:\n");
+var pred0 = trainNet.predict(pattern0);
+var pred1 = trainNet.predict(pattern1);
+
+print("Center pattern -> class 0 prob: " + pred0[0] + "\n");
+print("Edge pattern -> class 1 prob: " + pred1[1] + "\n");
+
+var correct0 = pred0[0] > 0.5;
+var correct1 = pred1[1] > 0.5;
+print("Classification correct: " + (correct0 && correct1) + "\n");
+
+print("\n✓ CNN layer tests completed!\n");

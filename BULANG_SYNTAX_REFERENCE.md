@@ -1499,13 +1499,15 @@ var net = Network();
 |-------------|------------|----------------|
 | relu, sigmoid, tanh, softmax, identity, mish | adam, sgd, rmsprop, adagrad | mse, bce, cross_entropy |
 
+> **Note:** CNN training requires a minimum input size of 8x8 pixels due to MiniDNN/Eigen constraints. Smaller inputs will cause assertion failures during fit().
+
 #### Example: CNN for Digit Classification
 
 ```bu
 import nn;
 
 var net = Network();
-net.input(8, 8, 1);              // 8x8 grayscale
+net.input(8, 8, 1);              // 8x8 grayscale (minimum size for CNN)
 net.addConv2D(4, 3, 3, "relu");  // 4 filters 3x3
 net.addMaxPool(2, 2);            // 2x2 pooling
 net.add(net.flatSize(), 16, "relu");
