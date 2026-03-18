@@ -927,7 +927,7 @@ Strings have built-in methods accessible via dot notation:
 | `.upper()` | `s.upper()` | To uppercase |
 | `.lower()` | `s.lower()` | To lowercase |
 | `.concat(other)` | `s.concat("!")` | Concatenate strings |
-| `.sub(start, len)` | `s.sub(0, 5)` | Substring |
+| `.sub(start, end)` | `s.sub(0, 5)` | Substring (start to end index) |
 | `.replace(old, new)` | `s.replace("a", "b")` | Replace occurrences |
 | `.at(index)` | `s.at(0)` | Character at index |
 | `.contains(substr)` | `s.contains("hello")` | Check if contains substring |

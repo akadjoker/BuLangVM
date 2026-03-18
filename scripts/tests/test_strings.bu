@@ -43,6 +43,56 @@ assert(f"{{x}}" == "{x}", "f-string escaped braces");
 var arr = [10, 20, 30];
 assert(f"len={len(arr)}" == "len=3", "f-string len call");
 
+// F-string with multiple placeholders
+var x = 10;
+var y = 20;
+assert(f"x={x}, y={y}" == "x=10, y=20", "f-string multi vars");
+assert(f"{x}+{y}={x+y}" == "10+20=30", "f-string multi exprs");
+
+// F-string with math expressions
+assert(f"{2*3*4}" == "24", "f-string mult");
+assert(f"{100/4}" == "25", "f-string div");
+assert(f"{17%5}" == "2", "f-string mod");
+assert(f"{-42}" == "-42", "f-string negative");
+
+// F-string with ternary
+var flag = true;
+var ternaryResult = flag ? "yes" : "no";
+assert(f"{ternaryResult}" == "yes", "f-string ternary true");
+flag = false;
+ternaryResult = flag ? "yes" : "no";
+assert(f"{ternaryResult}" == "no", "f-string ternary false");
+
+// F-string with array access
+var nums = [100, 200, 300];
+assert(f"first={nums[0]}" == "first=100", "f-string array[0]");
+assert(f"last={nums[-1]}" == "last=300", "f-string array[-1]");
+
+// F-string with map access
+var obj = {"name": "Test", "value": 42};
+var objName = obj["name"];
+assert(f"name={objName}" == "name=Test", "f-string map access");
+
+// F-string with function call
+def double(n) { return n * 2; }
+assert(f"doubled={double(5)}" == "doubled=10", "f-string func call");
+
+// F-string with nested braces
+assert(f"{{literal}}" == "{literal}", "f-string double brace");
+assert(f"a{{b}}c" == "a{b}c", "f-string mixed braces");
+
+// F-string with booleans
+assert(f"{true}" == "true", "f-string true");
+assert(f"{false}" == "false", "f-string false");
+
+// F-string with nil
+assert(f"{nil}" == "nil", "f-string nil");
+
+// F-string concatenation
+var part1 = f"Hello ";
+var part2 = f"{name}!";
+assert(part1 + part2 == "Hello BuLang!", "f-string concat");
+
 // String comparison
 assert("abc" == "abc", "string eq");
 assert("abc" != "def", "string neq");

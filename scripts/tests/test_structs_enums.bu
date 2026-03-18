@@ -79,6 +79,63 @@ if (status == HttpStatus.OK) {
 // Enum in f-string
 assert(f"status={HttpStatus.NotFound}" == "status=404", "enum in f-string");
 
+// Enum arithmetic
+assert(Color.Red + Color.Blue == 4, "enum arithmetic add");
+assert(Color.Blue - Color.Red == 2, "enum arithmetic sub");
+assert(Color.Green * 2 == 4, "enum arithmetic mult");
+
+// Enum in array
+var codes = [HttpStatus.OK, HttpStatus.NotFound, HttpStatus.Error];
+assert(codes[0] == 200, "enum in array[0]");
+assert(codes[1] == 404, "enum in array[1]");
+assert(codes[2] == 500, "enum in array[2]");
+
+// Enum in map value
+var statusMap = {
+    "success": HttpStatus.OK,
+    "missing": HttpStatus.NotFound
+};
+assert(statusMap["success"] == 200, "enum in map value");
+assert(statusMap["missing"] == 404, "enum in map value 2");
+
+// Enum comparison operators
+assert(Direction.Up < Direction.Down, "enum less than");
+assert(Direction.Right > Direction.Left, "enum greater than");
+assert(Direction.Down >= Direction.Down, "enum greater or eq");
+assert(Direction.Up <= Direction.Up, "enum less or eq");
+
+// Enum with explicit and auto-increment mix
+enum Priority {
+    Low = 10,
+    Medium,     // 11
+    High,       // 12
+    Critical = 100,
+    Urgent      // 101
+}
+assert(Priority.Low == 10, "enum mixed Low");
+assert(Priority.Medium == 11, "enum mixed Medium auto");
+assert(Priority.High == 12, "enum mixed High auto");
+assert(Priority.Critical == 100, "enum mixed Critical");
+assert(Priority.Urgent == 101, "enum mixed Urgent auto");
+
+// Enum in ternary
+var level = Priority.High;
+var txt = level > Priority.Medium ? "important" : "normal";
+assert(txt == "important", "enum in ternary");
+
+// Enum as function argument
+def checkStatus(s) {
+    return s == HttpStatus.OK;
+}
+assert(checkStatus(HttpStatus.OK) == true, "enum as func arg");
+assert(checkStatus(HttpStatus.Error) == false, "enum as func arg 2");
+
+// Enum return from function
+def getDefaultStatus() {
+    return HttpStatus.OK;
+}
+assert(getDefaultStatus() == 200, "enum as func return");
+
 // Enum in switch
 var msg = "";
 switch (status) {

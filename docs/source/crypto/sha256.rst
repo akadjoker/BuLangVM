@@ -1,0 +1,41 @@
+sha256
+======
+
+Calculate the SHA-256 hash of a string.
+
+Syntax
+------
+
+.. code-block:: bulang
+
+   crypto.sha256(data)
+
+Parameters
+----------
+
+``data`` : string
+   The string to hash.
+
+Returns
+-------
+
+string
+   64-character hexadecimal SHA-256 hash.
+
+Example
+-------
+
+.. code-block:: bulang
+
+   import crypto;
+   
+   var hash = crypto.sha256("hello");
+   print(hash);  // "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+   
+   // For password hashing
+   var password_hash = crypto.sha256("mysecretpassword");
+
+.. tip::
+
+   SHA-256 is recommended for secure hashing. For passwords, consider using
+   additional techniques like salting.

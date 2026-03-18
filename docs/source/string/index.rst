@@ -36,19 +36,19 @@ Find substrings and check patterns.
 
    * - Method
      - Description
-   * - :doc:`indexOf`
+   * - :doc:`indexof`
      - Find first occurrence of substring (returns -1 if not found)
-   * - :doc:`startsWith`
+   * - :doc:`startswith`
      - Check if string starts with prefix
-   * - :doc:`endsWith`
+   * - :doc:`endswith`
      - Check if string ends with suffix
 
 .. toctree::
    :hidden:
    
-   indexOf
-   startsWith
-   endsWith
+   indexof
+   startswith
+   endswith
 
 Extraction Methods
 ------------------
@@ -118,17 +118,17 @@ Examples
    text = "Hello World Hello";
    
    // Find substring
-   index = text.indexOf("World");     // 6
-   index = text.indexOf("Hello", 1);  // 12 (start from index 1)
-   index = text.indexOf("Bye");       // -1 (not found)
+   index = text.indexof("World");     // 6
+   index = text.indexof("Hello", 1);  // 12 (start from index 1)
+   index = text.indexof("Bye");       // -1 (not found)
    
    // Check prefix/suffix
-   if (text.startsWith("Hello")) 
+   if (text.startswith("Hello")) 
    {
        write("Starts with Hello!");
    }
    
-   if (text.endsWith("Hello"))
+   if (text.endswith("Hello"))
     {
        write("Ends with Hello!");
    }
@@ -200,7 +200,7 @@ Examples
    input = "  MOVE NORTH  ";
    command = input.trim().lower();
    
-   if (command.startsWith("move")) 
+   if (command.startswith("move")) 
    {
        parts = command.split(" ");
        direction = parts[1];
@@ -228,7 +228,7 @@ Examples
    index = 0;
    while (true)
     {
-       pos = text.indexOf("o", index);
+       pos = text.indexof("o", index);
        if (pos == -1) break;
        
        write("Found 'o' at position {}", pos);
@@ -252,10 +252,10 @@ Examples
 
    filename = "document.txt";
    
-   if (filename.endsWith(".txt")) 
+   if (filename.endswith(".txt")) 
    {
        write("Text file");
-   } elif (filename.endsWith(".png") || filename.endsWith(".jpg")) 
+   } elif (filename.endswith(".png") || filename.endswith(".jpg")) 
    {
        write("Image file");
    }

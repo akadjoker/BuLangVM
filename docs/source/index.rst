@@ -83,6 +83,18 @@ High-performance scripting language for game development.
 
    socket/index
 
+.. toctree::
+   :maxdepth: 1
+   :caption: 🔐 Crypto 
+
+   crypto/index
+
+.. toctree::
+   :maxdepth: 1
+   :caption: 🧠 Neural Networks 
+
+   nn/index
+
 
 Indices and tables
 ==================
