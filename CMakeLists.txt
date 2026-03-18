@@ -4,7 +4,9 @@ cmake_policy(SET CMP0072 NEW)
 project(bulang VERSION 2.2.1)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
- 
+
+set(BU_EIGEN_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/vendor/eigen")
+set(BU_MINIDNN_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/vendor/MiniDNN/include")
 
 find_program(CLANG_TIDY_EXE NAMES clang-tidy)
 
@@ -24,6 +26,8 @@ add_subdirectory(vendor/miniz)
 if(TARGET miniz)
     set_target_properties(miniz PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
+
+
  
  
  

@@ -68,8 +68,8 @@ target_include_directories(libbu PUBLIC
     include 
     src 
     ${CMAKE_SOURCE_DIR}/vendor/miniz/include
-    ${CMAKE_SOURCE_DIR}/vendor/eigen
-    ${CMAKE_SOURCE_DIR}/vendor/MiniDNN/include
+    ${BU_EIGEN_INCLUDE_DIR}
+    ${BU_MINIDNN_INCLUDE_DIR}
 )
 
 # ============================================
