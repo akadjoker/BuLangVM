@@ -27,7 +27,7 @@ uint16 ModuleDef::addFunction(const char *name, NativeFunction func, int arity)
     uint16 existingId;
      if (functionNames.get(nameStr, &existingId))
      {
-         Warning("Function '%s' already exists in module '%s', replacing",name, this->name);
+         Warning("Function '%s' already exists in module '%s', replacing", name, this->name ? this->name->chars() : "<null>");
          return existingId;
      }
  
@@ -55,7 +55,7 @@ uint16 ModuleDef::addConstant(const char *name, Value value)
     uint16 existingId;
     if (constantNames.get(nameStr, &existingId))
     {
-        Warning("Constant '%s' already exists in module '%s', replacing",name, this->name);
+        Warning("Constant '%s' already exists in module '%s', replacing", name, this->name ? this->name->chars() : "<null>");
         constants[existingId] = value;
         return existingId;
     }

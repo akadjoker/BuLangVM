@@ -18,50 +18,85 @@ file(GLOB SOURCES "src/*.cpp")
 # ============================================
 # Targets
 # ============================================
-add_library(libbu STATIC ${SOURCES})
+add_library(libbu SHARED ${SOURCES})
 
-# Enable PIC so libbu can be linked into shared libraries (plugins)
-set_target_properties(libbu PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set(BUGL_VERSION_STRING "${CMAKE_PROJECT_VERSION}")
+if(NOT BUGL_VERSION_STRING)
+    set(BUGL_VERSION_STRING "${PROJECT_VERSION}")
+endif()
+if(NOT BUGL_VERSION_STRING)
+    set(BUGL_VERSION_STRING "0.0.0")
+endif()
 
-target_include_directories(libbu PUBLIC include  src)
+set(BUGL_VERSION_GIT "unknown")
+find_package(Git QUIET)
+if(GIT_FOUND)
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} -C ${CMAKE_SOURCE_DIR} rev-parse --short HEAD
+        OUTPUT_VARIABLE BUGL_VERSION_GIT
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+    if(NOT BUGL_VERSION_GIT)
+        set(BUGL_VERSION_GIT "unknown")
+    endif()
+endif()
+
+target_compile_definitions(libbu PUBLIC
+    BUGL_VERSION_STRING=\"${BUGL_VERSION_STRING}\"
+    BUGL_VERSION_GIT=\"${BUGL_VERSION_GIT}\"
+)
+
+# Build libbu as the shared runtime used by the host and plugins.
+set_target_properties(libbu PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+    DEBUG_POSTFIX ""
+    PREFIX ""
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin
+    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin
+)
+
+if(WIN32)
+    set_target_properties(libbu PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+endif()
+
+if(MINGW)
+    target_link_options(libbu PRIVATE -shared-libgcc)
+endif()
+
+target_include_directories(libbu PUBLIC include src ${CMAKE_SOURCE_DIR}/vendor/miniz/include)
 
 # ============================================
 # Compiler Flags - DEBUG
 # ============================================
 if(CMAKE_BUILD_TYPE MATCHES Debug)
     message(STATUS "🐛 Debug mode - sanitizers enabled")
-    
-    # target_compile_options(libbu PRIVATE
-    #     # Sanitizers
-    #     -fsanitize=address
-    #     -fsanitize=undefined,integer,float-divide-by-zero,unsigned-integer-overflow
-    #     -fsanitize=leak
-        
-    #     # Debug info
-    #     -g
-    #     -O0
-        
-    #     # Warnings
-    #     -Wall
-    #     -Wextra
-    #     -Wpedantic
-        
-    #     # Debug defines
-    #     -DDEBUG
-    #     -D_DEBUG
-    # )
-    
-    # target_link_options(libbu PRIVATE
-    #     -fsanitize=address
-    #     -fsanitize=undefined,integer,float-divide-by-zero,unsigned-integer-overflow
-    #     -fsanitize=leak
-    # )
- 
-    target_compile_options(libbu PRIVATE
-        -O2
-        -g
-        -fno-omit-frame-pointer
-    )
+
+    if (UNIX)
+        target_compile_options(libbu PRIVATE
+            -fsanitize=address
+            -fsanitize=undefined
+            -fsanitize=leak
+            -g
+            -O1
+            -fno-omit-frame-pointer
+            -D_DEBUG
+            -DVERBOSE
+        )
+
+        target_link_options(libbu PRIVATE
+            -fsanitize=address
+            -fsanitize=undefined
+            -fsanitize=leak
+            -g
+        )
+    else()
+        target_compile_options(libbu PRIVATE
+            -g
+            -O1
+            -fno-omit-frame-pointer
+        )
+    endif()
  
 
 # ============================================
@@ -73,12 +108,6 @@ elseif(CMAKE_BUILD_TYPE MATCHES Release)
     target_compile_options(libbu PRIVATE
         # Optimization level
         -O3
-        
-    
-        
-        # Architecture specific
-        -march=native
-        -mtune=native
         
       
         
@@ -92,11 +121,17 @@ elseif(CMAKE_BUILD_TYPE MATCHES Release)
         -finline-functions
         -funroll-loops
     )
-    
-    target_link_options(libbu PRIVATE
 
-        -s  # Strip symbols
-    )
+    if (NOT BUGL_PORTABLE_RELEASE)
+        target_compile_options(libbu PRIVATE
+            -march=native
+            -mtune=native
+        )
+    endif()
+    
+    if (BUGL_STRIP_RELEASE AND NOT MSVC)
+        target_link_options(libbu PRIVATE -s)
+    endif()
     
 # ============================================
 # Compiler Flags - RELWITHDEBINFO
@@ -119,14 +154,19 @@ else()
     
     target_compile_options(libbu PRIVATE
         -O3
-        -march=native
     )
+
+    if (NOT BUGL_PORTABLE_RELEASE)
+        target_compile_options(libbu PRIVATE -march=native -mtune=native)
+    endif()
 endif()
  
 # ============================================
 # Platform Specific
 # ============================================
-if(UNIX AND NOT APPLE)
+if(WIN32)
+    target_link_libraries(libbu PRIVATE miniz ws2_32)
+elseif(UNIX AND NOT APPLE)
     target_link_libraries(libbu PRIVATE miniz pthread)
 endif()
 

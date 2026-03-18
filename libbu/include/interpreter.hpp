@@ -505,10 +505,11 @@ struct ProcessResult
 
 struct TryHandler
 {
-  static constexpr int MAX_PENDING_RETURNS = 16;
+  static constexpr int MAX_PENDING_RETURNS = 4;
   uint8_t *catchIP;
   uint8_t *finallyIP;
   Value *stackRestore;
+  int frameRestore;        // frameCount when OP_TRY was executed (for unwinding across function calls)
   bool inFinally;
   bool hasPendingError;
   Value pendingError;
@@ -518,7 +519,7 @@ struct TryHandler
   bool hasPendingReturn;
 
   TryHandler() : catchIP(nullptr), finallyIP(nullptr),
-                 stackRestore(nullptr), inFinally(false),
+                 stackRestore(nullptr), frameRestore(0), inFinally(false),
                  hasPendingError(false), pendingReturnCount(0)
   {
     pendingError.as.byte = 0;
@@ -651,6 +652,7 @@ class Interpreter
   bool gcInProgress = false;
   bool enbaledGC = true;
   GCObject *gcObjects = nullptr;
+  GCObject *persistentObjects = nullptr;
   int frameCount = 0;
   Vector<GCObject *> grayStack;
 
@@ -940,13 +942,18 @@ class Interpreter
     NativeClassInstance *instance = new (mem) NativeClassInstance();
     instance->persistent = persistent;
 
-    // Se não for persistent, adiciona ao GC
-    if (!persistent)
+    if (persistent)
+    {
+      instance->next = persistentObjects;
+      persistentObjects = instance;
+    }
+    else
     {
       instance->next = gcObjects;
       gcObjects = instance;
-      totalNativeClasses++;
     }
+
+    totalNativeClasses++;
 
     totalAllocated += size;
 
@@ -977,13 +984,18 @@ class Interpreter
     instance->persistent = persistent;
     totalAllocated += size;
     
-    // Se não for persistent, adiciona ao GC
-    if (!persistent)
+    if (persistent)
+    {
+      instance->next = persistentObjects;
+      persistentObjects = instance;
+    }
+    else
     {
       instance->next = gcObjects;
       gcObjects = instance;
-      totalNativeStructs++;
     }
+
+    totalNativeStructs++;
 
     return instance;
   }
@@ -1074,6 +1086,7 @@ public:
   bool getClassDefenition(String *name, ClassDef *result);
   bool tryGetClassDefenition(const char *name, ClassDef **result);
   bool tryGetNativeClassDef(const char *name, NativeClassDef **result);
+  bool tryGetNativeStructDef(const char *name, NativeStructDef **result);
 
   // Criar instâncias de classes script a partir do C++
   Value createClassInstance(const char *className, int argCount, Value *args);
@@ -1097,6 +1110,7 @@ public:
 
   // modules
   void registerBase();
+  void registerArray();
   void registerMath();
   void registerOS();
   void registerPath();
@@ -1492,3 +1506,5 @@ public:
     return v;
   }
 };
+
+bool getBuiltinTypedArrayData(const Value &value, const void **outData);

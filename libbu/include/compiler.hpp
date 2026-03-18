@@ -323,6 +323,7 @@ private:
   // Parse functions (prefix)
   void number(bool canAssign);
   void string(bool canAssign);
+  void fstringExpression(bool canAssign);
   void literal(bool canAssign);
   void grouping(bool canAssign);
   void unary(bool canAssign);
@@ -378,6 +379,8 @@ private:
 
   void emitVarOp(uint8 op, int arg);
   void handle_assignment(uint8 getOp, uint8 setOp, int arg, bool canAssign);
+  bool checkGenericCallSyntax();
+  uint8 genericArgumentList();
 
   void prefixIncrement(bool canAssign);
   void prefixDecrement(bool canAssign);
@@ -399,6 +402,7 @@ private:
   bool isProcessFunction(const char *name) const;
 
   void structDeclaration();
+  void enumDeclaration();
   void arrayLiteral(bool canAssign);
   void subscript(bool canAssign);
   void mapLiteral(bool canAssign);

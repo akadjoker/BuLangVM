@@ -322,6 +322,9 @@ void Interpreter::update(float deltaTime)
 {
     // if(    asEnded)
     //     return;
+    Process *savedCurrentProcess = currentProcess;
+    const bool isReentrantUpdate = (savedCurrentProcess != nullptr);
+
     currentTime += deltaTime;
     lastFrameTime = deltaTime;
     frameCount++;
@@ -330,6 +333,14 @@ void Interpreter::update(float deltaTime)
     while (i < aliveProcesses.size())
     {
         Process *proc = aliveProcesses[i];
+
+        // If update() is called from inside a running process (e.g. ticks()),
+        // never step that same process re-entrantly.
+        if (isReentrantUpdate && proc == savedCurrentProcess)
+        {
+            i++;
+            continue;
+        }
 
         // Frozen? -> skip entirely
         if (proc->state == ProcessState::FROZEN)
@@ -400,6 +411,8 @@ void Interpreter::update(float deltaTime)
             ProcessPool::instance().shrink();
         }
     }
+
+    currentProcess = savedCurrentProcess;
 }
 
 void Interpreter::run_process_step(Process *proc)

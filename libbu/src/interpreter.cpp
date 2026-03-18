@@ -215,6 +215,7 @@ void Interpreter::reset()
   clearAllGCObjects();
 
   gcObjects = nullptr;
+  persistentObjects = nullptr;
   totalAllocated = 0;
   totalArrays = 0;
   totalStructs = 0;
@@ -253,7 +254,7 @@ void Interpreter::reset()
 
 Interpreter::~Interpreter()
 {
-  dumpToFile("main.dump");
+  //dumpToFile("main.dump");
   Info("VM shutdown");
   Info("Memory allocated : %s", formatBytes(totalAllocated));
   Info("Classes          : %zu", getTotalClasses());
@@ -265,15 +266,21 @@ Interpreter::~Interpreter()
   Info("Buffers          : %zu", totalBuffers);
   Info("Processes        : %zu", aliveProcesses.size());
   Info("Globals          : %zu", globalsArray.size());
-  
-  unloadAllPlugins();
+
+  freeInstances();
+  freeRunningProcesses();
+  freeFunctions();
+  // globals.destroy();  // OPTIMIZATION: HashMap globals removed
+  clearAllGCObjects();  // Must be called before freeBlueprints() so native destructors can access ClassDef/NativeClassDef
+  freeBlueprints();
+
   for (size_t i = 0; i < modules.size(); i++)
   {
     ModuleDef *mod = modules[i];
     delete mod;
   }
-
   modules.clear();
+
 #if !BU_RUNTIME_ONLY
   if (compiler)
   {
@@ -282,12 +289,7 @@ Interpreter::~Interpreter()
   }
 #endif
 
-  freeInstances();
-  freeRunningProcesses();
-  freeFunctions();
-  // globals.destroy();  // OPTIMIZATION: HashMap globals removed
-  clearAllGCObjects();  // Must be called before freeBlueprints() so native destructors can access ClassDef/NativeClassDef
-  freeBlueprints();
+  unloadAllPlugins();
 
   openUpvalues = nullptr;
   // Info("Heap stats:");
@@ -719,14 +721,31 @@ void Interpreter::runtimeError(const char *format, ...)
 
   if (!debugMode_)
   {
-    // Release mode: minimal output
+    // Release mode: message + innermost frame location
     OsPrintf("Runtime Error: ");
     va_list args;
     va_start(args, format);
     OsVPrintf(format, args);
     va_end(args);
-    if (currentProcess && currentProcess->name)
+
+    ProcessExec *exec = currentExec();
+    if (exec && exec->frameCount > 0)
+    {
+      CallFrame *top = &exec->frames[exec->frameCount - 1];
+      Function  *fn  = top->func;
+      if (fn && fn->chunk && fn->chunk->code && top->ip >= fn->chunk->code)
+      {
+        size_t instr = top->ip - fn->chunk->code;
+        if (instr > 0) instr--;
+        int line = fn->chunk->lines[instr];
+        const char *fname = fn->name ? fn->name->chars() : "<script>";
+        OsPrintf(" at %s() line %d", fname, line);
+      }
+    }
+    else if (currentProcess && currentProcess->name)
+    {
       OsPrintf(" in '%s'", currentProcess->name->chars());
+    }
     OsPrintf("\n");
     return;
   }
@@ -791,10 +810,15 @@ bool Interpreter::throwException(Value error)
 
     fiber->stackTop = handler.stackRestore; // Limpa a stack!
 
+    // Unwind call frames back to the frame that registered this try handler
+    fiber->frameCount = handler.frameRestore;
+
     if (handler.catchIP != nullptr && !handler.catchConsumed)
     {
       handler.catchConsumed = true;
       push(error);
+      // Update the restored frame's ip so LOAD_FRAME() picks it up
+      fiber->frames[fiber->frameCount - 1].ip = handler.catchIP;
       fiber->ip = handler.catchIP;
       return true;
     }
@@ -803,6 +827,8 @@ bool Interpreter::throwException(Value error)
       handler.pendingError = error;
       handler.hasPendingError = true;
       handler.inFinally = true;
+      // Update the restored frame's ip so LOAD_FRAME() picks it up
+      fiber->frames[fiber->frameCount - 1].ip = handler.finallyIP;
       fiber->ip = handler.finallyIP;
       return true;
     }
@@ -1109,6 +1135,32 @@ bool Interpreter::tryGetNativeClassDef(const char *name, NativeClassDef **out)
 {
   String *pName = createString(name);
   return nativeClassesMap.get(pName, out);
+}
+
+bool Interpreter::tryGetNativeStructDef(const char *name, NativeStructDef **out)
+{
+  if (!out)
+    return false;
+
+  *out = nullptr;
+  if (!name)
+    return false;
+
+  for (int i = 0; i < nativeStructs.size(); ++i)
+  {
+    NativeStructDef *def = nativeStructs[i];
+    if (!def || !def->name)
+      continue;
+
+    const char *chars = def->name->chars();
+    if (chars && std::strcmp(chars, name) == 0)
+    {
+      *out = def;
+      return true;
+    }
+  }
+
+  return false;
 }
 
 Value Interpreter::createClassInstance(const char *className, int argCount, Value *args)
@@ -1553,11 +1605,9 @@ void Interpreter::dumpAllFunctions(FILE *f)
         for (size_t offset = 0; offset < func->chunk->count;) {
             fprintf(f, "    ");
             
-            // Salva stdout, redireciona para file temporariamente
-            FILE* old_stdout = stdout;
-            stdout = f;
+            Debug::setOutput(f);
             offset = Debug::disassembleInstruction(*func->chunk, offset);
-            stdout = old_stdout;
+            Debug::setOutput(stdout);
         }
         
         fprintf(f, "\n"); });
@@ -1618,10 +1668,9 @@ void Interpreter::dumpAllClasses(FILE *f)
             for (size_t offset = 0; offset < klass->constructor->chunk->count;) {
                 fprintf(f, "        ");
                 
-                FILE* old_stdout = stdout;
-                stdout = f;
+                Debug::setOutput(f);
                 offset = Debug::disassembleInstruction(*klass->constructor->chunk, offset);
-                stdout = old_stdout;
+                Debug::setOutput(stdout);
             }
         }
         
@@ -1656,10 +1705,9 @@ void Interpreter::dumpAllClasses(FILE *f)
             for (size_t offset = 0; offset < method->chunk->count;) {
                 fprintf(f, "        ");
                 
-                FILE* old_stdout = stdout;
-                stdout = f;
+                Debug::setOutput(f);
                 offset = Debug::disassembleInstruction(*method->chunk, offset);
-                stdout = old_stdout;
+                Debug::setOutput(stdout);
             }
             fprintf(f, "\n");
         });
