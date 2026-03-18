@@ -1446,14 +1446,14 @@ import nn;
 | `nn.normalize(x, min, max)` | 3 | Normalize to [0, 1] |
 | `nn.denormalize(x, min, max)` | 3 | Denormalize from [0, 1] |
 
-### Image Loading (PPM/PGM)
+### Image Loading (BMP)
 
 | Function | Args | Returns | Description |
 |----------|------|---------|-------------|
-| `nn.loadImage(filename)` | 1 | (w, h, c, data) | Load PPM/PGM image, pixels normalized [0,1] |
-| `nn.saveImage(filename, w, h, c, data)` | 5 | bool | Save to PPM (RGB) or PGM (grayscale) |
+| `nn.loadImage(filename)` | 1 | (w, h, c, data) | Load BMP image, pixels normalized [0,1] |
+| `nn.saveImage(filename, w, h, c, data)` | 5 | bool | Save to BMP (RGB or RGBA) |
 
-Supported formats: P2 (PGM ASCII), P3 (PPM ASCII), P5 (PGM Binary), P6 (PPM Binary)
+Supported formats: 24-bit BMP (RGB), 32-bit BMP (RGBA with alpha)
 
 ### Network Class (requires BU_ENABLE_MINIDNN)
 
@@ -1474,7 +1474,7 @@ var net = Network();
 | `net.input(width, height, [channels=1])` | 2-3 | Set input dimensions |
 | `net.addConv2D(filters, fw, fh, [activation])` | 3-4 | Add convolutional layer |
 | `net.addMaxPool(pw, ph)` | 2 | Add max pooling layer |
-| `net.flatten()` | 0 | Returns flattened size |
+| `net.flatSize()` | 0 | Returns flattened size (helper, no layer added) |
 
 #### Training & Inference
 
@@ -1508,7 +1508,7 @@ var net = Network();
 net.input(8, 8, 1);              // 8x8 grayscale
 net.addConv2D(4, 3, 3, "relu");  // 4 filters 3x3
 net.addMaxPool(2, 2);            // 2x2 pooling
-net.add(net.flatten(), 16, "relu");
+net.add(net.flatSize(), 16, "relu");
 net.add(16, 10, "softmax");      // 10 classes
 
 net.compile("adam", "cross_entropy", 0.01);

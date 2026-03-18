@@ -590,9 +590,10 @@ static int network_addMaxPool(Interpreter* vm, void* instance, int argCount, Val
     return 1;
 }
 
-// Method: flatten()
-// Returns the current flattened size (for transitioning to dense layers)
-static int network_flatten(Interpreter* vm, void* instance, int argCount, Value* args)
+// Method: flatSize()
+// Returns the current flattened size after CNN layers (for transitioning to dense layers)
+// This is a helper - it doesn't add any layer, just calculates dimensions
+static int network_flatSize(Interpreter* vm, void* instance, int argCount, Value* args)
 {
     (void)argCount; (void)args;
     NetworkData* nd = as_network(instance);
@@ -607,10 +608,22 @@ static int network_flatten(Interpreter* vm, void* instance, int argCount, Value*
     return 1;
 }
 
+// Helper: Clean up optimizer instances to prevent memory leaks
+static void cleanup_optimizers(NetworkData* nd)
+{
+    delete nd->adamOpt;    nd->adamOpt = nullptr;
+    delete nd->sgdOpt;     nd->sgdOpt = nullptr;
+    delete nd->rmspropOpt; nd->rmspropOpt = nullptr;
+    delete nd->adagradOpt; nd->adagradOpt = nullptr;
+}
+
 // Method: compile(optimizer="adam", loss="mse", learning_rate=0.001)
 static int network_compile(Interpreter* vm, void* instance, int argCount, Value* args)
 {
     NetworkData* nd = as_network(instance);
+    
+    // Clean up any existing optimizers (in case compile() is called twice)
+    cleanup_optimizers(nd);
     
     // Parse optimizer
     if (argCount >= 1 && args[0].isString())
@@ -710,10 +723,19 @@ static bool get_typed_array(const Value& val, TypedArrayData** out)
 }
 
 // Read typed array data into Eigen column vector
+// UINT8 is auto-normalized from [0-255] to [0-1] for image data!
 static bool typed_array_to_col(TypedArrayData* ta, Eigen::MatrixXd& mat, int col)
 {
     switch (ta->type)
     {
+        case BufferType::UINT8:
+        {
+            // Auto-normalize bytes [0-255] to [0-1] for image pixels!
+            uint8* data = ta->data;
+            for (int i = 0; i < ta->count; i++)
+                mat(i, col) = data[i] / 255.0;
+            return true;
+        }
         case BufferType::DOUBLE:
         {
             double* data = reinterpret_cast<double*>(ta->data);
@@ -748,9 +770,24 @@ static bool typed_array_to_col(TypedArrayData* ta, Eigen::MatrixXd& mat, int col
 }
 
 // Convert BuLang data to Eigen matrix
-// Supports: Array, Float64Array, Float32Array, Int32Array, Uint32Array
+// Supports: Array, Float64Array, Float32Array, Int32Array, Uint32Array, Uint8Array, Buffer
 static bool data_to_matrix(Value& val, Eigen::MatrixXd& mat, int expectedRows)
 {
+    // Case 0: Direct Buffer (Uint8Array from raylib, etc.) - auto-normalizes [0-255] to [0-1]
+    if (val.isBuffer())
+    {
+        BufferInstance* buf = val.asBuffer();
+        if (expectedRows > 0 && buf->count != expectedRows) return false;
+        mat.resize(buf->count, 1);
+        
+        // Auto-normalize bytes to [0-1] for image data
+        for (int i = 0; i < buf->count; i++)
+        {
+            mat(i, 0) = buf->data[i] / 255.0;
+        }
+        return true;
+    }
+    
     // Case 1: Single TypedArray (1D data, single sample)
     TypedArrayData* ta = nullptr;
     if (get_typed_array(val, &ta))
@@ -767,7 +804,31 @@ static bool data_to_matrix(Value& val, Eigen::MatrixXd& mat, int expectedRows)
     int nSamples = (int)arr->values.size();
     if (nSamples == 0) return false;
     
-    // Case 2a: Array of TypedArrays (fast path!)
+    // Case 2a: Array of Buffers (multiple images from raylib)
+    if (arr->values[0].isBuffer())
+    {
+        BufferInstance* firstBuf = arr->values[0].asBuffer();
+        int features = firstBuf->count;
+        if (expectedRows > 0 && features != expectedRows) return false;
+        
+        mat.resize(features, nSamples);
+        
+        for (int i = 0; i < nSamples; i++)
+        {
+            if (!arr->values[i].isBuffer()) return false;
+            BufferInstance* buf = arr->values[i].asBuffer();
+            if (buf->count != features) return false;
+            
+            // Auto-normalize bytes to [0-1]
+            for (int j = 0; j < features; j++)
+            {
+                mat(j, i) = buf->data[j] / 255.0;
+            }
+        }
+        return true;
+    }
+    
+    // Case 2b: Array of TypedArrays (fast path!)
     TypedArrayData* firstTA = nullptr;
     if (get_typed_array(arr->values[0], &firstTA))
     {
@@ -786,7 +847,7 @@ static bool data_to_matrix(Value& val, Eigen::MatrixXd& mat, int expectedRows)
         return true;
     }
     
-    // Case 2b: 2D array of arrays
+    // Case 2c: 2D array of arrays
     if (arr->values[0].isArray())
     {
         ArrayInstance* first = arr->values[0].asArray();
@@ -1338,9 +1399,12 @@ static int network_load(Interpreter* vm, void* instance, int argCount, Value* ar
             break;
     }
     
-    // Initialize network
+    // Initialize network - required by MiniDNN to allocate internal layer buffers
+    // before set_parameters() can work. The random init (0, 0.01) gets overwritten
+    // immediately by set_parameters() below, so it's wasted work but necessary.
     nd->net.init(0, 0.01);
     nd->initialized = true;
+    
     // Read layer params
     std::vector<std::vector<MiniDNN::Scalar>> params;
     params.reserve(nlayers);
@@ -1367,6 +1431,28 @@ static int network_load(Interpreter* vm, void* instance, int argCount, Value* ar
         return 0;
     }
     
+    // Create optimizer so fit() works for fine-tuning after load()
+    cleanup_optimizers(nd);
+    switch (nd->optimizerType)
+    {
+        case OptimizerType::SGD:
+            nd->sgdOpt = new MiniDNN::SGD();
+            nd->sgdOpt->m_lrate = nd->learningRate;
+            break;
+        case OptimizerType::ADAM:
+            nd->adamOpt = new MiniDNN::Adam();
+            nd->adamOpt->m_lrate = nd->learningRate;
+            break;
+        case OptimizerType::RMSPROP:
+            nd->rmspropOpt = new MiniDNN::RMSProp();
+            nd->rmspropOpt->m_lrate = nd->learningRate;
+            break;
+        case OptimizerType::ADAGRAD:
+            nd->adagradOpt = new MiniDNN::AdaGrad();
+            nd->adagradOpt->m_lrate = nd->learningRate;
+            break;
+    }
+    
     vm->push(vm->makeBool(true));
     return 1;
 }
@@ -1383,7 +1469,7 @@ static void register_network_class(Interpreter& vm)
     vm.addNativeMethod(netClass, "input", network_input);
     vm.addNativeMethod(netClass, "addConv2D", network_addConv2D);
     vm.addNativeMethod(netClass, "addMaxPool", network_addMaxPool);
-    vm.addNativeMethod(netClass, "flatten", network_flatten);
+    vm.addNativeMethod(netClass, "flatSize", network_flatSize);  // Helper: returns size, doesn't add layer
     
     // Training/inference
     vm.addNativeMethod(netClass, "compile", network_compile);
@@ -1402,38 +1488,37 @@ static void register_network_class(Interpreter& vm)
 #endif // BU_ENABLE_MINIDNN
 
 // ============================================
-// IMAGE LOADING (PPM/PGM - Ultra lightweight)
+// IMAGE LOADING (BMP - Universal format)
 // ============================================
 
-// Skip whitespace and comments in PPM/PGM
-static void ppm_skip_ws_comments(const char*& p, const char* end)
-{
-    while (p < end)
-    {
-        while (p < end && (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r')) p++;
-        if (p < end && *p == '#')
-        {
-            while (p < end && *p != '\n') p++;
-        }
-        else break;
-    }
-}
+// BMP file header (14 bytes)
+#pragma pack(push, 1)
+struct BMPFileHeader {
+    uint16_t signature;      // 'BM' = 0x4D42
+    uint32_t fileSize;
+    uint16_t reserved1;
+    uint16_t reserved2;
+    uint32_t dataOffset;
+};
 
-// Read integer from PPM/PGM
-static int ppm_read_int(const char*& p, const char* end)
-{
-    ppm_skip_ws_comments(p, end);
-    int val = 0;
-    while (p < end && *p >= '0' && *p <= '9')
-    {
-        val = val * 10 + (*p - '0');
-        p++;
-    }
-    return val;
-}
+// BMP info header (40 bytes - BITMAPINFOHEADER)
+struct BMPInfoHeader {
+    uint32_t headerSize;     // 40
+    int32_t  width;
+    int32_t  height;         // negative = top-down
+    uint16_t planes;         // 1
+    uint16_t bitsPerPixel;   // 24 or 32
+    uint32_t compression;    // 0 = none
+    uint32_t imageSize;
+    int32_t  xPixelsPerMeter;
+    int32_t  yPixelsPerMeter;
+    uint32_t colorsUsed;
+    uint32_t colorsImportant;
+};
+#pragma pack(pop)
 
-// nn.loadImage(filename) -> {width, height, channels, data:[...]}
-// Supports: PGM (P2/P5), PPM (P3/P6)
+// nn.loadImage(filename) -> width, height, channels, data
+// Supports: BMP 24-bit (RGB) and 32-bit (RGBA)
 static int native_nn_loadImage(Interpreter* vm, int argCount, Value* args)
 {
     if (argCount < 1 || !args[0].isString())
@@ -1444,7 +1529,6 @@ static int native_nn_loadImage(Interpreter* vm, int argCount, Value* args)
     
     const char* filename = args[0].asString()->chars();
     
-    // Read file
     if (!OsFileExists(filename))
     {
         vm->runtimeError("loadImage(): File '%s' not found", filename);
@@ -1452,74 +1536,70 @@ static int native_nn_loadImage(Interpreter* vm, int argCount, Value* args)
     }
     
     int fileSize = OsFileSize(filename);
-    std::vector<uint8_t> buffer(fileSize + 1);
+    if (fileSize < 54)  // Minimum BMP size
+    {
+        vm->runtimeError("loadImage(): File too small for BMP");
+        return 0;
+    }
+    
+    std::vector<uint8_t> buffer(fileSize);
     OsFileRead(filename, buffer.data(), fileSize);
-    buffer[fileSize] = 0;
     
-    const char* p = (const char*)buffer.data();
-    const char* end = p + fileSize;
+    // Parse headers
+    BMPFileHeader* fileHeader = (BMPFileHeader*)buffer.data();
+    BMPInfoHeader* infoHeader = (BMPInfoHeader*)(buffer.data() + 14);
     
-    // Read magic
-    if (p[0] != 'P')
+    // Verify BMP signature
+    if (fileHeader->signature != 0x4D42)  // "BM"
     {
-        vm->runtimeError("loadImage(): Not a PPM/PGM file");
+        vm->runtimeError("loadImage(): Not a BMP file");
         return 0;
     }
     
-    char magic = p[1];
-    p += 2;
+    int width = infoHeader->width;
+    int height = infoHeader->height;
+    bool topDown = (height < 0);
+    if (topDown) height = -height;
     
-    int channels = 1;
-    bool binary = false;
-    
-    switch (magic)
+    int bpp = infoHeader->bitsPerPixel;
+    if (bpp != 24 && bpp != 32)
     {
-        case '2': channels = 1; binary = false; break;  // PGM ASCII
-        case '3': channels = 3; binary = false; break;  // PPM ASCII
-        case '5': channels = 1; binary = true; break;   // PGM Binary
-        case '6': channels = 3; binary = true; break;   // PPM Binary
-        default:
-            vm->runtimeError("loadImage(): Unsupported format P%c", magic);
-            return 0;
-    }
-    
-    // Read dimensions
-    int width = ppm_read_int(p, end);
-    int height = ppm_read_int(p, end);
-    int maxVal = ppm_read_int(p, end);
-    
-    if (width <= 0 || height <= 0 || maxVal <= 0)
-    {
-        vm->runtimeError("loadImage(): Invalid dimensions");
+        vm->runtimeError("loadImage(): Only 24-bit and 32-bit BMP supported (got %d-bit)", bpp);
         return 0;
     }
     
-    // Skip single whitespace after maxVal for binary
-    if (binary && p < end) p++;
+    int channels = (bpp == 32) ? 4 : 3;
+    int bytesPerPixel = bpp / 8;
+    int rowSize = ((width * bytesPerPixel + 3) / 4) * 4;  // Rows padded to 4 bytes
     
-    // Read pixels into array
+    uint8_t* pixelData = buffer.data() + fileHeader->dataOffset;
+    
+    // Read pixels into array (normalized to [0, 1])
     Value dataVal = vm->makeArray();
     ArrayInstance* data = dataVal.asArray();
     
-    int totalPixels = width * height * channels;
-    double scale = 1.0 / maxVal;  // Normalize to [0, 1]
-    
-    if (binary)
+    for (int y = 0; y < height; y++)
     {
-        // Binary format
-        for (int i = 0; i < totalPixels && p < end; i++)
+        int srcY = topDown ? y : (height - 1 - y);
+        uint8_t* row = pixelData + srcY * rowSize;
+        
+        for (int x = 0; x < width; x++)
         {
-            uint8_t val = (uint8_t)*p++;
-            data->values.push(vm->makeDouble(val * scale));
-        }
-    }
-    else
-    {
-        // ASCII format
-        for (int i = 0; i < totalPixels; i++)
-        {
-            int val = ppm_read_int(p, end);
-            data->values.push(vm->makeDouble(val * scale));
+            uint8_t* pixel = row + x * bytesPerPixel;
+            // BMP is BGR(A), convert to RGB(A)
+            double r = pixel[2] / 255.0;
+            double g = pixel[1] / 255.0;
+            double b = pixel[0] / 255.0;
+            
+            data->values.push(vm->makeDouble(r));
+            data->values.push(vm->makeDouble(g));
+            data->values.push(vm->makeDouble(b));
+            
+            if (channels == 4)
+            {
+                double a = pixel[3] / 255.0;
+                data->values.push(vm->makeDouble(a));
+            }
         }
     }
     
@@ -1528,11 +1608,11 @@ static int native_nn_loadImage(Interpreter* vm, int argCount, Value* args)
     vm->push(vm->makeDouble((double)height));
     vm->push(vm->makeDouble((double)channels));
     vm->push(dataVal);
-    return 4;  // 4 return values
+    return 4;
 }
 
 // nn.saveImage(filename, width, height, channels, data)
-// Saves to PPM (RGB) or PGM (grayscale)
+// Saves to BMP (24-bit RGB or 32-bit RGBA)
 static int native_nn_saveImage(Interpreter* vm, int argCount, Value* args)
 {
     if (argCount < 5)
@@ -1554,34 +1634,173 @@ static int native_nn_saveImage(Interpreter* vm, int argCount, Value* args)
     int channels = (int)args[3].asNumber();
     ArrayInstance* data = args[4].asArray();
     
-    if (channels != 1 && channels != 3)
+    if (channels != 3 && channels != 4)
     {
-        vm->runtimeError("saveImage(): channels must be 1 (grayscale) or 3 (RGB)");
+        vm->runtimeError("saveImage(): channels must be 3 (RGB) or 4 (RGBA)");
         return 0;
     }
     
-    // Build PPM/PGM content
-    std::string content;
-    content += (channels == 1) ? "P2\n" : "P3\n";
-    content += std::to_string(width) + " " + std::to_string(height) + "\n";
-    content += "255\n";
+    int bpp = (channels == 4) ? 32 : 24;
+    int bytesPerPixel = bpp / 8;
+    int rowSize = ((width * bytesPerPixel + 3) / 4) * 4;  // Pad to 4 bytes
+    int imageSize = rowSize * height;
+    int fileSize = 54 + imageSize;
     
-    int totalPixels = width * height * channels;
-    for (int i = 0; i < totalPixels && i < (int)data->values.size(); i++)
+    std::vector<uint8_t> buffer(fileSize, 0);
+    
+    // File header
+    BMPFileHeader* fileHeader = (BMPFileHeader*)buffer.data();
+    fileHeader->signature = 0x4D42;  // "BM"
+    fileHeader->fileSize = fileSize;
+    fileHeader->dataOffset = 54;
+    
+    // Info header
+    BMPInfoHeader* infoHeader = (BMPInfoHeader*)(buffer.data() + 14);
+    infoHeader->headerSize = 40;
+    infoHeader->width = width;
+    infoHeader->height = height;  // positive = bottom-up (standard)
+    infoHeader->planes = 1;
+    infoHeader->bitsPerPixel = bpp;
+    infoHeader->compression = 0;
+    infoHeader->imageSize = imageSize;
+    
+    // Write pixels (bottom-up, BGR(A))
+    uint8_t* pixelData = buffer.data() + 54;
+    int idx = 0;
+    
+    for (int y = height - 1; y >= 0; y--)
     {
-        double val = data->values[i].isNumber() ? data->values[i].asNumber() : 0;
-        int pixelVal = (int)(val * 255.0 + 0.5);
-        if (pixelVal < 0) pixelVal = 0;
-        if (pixelVal > 255) pixelVal = 255;
+        uint8_t* row = pixelData + y * rowSize;
         
-        content += std::to_string(pixelVal);
-        content += ((i + 1) % (width * channels) == 0) ? "\n" : " ";
+        for (int x = 0; x < width; x++)
+        {
+            double r = (idx < (int)data->values.size() && data->values[idx].isNumber()) 
+                       ? data->values[idx].asNumber() : 0;
+            idx++;
+            double g = (idx < (int)data->values.size() && data->values[idx].isNumber()) 
+                       ? data->values[idx].asNumber() : 0;
+            idx++;
+            double b = (idx < (int)data->values.size() && data->values[idx].isNumber()) 
+                       ? data->values[idx].asNumber() : 0;
+            idx++;
+            
+            uint8_t* pixel = row + x * bytesPerPixel;
+            pixel[2] = (uint8_t)(r * 255.0 + 0.5);  // R -> offset 2
+            pixel[1] = (uint8_t)(g * 255.0 + 0.5);  // G -> offset 1
+            pixel[0] = (uint8_t)(b * 255.0 + 0.5);  // B -> offset 0
+            
+            if (channels == 4)
+            {
+                double a = (idx < (int)data->values.size() && data->values[idx].isNumber()) 
+                           ? data->values[idx].asNumber() : 1.0;
+                idx++;
+                pixel[3] = (uint8_t)(a * 255.0 + 0.5);
+            }
+        }
     }
     
     // Write file
-    int result = OsFileWrite(filename, content.c_str(), (int)content.size());
+    int result = OsFileWrite(filename, (const char*)buffer.data(), fileSize);
     
     vm->push(vm->makeBool(result >= 0));
+    return 1;
+}
+
+// nn.loadImageData(rawPixels, width, height, channels) -> normalized array [0,1]
+// Takes raw pixel data from any source (raylib, SDL, etc.) as Uint8Array/Buffer [0-255]
+static int native_nn_loadImageData(Interpreter* vm, int argCount, Value* args)
+{
+    if (argCount < 4)
+    {
+        vm->runtimeError("loadImageData() expects (rawPixels, width, height, channels)");
+        return 0;
+    }
+    
+    if (!args[1].isNumber() || !args[2].isNumber() || !args[3].isNumber())
+    {
+        vm->runtimeError("loadImageData(): width, height, channels must be numbers");
+        return 0;
+    }
+    
+    int width = (int)args[1].asNumber();
+    int height = (int)args[2].asNumber();
+    int channels = (int)args[3].asNumber();
+    int totalPixels = width * height * channels;
+    
+    Value dataVal = vm->makeArray();
+    ArrayInstance* data = dataVal.asArray();
+    
+    // Handle Buffer (Uint8Array, etc.)
+    if (args[0].isBuffer())
+    {
+        BufferInstance* buf = args[0].asBuffer();
+        int bufSize = buf->count;
+        uint8_t* bytes = buf->data;
+        
+        for (int i = 0; i < totalPixels && i < bufSize; i++)
+        {
+            data->values.push(vm->makeDouble(bytes[i] / 255.0));
+        }
+    }
+    // Handle Array of numbers [0-255]
+    else if (args[0].isArray())
+    {
+        ArrayInstance* arr = args[0].asArray();
+        
+        for (int i = 0; i < totalPixels && i < (int)arr->values.size(); i++)
+        {
+            double val = arr->values[i].isNumber() ? arr->values[i].asNumber() : 0;
+            // If value > 1, assume it's [0-255] range
+            if (val > 1.0) val = val / 255.0;
+            data->values.push(vm->makeDouble(val));
+        }
+    }
+    else
+    {
+        vm->runtimeError("loadImageData(): rawPixels must be Buffer or Array");
+        return 0;
+    }
+    
+    vm->push(dataVal);
+    return 1;
+}
+
+// nn.getImageData(normalizedData, width, height, channels) -> Uint8Array [0-255]
+// Converts normalized [0,1] back to raw bytes for graphics engines
+static int native_nn_getImageData(Interpreter* vm, int argCount, Value* args)
+{
+    if (argCount < 4)
+    {
+        vm->runtimeError("getImageData() expects (normalizedData, width, height, channels)");
+        return 0;
+    }
+    
+    if (!args[0].isArray() || !args[1].isNumber() || !args[2].isNumber() || !args[3].isNumber())
+    {
+        vm->runtimeError("getImageData(): Invalid arguments");
+        return 0;
+    }
+    
+    ArrayInstance* arr = args[0].asArray();
+    int width = (int)args[1].asNumber();
+    int height = (int)args[2].asNumber();
+    int channels = (int)args[3].asNumber();
+    int totalPixels = width * height * channels;
+    
+    // Create Uint8Array buffer
+    Value bufVal = vm->makeBuffer(totalPixels, (int)BufferType::UINT8);
+    BufferInstance* buf = bufVal.asBuffer();
+    
+    for (int i = 0; i < totalPixels && i < (int)arr->values.size(); i++)
+    {
+        double val = arr->values[i].isNumber() ? arr->values[i].asNumber() : 0;
+        int byte = (int)(val * 255.0 + 0.5);
+        if (byte < 0) byte = 0;
+        if (byte > 255) byte = 255;
+        buf->data[i] = (uint8_t)byte;
+    }
+    
+    vm->push(bufVal);
     return 1;
 }
 
@@ -1617,9 +1836,13 @@ void Interpreter::registerNN()
         .addFunction("normalize", native_nn_normalize, 3)
         .addFunction("denormalize", native_nn_denormalize, 3)
         
-        // Image loading (PPM/PGM) - returns: width, height, channels, data
+        // Image loading (BMP) - returns: width, height, channels, data
         .addFunction("loadImage", native_nn_loadImage, 1)
-        .addFunction("saveImage", native_nn_saveImage, 5);
+        .addFunction("saveImage", native_nn_saveImage, 5)
+        
+        // Raw pixel data conversion (for raylib, SDL, etc.)
+        .addFunction("loadImageData", native_nn_loadImageData, 4)
+        .addFunction("getImageData", native_nn_getImageData, 4);
 
 #ifdef BU_ENABLE_MINIDNN
     register_network_class(*this);

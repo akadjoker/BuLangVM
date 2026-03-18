@@ -7,7 +7,7 @@ net.input(8, 8, 1);
 net.addConv2D(4, 3, 3, "relu");
 net.addMaxPool(2, 2);
 
-var flatSize = net.flatten();
+var flatSize = net.flatSize();
 net.add(flatSize, 16, "relu");
 net.add(16, 3, "softmax");
 

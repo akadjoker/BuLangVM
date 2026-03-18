@@ -1275,17 +1275,17 @@ nn.normalize(x, min, max);    // Scale to [0, 1]
 nn.denormalize(x, min, max);  // Scale back
 ```
 
-### Image Loading (PPM/PGM)
+### Image Loading (BMP)
 
 ```bulang
 // Load image - returns multiple values
-var (width, height, channels, pixels) = nn.loadImage("sprite.pgm");
+var (width, height, channels, pixels) = nn.loadImage("sprite.bmp");
 
 // Pixels are normalized to [0, 1]
-// Supports: P2, P3 (ASCII), P5, P6 (Binary)
+// Supports: 24-bit BMP (RGB), 32-bit BMP (RGBA with alpha)
 
-// Save image
-nn.saveImage("output.pgm", width, height, channels, pixels);
+// Save image (channels: 3 for RGB, 4 for RGBA)
+nn.saveImage("output.bmp", width, height, channels, pixels);
 ```
 
 ### Network Class
@@ -1301,7 +1301,7 @@ net.add(8, 1, "sigmoid");    // 8 → 1 output
 net.input(28, 28, 1);        // 28x28 grayscale
 net.addConv2D(8, 3, 3, "relu");  // 8 filters 3x3
 net.addMaxPool(2, 2);            // 2x2 pooling
-net.add(net.flatten(), 64, "relu");
+net.add(net.flatSize(), 64, "relu");
 net.add(64, 10, "softmax");      // 10 classes
 
 // Compile and train

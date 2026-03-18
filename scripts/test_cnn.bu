@@ -1,6 +1,22 @@
 // CNN para reconhecer dígitos simples (8x8 pixels)
 // Exemplo: classificar número 0-9
 
+import nn;
+import math;
+
+// Data augmentation - adiciona ruído para evitar overfitting
+def augment(sample) {
+    var noisy = [];
+    for (var i = 0; i < sample.length(); i = i + 1) {
+        var noise = (math.rand() - 0.5) * 0.3;
+        var v = sample[i] + noise;
+        if (v < 0) v = 0;
+        if (v > 1) v = 1;
+        noisy.push(v);
+    }
+    return noisy;
+}
+
 var net = Network();
 
 // Input: imagem 8x8 com 1 canal (grayscale)
@@ -14,8 +30,8 @@ net.addConv2D(4, 3, 3, "relu");
 net.addMaxPool(2, 2);
 // Output: 3x3 x 4 = 36 features
 
-// Flatten size
-var flatSize = net.flatten();
+// Get flattened size (helper - doesn't add a layer)
+var flatSize = net.flatSize();
 print("Flattened size: " + flatSize + "\n");
 
 // Dense layers
@@ -69,12 +85,22 @@ var label0 = [1,0,0,0,0,0,0,0,0,0];
 var label1 = [0,1,0,0,0,0,0,0,0,0];
 var label2 = [0,0,1,0,0,0,0,0,0,0];
 
-// Training data
-var X = [zero, one, two];
-var Y = [label0, label1, label2];
+// Gerar dados augmentados (10 variantes de cada dígito)
+var X = [];
+var Y = [];
+var numAugment = 10;
 
-print("\nTraining CNN on 3 digit patterns...\n");
-net.fit(X, Y, 100, 3);
+for (var i = 0; i < numAugment; i = i + 1) {
+    X.push(augment(zero));
+    Y.push(label0);
+    X.push(augment(one));
+    Y.push(label1);
+    X.push(augment(two));
+    Y.push(label2);
+}
+
+print("Training CNN on " + X.length() + " augmented samples...\n");
+net.fit(X, Y, 50, 10);
 
 // Test predictions
 print("\nPredictions:\n");
@@ -115,4 +141,31 @@ for (var i = 0; i < 10; i = i + 1) {
 }
 print("predicted=" + maxIdx2 + " (confidence: " + max2 + ")\n");
 
-print("\nCNN working with pixels!\n");
+// Teste de generalização - versões ruidosas nunca vistas
+print("\n--- Generalization test (noisy inputs) ---\n");
+
+var noisyZero = augment(zero);
+var pn0 = net.predict(noisyZero);
+var maxn0 = 0;
+var maxIdxn0 = 0;
+for (var i = 0; i < 10; i = i + 1) {
+    if (pn0[i] > maxn0) {
+        maxn0 = pn0[i];
+        maxIdxn0 = i;
+    }
+}
+print("Noisy zero: predicted=" + maxIdxn0 + " (confidence: " + maxn0 + ")\n");
+
+var noisyOne = augment(one);
+var pn1 = net.predict(noisyOne);
+var maxn1 = 0;
+var maxIdxn1 = 0;
+for (var i = 0; i < 10; i = i + 1) {
+    if (pn1[i] > maxn1) {
+        maxn1 = pn1[i];
+        maxIdxn1 = i;
+    }
+}
+print("Noisy one:  predicted=" + maxIdxn1 + " (confidence: " + maxn1 + ")\n");
+
+print("\nCNN working with augmented data!\n");
