@@ -1121,6 +1121,8 @@ public:
   void registerRegex();
   void registerZip();
   void registerSocket();
+  void registerCrypto();
+  void registerNN();
   void registerAll();
 
   Function *addFunction(const char *name, int arity = 0);

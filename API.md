@@ -14,6 +14,8 @@ Complete documentation of all built-in modules and functions.
 - [Path Module](#-path-module)
 - [OS Module](#-os-module)
 - [Socket Module](#-socket-module)
+- [Crypto Module](#-crypto-module)
+- [Neural Networks (nn) Module](#-neural-networks-nn-module)
 - [Multi-Value Returns](#-multi-value-returns)
 
 ---
@@ -1185,3 +1187,143 @@ static int native_GetMousePosition(Interpreter *vm, int argc, Value *args)
 - ✅ Works with native functions
 
 See [MULTI_RETURN.md](MULTI_RETURN.md) for complete documentation.
+
+---
+
+## 🔐 Crypto Module
+
+```bulang
+import crypto;
+```
+
+### Base64 Encoding
+
+```bulang
+var encoded = crypto.base64_encode("Hello World");
+# "SGVsbG8gV29ybGQ="
+
+var decoded = crypto.base64_decode(encoded);
+# "Hello World"
+```
+
+### Hex Encoding
+
+```bulang
+var hex = crypto.hex_encode("ABC");
+# "414243"
+
+var text = crypto.hex_decode(hex);
+# "ABC"
+```
+
+### Hashing
+
+```bulang
+crypto.md5("hello");      // MD5 hash
+crypto.sha1("hello");     // SHA-1 hash
+crypto.sha256("hello");   // SHA-256 hash
+crypto.crc32("hello");    // CRC32 checksum (integer)
+```
+
+### UUID Generation
+
+```bulang
+var id = crypto.uuid();
+# "550e8400-e29b-41d4-a716-446655440000"
+```
+
+---
+
+## 🧠 Neural Networks (nn) Module
+
+```bulang
+import nn;
+```
+
+### Activation Functions
+
+```bulang
+nn.sigmoid(x);           // 1 / (1 + exp(-x))
+nn.relu(x);              // max(0, x)
+nn.leaky_relu(x, 0.01);  // x > 0 ? x : alpha * x
+nn.elu(x, 1.0);          // x > 0 ? x : alpha * (exp(x) - 1)
+nn.swish(x);             // x * sigmoid(x)
+nn.gelu(x);              // Gaussian Error Linear Unit
+nn.mish(x);              // x * tanh(softplus(x))
+nn.softplus(x);          // log(1 + exp(x))
+```
+
+### Derivatives
+
+```bulang
+nn.sigmoid_d(x);  // Sigmoid derivative
+nn.relu_d(x);     // ReLU derivative
+nn.tanh_d(x);     // Tanh derivative
+```
+
+### Loss Functions
+
+```bulang
+nn.mse(pred, target);  // Mean Squared Error
+nn.bce(pred, target);  // Binary Cross Entropy
+```
+
+### Normalization
+
+```bulang
+nn.normalize(x, min, max);    // Scale to [0, 1]
+nn.denormalize(x, min, max);  // Scale back
+```
+
+### Image Loading (PPM/PGM)
+
+```bulang
+// Load image - returns multiple values
+var (width, height, channels, pixels) = nn.loadImage("sprite.pgm");
+
+// Pixels are normalized to [0, 1]
+// Supports: P2, P3 (ASCII), P5, P6 (Binary)
+
+// Save image
+nn.saveImage("output.pgm", width, height, channels, pixels);
+```
+
+### Network Class
+
+```bulang
+var net = Network();
+
+// Dense network (MLP)
+net.add(2, 8, "tanh");       // 2 inputs → 8 hidden
+net.add(8, 1, "sigmoid");    // 8 → 1 output
+
+// CNN architecture
+net.input(28, 28, 1);        // 28x28 grayscale
+net.addConv2D(8, 3, 3, "relu");  // 8 filters 3x3
+net.addMaxPool(2, 2);            // 2x2 pooling
+net.add(net.flatten(), 64, "relu");
+net.add(64, 10, "softmax");      // 10 classes
+
+// Compile and train
+net.compile("adam", "cross_entropy", 0.01);
+net.fit(X, Y, 100, 32);  // epochs, batch_size
+
+// Inference
+var result = net.predict(input);
+
+// Save/Load
+net.save("model.bunn");
+net.load("model.bunn");
+
+// Info
+net.summary();
+net.layers();
+```
+
+#### Supported Options
+
+| Category | Options |
+|----------|---------||
+| **Activations** | relu, sigmoid, tanh, softmax, identity, mish |
+| **Optimizers** | adam, sgd, rmsprop, adagrad |
+| **Loss** | mse, bce, cross_entropy |

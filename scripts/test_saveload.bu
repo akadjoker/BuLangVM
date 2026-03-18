@@ -1,0 +1,28 @@
+var X = [[0,0], [0,1], [1,0], [1,1]];
+var Y = [[0], [1], [1], [0]];
+
+var net = Network();
+net.add(2, 8, "tanh");
+net.add(8, 1, "sigmoid");
+net.compile("adam", "mse", 0.01);
+net.fit(X, Y, 500, 4);
+net.summary();
+
+print("Before save:\n");
+var p1 = net.predict([0,0]);
+var p2 = net.predict([0,1]);
+print("0,0 -> " + p1[0] + "\n");
+print("0,1 -> " + p2[0] + "\n");
+
+net.save("/tmp/xor_model.bunn");
+print("Saved to /tmp/xor_model.bunn\n");
+
+var net2 = Network();
+net2.load("/tmp/xor_model.bunn");
+net2.summary();
+
+print("After load (new network):\n");
+var p3 = net2.predict([0,0]);
+var p4 = net2.predict([0,1]);
+print("0,0 -> " + p3[0] + "\n");
+print("0,1 -> " + p4[0] + "\n");

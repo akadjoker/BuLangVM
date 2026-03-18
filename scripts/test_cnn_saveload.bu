@@ -1,0 +1,53 @@
+// Test CNN save/load (v3 format)
+
+var net = Network();
+
+// CNN architecture
+net.input(8, 8, 1);
+net.addConv2D(4, 3, 3, "relu");
+net.addMaxPool(2, 2);
+
+var flatSize = net.flatten();
+net.add(flatSize, 16, "relu");
+net.add(16, 3, "softmax");
+
+net.compile("adam", "cross_entropy", 0.01);
+
+// Training data
+var X = [
+    [0,1,1,1,1,1,1,0,1,1,0,0,0,0,1,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,1,0,0,0,0,1,1,0,1,1,1,1,1,1,0],
+    [0,0,0,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,0],
+    [0,1,1,1,1,1,0,0,1,1,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,1,1,0,0,0,0,0,1,1,0,0,0,0,0,1,1,0,0,0,0,0,1,1,0,0,0,0,0,1,1,1,1,1,1,1,1]
+];
+var Y = [[1,0,0], [0,1,0], [0,0,1]];
+
+print("Training CNN...\n");
+net.fit(X, Y, 100, 3);
+net.summary();
+
+// Test before save
+print("\nBefore save:\n");
+var p0 = net.predict(X[0]);
+var p1 = net.predict(X[1]);
+print("Pattern 0: " + p0[0] + ", " + p0[1] + ", " + p0[2] + "\n");
+print("Pattern 1: " + p1[0] + ", " + p1[1] + ", " + p1[2] + "\n");
+
+// Save
+net.save("/tmp/cnn_model.bunn");
+print("\nSaved to /tmp/cnn_model.bunn\n");
+
+// Load into new network
+var net2 = Network();
+net2.load("/tmp/cnn_model.bunn");
+
+print("\nLoaded network:\n");
+net2.summary();
+
+// Test after load
+print("\nAfter load:\n");
+var q0 = net2.predict(X[0]);
+var q1 = net2.predict(X[1]);
+print("Pattern 0: " + q0[0] + ", " + q0[1] + ", " + q0[2] + "\n");
+print("Pattern 1: " + q1[0] + ", " + q1[1] + ", " + q1[2] + "\n");
+
+print("\nCNN save/load working!\n");

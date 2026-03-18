@@ -122,6 +122,23 @@ using raylib;
 InitWindow(800, 600, "BuLang Game");
 ```
 
+#### Built-in Modules
+
+| Module | Description |
+|--------|-------------|
+| `math` | Mathematical functions |
+| `time` | Time and date operations |
+| `file` | File read/write |
+| `fs` | Filesystem operations |
+| `path` | Path manipulation |
+| `os` | System operations |
+| `socket` | TCP/UDP networking |
+| `json` | JSON parsing/encoding |
+| `regex` | Regular expressions |
+| `zip` | ZIP archive handling |
+| `crypto` | Base64, Hex, Hashing, UUID |
+| `nn` | Neural networks (MiniDNN) |
+
 
 ### 📚 Easy to Learn
 Clean syntax, comprehensive documentation, interactive playground, and working game examples to learn from.

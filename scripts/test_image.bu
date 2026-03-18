@@ -1,0 +1,20 @@
+// Test image loading with multiple return values
+import nn;
+
+var (w, h, c, data) = nn.loadImage("/tmp/test.pgm");
+
+print("Width: " + w + "\n");
+print("Height: " + h + "\n");
+print("Channels: " + c + "\n");
+print("Pixels: " + data.length() + "\n");
+
+// Show first 4 pixels (normalized 0-1)
+print("First row: ");
+for (var i = 0; i < 4; i = i + 1) {
+    print(data[i] + " ");
+}
+print("\n");
+
+// Save a copy
+nn.saveImage("/tmp/test_copy.pgm", w, h, c, data);
+print("Saved copy to /tmp/test_copy.pgm\n");

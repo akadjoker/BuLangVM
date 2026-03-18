@@ -1,0 +1,118 @@
+// CNN para reconhecer dígitos simples (8x8 pixels)
+// Exemplo: classificar número 0-9
+
+var net = Network();
+
+// Input: imagem 8x8 com 1 canal (grayscale)
+net.input(8, 8, 1);
+
+// Conv layer: 4 filtros 3x3
+net.addConv2D(4, 3, 3, "relu");
+// Output: 6x6 x 4 channels
+
+// MaxPool 2x2
+net.addMaxPool(2, 2);
+// Output: 3x3 x 4 = 36 features
+
+// Flatten size
+var flatSize = net.flatten();
+print("Flattened size: " + flatSize + "\n");
+
+// Dense layers
+net.add(flatSize, 16, "relu");
+net.add(16, 10, "softmax");  // 10 classes (0-9)
+
+net.compile("adam", "cross_entropy", 0.01);
+net.summary();
+
+// Criar dados de treino sintéticos
+// Vamos criar padrões simples para 0, 1, 2
+
+// Padrão para "0" (anel)
+var zero = [
+    0,1,1,1,1,1,1,0,
+    1,1,0,0,0,0,1,1,
+    1,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,1,
+    1,1,0,0,0,0,1,1,
+    0,1,1,1,1,1,1,0
+];
+
+// Padrão para "1" (linha vertical)
+var one = [
+    0,0,0,1,1,0,0,0,
+    0,0,1,1,1,0,0,0,
+    0,0,0,1,1,0,0,0,
+    0,0,0,1,1,0,0,0,
+    0,0,0,1,1,0,0,0,
+    0,0,0,1,1,0,0,0,
+    0,0,0,1,1,0,0,0,
+    0,1,1,1,1,1,1,0
+];
+
+// Padrão para "2" (curva)
+var two = [
+    0,1,1,1,1,1,0,0,
+    1,1,0,0,0,1,1,0,
+    0,0,0,0,0,1,1,0,
+    0,0,0,0,1,1,0,0,
+    0,0,0,1,1,0,0,0,
+    0,0,1,1,0,0,0,0,
+    0,1,1,0,0,0,0,0,
+    1,1,1,1,1,1,1,1
+];
+
+// One-hot labels
+var label0 = [1,0,0,0,0,0,0,0,0,0];
+var label1 = [0,1,0,0,0,0,0,0,0,0];
+var label2 = [0,0,1,0,0,0,0,0,0,0];
+
+// Training data
+var X = [zero, one, two];
+var Y = [label0, label1, label2];
+
+print("\nTraining CNN on 3 digit patterns...\n");
+net.fit(X, Y, 100, 3);
+
+// Test predictions
+print("\nPredictions:\n");
+
+var p0 = net.predict(zero);
+print("Zero: ");
+var max0 = 0;
+var maxIdx0 = 0;
+for (var i = 0; i < 10; i = i + 1) {
+    if (p0[i] > max0) {
+        max0 = p0[i];
+        maxIdx0 = i;
+    }
+}
+print("predicted=" + maxIdx0 + " (confidence: " + max0 + ")\n");
+
+var p1 = net.predict(one);
+print("One:  ");
+var max1 = 0;
+var maxIdx1 = 0;
+for (var i = 0; i < 10; i = i + 1) {
+    if (p1[i] > max1) {
+        max1 = p1[i];
+        maxIdx1 = i;
+    }
+}
+print("predicted=" + maxIdx1 + " (confidence: " + max1 + ")\n");
+
+var p2 = net.predict(two);
+print("Two:  ");
+var max2 = 0;
+var maxIdx2 = 0;
+for (var i = 0; i < 10; i = i + 1) {
+    if (p2[i] > max2) {
+        max2 = p2[i];
+        maxIdx2 = i;
+    }
+}
+print("predicted=" + maxIdx2 + " (confidence: " + max2 + ")\n");
+
+print("\nCNN working with pixels!\n");

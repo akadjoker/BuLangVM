@@ -36,7 +36,9 @@
 28. [Module: time](#28-module-time)
 29. [Module: socket (net)](#29-module-socket-net)
 30. [Module: zip](#30-module-zip)
-31. [Global Constants](#31-global-constants)
+31. [Module: crypto](#31-module-crypto)
+32. [Module: nn (Neural Networks)](#32-module-nn-neural-networks)
+33. [Global Constants](#33-global-constants)
 
 ---
 
@@ -1369,7 +1371,156 @@ import zip;
 
 ---
 
-## 31. Global Constants
+## 31. Module: crypto
+
+```bu
+import crypto;
+```
+
+### Encoding/Decoding
+
+| Function | Args | Description |
+|----------|------|-------------|
+| `crypto.base64_encode(string)` | 1 | Encode string to Base64 |
+| `crypto.base64_decode(string)` | 1 | Decode Base64 to string |
+| `crypto.hex_encode(string)` | 1 | Encode string to hexadecimal |
+| `crypto.hex_decode(string)` | 1 | Decode hexadecimal to string |
+
+### Hashing
+
+| Function | Args | Description |
+|----------|------|-------------|
+| `crypto.md5(string)` | 1 | MD5 hash (hex string) |
+| `crypto.sha1(string)` | 1 | SHA-1 hash (hex string) |
+| `crypto.sha256(string)` | 1 | SHA-256 hash (hex string) |
+| `crypto.crc32(string)` | 1 | CRC32 checksum (integer) |
+
+### UUID
+
+| Function | Args | Description |
+|----------|------|-------------|
+| `crypto.uuid()` | 0 | Generate UUID v4 string |
+
+---
+
+## 32. Module: nn (Neural Networks)
+
+```bu
+import nn;
+```
+
+### Activation Functions
+
+| Function | Args | Description |
+|----------|------|-------------|
+| `nn.sigmoid(x)` | 1 | Sigmoid: 1 / (1 + exp(-x)) |
+| `nn.relu(x)` | 1 | ReLU: max(0, x) |
+| `nn.leaky_relu(x, [alpha=0.01])` | 1-2 | Leaky ReLU |
+| `nn.elu(x, [alpha=1.0])` | 1-2 | ELU activation |
+| `nn.swish(x)` | 1 | Swish: x * sigmoid(x) |
+| `nn.silu(x)` | 1 | SiLU (same as swish) |
+| `nn.gelu(x)` | 1 | GELU (Gaussian Error Linear Unit) |
+| `nn.softplus(x)` | 1 | Softplus: log(1 + exp(x)) |
+| `nn.mish(x)` | 1 | Mish: x * tanh(softplus(x)) |
+| `nn.step(x, [threshold=0])` | 1-2 | Step function: 0 or 1 |
+
+### Derivatives (for backprop)
+
+| Function | Args | Description |
+|----------|------|-------------|
+| `nn.sigmoid_d(x)` | 1 | Sigmoid derivative |
+| `nn.relu_d(x)` | 1 | ReLU derivative |
+| `nn.tanh_d(x)` | 1 | Tanh derivative |
+
+### Loss Functions
+
+| Function | Args | Description |
+|----------|------|-------------|
+| `nn.mse(predicted, target)` | 2 | Mean Squared Error |
+| `nn.bce(predicted, target)` | 2 | Binary Cross Entropy |
+
+### Utility Functions
+
+| Function | Args | Description |
+|----------|------|-------------|
+| `nn.normalize(x, min, max)` | 3 | Normalize to [0, 1] |
+| `nn.denormalize(x, min, max)` | 3 | Denormalize from [0, 1] |
+
+### Image Loading (PPM/PGM)
+
+| Function | Args | Returns | Description |
+|----------|------|---------|-------------|
+| `nn.loadImage(filename)` | 1 | (w, h, c, data) | Load PPM/PGM image, pixels normalized [0,1] |
+| `nn.saveImage(filename, w, h, c, data)` | 5 | bool | Save to PPM (RGB) or PGM (grayscale) |
+
+Supported formats: P2 (PGM ASCII), P3 (PPM ASCII), P5 (PGM Binary), P6 (PPM Binary)
+
+### Network Class (requires BU_ENABLE_MINIDNN)
+
+```bu
+var net = Network();
+```
+
+#### Dense Layers
+
+| Method | Args | Description |
+|--------|------|-------------|
+| `net.add(in, out, [activation])` | 2-3 | Add fully connected layer |
+
+#### CNN Layers
+
+| Method | Args | Description |
+|--------|------|-------------|
+| `net.input(width, height, [channels=1])` | 2-3 | Set input dimensions |
+| `net.addConv2D(filters, fw, fh, [activation])` | 3-4 | Add convolutional layer |
+| `net.addMaxPool(pw, ph)` | 2 | Add max pooling layer |
+| `net.flatten()` | 0 | Returns flattened size |
+
+#### Training & Inference
+
+| Method | Args | Description |
+|--------|------|-------------|
+| `net.compile(optimizer, loss, lr)` | 3 | Initialize network |
+| `net.fit(x, y, epochs, batch_size)` | 4 | Train network |
+| `net.predict(x)` | 1 | Run inference → array |
+
+#### Utilities
+
+| Method | Args | Description |
+|--------|------|-------------|
+| `net.layers()` | 0 | Number of layers |
+| `net.summary()` | 0 | Print network info |
+| `net.save(filename)` | 1 | Save to .bunn file |
+| `net.load(filename)` | 1 | Load from .bunn file |
+
+#### Supported Options
+
+| Activations | Optimizers | Loss Functions |
+|-------------|------------|----------------|
+| relu, sigmoid, tanh, softmax, identity, mish | adam, sgd, rmsprop, adagrad | mse, bce, cross_entropy |
+
+#### Example: CNN for Digit Classification
+
+```bu
+import nn;
+
+var net = Network();
+net.input(8, 8, 1);              // 8x8 grayscale
+net.addConv2D(4, 3, 3, "relu");  // 4 filters 3x3
+net.addMaxPool(2, 2);            // 2x2 pooling
+net.add(net.flatten(), 16, "relu");
+net.add(16, 10, "softmax");      // 10 classes
+
+net.compile("adam", "cross_entropy", 0.01);
+net.fit(X, Y, 100, 4);
+
+var result = net.predict(image);
+net.save("model.bunn");
+```
+
+---
+
+## 33. Global Constants
 
 These constants are always available (no import needed):
 
