@@ -1,0 +1,165 @@
+// Test new built-in methods
+import math;
+import time;
+
+var passed = 0;
+var failed = 0;
+
+def assert(cond, msg) {
+    if (cond) {
+        passed += 1;
+    } else {
+        failed += 1;
+        print(f"FAIL: {msg}");
+    }
+}
+
+// ========== STRING METHODS ==========
+print("--- String Methods ---");
+
+// capitalize
+assert("hello world".capitalize() == "Hello world", "capitalize basic");
+assert("HELLO".capitalize() == "Hello", "capitalize upper");
+assert("a".capitalize() == "A", "capitalize single");
+
+// title
+assert("hello world".title() == "Hello World", "title basic");
+assert("foo bar baz".title() == "Foo Bar Baz", "title multi");
+
+// isdigit
+assert("12345".isdigit() == true, "isdigit true");
+assert("123a5".isdigit() == false, "isdigit false");
+assert("".isdigit() == false, "isdigit empty");
+
+// isalpha
+assert("hello".isalpha() == true, "isalpha true");
+assert("hello1".isalpha() == false, "isalpha false");
+assert("".isalpha() == false, "isalpha empty");
+
+// isalnum
+assert("hello123".isalnum() == true, "isalnum true");
+assert("hello 123".isalnum() == false, "isalnum false with space");
+
+// isspace
+assert("   ".isspace() == true, "isspace true");
+assert("  a ".isspace() == false, "isspace false");
+
+// isupper / islower
+assert("HELLO".isupper() == true, "isupper true");
+assert("Hello".isupper() == false, "isupper false");
+assert("hello".islower() == true, "islower true");
+assert("Hello".islower() == false, "islower false");
+
+// lstrip / rstrip
+assert("  hello  ".lstrip() == "hello  ", "lstrip");
+assert("  hello  ".rstrip() == "  hello", "rstrip");
+assert("  hello  ".trim() == "hello", "trim both");
+
+// count
+assert("hello world hello".count("hello") == 2, "count basic");
+assert("aaa".count("a") == 3, "count single chars");
+assert("aaa".count("aa") == 1, "count non-overlapping");
+assert("hello".count("xyz") == 0, "count zero");
+
+// ========== ARRAY SORT ==========
+print("--- Array Sort ---");
+
+var arr = [5, 3, 1, 4, 2];
+arr.sort();
+assert(arr[0] == 1, "sort[0]==1");
+assert(arr[1] == 2, "sort[1]==2");
+assert(arr[2] == 3, "sort[2]==3");
+assert(arr[3] == 4, "sort[3]==4");
+assert(arr[4] == 5, "sort[4]==5");
+
+// Sort strings
+var strs = ["banana", "apple", "cherry"];
+strs.sort();
+assert(strs[0] == "apple", "sort strings apple");
+assert(strs[1] == "banana", "sort strings banana");
+assert(strs[2] == "cherry", "sort strings cherry");
+
+// Sort already sorted
+var sorted = [1, 2, 3];
+sorted.sort();
+assert(sorted[0] == 1, "sort already sorted");
+
+// Sort empty
+var empty = [];
+empty.sort();
+assert(empty.length() == 0, "sort empty");
+
+// Sort single
+var single = [42];
+single.sort();
+assert(single[0] == 42, "sort single");
+
+// Sort with doubles
+var mixed = [3.14, 1.0, 2.71];
+mixed.sort();
+assert(mixed[0] == 1.0, "sort doubles[0]");
+assert(mixed[2] == 3.14, "sort doubles[2]");
+
+// Array count
+var ac = [1, 2, 3, 2, 1, 2];
+assert(ac.count(2) == 3, "array count 2s");
+assert(ac.count(5) == 0, "array count missing");
+
+// ========== MAP GET / ITEMS ==========
+print("--- Map Methods ---");
+
+var m = {"name": "bulang", "version": 2};
+
+// get with key that exists
+assert(m.get("name") == "bulang", "map get existing");
+
+// get with key that doesn't exist
+assert(m.get("missing") == nil, "map get missing nil");
+
+// get with default
+assert(m.get("missing", "default") == "default", "map get with default");
+
+// items
+var items = m.items();
+assert(items.length() == 2, "map items length");
+
+// ========== MATH ROUND ==========
+print("--- Math Round ---");
+
+assert(math.round(3.7) == 4, "round up");
+assert(math.round(3.2) == 3, "round down");
+assert(math.round(3.14159, 2) == 3.14, "round 2 decimals");
+
+// ========== SORT PERFORMANCE ==========
+print("--- Sort Performance ---");
+var big = [];
+var i = 0;
+while (i < 10000) {
+    big.push(math.irand(100000));
+    i += 1;
+}
+var t0 = time.now();
+big.sort();
+var t1 = time.now();
+print(f"Sort 10K: {t1 - t0} s");
+
+// verify sorted
+var is_sorted = true;
+i = 1;
+while (i < big.length()) {
+    if (big[i] < big[i-1]) {
+        is_sorted = false;
+    }
+    i += 1;
+}
+assert(is_sorted, "10K array properly sorted");
+
+// ========== RESULTS ==========
+print("");
+print(f"Passed: {passed}");
+print(f"Failed: {failed}");
+if (failed > 0) {
+    print("SOME TESTS FAILED!");
+} else {
+    print("ALL TESTS PASSED!");
+}

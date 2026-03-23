@@ -1,0 +1,50 @@
+// Test crypto modules documentation
+import base64;
+import hex;
+import hash;
+import uuid;
+
+var passed = 0;
+var failed = 0;
+
+def assert(cond, msg) {
+    if (cond) {
+        passed += 1;
+    } else {
+        failed += 1;
+        print(f"FAIL: {msg}");
+    }
+}
+
+// Test base64 encode/decode
+var original = "Hello, World!";
+var encoded = base64.encode(original);
+assert(encoded == "SGVsbG8sIFdvcmxkIQ==", "base64.encode");
+
+var decoded = base64.decode(encoded);
+assert(decoded == original, "base64.decode");
+
+// Test hex encode/decode
+var hexEncoded = hex.encode("ABC");
+assert(hexEncoded == "414243", "hex.encode");
+
+var hexDecoded = hex.decode(hexEncoded);
+assert(hexDecoded == "ABC", "hex.decode");
+
+// Test MD5 hash
+var md5 = hash.md5("hello");
+assert(len(md5) == 32, "hash.md5 length");
+
+// Test SHA256 hash
+var sha = hash.sha256("hello");
+assert(len(sha) == 64, "hash.sha256 length");
+
+// Test UUID v4
+var id = uuid.v4();
+assert(len(id) == 36, "uuid.v4 length");
+assert(id[8] == "-" && id[13] == "-" && id[18] == "-" && id[23] == "-", "uuid.v4 format");
+
+print(f"Crypto tests: {passed} passed, {failed} failed");
+if (failed == 0) {
+    print("All crypto documentation validated!");
+}

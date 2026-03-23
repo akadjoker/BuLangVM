@@ -1,0 +1,173 @@
+var passed = 0;
+var failed = 0;
+var total = 0;
+
+def assert(cond, msg) {
+    total = total + 1;
+    if (cond) {
+        passed = passed + 1;
+    } else {
+        failed = failed + 1;
+        print("[FAIL] " + msg);
+    }
+}
+
+// ============================================
+// Vec2 class with all operators
+// ============================================
+class Vec2 {
+    var x;
+    var y;
+
+    def init(x, y) {
+        self.x = x;
+        self.y = y;
+    }
+
+    def +(other) {
+        return Vec2(self.x + other.x, self.y + other.y);
+    }
+
+    def -(other) {
+        return Vec2(self.x - other.x, self.y - other.y);
+    }
+
+    def *(other) {
+        return Vec2(self.x * other.x, self.y * other.y);
+    }
+
+    def /(other) {
+        return Vec2(self.x / other.x, self.y / other.y);
+    }
+
+    def %(other) {
+        return Vec2(self.x % other.x, self.y % other.y);
+    }
+
+    def ==(other) {
+        return self.x == other.x && self.y == other.y;
+    }
+
+    def !=(other) {
+        return self.x != other.x || self.y != other.y;
+    }
+
+    def <(other) {
+        return self.x < other.x && self.y < other.y;
+    }
+
+    def >(other) {
+        return self.x > other.x && self.y > other.y;
+    }
+
+    def <=(other) {
+        return self.x <= other.x && self.y <= other.y;
+    }
+
+    def >=(other) {
+        return self.x >= other.x && self.y >= other.y;
+    }
+}
+
+// ---- Addition ----
+var a = Vec2(1, 2);
+var b = Vec2(3, 4);
+var c = a + b;
+assert(c.x == 4, "Vec2 + x");
+assert(c.y == 6, "Vec2 + y");
+
+// ---- Subtraction ----
+var d = b - a;
+assert(d.x == 2, "Vec2 - x");
+assert(d.y == 2, "Vec2 - y");
+
+// ---- Multiplication ----
+var e = Vec2(2, 3) * Vec2(4, 5);
+assert(e.x == 8, "Vec2 * x");
+assert(e.y == 15, "Vec2 * y");
+
+// ---- Division ----
+var f = Vec2(10, 20) / Vec2(2, 5);
+assert(f.x == 5, "Vec2 / x");
+assert(f.y == 4, "Vec2 / y");
+
+// ---- Modulo ----
+var g = Vec2(10, 7) % Vec2(3, 4);
+assert(g.x == 1, "Vec2 % x");
+assert(g.y == 3, "Vec2 % y");
+
+// ---- Equality ----
+assert(Vec2(1, 2) == Vec2(1, 2), "Vec2 == true");
+assert(!(Vec2(1, 2) == Vec2(3, 4)), "Vec2 == false");
+
+// ---- Not equal ----
+assert(Vec2(1, 2) != Vec2(3, 4), "Vec2 != true");
+assert(!(Vec2(1, 2) != Vec2(1, 2)), "Vec2 != false");
+
+// ---- Less than ----
+assert(Vec2(1, 2) < Vec2(3, 4), "Vec2 < true");
+assert(!(Vec2(3, 2) < Vec2(1, 4)), "Vec2 < false (x not less)");
+
+// ---- Greater than ----
+assert(Vec2(5, 6) > Vec2(3, 4), "Vec2 > true");
+assert(!(Vec2(1, 6) > Vec2(3, 4)), "Vec2 > false (x not greater)");
+
+// ---- Less or equal ----
+assert(Vec2(1, 2) <= Vec2(1, 2), "Vec2 <= equal");
+assert(Vec2(1, 2) <= Vec2(3, 4), "Vec2 <= less");
+
+// ---- Greater or equal ----
+assert(Vec2(3, 4) >= Vec2(3, 4), "Vec2 >= equal");
+assert(Vec2(5, 6) >= Vec2(3, 4), "Vec2 >= greater");
+
+// ---- Chained operations ----
+var r = Vec2(1, 1) + Vec2(2, 2) + Vec2(3, 3);
+assert(r.x == 6, "chained + x");
+assert(r.y == 6, "chained + y");
+
+// ---- Mixed: class without operator falls back to error ----
+// (no test for error, just verify non-operator classes still work)
+class Point {
+    var x;
+    def init(x) {
+        self.x = x;
+    }
+}
+var p = Point(42);
+assert(p.x == 42, "non-operator class works");
+
+// ============================================
+// Scalar class (simpler, 1 field)
+// ============================================
+class Scalar {
+    var v;
+    def init(v) {
+        self.v = v;
+    }
+    def +(other) {
+        return Scalar(self.v + other.v);
+    }
+    def *(other) {
+        return Scalar(self.v * other.v);
+    }
+    def ==(other) {
+        return self.v == other.v;
+    }
+}
+
+var s1 = Scalar(3);
+var s2 = Scalar(4);
+var s3 = s1 + s2;
+assert(s3.v == 7, "Scalar + v");
+var s4 = s1 * s2;
+assert(s4.v == 12, "Scalar * v");
+assert(Scalar(5) == Scalar(5), "Scalar == true");
+assert(!(Scalar(5) == Scalar(6)), "Scalar == false");
+
+print("=== Operator Overload Tests ===");
+print("Passed: " + passed + "/" + total);
+if (failed > 0) {
+    print("FAILED: " + failed);
+} else {
+    print("All tests passed!");
+}

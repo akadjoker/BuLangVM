@@ -138,4 +138,7 @@ enum Opcode : uint8
     // String interpolation (92)
     OP_TOSTRING = 92,  // Convert top-of-stack to string representation
 
+    // Set (93)
+    OP_DEFINE_SET = 93,  // Create set from N values on stack
+
 };

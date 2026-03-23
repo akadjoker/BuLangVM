@@ -83,9 +83,18 @@ public:
     String *at(String *str, int index);
     String *repeat(String *str, int count);
 
+    // New string methods
+    String *capitalize(String *str);
+    String *title(String *str);
+    String *lstrip(String *str);
+    String *rstrip(String *str);
+    int count(String *str, const char *substr, int subLen);
+
     String *toString(int value);
     String *toString(uint32 value);
     String *toString(double value);
+
+    void freeTransient(String *s);
 
     void clear();
 };

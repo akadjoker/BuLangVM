@@ -92,16 +92,20 @@ static void printHelp(const char *prog)
     std::printf("BuLang %s - A lightweight scripting language\n\n", BUGL_VERSION_STRING);
     std::printf("Usage:\n");
     std::printf("  %s <script.bu> [options]    Run a script\n", prog);
+    std::printf("  %s <script.buc>             Run compiled bytecode\n", prog);
     std::printf("  %s -e \"code\"                Execute code string\n", prog);
     std::printf("  %s --version                Show version\n", prog);
     std::printf("  %s --help                   Show this help\n\n", prog);
     std::printf("Options:\n");
     std::printf("  --dump       Dump bytecode after compilation\n");
+    std::printf("  -o <file>    Compile to bytecode file (.buc)\n");
     std::printf("  -I <path>    Add module search path\n");
     std::printf("\nExamples:\n");
     std::printf("  %s main.bu\n", prog);
     std::printf("  %s -e \"print(1 + 2);\"\n", prog);
     std::printf("  %s script.bu --dump\n", prog);
+    std::printf("  %s script.bu -o script.buc     # Compile to bytecode\n", prog);
+    std::printf("  %s script.buc                  # Run bytecode\n", prog);
 }
 
 // ── Main ────────────────────────────────────────────────────
@@ -110,6 +114,7 @@ int main(int argc, char *argv[])
 {
     const char *scriptFile = nullptr;
     const char *evalCode = nullptr;
+    const char *outputBytecode = nullptr;
     bool dump = false;
     std::vector<std::string> includePaths;
 
@@ -129,6 +134,18 @@ int main(int argc, char *argv[])
         else if (std::strcmp(argv[i], "--dump") == 0)
         {
             dump = true;
+        }
+        else if (std::strcmp(argv[i], "-o") == 0)
+        {
+            if (i + 1 < argc)
+            {
+                outputBytecode = argv[++i];
+            }
+            else
+            {
+                std::fprintf(stderr, "Error: -o requires output file argument\n");
+                return 1;
+            }
         }
         else if (std::strcmp(argv[i], "-e") == 0)
         {
@@ -215,8 +232,53 @@ int main(int argc, char *argv[])
     
     vm.setFileLoader(fileLoader, &loaderCtx);
 
-    // Run
-    bool ok = vm.run(source.c_str(), dump);
+    // Check if input is bytecode (.buc extension)
+    bool isBytecode = false;
+    if (scriptFile)
+    {
+        std::string ext;
+        const char *dot = std::strrchr(scriptFile, '.');
+        if (dot) ext = dot;
+        isBytecode = (ext == ".buc");
+    }
+
+    // Run or compile
+    bool ok = false;
+    if (isBytecode)
+    {
+        // Load and run bytecode directly
+        ok = vm.loadBytecode(scriptFile);
+        if (ok)
+        {
+            ok = vm.run("", dump);  // run with empty source (uses loaded bytecode)
+        }
+        else
+        {
+            std::fprintf(stderr, "Error: failed to load bytecode '%s'\n", scriptFile);
+        }
+    }
+    else if (outputBytecode)
+    {
+        // Compile to bytecode without running
+        ok = vm.compile(source.c_str());
+        if (ok)
+        {
+            ok = vm.saveBytecode(outputBytecode);
+            if (ok)
+            {
+                std::printf("Compiled to: %s\n", outputBytecode);
+            }
+            else
+            {
+                std::fprintf(stderr, "Error: failed to save bytecode '%s'\n", outputBytecode);
+            }
+        }
+    }
+    else
+    {
+        // Normal run
+        ok = vm.run(source.c_str(), dump);
+    }
     
     return ok ? 0 : 1;
 }

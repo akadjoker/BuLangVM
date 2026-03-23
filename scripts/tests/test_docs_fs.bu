@@ -1,0 +1,58 @@
+// Test fs module documentation
+import fs;
+import path;
+
+var passed = 0;
+var failed = 0;
+
+def assert(cond, msg) {
+    if (cond) {
+        passed += 1;
+    } else {
+        failed += 1;
+        print(f"FAIL: {msg}");
+    }
+}
+
+// Test write and read
+var testFile = "/tmp/bulang_test_docs.txt";
+var content = "Hello, BuLang!";
+
+var written = fs.write(testFile, content);
+assert(written, "fs.write returns true");
+
+var readContent = fs.read(testFile);
+assert(readContent == content, "fs.read returns content");
+
+// Test append
+fs.append(testFile, "\nAppended");
+var appendedContent = fs.read(testFile);
+assert(appendedContent == content + "\nAppended", "fs.append works");
+
+// Test stat
+var info = fs.stat(testFile);
+assert(info != nil, "fs.stat returns map");
+assert(info.isfile == true, "fs.stat.isfile");
+assert(info.isdir == false, "fs.stat.isdir");
+assert(info.size > 0, "fs.stat.size");
+
+// Test mkdir and list
+var testDir = "/tmp/bulang_test_dir";
+fs.mkdir(testDir);
+var dirInfo = fs.stat(testDir);
+assert(dirInfo != nil && dirInfo.isdir, "fs.mkdir creates directory");
+
+// Create a file in dir
+fs.write(testDir + "/test.txt", "test");
+var entries = fs.list(testDir);
+assert(len(entries) > 0, "fs.list returns entries");
+
+// Cleanup
+fs.remove(testDir + "/test.txt");
+fs.rmdir(testDir);
+fs.remove(testFile);
+
+print(f"FS tests: {passed} passed, {failed} failed");
+if (failed == 0) {
+    print("All fs documentation validated!");
+}

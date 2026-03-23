@@ -1,0 +1,103 @@
+// Test math module documentation
+import math;
+
+var passed = 0;
+var failed = 0;
+
+def assert(cond, msg) {
+    if (cond) {
+        passed += 1;
+    } else {
+        failed += 1;
+        print(f"FAIL: {msg}");
+    }
+}
+
+def approx(a, b) {
+    var diff = a - b;
+    if (diff < 0) diff = -diff;
+    return diff < 0.01;
+}
+
+// Test constants
+assert(math.PI > 3.14 && math.PI < 3.15, "PI value");
+assert(math.E > 2.71 && math.E < 2.72, "E value");
+assert(math.TAU > 6.28 && math.TAU < 6.29, "TAU value");
+assert(math.SQRT2 > 1.41 && math.SQRT2 < 1.42, "SQRT2 value");
+assert(math.MIN_INT < 0, "MIN_INT negative");
+assert(math.MAX_INT > 0, "MAX_INT positive");
+
+// Test basic functions
+assert(math.min(3, 5) == 3, "min");
+assert(math.max(3, 5) == 5, "max");
+assert(math.clamp(10, 0, 5) == 5, "clamp high");
+assert(math.clamp(-5, 0, 10) == 0, "clamp low");
+assert(math.sign(-5) == -1, "sign negative");
+assert(math.sign(5) == 1, "sign positive");
+
+// Test interpolation
+var lerped = math.lerp(0, 100, 0.5);
+assert(lerped == 50, "lerp");
+
+// Test smoothstep (1 arg)
+var ss = math.smoothstep(0.5);
+assert(ss >= 0 && ss <= 1, "smoothstep 1 arg");
+
+// Test smoothstep (3 args)
+var ss3 = math.smoothstep(0, 1, 0.5);
+assert(ss3 >= 0 && ss3 <= 1, "smoothstep 3 args");
+
+// Test logarithms
+var l10 = math.log10(100);
+assert(l10 > 1.99 && l10 < 2.01, "log10");
+
+var l2 = math.log2(8);
+assert(l2 > 2.99 && l2 < 3.01, "log2");
+
+// Test hyperbolic
+var sh = math.sinh(0);
+assert(sh == 0, "sinh(0)");
+
+var ch = math.cosh(0);
+assert(ch == 1, "cosh(0)");
+
+var th = math.tanh(0);
+assert(th == 0, "tanh(0)");
+
+// Test hypot
+var h = math.hypot(3, 4);
+assert(h == 5, "hypot 3-4-5");
+
+// Test map
+var mapped = math.map(50, 0, 100, 0, 1);
+assert(mapped == 0.5, "map");
+
+// Test repeat
+var rep = math.repeat(5, 3);
+assert(rep >= 0 && rep < 3, "repeat");
+
+// Test ping_pong
+var pp = math.ping_pong(5, 3);
+assert(pp >= 0 && pp <= 3, "ping_pong");
+
+// Test random
+math.seed(12345);
+var r1 = math.rand();
+assert(r1 >= 0 && r1 <= 1, "rand()");
+
+var r2 = math.rand(10);
+assert(r2 >= 0 && r2 <= 10, "rand(max)");
+
+var r3 = math.rand(5, 10);
+assert(r3 >= 5 && r3 <= 10, "rand(min,max)");
+
+var i1 = math.irand(10);
+assert(i1 >= 0 && i1 <= 10, "irand(max)");
+
+var i2 = math.irand(5, 10);
+assert(i2 >= 5 && i2 <= 10, "irand(min,max)");
+
+print(f"Math tests: {passed} passed, {failed} failed");
+if (failed == 0) {
+    print("All math documentation validated!");
+}

@@ -40,11 +40,16 @@ Interpreter::Interpreter()
   staticNames[(int)StaticNames::FIRST] = createString("first");
   staticNames[(int)StaticNames::LAST] = createString("last");
   staticNames[(int)StaticNames::FILL] = createString("fill");
+  staticNames[(int)StaticNames::SORT] = createString("sort");
+  staticNames[(int)StaticNames::COUNT] = createString("count");
 
   staticNames[(int)StaticNames::HAS] = createString("has");
   staticNames[(int)StaticNames::REMOVE] = createString("remove");
   staticNames[(int)StaticNames::KEYS] = createString("keys");
   staticNames[(int)StaticNames::VALUES] = createString("values");
+  staticNames[(int)StaticNames::GET] = createString("get");
+  staticNames[(int)StaticNames::ITEMS] = createString("items");
+  staticNames[(int)StaticNames::ADD] = createString("add");
 
   staticNames[(int)StaticNames::UPPER] = createString("upper");
   staticNames[(int)StaticNames::LOWER] = createString("lower");
@@ -60,6 +65,16 @@ Interpreter::Interpreter()
   staticNames[(int)StaticNames::INDEXOF] = createString("indexof");
   staticNames[(int)StaticNames::REPEAT] = createString("repeat");
   staticNames[(int)StaticNames::SPLIT] = createString("split");
+  staticNames[(int)StaticNames::CAPITALIZE] = createString("capitalize");
+  staticNames[(int)StaticNames::TITLE] = createString("title");
+  staticNames[(int)StaticNames::ISDIGIT] = createString("isdigit");
+  staticNames[(int)StaticNames::ISALPHA] = createString("isalpha");
+  staticNames[(int)StaticNames::ISALNUM] = createString("isalnum");
+  staticNames[(int)StaticNames::ISSPACE] = createString("isspace");
+  staticNames[(int)StaticNames::ISUPPER] = createString("isupper");
+  staticNames[(int)StaticNames::ISLOWER] = createString("islower");
+  staticNames[(int)StaticNames::LSTRIP] = createString("lstrip");
+  staticNames[(int)StaticNames::RSTRIP] = createString("rstrip");
 
   staticNames[(int)StaticNames::INIT] = createString("init");
 
@@ -89,6 +104,20 @@ Interpreter::Interpreter()
   staticNames[(int)StaticNames::REWIND] = createString("rewind");
   staticNames[(int)StaticNames::SKIP] = createString("skip");
   staticNames[(int)StaticNames::REMAINING] = createString("remaining");
+
+  // Operator overloading method names
+  staticNames[(int)StaticNames::OP_ADD_METHOD] = createString("+");
+  staticNames[(int)StaticNames::OP_SUB_METHOD] = createString("-");
+  staticNames[(int)StaticNames::OP_MUL_METHOD] = createString("*");
+  staticNames[(int)StaticNames::OP_DIV_METHOD] = createString("/");
+  staticNames[(int)StaticNames::OP_MOD_METHOD] = createString("%");
+  staticNames[(int)StaticNames::OP_EQ_METHOD] = createString("==");
+  staticNames[(int)StaticNames::OP_NEQ_METHOD] = createString("!=");
+  staticNames[(int)StaticNames::OP_LT_METHOD] = createString("<");
+  staticNames[(int)StaticNames::OP_GT_METHOD] = createString(">");
+  staticNames[(int)StaticNames::OP_LTE_METHOD] = createString("<=");
+  staticNames[(int)StaticNames::OP_GTE_METHOD] = createString(">=");
+  staticNames[(int)StaticNames::OP_STR_METHOD] = createString("str");
 
   // OPTIMIZATION: Removed HashMap globals - using globalsArray directly
   // globals.set(createString("TYPE_UINT8"), makeInt(0));
@@ -265,6 +294,7 @@ Interpreter::~Interpreter()
   Info("Structs          : %zu", getTotalStructs());
   Info("Arrays           : %zu", getTotalArrays());
   Info("Maps             : %zu", getTotalMaps());
+  Info("Sets             : %zu", getTotalSets());
   Info("Native classes   : %zu", getTotalNativeClasses());
   Info("Native structs   : %zu", getTotalNativeStructs());
   Info("Buffers          : %zu", totalBuffers);

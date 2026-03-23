@@ -34,6 +34,7 @@ int Code::addConstant(Value value)
         case ValueType::NATIVESTRUCTINSTANCE:
         case ValueType::ARRAY:
         case ValueType::MAP:
+        case ValueType::SET:
         case ValueType::POINTER:
         case ValueType::MODULEREFERENCE:
             constants.push(value);
@@ -203,86 +204,4 @@ uint8 Code::operator[](size_t index)
 {
     DEBUG_BREAK_IF(index >= count);
     return code[index];
-}
-
-bool ValueEq::operator()(const Value &a, const Value &b) const
-{
-    {
-        if (a.type != b.type)
-            return false;
-
-        switch (a.type)
-        {
-        case ValueType::NIL:
-            return true;
-
-        case ValueType::BOOL:
-            return a.asBool() == b.asBool();
-
-        case ValueType::INT:
-            return a.asInt() == b.asInt();
-
-        case ValueType::DOUBLE:
-            return a.asDouble() == b.asDouble();
-
-        case ValueType::STRING:
-            return a.asString() == b.asString(); 
-
-        case ValueType::CLASS:
-        case ValueType::STRUCT:
-        case ValueType::NATIVE:
-            return a.as.integer == b.as.integer;
-
-        default:
-            return false;
-        }
-    }
-}
-
-size_t ValueHasher::operator()(const Value &v) const
-{
-    {
-        switch (v.type)
-        {
-        case ValueType::NIL:
-            return 0;
-        case ValueType::BOOL:
-            return v.asBool() ? 1 : 0;
-
-        case ValueType::INT:
-        {
-            // MurmurHash3 finalizer (mix bits)
-            uint32_t h = static_cast<uint32_t>(v.asInt());
-            h ^= h >> 16;
-            h *= 0x85ebca6b;
-            h ^= h >> 13;
-            h *= 0xc2b2ae35;
-            h ^= h >> 16;
-            return h;
-        }
-
-        case ValueType::DOUBLE:
-        {
-            // Reinterpret bits como uint64
-            double d = v.asDouble();
-            uint64_t bits;
-            memcpy(&bits, &d, sizeof(double));
-            // Hash as uint64
-            bits ^= bits >> 33;
-            bits *= 0xff51afd7ed558ccdULL;
-            bits ^= bits >> 33;
-            bits *= 0xc4ceb9fe1a85ec53ULL;
-            bits ^= bits >> 33;
-            return static_cast<size_t>(bits);
-        }
-        case ValueType::STRING:
-            return v.asString()->hash;
-        case ValueType::CLASS:
-        case ValueType::STRUCT:
-        case ValueType::NATIVE:
-            return v.as.integer; // Id do objeto
-        default:
-            return 0; // Objetos não vão no cache
-        }
-    }
 }

@@ -2,11 +2,13 @@
 #include "config.hpp"
 #include "string.hpp"
 #include "pool.hpp"
+#include <cstring>
 
 struct StructInstance;
 struct ArrayInstance;
 struct BufferInstance;
 struct MapInstance;
+struct SetInstance;
 struct ClassInstance;
 struct NativeClassInstance;
 struct NativeStructInstance;
@@ -28,6 +30,7 @@ enum class ValueType : uint8
   STRING,
   ARRAY,
   MAP,
+  SET,
   BUFFER,
   STRUCT,
   STRUCTINSTANCE,
@@ -65,6 +68,7 @@ struct Value
     ArrayInstance *array;
     BufferInstance *buffer;
     MapInstance *map;
+    SetInstance *set;
     ClassInstance *sClass;
     NativeClassInstance *sClassInstance;
     NativeStructInstance *sNativeStruct;
@@ -99,6 +103,7 @@ struct Value
   FORCE_INLINE bool isStruct() const { return type == ValueType::STRUCT; }
   FORCE_INLINE bool isStructInstance() const { return type == ValueType::STRUCTINSTANCE; }
   FORCE_INLINE bool isMap() const { return type == ValueType::MAP; }
+  FORCE_INLINE bool isSet() const { return type == ValueType::SET; }
   FORCE_INLINE bool isArray() const { return type == ValueType::ARRAY; }
   FORCE_INLINE bool isBuffer() const { return type == ValueType::BUFFER; }
   FORCE_INLINE bool isClass() const { return type == ValueType::CLASS; }
@@ -110,7 +115,7 @@ struct Value
   FORCE_INLINE bool isModuleRef() const { return type == ValueType::MODULEREFERENCE; }
   FORCE_INLINE bool isClosure() const { return type == ValueType::CLOSURE; }
 
-  FORCE_INLINE bool isObject() const { return (isBuffer() || isMap() || isArray() || isClassInstance() || isStructInstance() || isNativeClassInstance() || isNativeStructInstance() || isClosure()); }
+  FORCE_INLINE bool isObject() const { return (isBuffer() || isMap() || isSet() || isArray() || isClassInstance() || isStructInstance() || isNativeClassInstance() || isNativeStructInstance() || isClosure()); }
 
   // Conversions
 
@@ -172,6 +177,11 @@ struct Value
   FORCE_INLINE MapInstance *asMap() const
   {
     return as.map;
+  }
+
+  FORCE_INLINE SetInstance *asSet() const
+  {
+    return as.set;
   }
 
   FORCE_INLINE BufferInstance *asBuffer() const
@@ -422,6 +432,9 @@ static FORCE_INLINE bool valuesEqual(const Value &a, const Value &b)
   case ValueType::MAP:
     return a.asMap() == b.asMap();
   
+  case ValueType::SET:
+    return a.asSet() == b.asSet();
+  
   case ValueType::BUFFER:
     return a.asBuffer() == b.asBuffer();
   
@@ -452,6 +465,38 @@ static FORCE_INLINE bool valuesEqual(const Value &a, const Value &b)
   }
 }
 
+// Returns <0 if a<b, 0 if a==b, >0 if a>b
+// Used by array.sort() — supports numbers and strings
+static FORCE_INLINE int valuesCompare(const Value &a, const Value &b)
+{
+    // Fast path: both ints
+    if (LIKELY(a.isInt() && b.isInt()))
+    {
+        int ia = a.asInt(), ib = b.asInt();
+        return (ia > ib) - (ia < ib);
+    }
+    // Numbers: cross-type comparison
+    if (a.isNumber() && b.isNumber())
+    {
+        double da = a.asNumber(), db = b.asNumber();
+        if (da < db) return -1;
+        if (da > db) return 1;
+        return 0;
+    }
+    // Strings: strcmp
+    if (a.isString() && b.isString())
+    {
+        return strcmp(a.asString()->chars(), b.asString()->chars());
+    }
+    // Bools: false < true
+    if (a.isBool() && b.isBool())
+    {
+        return (int)a.asBool() - (int)b.asBool();
+    }
+    // Incompatible types: order by type enum value
+    return (int)a.type - (int)b.type;
+}
+
 static FORCE_INLINE bool isTruthy(const Value &value)
 {
   switch (value.type)
@@ -477,3 +522,75 @@ static FORCE_INLINE bool isFalsey(Value value)
 {
   return !isTruthy(value);
 }
+
+// FNV-1a hash for Value — used by HashMap<Value,...> and HashSet<Value,...>
+static FORCE_INLINE size_t hashValue(const Value &v)
+{
+    size_t h = 2166136261u;
+    // Mix type into hash
+    h ^= (size_t)v.type;
+    h *= 16777619u;
+
+    switch (v.type)
+    {
+    case ValueType::NIL:
+        return h;
+    case ValueType::BOOL:
+        h ^= (size_t)v.as.boolean;
+        h *= 16777619u;
+        return h;
+    case ValueType::INT:
+    {
+        uint32_t bits;
+        std::memcpy(&bits, &v.as.integer, sizeof(bits));
+        h ^= bits;
+        h *= 16777619u;
+        return h;
+    }
+    case ValueType::DOUBLE:
+    {
+        double d = v.as.number;
+        if (d == 0.0) d = 0.0; // normalize -0.0
+        uint64_t bits;
+        std::memcpy(&bits, &d, sizeof(bits));
+        h ^= (size_t)(bits ^ (bits >> 32));
+        h *= 16777619u;
+        return h;
+    }
+    case ValueType::FLOAT:
+    {
+        float f = v.as.real;
+        if (f == 0.0f) f = 0.0f;
+        uint32_t bits;
+        std::memcpy(&bits, &f, sizeof(bits));
+        h ^= bits;
+        h *= 16777619u;
+        return h;
+    }
+    case ValueType::BYTE:
+        h ^= (size_t)v.as.byte;
+        h *= 16777619u;
+        return h;
+    case ValueType::UINT:
+        h ^= (size_t)v.as.unsignedInteger;
+        h *= 16777619u;
+        return h;
+    case ValueType::STRING:
+        return v.as.string->hash;
+    default:
+        // Object types: hash by pointer
+        h ^= (size_t)(uintptr_t)v.as.pointer;
+        h *= 16777619u;
+        return h;
+    }
+}
+
+struct ValueHasher
+{
+    size_t operator()(const Value &v) const { return hashValue(v); }
+};
+
+struct ValueEq
+{
+    bool operator()(const Value &a, const Value &b) const { return valuesEqual(a, b); }
+};

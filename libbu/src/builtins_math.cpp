@@ -491,6 +491,28 @@ int native_math_ping_pong(Interpreter *vm, int argCount, Value *args)
     return 1;
 }
 
+int native_math_round(Interpreter *vm, int argCount, Value *args)
+{
+    if (argCount < 1 || argCount > 2)
+    {
+        vm->runtimeError("round expects 1 or 2 arguments");
+        return 0;
+    }
+    double val = args[0].asNumber();
+    if (argCount == 2)
+    {
+        int ndigits = args[1].asInt();
+        double factor = std::pow(10.0, ndigits);
+        vm->push(vm->makeDouble(std::round(val * factor) / factor));
+    }
+    else
+    {
+        // No decimal places: return int
+        vm->push(vm->makeInt((int)std::round(val)));
+    }
+    return 1;
+}
+
 void Interpreter::registerMath()
 {
 
@@ -530,7 +552,8 @@ void Interpreter::registerMath()
         .addFunction("max", native_max, 2)
         .addFunction("seed", native_seed, 1)
         .addFunction("rand", native_rand, -1)
-        .addFunction("irand", native_irand, -1);
+        .addFunction("irand", native_irand, -1)
+        .addFunction("round", native_math_round, -1);
 }
 
 #endif

@@ -52,6 +52,11 @@ void StringPool::deallocString(String *s)
     allocator.Free(s, sizeof(String));
 }
 
+void StringPool::freeTransient(String *s)
+{
+    deallocString(s);
+}
+
 void StringPool::clear()
 {
     Info("String pool clear %d strings", map.size());
@@ -138,14 +143,35 @@ String *StringPool::concat(String *a, String *b)
 
     size_t totalLen = lenA + lenB;
 
-    //  USA ALLOCA para buffer temporário
-    char *temp = (char *)alloca(totalLen + 1);
-    std::memcpy(temp, a->chars(), lenA);
-    std::memcpy(temp + lenA, b->chars(), lenB);
-    temp[totalLen] = '\0';
+    // Create transient string (not interned) — avoids O(n) hash + HashMap lookup
+    String *s = allocString();
 
-    //  Cria string (com interning!)
-    return create(temp, totalLen);
+    if (totalLen <= String::SMALL_THRESHOLD)
+    {
+        s->length_and_flag = totalLen;
+        std::memcpy(s->data, a->chars(), lenA);
+        std::memcpy(s->data + lenA, b->chars(), lenB);
+        s->data[totalLen] = '\0';
+    }
+    else
+    {
+        s->length_and_flag = totalLen | String::IS_LONG_FLAG;
+        s->ptr = (char *)allocator.Allocate(totalLen + 1);
+        std::memcpy(s->ptr, a->chars(), lenA);
+        std::memcpy(s->ptr + lenA, b->chars(), lenB);
+        s->ptr[totalLen] = '\0';
+    }
+
+    s->hash = hashString(s->chars(), totalLen);
+    s->index = String::TRANSIENT_INDEX;
+    bytesAllocated += sizeof(String) + totalLen;
+
+    // Free the left operand if it was transient (s = s + "x" pattern)
+    // Data already copied via memcpy above, so safe to free now
+    if (a->isTransient())
+        freeTransient(a);
+
+    return s;
 }
 
 // ========================================
@@ -455,6 +481,125 @@ String *StringPool::repeat(String *str, int count)
     }
 
     return result;
+}
+
+// ========================================
+// CAPITALIZE - first char upper, rest lower
+// ========================================
+String *StringPool::capitalize(String *str)
+{
+    if (!str || str->length() == 0) return create("", 0);
+    
+    int len = str->length();
+    char *temp = (char *)alloca(len + 1);
+    const char *src = str->chars();
+    
+    temp[0] = (char)toupper((unsigned char)src[0]);
+    for (int i = 1; i < len; i++)
+        temp[i] = (char)tolower((unsigned char)src[i]);
+    temp[len] = '\0';
+    
+    return create(temp, len);
+}
+
+// ========================================
+// TITLE - first char of each word upper
+// ========================================
+String *StringPool::title(String *str)
+{
+    if (!str || str->length() == 0) return create("", 0);
+    
+    int len = str->length();
+    char *temp = (char *)alloca(len + 1);
+    const char *src = str->chars();
+    
+    bool newWord = true;
+    for (int i = 0; i < len; i++)
+    {
+        if (isspace((unsigned char)src[i]))
+        {
+            temp[i] = src[i];
+            newWord = true;
+        }
+        else if (newWord)
+        {
+            temp[i] = (char)toupper((unsigned char)src[i]);
+            newWord = false;
+        }
+        else
+        {
+            temp[i] = (char)tolower((unsigned char)src[i]);
+        }
+    }
+    temp[len] = '\0';
+    
+    return create(temp, len);
+}
+
+// ========================================
+// LSTRIP - remove leading whitespace
+// ========================================
+String *StringPool::lstrip(String *str)
+{
+    if (!str || str->length() == 0) return create("", 0);
+    
+    const char *s = str->chars();
+    int len = str->length();
+    int start = 0;
+    
+    while (start < len && isspace((unsigned char)s[start]))
+        start++;
+    
+    if (start == 0) return str;
+    return create(s + start, len - start);
+}
+
+// ========================================
+// RSTRIP - remove trailing whitespace
+// ========================================
+String *StringPool::rstrip(String *str)
+{
+    if (!str || str->length() == 0) return create("", 0);
+    
+    const char *s = str->chars();
+    int end = str->length();
+    
+    while (end > 0 && isspace((unsigned char)s[end - 1]))
+        end--;
+    
+    if (end == (int)str->length()) return str;
+    if (end == 0) return create("", 0);
+
+    char *temp = (char *)alloca(end + 1);
+    std::memcpy(temp, s, end);
+    temp[end] = '\0';
+    return create(temp, end);
+}
+
+// ========================================
+// COUNT - count non-overlapping occurrences
+// ========================================
+int StringPool::count(String *str, const char *substr, int subLen)
+{
+    if (!str || !substr || subLen <= 0) return 0;
+    
+    int cnt = 0;
+    const char *s = str->chars();
+    int len = str->length();
+    
+    for (int i = 0; i <= len - subLen; )
+    {
+        if (strncmp(s + i, substr, subLen) == 0)
+        {
+            cnt++;
+            i += subLen; // non-overlapping
+        }
+        else
+        {
+            i++;
+        }
+    }
+    return cnt;
 }
 
 // ========================================

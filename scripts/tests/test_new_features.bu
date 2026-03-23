@@ -1,0 +1,145 @@
+// ============================================
+// Test: New VM Features (any-key maps, sets, sort)
+// ============================================
+
+var passed = 0;
+var failed = 0;
+
+def assert(cond, msg) {
+    if (cond) {
+        passed += 1;
+    } else {
+        failed += 1;
+        print(f"FAIL: {msg}");
+    }
+}
+
+// --- Any-key maps ---
+var m = {[1]: "one", [2]: "two", [true]: "yes", [false]: "no"};
+assert(m[1] == "one", "int key 1");
+assert(m[2] == "two", "int key 2");
+assert(m[true] == "yes", "bool key true");
+assert(m[false] == "no", "bool key false");
+assert(len(m) == 4, "map length 4");
+
+// string keys still work
+var m2 = {"name": "bulang", "version": 1};
+assert(m2["name"] == "bulang", "string key");
+assert(m2["version"] == 1, "string key int val");
+
+// dot syntax on maps
+m2.extra = true;
+assert(m2.extra == true, "dot set/get on map");
+m2.name = "updated";
+assert(m2.name == "updated", "dot update on map");
+
+// dynamic key expressions
+var key = "dynamic";
+var m3 = {[key]: 42};
+assert(m3["dynamic"] == 42, "dynamic key expr");
+
+// mixed key types in one map
+var mixed = {[1]: "int", ["hello"]: "str", [true]: "bool"};
+assert(mixed[1] == "int", "mixed int key");
+assert(mixed["hello"] == "str", "mixed str key");
+assert(mixed[true] == "bool", "mixed bool key");
+assert(len(mixed) == 3, "mixed map len");
+
+print("PASS: any-key maps");
+
+// --- Set type ---
+var s = (1, 2, 3, 4, 5);
+assert(len(s) == 5, "set length 5");
+assert(s.has(1) == true, "set has 1");
+assert(s.has(6) == false, "set has not 6");
+
+s.add(6);
+assert(s.has(6) == true, "set add 6");
+assert(len(s) == 6, "set length after add");
+
+s.add(1);
+assert(len(s) == 6, "set no duplicate");
+
+s.remove(3);
+assert(s.has(3) == false, "set remove 3");
+assert(len(s) == 5, "set length after remove");
+
+var vals = s.values();
+assert(len(vals) == 5, "set values length");
+
+// string set
+var ss = ("a", "b", "c");
+assert(ss.has("a") == true, "string set has");
+assert(ss.has("z") == false, "string set has not");
+
+// empty set
+var empty = ();
+assert(len(empty) == 0, "empty set");
+empty.add(42);
+assert(len(empty) == 1, "empty set after add");
+
+// set clear
+s.clear();
+assert(len(s) == 0, "set clear");
+
+print("PASS: sets");
+
+// --- Sort ---
+var arr = [5, 3, 1, 4, 2];
+arr.sort();
+assert(arr[0] == 1, "sort asc [0]");
+assert(arr[4] == 5, "sort asc [4]");
+
+arr.sort(false);
+assert(arr[0] == 5, "sort desc [0]");
+assert(arr[4] == 1, "sort desc [4]");
+
+arr.sort(true);
+assert(arr[0] == 1, "sort asc explicit [0]");
+
+// string sort
+var names = ["charlie", "alice", "bob"];
+names.sort();
+assert(names[0] == "alice", "string sort [0]");
+assert(names[2] == "charlie", "string sort [2]");
+
+names.sort(false);
+assert(names[0] == "charlie", "string sort desc [0]");
+assert(names[2] == "alice", "string sort desc [2]");
+
+print("PASS: sort");
+
+// --- Map methods ---
+var m4 = {[1]: 10, [2]: 20, [3]: 30};
+var items = m4.items();
+assert(items.length() == 3, "map items length");
+
+var keys = m4.keys();
+assert(keys.length() == 3, "map keys length");
+
+print("PASS: map methods");
+
+// --- Class init return self ---
+class Point {
+    var x;
+    var y;
+
+    def init(px, py) {
+        self.x = px;
+        self.y = py;
+           }
+    def toString() {
+        return "(" + str(self.x) + "," + str(self.y) + ")";
+    }
+}
+
+var p = Point(3, 4);
+assert(p.x == 3, "class init x");
+assert(p.y == 4, "class init y");
+
+print("PASS: class init return self");
+
+print(f"\n=== Results: {passed} passed, {failed} failed ===");
+if (failed > 0) {
+    exit(1);
+}

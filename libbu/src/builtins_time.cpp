@@ -137,14 +137,14 @@ int native_time_date(Interpreter *vm, int argCount, Value *args)
     Value result = vm->makeMap();
     MapInstance *map = result.asMap();
     
-    map->table.set(vm->makeString("year").asString(), vm->makeInt(timeinfo->tm_year + 1900));
-    map->table.set(vm->makeString("month").asString(), vm->makeInt(timeinfo->tm_mon + 1));
-    map->table.set(vm->makeString("day").asString(), vm->makeInt(timeinfo->tm_mday));
-    map->table.set(vm->makeString("hour").asString(), vm->makeInt(timeinfo->tm_hour));
-    map->table.set(vm->makeString("minute").asString(), vm->makeInt(timeinfo->tm_min));
-    map->table.set(vm->makeString("second").asString(), vm->makeInt(timeinfo->tm_sec));
-    map->table.set(vm->makeString("weekday").asString(), vm->makeInt(timeinfo->tm_wday));
-    map->table.set(vm->makeString("yearday").asString(), vm->makeInt(timeinfo->tm_yday));
+    map->table.set(vm->makeString("year"), vm->makeInt(timeinfo->tm_year + 1900));
+    map->table.set(vm->makeString("month"), vm->makeInt(timeinfo->tm_mon + 1));
+    map->table.set(vm->makeString("day"), vm->makeInt(timeinfo->tm_mday));
+    map->table.set(vm->makeString("hour"), vm->makeInt(timeinfo->tm_hour));
+    map->table.set(vm->makeString("minute"), vm->makeInt(timeinfo->tm_min));
+    map->table.set(vm->makeString("second"), vm->makeInt(timeinfo->tm_sec));
+    map->table.set(vm->makeString("weekday"), vm->makeInt(timeinfo->tm_wday));
+    map->table.set(vm->makeString("yearday"), vm->makeInt(timeinfo->tm_yday));
     
     vm->push(result);
     return 1;

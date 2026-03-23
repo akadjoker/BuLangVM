@@ -202,20 +202,15 @@ static bool jsonStringifyValue(const Value &value, int depth,
             bool first = true;
             bool ok = true;
 
-            map->table.forEach([&](String *key, Value val)
-                               {
-                if (!ok)
-                {
-                    return;
-                }
+            auto *ent = map->table.entries;
+            for (size_t idx = 0, cap = map->table.capacity; idx < cap && ok; idx++)
+            {
+                if (ent[idx].state != decltype(map->table)::FILLED) continue;
 
                 if (!first)
                 {
                     out += ',';
-                    if (ctx.pretty)
-                    {
-                        out += '\n';
-                    }
+                    if (ctx.pretty) out += '\n';
                 }
 
                 if (ctx.pretty)
@@ -223,18 +218,28 @@ static bool jsonStringifyValue(const Value &value, int depth,
                     jsonWriteIndent(out, depth + 1, ctx.indentWidth);
                 }
 
+                // JSON keys must be strings
                 out += '"';
-                jsonAppendEscapedString(key->chars(), out);
+                if (ent[idx].key.isString())
+                {
+                    jsonAppendEscapedString(ent[idx].key.asStringChars(), out);
+                }
+                else
+                {
+                    char buf[128];
+                    valueToBuffer(ent[idx].key, buf, sizeof(buf));
+                    jsonAppendEscapedString(buf, out);
+                }
                 out += '"';
                 out += ctx.pretty ? ": " : ":";
 
-                if (!jsonStringifyValue(val, depth + 1, ctx, out))
+                if (!jsonStringifyValue(ent[idx].value, depth + 1, ctx, out))
                 {
                     ok = false;
-                    return;
                 }
 
-                first = false; });
+                first = false;
+            }
 
             if (!ok)
             {
@@ -251,6 +256,23 @@ static bool jsonStringifyValue(const Value &value, int depth,
         out += '}';
 
         ctx.stack.pop_back();
+        return true;
+    }
+    case ValueType::SET:
+    {
+        // Serialize set as JSON array
+        SetInstance *set = value.asSet();
+        out += '[';
+        bool first = true;
+        auto *ent = set->table.entries;
+        for (size_t idx = 0, cap = set->table.capacity; idx < cap; idx++)
+        {
+            if (ent[idx].state != decltype(set->table)::FILLED) continue;
+            if (!first) out += ',';
+            if (!jsonStringifyValue(ent[idx].key, depth + 1, ctx, out)) return false;
+            first = false;
+        }
+        out += ']';
         return true;
     }
     default:
@@ -464,7 +486,7 @@ private:
             {
                 vm_->push(val);
             }
-            map->table.set(vm_->makeString(key.c_str()).asString(), val);
+            map->table.set(vm_->makeString(key.c_str()), val);
             if (keepValue)
             {
                 vm_->pop();

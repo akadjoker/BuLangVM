@@ -65,28 +65,33 @@ static std::map<std::string, std::string> extractHeaders(Interpreter *vm, Value 
 
     MapInstance *map = mapValue.asMap();
 
-    map->table.forEach([&](String *key, Value value)
-                       {
-                           if (value.isString())
-                           {
-                               headers[key->chars()] = value.asStringChars();
-                           } else if (value.isInt())
-                           {
-                               headers[key->chars()] = std::to_string(value.asInt());
-                           } else if (value.isFloat())
-                           {
-                               headers[key->chars()] = std::to_string(value.asFloat());
-                           }else if (value.isBool())
-                           {
-                               headers[key->chars()] = std::to_string(value.asBool());
-                           }else if (value.isDouble())
-                           {
-                               headers[key->chars()] = std::to_string(value.asDouble());
-                           } 
-                           else
-                           {
-                               vm->runtimeError("Invalid header format");
-                           } });
+    for (size_t i = 0; i < map->table.capacity; i++)
+    {
+        if (map->table.entries[i].state != map->table.FILLED) continue;
+        Value key = map->table.entries[i].key;
+        Value value = map->table.entries[i].value;
+        if (!key.isString()) continue;
+        if (value.isString())
+        {
+            headers[key.asStringChars()] = value.asStringChars();
+        } else if (value.isInt())
+        {
+            headers[key.asStringChars()] = std::to_string(value.asInt());
+        } else if (value.isFloat())
+        {
+            headers[key.asStringChars()] = std::to_string(value.asFloat());
+        }else if (value.isBool())
+        {
+            headers[key.asStringChars()] = std::to_string(value.asBool());
+        }else if (value.isDouble())
+        {
+            headers[key.asStringChars()] = std::to_string(value.asDouble());
+        } 
+        else
+        {
+            vm->runtimeError("Invalid header format");
+        }
+    }
 
     return headers;
 }
@@ -104,14 +109,19 @@ static std::string buildQueryString(Interpreter *vm, Value mapValue)
     MapInstance *map = mapValue.asMap();
     bool first = true;
 
-    map->table.forEach([&](String *key, Value value)
-                       {
+    for (size_t i = 0; i < map->table.capacity; i++)
+    {
+        if (map->table.entries[i].state != map->table.FILLED) continue;
+        Value key = map->table.entries[i].key;
+        Value value = map->table.entries[i].value;
+        if (!key.isString()) continue;
+
         if (!first) {
             query += "&";
         }
         first = false;
 
-        query += key->chars();
+        query += key.asStringChars();
         query += "=";
 
         if (value.isString())
@@ -133,7 +143,8 @@ static std::string buildQueryString(Interpreter *vm, Value mapValue)
         else if (value.isBool())
         {
             query += value.asBool() ? "true" : "false";
-        } });
+        }
+    }
 
     return query;
 }
@@ -304,28 +315,28 @@ int native_socket_http_get(Interpreter *vm, int argCount, Value *args)
         Value val;
 
         // 1. Headers
-        if (options->table.get(vm->makeString("headers").asString(), &val))
+        if (options->table.get(vm->makeString("headers"), &val))
         {
             if (val.isMap())
                 customHeaders = extractHeaders(vm, val);
         }
 
         // 2. Params
-        if (options->table.get(vm->makeString("params").asString(), &val))
+        if (options->table.get(vm->makeString("params"), &val))
         {
             if (val.isMap())
                 queryParams = buildQueryString(vm, val);
         }
 
         // 3. Timeout
-        if (options->table.get(vm->makeString("timeout").asString(), &val))
+        if (options->table.get(vm->makeString("timeout"), &val))
         {
             if (val.isInt())
                 timeout = val.asInt();
         }
 
         // 4. User Agent Explícito
-        if (options->table.get(vm->makeString("user_agent").asString(), &val))
+        if (options->table.get(vm->makeString("user_agent"), &val))
         {
             if (val.isString())
                 userAgent = val.asStringChars();
@@ -449,20 +460,20 @@ int native_socket_http_get(Interpreter *vm, int argCount, Value *args)
     Value result = vm->makeMap();
     MapInstance *map = result.asMap();
 
-    map->table.set(vm->makeString("status_code").asString(), vm->makeInt(httpResp.statusCode));
-    map->table.set(vm->makeString("status_text").asString(), vm->makeString(httpResp.statusText.c_str()));
-    map->table.set(vm->makeString("body").asString(), vm->makeString(httpResp.body.c_str()));
-    map->table.set(vm->makeString("success").asString(), vm->makeBool(httpResp.success));
-    map->table.set(vm->makeString("url").asString(), vm->makeString(url.c_str()));
-    map->table.set(vm->makeString("received").asString(), vm->makeInt(response.length()));
+    map->table.set(vm->makeString("status_code"), vm->makeInt(httpResp.statusCode));
+    map->table.set(vm->makeString("status_text"), vm->makeString(httpResp.statusText.c_str()));
+    map->table.set(vm->makeString("body"), vm->makeString(httpResp.body.c_str()));
+    map->table.set(vm->makeString("success"), vm->makeBool(httpResp.success));
+    map->table.set(vm->makeString("url"), vm->makeString(url.c_str()));
+    map->table.set(vm->makeString("received"), vm->makeInt(response.length()));
 
     Value headersMap = vm->makeMap();
     MapInstance *headers = headersMap.asMap();
     for (const auto &h : httpResp.headers)
     {
-        headers->table.set(vm->makeString(h.first.c_str()).asString(), vm->makeString(h.second.c_str()));
+        headers->table.set(vm->makeString(h.first.c_str()), vm->makeString(h.second.c_str()));
     }
-    map->table.set(vm->makeString("headers").asString(), headersMap);
+    map->table.set(vm->makeString("headers"), headersMap);
 
     vm->push(result);
     return 1;
@@ -504,11 +515,21 @@ static std::string serializeJson(Interpreter *vm, Value value)
         std::string json = "{";
         MapInstance *map = value.asMap();
         bool first = true;
-        map->table.forEach([&](String *k, Value v)
-                           {
+        for (size_t i = 0; i < map->table.capacity; i++)
+        {
+            if (map->table.entries[i].state != map->table.FILLED) continue;
+            Value k = map->table.entries[i].key;
+            Value v = map->table.entries[i].value;
             if (!first) json += ",";
             first = false;
-            json += "\"" + std::string(k->chars()) + "\":" + serializeJson(vm, v); });
+            if (k.isString()) {
+                json += "\"" + std::string(k.asStringChars()) + "\":" + serializeJson(vm, v);
+            } else {
+                char buf[64];
+                valueToBuffer(k, buf, sizeof(buf));
+                json += "\"" + std::string(buf) + "\":" + serializeJson(vm, v);
+            }
+        }
         json += "}";
         return json;
     }
@@ -555,14 +576,14 @@ int native_socket_http_post(Interpreter *vm, int argCount, Value *args)
         Value val;
 
         // 1. Headers
-        if (options->table.get(vm->makeString("headers").asString(), &val))
+        if (options->table.get(vm->makeString("headers"), &val))
         {
             if (val.isMap())
                 customHeaders = extractHeaders(vm, val);
         }
 
         // 2. Data (Raw String ou Form Map)
-        if (options->table.get(vm->makeString("data").asString(), &val))
+        if (options->table.get(vm->makeString("data"), &val))
         {
             if (val.isString())
             {
@@ -575,7 +596,7 @@ int native_socket_http_post(Interpreter *vm, int argCount, Value *args)
         }
 
         // 3. JSON (Auto-serialize) - TEM PRIORIDADE SOBRE 'data'
-        if (options->table.get(vm->makeString("json").asString(), &val))
+        if (options->table.get(vm->makeString("json"), &val))
         {
             //   serializa   JSON
             postData = serializeJson(vm, val);
@@ -583,14 +604,14 @@ int native_socket_http_post(Interpreter *vm, int argCount, Value *args)
         }
 
         // 4. Timeout
-        if (options->table.get(vm->makeString("timeout").asString(), &val))
+        if (options->table.get(vm->makeString("timeout"), &val))
         {
             if (val.isInt())
                 timeout = val.asInt();
         }
 
         // 5. User Agent Explícito
-        if (options->table.get(vm->makeString("user_agent").asString(), &val))
+        if (options->table.get(vm->makeString("user_agent"), &val))
         {
             if (val.isString())
                 userAgent = val.asStringChars();
@@ -717,19 +738,19 @@ int native_socket_http_post(Interpreter *vm, int argCount, Value *args)
     Value result = vm->makeMap();
     MapInstance *map = result.asMap();
 
-    map->table.set(vm->makeString("status_code").asString(), vm->makeInt(httpResp.statusCode));
-    map->table.set(vm->makeString("status_text").asString(), vm->makeString(httpResp.statusText.c_str()));
-    map->table.set(vm->makeString("body").asString(), vm->makeString(httpResp.body.c_str()));
-    map->table.set(vm->makeString("success").asString(), vm->makeBool(httpResp.success));
-    map->table.set(vm->makeString("url").asString(), vm->makeString(url.c_str()));
+    map->table.set(vm->makeString("status_code"), vm->makeInt(httpResp.statusCode));
+    map->table.set(vm->makeString("status_text"), vm->makeString(httpResp.statusText.c_str()));
+    map->table.set(vm->makeString("body"), vm->makeString(httpResp.body.c_str()));
+    map->table.set(vm->makeString("success"), vm->makeBool(httpResp.success));
+    map->table.set(vm->makeString("url"), vm->makeString(url.c_str()));
 
     Value headersMap = vm->makeMap();
     MapInstance *headers = headersMap.asMap();
     for (const auto &h : httpResp.headers)
     {
-        headers->table.set(vm->makeString(h.first.c_str()).asString(), vm->makeString(h.second.c_str()));
+        headers->table.set(vm->makeString(h.first.c_str()), vm->makeString(h.second.c_str()));
     }
-    map->table.set(vm->makeString("headers").asString(), headersMap);
+    map->table.set(vm->makeString("headers"), headersMap);
 
     vm->push(result);
 
@@ -1472,9 +1493,9 @@ int native_socket_recvfrom(Interpreter *vm, int argCount, Value *args)
 
     Value result = vm->makeMap();
     MapInstance *map = result.asMap();
-    map->table.set(vm->makeString("data").asString(), vm->makeString(std::string(buffer.data(), received).c_str()));
-    map->table.set(vm->makeString("host").asString(), vm->makeString(inet_ntoa(fromAddr.sin_addr)));
-    map->table.set(vm->makeString("port").asString(), vm->makeInt(ntohs(fromAddr.sin_port)));
+    map->table.set(vm->makeString("data"), vm->makeString(std::string(buffer.data(), received).c_str()));
+    map->table.set(vm->makeString("host"), vm->makeString(inet_ntoa(fromAddr.sin_addr)));
+    map->table.set(vm->makeString("port"), vm->makeInt(ntohs(fromAddr.sin_port)));
 
     vm->push(result);
     return 1;
@@ -1507,13 +1528,13 @@ int native_socket_info(Interpreter *vm, int argCount, Value *args)
     else if (handle->type == SocketType::UDP)
         typeStr = "udp";
 
-    map->table.set(vm->makeString("type").asString(), vm->makeString(typeStr));
-    map->table.set(vm->makeString("port").asString(), vm->makeInt(handle->port));
-    map->table.set(vm->makeString("blocking").asString(), vm->makeBool(handle->isBlocking));
-    map->table.set(vm->makeString("connected").asString(), vm->makeBool(handle->isConnected));
+    map->table.set(vm->makeString("type"), vm->makeString(typeStr));
+    map->table.set(vm->makeString("port"), vm->makeInt(handle->port));
+    map->table.set(vm->makeString("blocking"), vm->makeBool(handle->isBlocking));
+    map->table.set(vm->makeString("connected"), vm->makeBool(handle->isConnected));
 
     if (!handle->host.empty())
-        map->table.set(vm->makeString("host").asString(), vm->makeString(handle->host.c_str()));
+        map->table.set(vm->makeString("host"), vm->makeString(handle->host.c_str()));
 
     vm->push(result);
     return 1;

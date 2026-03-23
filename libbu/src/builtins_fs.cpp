@@ -233,13 +233,13 @@ int native_fs_stat(Interpreter *vm, int argCount, Value *args)
     size.LowPart = fileInfo.nFileSizeLow;
     size.HighPart = fileInfo.nFileSizeHigh;
 
-    m->table.set(vm->makeString("size").asString(), vm->makeInt((int)size.QuadPart));
-    m->table.set(vm->makeString("isdir").asString(),
+    m->table.set(vm->makeString("size"), vm->makeInt((int)size.QuadPart));
+    m->table.set(vm->makeString("isdir"),
                  vm->makeBool(fileInfo.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY));
-    m->table.set(vm->makeString("isfile").asString(),
+    m->table.set(vm->makeString("isfile"),
                  vm->makeBool(!(fileInfo.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)));
-    m->table.set(vm->makeString("mode").asString(), vm->makeInt((int)fileInfo.dwFileAttributes));
-    m->table.set(vm->makeString("mtime").asString(), vm->makeInt(0));
+    m->table.set(vm->makeString("mode"), vm->makeInt((int)fileInfo.dwFileAttributes));
+    m->table.set(vm->makeString("mtime"), vm->makeInt(0));
 
 #else
     struct stat st;
@@ -250,11 +250,11 @@ int native_fs_stat(Interpreter *vm, int argCount, Value *args)
         return 1;
     }
 
-    m->table.set(vm->makeString("size").asString(), vm->makeInt((int)st.st_size));
-    m->table.set(vm->makeString("isdir").asString(), vm->makeBool(S_ISDIR(st.st_mode)));
-    m->table.set(vm->makeString("isfile").asString(), vm->makeBool(S_ISREG(st.st_mode)));
-    m->table.set(vm->makeString("mode").asString(), vm->makeInt(st.st_mode));
-    m->table.set(vm->makeString("mtime").asString(), vm->makeInt((int)st.st_mtime));
+    m->table.set(vm->makeString("size"), vm->makeInt((int)st.st_size));
+    m->table.set(vm->makeString("isdir"), vm->makeBool(S_ISDIR(st.st_mode)));
+    m->table.set(vm->makeString("isfile"), vm->makeBool(S_ISREG(st.st_mode)));
+    m->table.set(vm->makeString("mode"), vm->makeInt(st.st_mode));
+    m->table.set(vm->makeString("mtime"), vm->makeInt((int)st.st_mtime));
 #endif
 
     vm->push(map);

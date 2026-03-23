@@ -1,0 +1,44 @@
+// Test json module documentation
+import json;
+
+var passed = 0;
+var failed = 0;
+
+def assert(cond, msg) {
+    if (cond) {
+        passed += 1;
+    } else {
+        failed += 1;
+        print(f"FAIL: {msg}");
+    }
+}
+
+// Test parse object
+var obj = json.parse("{\"name\": \"Alice\", \"age\": 30}");
+assert(obj.name == "Alice", "json.parse object.name");
+assert(obj.age == 30, "json.parse object.age");
+
+// Test parse array
+var arr = json.parse("[1, 2, 3, \"four\"]");
+assert(arr[0] == 1, "json.parse array[0]");
+assert(arr[3] == "four", "json.parse array[3]");
+
+// Test stringify object
+var data = {title: "Test", count: 42, active: true};
+var jsonStr = json.stringify(data);
+assert(len(jsonStr) > 0, "json.stringify produces string");
+
+// Roundtrip test
+var parsed = json.parse(jsonStr);
+assert(parsed.title == "Test", "roundtrip title");
+assert(parsed.count == 42, "roundtrip count");
+assert(parsed.active == true, "roundtrip active");
+
+// Test stringify array
+var arrStr = json.stringify([1, 2, 3]);
+assert(arrStr == "[1,2,3]", "json.stringify array");
+
+print(f"JSON tests: {passed} passed, {failed} failed");
+if (failed == 0) {
+    print("All json documentation validated!");
+}

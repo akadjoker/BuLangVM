@@ -6,6 +6,7 @@ struct String
 {
   static constexpr size_t SMALL_THRESHOLD = 23;
   static constexpr size_t IS_LONG_FLAG = 0x80000000u;
+  static constexpr int TRANSIENT_INDEX = -2;
   
   int index;
   size_t hash;
@@ -19,6 +20,7 @@ struct String
 
   FORCE_INLINE bool isLong() const { return length_and_flag & IS_LONG_FLAG; }
   FORCE_INLINE size_t length() const { return length_and_flag & ~IS_LONG_FLAG; };
+  FORCE_INLINE bool isTransient() const { return index == TRANSIENT_INDEX; }
 
   FORCE_INLINE const char *chars() const { return isLong() ? ptr : data; }
   FORCE_INLINE char *chars() { return isLong() ? ptr : data; }

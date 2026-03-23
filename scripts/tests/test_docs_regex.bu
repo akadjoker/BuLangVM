@@ -1,0 +1,44 @@
+// Test regex module documentation
+import regex;
+
+var passed = 0;
+var failed = 0;
+
+def assert(cond, msg) {
+    if (cond) {
+        passed += 1;
+    } else {
+        failed += 1;
+        print(f"FAIL: {msg}");
+    }
+}
+
+// Test match - returns bool (FULL string match)
+assert(regex.match("hello", "hello"), "regex.match exact");
+assert(regex.match("hello\\d+", "hello123"), "regex.match pattern-text");
+assert(!regex.match("world", "hello"), "regex.match negative");
+
+// Test search - returns bool (substring match)
+var found = regex.search("\\d+\\.\\d+", "Price: $42.99");
+assert(found == true, "regex.search finds match");
+
+var noMatch = regex.search("\\d+", "hello");
+assert(noMatch == false, "regex.search returns false on no match");
+
+// Test replace(pattern, replacement, text)
+var cleaned = regex.replace("\\s+", " ", "hello   world");
+assert(cleaned == "hello world", "regex.replace whitespace");
+
+var replaced = regex.replace("\\d+", "X", "abc123def");
+assert(replaced == "abcXdef", "regex.replace digits");
+
+// Test findall(pattern, text)
+var numbers = regex.findall("\\d+", "a1b2c3d4");
+assert(len(numbers) == 4, "regex.findall count");
+assert(numbers[0] == "1", "regex.findall first");
+assert(numbers[3] == "4", "regex.findall last");
+
+print(f"Regex tests: {passed} passed, {failed} failed");
+if (failed == 0) {
+    print("All regex documentation validated!");
+}

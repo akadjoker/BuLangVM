@@ -110,6 +110,9 @@ void Interpreter::markValue(const Value &v)
     case ValueType::MAP:
         markObject(v.as.map);
         break;
+    case ValueType::SET:
+        markObject(v.as.set);
+        break;
     case ValueType::BUFFER:
         markObject(v.as.buffer);
         break;
@@ -184,8 +187,14 @@ void Interpreter::freeObject(GCObject *obj)
     case GCObjectType::MAP:
     {
         MapInstance *m = static_cast<MapInstance *>(obj);
-
         freeMap(m);
+        break;
+    }
+
+    case GCObjectType::SET:
+    {
+        SetInstance *s = static_cast<SetInstance *>(obj);
+        freeSet(s);
         break;
     }
 
@@ -286,14 +295,31 @@ void Interpreter::blackenObject(GCObject *obj)
     case GCObjectType::MAP:
     {
         MapInstance *m = static_cast<MapInstance *>(obj);
-        // OPTIMIZATION: Direct iteration over entries instead of forEach lambda
         auto* entries = m->table.entries;
         size_t cap = m->table.capacity;
         for (size_t i = 0; i < cap; i++)
         {
-            if (entries[i].state == 1 && entries[i].value.isObject())  // 1 = FILLED
+            if (entries[i].state == 1)  // 1 = FILLED
             {
-                markValue(entries[i].value);
+                if (entries[i].key.isObject())
+                    markValue(entries[i].key);
+                if (entries[i].value.isObject())
+                    markValue(entries[i].value);
+            }
+        }
+        break;
+    }
+
+    case GCObjectType::SET:
+    {
+        SetInstance *s = static_cast<SetInstance *>(obj);
+        auto* entries = s->table.entries;
+        size_t cap = s->table.capacity;
+        for (size_t i = 0; i < cap; i++)
+        {
+            if (entries[i].state == 1 && entries[i].key.isObject())
+            {
+                markValue(entries[i].key);
             }
         }
         break;
@@ -349,7 +375,7 @@ void Interpreter::runGC()
 
 #if defined(DEBUG_GC)
     size_t bytesBefore = totalAllocated;
-    size_t objectsBefore = totalArrays + totalClasses + totalStructs + totalMaps + totalBuffers + totalNativeClasses + totalNativeStructs + totalClosures + totalUpvalues;
+    size_t objectsBefore = totalArrays + totalClasses + totalStructs + totalMaps + totalSets + totalBuffers + totalNativeClasses + totalNativeStructs + totalClosures + totalUpvalues;
 #endif
 
     // OPTIMIZATION: Reserve capacity instead of clear to avoid reallocations
@@ -375,7 +401,7 @@ void Interpreter::runGC()
     }
 
 #if defined(DEBUG_GC)
-    size_t objectCount = totalArrays + totalClasses + totalStructs + totalMaps + totalBuffers + totalNativeClasses + totalNativeStructs + totalClosures + totalUpvalues;
+    size_t objectCount = totalArrays + totalClasses + totalStructs + totalMaps + totalSets + totalBuffers + totalNativeClasses + totalNativeStructs + totalClosures + totalUpvalues;
     size_t bytesFreed = bytesBefore - totalAllocated;
     size_t objectsFreed = objectsBefore - objectCount;
     GC_DEBUG_LOG("GC: End - Freed %zu objects (%.2f KB). Remaining: %zu objects (%.2f KB). Next GC: %.2f KB",

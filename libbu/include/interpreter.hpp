@@ -3,6 +3,7 @@
 #include "code.hpp"
 #include "config.hpp"
 #include "map.hpp"
+#include "set.hpp"
 #include "list.hpp"
 #include "ordermap.hpp"
 #include "pool.hpp"
@@ -60,12 +61,16 @@ enum class StaticNames : uint8 {
     FIRST,        // Novo
     LAST,         // Novo
     COUNT,        // Novo (para contar ocorrências, ex: arr.count(10))
+    SORT,         // arr.sort() / arr.sort(cmp)
 
     // === MAP / SET ===
     HAS,
     REMOVE,       //  Map e Array)
     KEYS,
     VALUES,
+    GET,          // map.get(key, default)
+    ITEMS,        // map.items()
+    ADD,          // set.add(value)
 
     // === STRING ===
     RFIND,
@@ -83,6 +88,16 @@ enum class StaticNames : uint8 {
     INDEXOF,
     REPEAT,
     SPLIT,
+    CAPITALIZE,   // str.capitalize()
+    TITLE,        // str.title()
+    ISDIGIT,      // str.isdigit()
+    ISALPHA,      // str.isalpha()
+    ISALNUM,      // str.isalnum()
+    ISSPACE,      // str.isspace()
+    ISUPPER,      // str.isupper()
+    ISLOWER,      // str.islower()
+    LSTRIP,       // str.lstrip()
+    RSTRIP,       // str.rstrip()
     INIT,         // Geralmente para Classes/Structs
 
     // === BUFFER ===
@@ -116,6 +131,20 @@ enum class StaticNames : uint8 {
     REWIND,
     SKIP,
     REMAINING,
+
+    // === OPERATORS (class overloading) ===
+    OP_ADD_METHOD,    // "+"
+    OP_SUB_METHOD,    // "-"
+    OP_MUL_METHOD,    // "*"
+    OP_DIV_METHOD,    // "/"
+    OP_MOD_METHOD,    // "%"
+    OP_EQ_METHOD,     // "=="
+    OP_NEQ_METHOD,    // "!="
+    OP_LT_METHOD,     // "<"
+    OP_GT_METHOD,     // ">"
+    OP_LTE_METHOD,    // "<="
+    OP_GTE_METHOD,    // ">="
+    OP_STR_METHOD,    // "str"
 
     // === META ===
     TOTAL_COUNT  
@@ -299,6 +328,7 @@ enum class GCObjectType : uint8
   CLASS,
   ARRAY,
   MAP,
+  SET,
   BUFFER,
   NATIVE_CLASS,
   NATIVE_STRUCT,
@@ -432,10 +462,18 @@ struct BufferInstance : GCObject
 
 struct MapInstance : GCObject
 {
-  HashMap<String *, Value, StringHasher, StringEq> table;
+  HashMap<Value, Value, ValueHasher, ValueEq> table;
 
   MapInstance() : GCObject(GCObjectType::MAP) {}
 };
+
+struct SetInstance : GCObject
+{
+  HashSet<Value, ValueHasher, ValueEq> table;
+
+  SetInstance() : GCObject(GCObjectType::SET) {}
+};
+
 struct NativeClassInstance : GCObject
 {
   NativeClassDef *klass;
@@ -643,6 +681,7 @@ class Interpreter
   size_t totalClosures = 0;
   size_t totalUpvalues = 0;
   size_t totalMaps = 0;
+  size_t totalSets = 0;
   size_t totalArrays = 0;
   size_t totalBuffers = 0;
   size_t totalNativeStructs = 0;
@@ -935,6 +974,30 @@ class Interpreter
     arena.Free(m, size);
   }
 
+  FORCE_INLINE SetInstance *createSet()
+  {
+    checkGC();
+    size_t size = sizeof(SetInstance);
+    void *mem = arena.Allocate(size);
+    SetInstance *instance = new (mem) SetInstance();
+    instance->marked = 0;
+    instance->next = gcObjects;
+    gcObjects = instance;
+    totalSets++;
+    totalAllocated += size;
+    return instance;
+  }
+
+  FORCE_INLINE void freeSet(SetInstance *s)
+  {
+    size_t size = sizeof(SetInstance);
+    totalAllocated -= size;
+    totalSets--;
+    s->table.destroy();
+    s->~SetInstance();
+    arena.Free(s, size);
+  }
+
   FORCE_INLINE NativeClassInstance *createNativeClass(bool persistent = false)
   {
 
@@ -1173,6 +1236,7 @@ public:
   size_t getTotalStructs() { return totalStructs; }
   size_t getTotalArrays() { return totalArrays; }
   size_t getTotalMaps() { return totalMaps; }
+  size_t getTotalSets() { return totalSets; }
   size_t getTotalNativeClasses() { return totalNativeClasses; }
   size_t getTotalNativeStructs() { return totalNativeStructs; }
 
@@ -1322,6 +1386,14 @@ public:
     Value v;
     v.type = ValueType::MAP;
     v.as.map = createMap();
+    return v;
+  }
+
+  FORCE_INLINE Value makeSet()
+  {
+    Value v;
+    v.type = ValueType::SET;
+    v.as.set = createSet();
     return v;
   }
 

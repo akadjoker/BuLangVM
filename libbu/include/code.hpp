@@ -2,19 +2,7 @@
 
 #include "config.hpp"
 #include "array.hpp"
-
-struct Value;
-
-struct ValueHasher
-{
-    size_t operator()(const Value &v) const;
-  
-};
-struct ValueEq
-{
-    bool operator()(const Value& a, const Value& b) const;
-    
-};
+#include "value.hpp"
 
 class Code
 {

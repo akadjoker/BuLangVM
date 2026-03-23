@@ -35,6 +35,8 @@
 #include "platform.hpp"
 #include <cmath> // std::fmod
 #include <climits> // INT32_MIN
+#include <algorithm> // std::sort
+#include <cctype> // isdigit, isalpha, etc.
 #include <new>
 #include <ctime>
 
@@ -44,7 +46,7 @@ extern size_t get_type_size(BufferType type);
 #define DEBUG_TRACE_EXECUTION 0 // 1 = ativa, 0 = desativa
 #define DEBUG_TRACE_STACK 0     // 1 = mostra stack, 0 = esconde
 
-bool toNumberPair(const Value &a, const Value &b, double &da, double &db)
+static FORCE_INLINE bool toNumberPair(const Value &a, const Value &b, double &da, double &db)
 {
     if (!a.isNumber())
         return false;
@@ -54,6 +56,27 @@ bool toNumberPair(const Value &a, const Value &b, double &da, double &db)
     da = a.asDouble();
     db = b.asDouble();
     return true;
+}
+
+static FORCE_INLINE int compareStrings(String *a, String *b)
+{
+    if (a == b) return 0;
+    size_t al = a->length(), bl = b->length();
+    size_t minLen = al < bl ? al : bl;
+    int cmp = memcmp(a->chars(), b->chars(), minLen);
+    if (cmp != 0) return cmp;
+    return (al < bl) ? -1 : (al > bl) ? 1 : 0;
+}
+
+static FORCE_INLINE bool toInt32(const Value &v, int32_t &out)
+{
+    switch (v.type)
+    {
+    case ValueType::INT:  out = v.as.integer;              return true;
+    case ValueType::BYTE: out = (int32_t)v.as.byte;        return true;
+    case ValueType::UINT: out = (int32_t)v.as.unsignedInteger; return true;
+    default:              return false;
+    }
 }
 
 static const char* getValueTypeName(const Value &v)
@@ -73,6 +96,7 @@ static const char* getValueTypeName(const Value &v)
         case ValueType::STRING:              return "string";
         case ValueType::ARRAY:               return "array";
         case ValueType::MAP:                 return "map";
+        case ValueType::SET:                 return "set";
         case ValueType::BUFFER:              return "buffer";
         case ValueType::STRUCT:              return "struct";
         case ValueType::STRUCTINSTANCE:      return "struct instance";
@@ -175,6 +199,22 @@ ProcessResult Interpreter::run_process(Process *process)
             return {ProcessResult::PROCESS_DONE, 0}; \
         }                                                            \
     } while (0)
+
+#define TRY_OPERATOR_OVERLOAD(staticNameIdx, opSymbol)                                           \
+    if (a.isClassInstance()) {                                                                   \
+        ClassInstance *_inst = a.asClassInstance();                                               \
+        Function *_method;                                                                       \
+        if (_inst->getMethod(staticNames[(int)StaticNames::staticNameIdx], &_method)) {          \
+            if (UNLIKELY(_method->arity != 1)) {                                                 \
+                THROW_RUNTIME_ERROR("Operator '%s' method must take 1 parameter", opSymbol);     \
+                break;                                                                           \
+            }                                                                                    \
+            PUSH(a);                                                                             \
+            PUSH(b);                                                                             \
+            PUSH_CALL_FRAME_STORE_LOAD(_method, nullptr, 1, "Stack overflow in operator");       \
+            break;                                                                               \
+        }                                                                                        \
+    }
 
 #define READ_CONSTANT() (func->chunk->constants[READ_SHORT()])
     LOAD_FRAME();
@@ -373,6 +413,15 @@ ProcessResult Interpreter::run_process(Process *process)
             BINARY_OP_PREP();
 
             // ---------------------------------------------------------
+            // Fast path: int + int (most common in loops/math)
+            // ---------------------------------------------------------
+            if (LIKELY(a.isInt() && b.isInt()))
+            {
+                PUSH(makeInt(a.asInt() + b.asInt()));
+                break;
+            }
+
+            // ---------------------------------------------------------
             // 1. CONCATENAÇÃO (String à Esquerda)
             // Ex: "Pontos: " + 100
             // ---------------------------------------------------------
@@ -468,21 +517,14 @@ ProcessResult Interpreter::run_process(Process *process)
 
             else if (a.isNumber() && b.isNumber())
             {
-                // Caminho rápido: Inteiros
-                if (a.isInt() && b.isInt())
-                {
-                    PUSH(makeInt(a.asInt() + b.asInt()));
-                }
-                // Caminho misto: Converte tudo para double
-                else
-                {
-                    double da = a.isInt() ? (double)a.asInt() : a.asDouble();
-                    double db = b.isInt() ? (double)b.asInt() : b.asDouble();
-                    PUSH(makeDouble(da + db));
-                }
+                // int+int already handled above, this handles mixed/double
+                double da = a.isInt() ? (double)a.asInt() : a.asDouble();
+                double db = b.isInt() ? (double)b.asInt() : b.asDouble();
+                PUSH(makeDouble(da + db));
                 break;
             }
 
+            TRY_OPERATOR_OVERLOAD(OP_ADD_METHOD, "+");
             THROW_RUNTIME_ERROR("Cannot apply '+' to %s and %s", getValueTypeName(a), getValueTypeName(b));
             break;
         }
@@ -494,18 +536,18 @@ ProcessResult Interpreter::run_process(Process *process)
         {
             BINARY_OP_PREP();
 
+            // Fast path: int - int (fib, loops)
+            if (LIKELY(a.isInt() && b.isInt()))
+            {
+                PUSH(makeInt(a.asInt() - b.asInt()));
+                break;
+            }
+
             if (a.isNumber() && b.isNumber())
             {
-                if (a.isInt() && b.isInt())
-                {
-                    PUSH(makeInt(a.asInt() - b.asInt()));
-                }
-                else
-                {
-                    double da = a.isInt() ? (double)a.asInt() : a.asDouble();
-                    double db = b.isInt() ? (double)b.asInt() : b.asDouble();
-                    PUSH(makeDouble(da - db));
-                }
+                double da = a.asDouble();
+                double db = b.asDouble();
+                PUSH(makeDouble(da - db));
                 break;
             } else if (a.isBool() && b.isNumber()) 
             {
@@ -528,6 +570,7 @@ ProcessResult Interpreter::run_process(Process *process)
             }
             
 
+            TRY_OPERATOR_OVERLOAD(OP_SUB_METHOD, "-");
             THROW_RUNTIME_ERROR("Cannot apply '-' to %s and %s", getValueTypeName(a), getValueTypeName(b));
             break;
         }
@@ -539,21 +582,22 @@ ProcessResult Interpreter::run_process(Process *process)
         {
             BINARY_OP_PREP();
 
-            if (a.isNumber() && b.isNumber())
+            // Fast path: int * int
+            if (LIKELY(a.isInt() && b.isInt()))
             {
-                if (a.isInt() && b.isInt())
-                {
-                    PUSH(makeInt(a.asInt() * b.asInt()));
-                }
-                else
-                {
-                    double da = a.isInt() ? (double)a.asInt() : a.asDouble();
-                    double db = b.isInt() ? (double)b.asInt() : b.asDouble();
-                    PUSH(makeDouble(da * db));
-                }
+                PUSH(makeInt(a.asInt() * b.asInt()));
                 break;
             }
 
+            if (a.isNumber() && b.isNumber())
+            {
+                double da = a.asDouble();
+                double db = b.asDouble();
+                PUSH(makeDouble(da * db));
+                break;
+            }
+
+            TRY_OPERATOR_OVERLOAD(OP_MUL_METHOD, "*");
             THROW_RUNTIME_ERROR("Cannot apply '*' to %s and %s", getValueTypeName(a), getValueTypeName(b));
             break;
         }
@@ -644,6 +688,7 @@ ProcessResult Interpreter::run_process(Process *process)
             }   
             
 
+            TRY_OPERATOR_OVERLOAD(OP_DIV_METHOD, "/");
             THROW_RUNTIME_ERROR("Cannot apply '/' to %s and %s", getValueTypeName(a), getValueTypeName(b));
 
         break_switch: // Label para o goto da macro sair do case
@@ -655,70 +700,50 @@ ProcessResult Interpreter::run_process(Process *process)
         // ============================================
         // OP_MODULO
         // ============================================
-        // ============================================
-        // OP_MODULO
-        // ============================================
         case OP_MODULO:
         {
             BINARY_OP_PREP();
 
-            if (!a.isNumber() || !b.isNumber())
+            // Fast path: int % int (conditionals benchmark)
+            if (LIKELY(a.isInt() && b.isInt()))
             {
-                THROW_RUNTIME_ERROR("Cannot apply '%%' to %s and %s", getValueTypeName(a), getValueTypeName(b));
-            }
-
-#define THROW_MOD_ZERO()                                             \
-    do                                                               \
-    {                                                                \
-        STORE_FRAME();                                               \
-        Value error = makeString("Modulo by zero");                  \
-        if (throwException(error))                                   \
-        {                                                            \
-            LOAD_FRAME();                                            \
-            goto break_switch_mod;                                   \
-        }                                                            \
-        else                                                         \
-        {                                                            \
-            runtimeError("Modulo by zero");                          \
-            return {ProcessResult::PROCESS_DONE, 0}; \
-        }                                                            \
-    } while (0)
-
-            if (a.isInt() && b.isInt())
-            {
-                if (b.asInt() == 0)
-                    THROW_MOD_ZERO();
-
-                int ia = a.asInt();
                 int ib = b.asInt();
-
-                // Guard against INT_MIN % -1 (undefined behavior in C++, SIGFPE on x86)
-                if (ia == INT32_MIN && ib == -1)
+                if (UNLIKELY(ib == 0))
+                {
+                    STORE_FRAME();
+                    Value error = makeString("Modulo by zero");
+                    if (throwException(error)) { LOAD_FRAME(); break; }
+                    else { runtimeError("Modulo by zero"); return {ProcessResult::PROCESS_DONE, 0}; }
+                }
+                int ia = a.asInt();
+                if (UNLIKELY(ia == INT32_MIN && ib == -1))
                 {
                     PUSH(makeInt(0));
                     break;
                 }
-
                 PUSH(makeInt(ia % ib));
-                break; // Sucesso, sai do switch
+                break;
+            }
+
+            if (!a.isNumber() || !b.isNumber())
+            {
+                TRY_OPERATOR_OVERLOAD(OP_MOD_METHOD, "%");
+                THROW_RUNTIME_ERROR("Cannot apply '%%' to %s and %s", getValueTypeName(a), getValueTypeName(b));
             }
 
             {
-                // Para doubles, usa fmod
-                double da = a.isInt() ? (double)a.asInt() : a.asDouble();
-                double db = b.isInt() ? (double)b.asInt() : b.asDouble();
-
+                double da = a.asDouble();
+                double db = b.asDouble();
                 if (db == 0.0)
-                    THROW_MOD_ZERO();
-
+                {
+                    STORE_FRAME();
+                    Value error = makeString("Modulo by zero");
+                    if (throwException(error)) { LOAD_FRAME(); break; }
+                    else { runtimeError("Modulo by zero"); return {ProcessResult::PROCESS_DONE, 0}; }
+                }
                 PUSH(makeDouble(fmod(da, db)));
             }
-            // ---------------------------------
-
-        break_switch_mod:
             break;
-
-#undef THROW_MOD_ZERO
         }
 
             //======== LOGICAL =====
@@ -748,6 +773,12 @@ ProcessResult Interpreter::run_process(Process *process)
         case OP_EQUAL:
         {
             BINARY_OP_PREP();
+            if (LIKELY(a.isInt() && b.isInt()))
+            {
+                PUSH(makeBool(a.asInt() == b.asInt()));
+                break;
+            }
+            TRY_OPERATOR_OVERLOAD(OP_EQ_METHOD, "==");
             PUSH(makeBool(valuesEqual(a, b)));
             break;
         }
@@ -755,13 +786,26 @@ ProcessResult Interpreter::run_process(Process *process)
         case OP_NOT:
         {
             Value v = POP();
-            PUSH(makeBool(!isTruthy(v)));
+            if (LIKELY(v.type == ValueType::BOOL))
+            {
+                PUSH(makeBool(!v.as.boolean));
+            }
+            else
+            {
+                PUSH(makeBool(!isTruthy(v)));
+            }
             break;
         }
 
         case OP_NOT_EQUAL:
         {
             BINARY_OP_PREP();
+            if (LIKELY(a.isInt() && b.isInt()))
+            {
+                PUSH(makeBool(a.asInt() != b.asInt()));
+                break;
+            }
+            TRY_OPERATOR_OVERLOAD(OP_NEQ_METHOD, "!=");
             PUSH(makeBool(!valuesEqual(a, b)));
             break;
         }
@@ -769,48 +813,100 @@ ProcessResult Interpreter::run_process(Process *process)
         case OP_GREATER:
         {
             BINARY_OP_PREP();
-            double da, db;
-            if (!toNumberPair(a, b, da, db))
+            if (LIKELY(a.isInt() && b.isInt()))
             {
-                THROW_RUNTIME_ERROR("Operands '>' must be numbers");
+                PUSH(makeBool(a.asInt() > b.asInt()));
+                break;
             }
-            PUSH(makeBool(da > db));
+            double da, db;
+            if (LIKELY(toNumberPair(a, b, da, db)))
+            {
+                PUSH(makeBool(da > db));
+            }
+            else if (a.isString() && b.isString())
+            {
+                PUSH(makeBool(compareStrings(a.asString(), b.asString()) > 0));
+            }
+            else
+            {
+                TRY_OPERATOR_OVERLOAD(OP_GT_METHOD, ">");
+                THROW_RUNTIME_ERROR("Operands '>' must be numbers or strings");
+            }
             break;
         }
 
         case OP_GREATER_EQUAL:
         {
             BINARY_OP_PREP();
-            double da, db;
-            if (!toNumberPair(a, b, da, db))
+            if (LIKELY(a.isInt() && b.isInt()))
             {
-                THROW_RUNTIME_ERROR("Operands '>=' must be numbers");
+                PUSH(makeBool(a.asInt() >= b.asInt()));
+                break;
             }
-            PUSH(makeBool(da >= db));
+            double da, db;
+            if (LIKELY(toNumberPair(a, b, da, db)))
+            {
+                PUSH(makeBool(da >= db));
+            }
+            else if (a.isString() && b.isString())
+            {
+                PUSH(makeBool(compareStrings(a.asString(), b.asString()) >= 0));
+            }
+            else
+            {
+                TRY_OPERATOR_OVERLOAD(OP_GTE_METHOD, ">=");
+                THROW_RUNTIME_ERROR("Operands '>=' must be numbers or strings");
+            }
             break;
         }
 
         case OP_LESS:
         {
             BINARY_OP_PREP();
-            double da, db;
-            if (!toNumberPair(a, b, da, db))
+            if (LIKELY(a.isInt() && b.isInt()))
             {
-                THROW_RUNTIME_ERROR("Operands '<' must be numbers");
+                PUSH(makeBool(a.asInt() < b.asInt()));
+                break;
             }
-            PUSH(makeBool(da < db));
+            double da, db;
+            if (LIKELY(toNumberPair(a, b, da, db)))
+            {
+                PUSH(makeBool(da < db));
+            }
+            else if (a.isString() && b.isString())
+            {
+                PUSH(makeBool(compareStrings(a.asString(), b.asString()) < 0));
+            }
+            else
+            {
+                TRY_OPERATOR_OVERLOAD(OP_LT_METHOD, "<");
+                THROW_RUNTIME_ERROR("Operands '<' must be numbers or strings");
+            }
             break;
         }
 
         case OP_LESS_EQUAL:
         {
             BINARY_OP_PREP();
-            double da, db;
-            if (!toNumberPair(a, b, da, db))
+            if (LIKELY(a.isInt() && b.isInt()))
             {
-                THROW_RUNTIME_ERROR("Operands '<=' must be numbers");
+                PUSH(makeBool(a.asInt() <= b.asInt()));
+                break;
             }
-            PUSH(makeBool(da <= db));
+            double da, db;
+            if (LIKELY(toNumberPair(a, b, da, db)))
+            {
+                PUSH(makeBool(da <= db));
+            }
+            else if (a.isString() && b.isString())
+            {
+                PUSH(makeBool(compareStrings(a.asString(), b.asString()) <= 0));
+            }
+            else
+            {
+                TRY_OPERATOR_OVERLOAD(OP_LTE_METHOD, "<=");
+                THROW_RUNTIME_ERROR("Operands '<=' must be numbers or strings");
+            }
             break;
         }
 
@@ -819,66 +915,102 @@ ProcessResult Interpreter::run_process(Process *process)
         case OP_BITWISE_AND:
         {
             BINARY_OP_PREP();
-            if (!a.isInt() || !b.isInt())
+            if (LIKELY(a.isInt() && b.isInt()))
             {
-                THROW_RUNTIME_ERROR("Bitwise AND requires integers");
+                PUSH(makeInt(a.asInt() & b.asInt()));
             }
-            PUSH(makeInt(a.asInt() & b.asInt()));
+            else
+            {
+                int32_t ia, ib;
+                if (UNLIKELY(!toInt32(a, ia) || !toInt32(b, ib)))
+                    THROW_RUNTIME_ERROR("Bitwise AND requires integers");
+                PUSH(makeInt(ia & ib));
+            }
             break;
         }
 
         case OP_BITWISE_OR:
         {
             BINARY_OP_PREP();
-            if (!a.isInt() || !b.isInt())
+            if (LIKELY(a.isInt() && b.isInt()))
             {
-                THROW_RUNTIME_ERROR("Bitwise OR requires integers");
+                PUSH(makeInt(a.asInt() | b.asInt()));
             }
-            PUSH(makeInt(a.asInt() | b.asInt()));
+            else
+            {
+                int32_t ia, ib;
+                if (UNLIKELY(!toInt32(a, ia) || !toInt32(b, ib)))
+                    THROW_RUNTIME_ERROR("Bitwise OR requires integers");
+                PUSH(makeInt(ia | ib));
+            }
             break;
         }
 
         case OP_BITWISE_XOR:
         {
             BINARY_OP_PREP();
-            if (!a.isInt() || !b.isInt())
+            if (LIKELY(a.isInt() && b.isInt()))
             {
-                THROW_RUNTIME_ERROR("Bitwise XOR requires integers");
+                PUSH(makeInt(a.asInt() ^ b.asInt()));
             }
-            PUSH(makeInt(a.asInt() ^ b.asInt()));
+            else
+            {
+                int32_t ia, ib;
+                if (UNLIKELY(!toInt32(a, ia) || !toInt32(b, ib)))
+                    THROW_RUNTIME_ERROR("Bitwise XOR requires integers");
+                PUSH(makeInt(ia ^ ib));
+            }
             break;
         }
 
         case OP_BITWISE_NOT:
         {
             Value a = POP();
-            if (!a.isInt())
+            if (LIKELY(a.isInt()))
             {
-                THROW_RUNTIME_ERROR("Bitwise NOT requires integer");
+                PUSH(makeInt(~a.asInt()));
             }
-            PUSH(makeInt(~a.asInt()));
+            else
+            {
+                int32_t ia;
+                if (UNLIKELY(!toInt32(a, ia)))
+                    THROW_RUNTIME_ERROR("Bitwise NOT requires integer");
+                PUSH(makeInt(~ia));
+            }
             break;
         }
 
         case OP_SHIFT_LEFT:
         {
             BINARY_OP_PREP();
-            if (!a.isInt() || !b.isInt())
+            if (LIKELY(a.isInt() && b.isInt()))
             {
-                THROW_RUNTIME_ERROR("Shift left requires integers");
+                PUSH(makeInt(a.asInt() << b.asInt()));
             }
-            PUSH(makeInt(a.asInt() << b.asInt()));
+            else
+            {
+                int32_t ia, ib;
+                if (UNLIKELY(!toInt32(a, ia) || !toInt32(b, ib)))
+                    THROW_RUNTIME_ERROR("Shift left requires integers");
+                PUSH(makeInt(ia << ib));
+            }
             break;
         }
 
         case OP_SHIFT_RIGHT:
         {
             BINARY_OP_PREP();
-            if (!a.isInt() || !b.isInt())
+            if (LIKELY(a.isInt() && b.isInt()))
             {
-                THROW_RUNTIME_ERROR("Shift right requires integers");
+                PUSH(makeInt(a.asInt() >> b.asInt()));
             }
-            PUSH(makeInt(a.asInt() >> b.asInt()));
+            else
+            {
+                int32_t ia, ib;
+                if (UNLIKELY(!toInt32(a, ia) || !toInt32(b, ib)))
+                    THROW_RUNTIME_ERROR("Shift right requires integers");
+                PUSH(makeInt(ia >> ib));
+            }
             break;
         }
 
@@ -894,7 +1026,12 @@ ProcessResult Interpreter::run_process(Process *process)
         case OP_JUMP_IF_FALSE:
         {
             uint16 offset = READ_SHORT();
-            if (isFalsey(PEEK()))
+            const Value &top = PEEK();
+            if (LIKELY(top.type == ValueType::BOOL))
+            {
+                if (!top.as.boolean) ip += offset;
+            }
+            else if (isFalsey(top))
                 ip += offset;
             break;
         }
@@ -1577,25 +1714,26 @@ ProcessResult Interpreter::run_process(Process *process)
         case OP_FUNC_LEN:
         {
             Value value = PEEK();
-            if (value.isString())
+            switch (value.type)
             {
+            case ValueType::STRING:
                 DROP();
                 PUSH(makeInt(value.asString()->length()));
-            }
-            else if (value.isArray())
-            {
+                break;
+            case ValueType::ARRAY:
                 DROP();
                 PUSH(makeInt(value.asArray()->values.size()));
-            }
-            else if (value.isMap())
-            {
+                break;
+            case ValueType::MAP:
                 DROP();
                 PUSH(makeInt(value.asMap()->table.count));
-            }
-            else
-            {
-                runtimeError("len() expects (string , array , map)");
-
+                break;
+            case ValueType::SET:
+                DROP();
+                PUSH(makeInt(value.asSet()->table.count));
+                break;
+            default:
+                runtimeError("len() expects (string, array, map, set)");
                 return {ProcessResult::PROCESS_DONE, 0};
             }
             break;
@@ -1623,218 +1761,198 @@ ProcessResult Interpreter::run_process(Process *process)
             const char *name = nameValue.asStringChars();
             String *nameString = nameValue.asString();
 
-            // === STRING METHODS ===
-
-            if (object.isString())
+            switch (object.type)
             {
-
+            case ValueType::STRING:
+            {
                 if (nameString == staticNames[(int)StaticNames::LENGTH])
                 {
-
                     DROP();
                     PUSH(makeInt(object.asString()->length()));
                 }
                 else
                 {
-
                     runtimeError("String has no property '%s'", name);
                     return {ProcessResult::PROCESS_DONE, 0};
                 }
+                break;
             }
-            else
 
-                // === PROCESS PRIVATES (external access) ===
-                if (object.isProcessInstance())
+            case ValueType::PROCESS_INSTANCE:
+            {
+                Process *proc = object.asProcess();
+                if (!proc || proc->state == ProcessState::DEAD)
                 {
-                    Process *proc = object.asProcess();
-                    if (!proc || proc->state == ProcessState::DEAD)
-                    {
-                        // Process died between frames - return nil silently
-                        if (debugMode_)
-                            safetimeError("GET property '%s' on dead process (returning nil)", name);
-                        DROP();
-                        PUSH(makeNil());
-                        break;
-                    }
-                    int privateIdx = getProcessPrivateIndex(name);
-                    if (privateIdx != -1)
-                    {
-                        DROP();
-                        PUSH(proc->privates[privateIdx]);
-                    }
-                     else
-                    {
-                        runtimeError("Process does not support '%s' property access", name);
-                        return {ProcessResult::ERROR, 0};
-                    }
-
-                    break;
-                 }
-
-                else if (object.isStructInstance())
-                {
-
-                    StructInstance *inst = object.asStructInstance();
-                    if (!inst)
-                    {
-                        runtimeError("Struct is null");
-                        return {ProcessResult::PROCESS_DONE, 0};
-                    }
-                    uint8 value = 0;
-                    if (inst->def->names.get(nameValue.asString(), &value))
-                    {
-
-                        DROP();
-                        PUSH(inst->values[value]);
-                    }
-                    else
-                    {
-                        runtimeError("Struct '%s' has no field '%s'", inst->def->name->chars(), name);
-                        PUSH(makeNil());
-                        return {ProcessResult::PROCESS_DONE, 0};
-                    }
+                    if (debugMode_)
+                        safetimeError("GET property '%s' on dead process (returning nil)", name);
+                    DROP();
+                    PUSH(makeNil());
                     break;
                 }
-                else if (object.isClassInstance())
+                int privateIdx = getProcessPrivateIndex(name);
+                if (privateIdx != -1)
                 {
-                    ClassInstance *instance = object.asClassInstance();
+                    DROP();
+                    PUSH(proc->privates[privateIdx]);
+                }
+                else
+                {
+                    runtimeError("Process does not support '%s' property access", name);
+                    return {ProcessResult::ERROR, 0};
+                }
+                break;
+            }
 
-                    // bool inherited = instance->klass->inherited;
-
-                    uint8_t fieldIdx;
-                    if (instance->klass->fieldNames.get(nameValue.asString(), &fieldIdx))
-                    {
-                        DROP();
-                        PUSH(instance->fields[fieldIdx]);
-                        break;
-                    }
-
-                    // Verifica propriedades herdadas da NativeClass
-                    NativeProperty nativeProp;
-                    if (instance->getNativeProperty(nameValue.asString(), &nativeProp))
-                    {
-                        DROP(); // Remove object
-                        // Chama getter nativo com userData do híbrido
-                        Value result = nativeProp.getter(this, instance->nativeUserData);
-                        PUSH(result);
-                        break;
-                    }
-
-                    runtimeError("Undefined property '%s'", name);
+            case ValueType::STRUCTINSTANCE:
+            {
+                StructInstance *inst = object.asStructInstance();
+                if (!inst)
+                {
+                    runtimeError("Struct is null");
+                    return {ProcessResult::PROCESS_DONE, 0};
+                }
+                uint8 value = 0;
+                if (inst->def->names.get(nameValue.asString(), &value))
+                {
+                    DROP();
+                    PUSH(inst->values[value]);
+                }
+                else
+                {
+                    runtimeError("Struct '%s' has no field '%s'", inst->def->name->chars(), name);
                     PUSH(makeNil());
                     return {ProcessResult::PROCESS_DONE, 0};
                 }
-                else if (object.isNativeClassInstance())
+                break;
+            }
+
+            case ValueType::CLASSINSTANCE:
+            {
+                ClassInstance *instance = object.asClassInstance();
+
+                uint8_t fieldIdx;
+                if (instance->klass->fieldNames.get(nameValue.asString(), &fieldIdx))
                 {
+                    DROP();
+                    PUSH(instance->fields[fieldIdx]);
+                    break;
+                }
 
-                    NativeClassInstance *instance = object.asNativeClassInstance();
-                    NativeClassDef *klass = instance->klass;
-                    NativeProperty prop;
-                    if (instance->klass->properties.get(nameValue.asString(), &prop))
-                    {
-                        DROP(); // Remove object
+                NativeProperty nativeProp;
+                if (instance->getNativeProperty(nameValue.asString(), &nativeProp))
+                {
+                    DROP();
+                    Value result = nativeProp.getter(this, instance->nativeUserData);
+                    PUSH(result);
+                    break;
+                }
 
-                        //  Chama getter
-                        Value result = prop.getter(this, instance->userData);
-                        PUSH(result);
-                        break;
-                    }
+                runtimeError("Undefined property '%s'", name);
+                PUSH(makeNil());
+                return {ProcessResult::PROCESS_DONE, 0};
+            }
 
-                    runtimeError("Undefined property '%s' on native class '%s", nameValue.asStringChars(), klass->name->chars());
+            case ValueType::NATIVECLASSINSTANCE:
+            {
+                NativeClassInstance *instance = object.asNativeClassInstance();
+                NativeClassDef *klass = instance->klass;
+                NativeProperty prop;
+                if (instance->klass->properties.get(nameValue.asString(), &prop))
+                {
+                    DROP();
+                    Value result = prop.getter(this, instance->userData);
+                    PUSH(result);
+                    break;
+                }
+
+                runtimeError("Undefined property '%s' on native class '%s", nameValue.asStringChars(), klass->name->chars());
+                DROP();
+                PUSH(makeNil());
+                return {ProcessResult::PROCESS_DONE, 0};
+            }
+
+            case ValueType::NATIVESTRUCTINSTANCE:
+            {
+                NativeStructInstance *inst = object.asNativeStructInstance();
+                NativeStructDef *def = inst->def;
+
+                NativeFieldDef field;
+                if (!def->fields.get(nameValue.asString(), &field))
+                {
+                    runtimeError("Undefined field '%s' on native struct '%s", nameValue.asStringChars(), def->name->chars());
                     DROP();
                     PUSH(makeNil());
                     return {ProcessResult::PROCESS_DONE, 0};
                 }
-                else if (object.isNativeStructInstance())
+                char *base = (char *)inst->data;
+                char *ptr = base + field.offset;
+
+                Value result;
+                switch (field.type)
                 {
+                case FieldType::BYTE:
+                    result = makeByte(*(uint8 *)ptr);
+                    break;
+                case FieldType::INT:
+                    result = makeInt(*(int *)ptr);
+                    break;
+                case FieldType::UINT:
+                    result = makeUInt(*(uint32 *)ptr);
+                    break;
+                case FieldType::FLOAT:
+                    result = makeFloat(*(float *)ptr);
+                    break;
+                case FieldType::DOUBLE:
+                    result = makeDouble(*(double *)ptr);
+                    break;
+                case FieldType::BOOL:
+                    result = makeBool(*(bool *)ptr);
+                    break;
+                case FieldType::POINTER:
+                    result = makePointer(*(void **)ptr);
+                    break;
+                case FieldType::STRING:
+                {
+                    String *str = *(String **)ptr;
+                    result = str ? makeString(str) : makeNil();
+                    break;
+                }
+                }
 
-                    NativeStructInstance *inst = object.asNativeStructInstance();
+                DROP();
+                PUSH(result);
+                break;
+            }
 
-                    NativeStructDef *def = inst->def;
-
-                    NativeFieldDef field;
-
-                    if (!def->fields.get(nameValue.asString(), &field))
-                    {
-                        runtimeError("Undefined field '%s' on native struct '%s", nameValue.asStringChars(), def->name->chars());
-                        DROP();
-                        PUSH(makeNil());
-                        return {ProcessResult::PROCESS_DONE, 0};
-                    }
-                    char *base = (char *)inst->data;
-                    char *ptr = base + field.offset;
-
-                    Value result;
-                    switch (field.type)
-                    {
-                    case FieldType::BYTE:
-                    {
-                        result = makeByte(*(uint8 *)ptr);
-                        break;
-                    }
-                    case FieldType::INT:
-                        result = makeInt(*(int *)ptr);
-                        break;
-
-                    case FieldType::UINT:
-                        result = makeUInt(*(uint32 *)ptr);
-                        break;
-
-                    case FieldType::FLOAT:
-                        result = makeFloat(*(float *)ptr);
-                        break;
-                    case FieldType::DOUBLE:
-                        result = makeDouble(*(double *)ptr);
-                        break;
-
-                    case FieldType::BOOL:
-                        result = makeBool(*(bool *)ptr);
-                        break;
-
-                    case FieldType::POINTER:
-                        result = makePointer(*(void **)ptr);
-                        break;
-
-                    case FieldType::STRING:
-                    {
-                        String *str = *(String **)ptr;
-                        result = str ? makeString(str) : makeNil();
-                        break;
-                    }
-                    }
-                    
-
-                    DROP(); // Remove object
+            case ValueType::MAP:
+            {
+                MapInstance *map = object.asMap();
+                Value result;
+                if (map->table.get(nameValue, &result))
+                {
+                    DROP();
                     PUSH(result);
                     break;
                 }
-                else if (object.isMap())
+                else
                 {
-                    MapInstance *map = object.asMap();
                     String *key = nameValue.asString();
-                    Value result;
-                    if (map->table.get(key, &result))
-                    {
-                        DROP();
-                        PUSH(result);
-                        break;
-                    }
-                    else
-                    {
-                        THROW_RUNTIME_ERROR("Key '%s' not found in map", key->chars());
-                        DROP();
-                        PUSH(makeNil());
-                        return {ProcessResult::PROCESS_DONE, 0};
-                    }
+                    THROW_RUNTIME_ERROR("Key '%s' not found in map", key->chars());
+                    DROP();
+                    PUSH(makeNil());
+                    return {ProcessResult::PROCESS_DONE, 0};
                 }
+            }
+
+            default:
+                break;
+            }
 
             runtimeError("Type does not support 'get' property access");
-
             printf("[Object: '");
             printValue(object);
             printf("' Property : '");
             printValue(nameValue);
-
             printf("']\n");
 
             PUSH(makeNil());
@@ -1847,14 +1965,6 @@ ProcessResult Interpreter::run_process(Process *process)
             Value object = PEEK2();
             Value nameValue = READ_CONSTANT();
 
-            // printf("Set Value: '");
-            // printValue(value);
-            // printf("'\nObject: '");
-            // printValue(object);
-            // printf("'\nName : '");
-            // printValue(nameValue);
-            // printf("'\n");
-
             if (!nameValue.isString())
             {
                 runtimeError("Property name must be string");
@@ -1864,30 +1974,28 @@ ProcessResult Interpreter::run_process(Process *process)
             String *propName = nameValue.asString();
             const char *name = propName->chars();
 
-            // === STRINGS (read-only) ===
-            if (object.isString())
+            switch (object.type)
+            {
+            case ValueType::STRING:
             {
                 runtimeError("Cannot set property on string (immutable)");
                 return {ProcessResult::PROCESS_DONE, 0};
             }
 
-            // === PROCESS PRIVATES (external write) ===
-            if (object.isProcessInstance())
+            case ValueType::PROCESS_INSTANCE:
             {
                 Process *proc = object.asProcess();
 
                 if (!proc || proc->state == ProcessState::DEAD)
                 {
-                    // Process died between frames - ignore write silently
                     if (debugMode_)
                         safetimeError("SET property '%s' on dead process (ignored)", name);
-                    DROP();      // Remove value
-                    DROP();      // Remove process
-                    PUSH(value); // Assignment still returns value
+                    DROP();
+                    DROP();
+                    PUSH(value);
                     break;
                 }
 
-                // Lookup private pelo nome
                 int privateIdx = getProcessPrivateIndex(name);
                 if (privateIdx != -1)
                 {
@@ -1897,17 +2005,18 @@ ProcessResult Interpreter::run_process(Process *process)
                         return {ProcessResult::PROCESS_DONE, 0};
                     }
                     proc->privates[privateIdx] = value;
-                    DROP();      // Remove value
-                    DROP();      // Remove process
-                    PUSH(value); // Assignment retorna valor
+                    DROP();
+                    DROP();
+                    PUSH(value);
                     break;
                 }
 
                 runtimeError("Process has no property '%s'", name);
                 return {ProcessResult::PROCESS_DONE, 0};
-            }     else if (object.isStructInstance())
-            {
+            }
 
+            case ValueType::STRUCTINSTANCE:
+            {
                 StructInstance *inst = object.asStructInstance();
                 if (!inst)
                 {
@@ -1926,14 +2035,13 @@ ProcessResult Interpreter::run_process(Process *process)
                     return {ProcessResult::PROCESS_DONE, 0};
                 }
 
-                // Stack: [obj, value] -> queremos [value]
-                // Pop value, drop object, push value back
-                DROP();      // Remove value
-                DROP();      // Remove object
-                PUSH(value); // Push value back - assignment returns the assigned value
+                DROP();
+                DROP();
+                PUSH(value);
                 break;
             }
-            else if (object.isClassInstance())
+
+            case ValueType::CLASSINSTANCE:
             {
                 ClassInstance *instance = object.asClassInstance();
 
@@ -1941,14 +2049,12 @@ ProcessResult Interpreter::run_process(Process *process)
                 if (instance->klass->fieldNames.get(nameValue.asString(), &fieldIdx))
                 {
                     instance->fields[fieldIdx] = value;
-                    // Stack: [obj, value] -> queremos [value]
-                    DROP();      // Remove value
-                    DROP();      // Remove object
-                    PUSH(value); // Push value back
+                    DROP();
+                    DROP();
+                    PUSH(value);
                     break;
                 }
 
-                // Verifica propriedades herdadas da NativeClass
                 NativeProperty nativeProp;
                 if (instance->getNativeProperty(nameValue.asString(), &nativeProp))
                 {
@@ -1958,22 +2064,20 @@ ProcessResult Interpreter::run_process(Process *process)
                         DROP();
                         return {ProcessResult::PROCESS_DONE, 0};
                     }
-                    // Chama setter nativo
                     nativeProp.setter(this, instance->nativeUserData, value);
-                    DROP();      // Remove value
-                    DROP();      // Remove object
-                    PUSH(value); // Push value back
+                    DROP();
+                    DROP();
+                    PUSH(value);
                     break;
                 }
 
                 runtimeError("Undefined property '%s'", name);
-                DROP(); // object
-
+                DROP();
                 return {ProcessResult::PROCESS_DONE, 0};
             }
-            else if (object.isNativeClassInstance())
-            {
 
+            case ValueType::NATIVECLASSINSTANCE:
+            {
                 NativeClassInstance *instance = object.asNativeClassInstance();
                 NativeClassDef *klass = instance->klass;
                 NativeProperty prop;
@@ -1986,16 +2090,16 @@ ProcessResult Interpreter::run_process(Process *process)
                         return {ProcessResult::PROCESS_DONE, 0};
                     }
 
-                    // Chama setter
                     prop.setter(this, instance->userData, value);
-                    // Stack: [obj, value] -> queremos [value]
-                    DROP(); // Remove value
-                    DROP(); // Remove object
+                    DROP();
+                    DROP();
                     PUSH(value);
                     break;
                 }
+                goto set_property_error_switch;
             }
-            else if (object.isNativeStructInstance())
+
+            case ValueType::NATIVESTRUCTINSTANCE:
             {
                 NativeStructInstance *inst = object.asNativeStructInstance();
                 NativeStructDef *def = inst->def;
@@ -2008,7 +2112,6 @@ ProcessResult Interpreter::run_process(Process *process)
                     return {ProcessResult::PROCESS_DONE, 0};
                 }
 
-                // Read-only check
                 if (field.readOnly)
                 {
                     runtimeError("Field '%s' is read-only in struct '%s", nameValue.asStringChars(), def->name->chars());
@@ -2030,7 +2133,6 @@ ProcessResult Interpreter::run_process(Process *process)
                     *(uint8 *)ptr = (uint8)value.asByte();
                     break;
                 }
-
                 case FieldType::INT:
                     if (!value.isInt())
                     {
@@ -2057,7 +2159,7 @@ ProcessResult Interpreter::run_process(Process *process)
                         DROP();
                         return {ProcessResult::PROCESS_DONE, 0};
                     }
-                    *(float *)ptr =(float) value.asNumber();
+                    *(float *)ptr = (float)value.asNumber();
                     break;
                 }
                 case FieldType::DOUBLE:
@@ -2069,7 +2171,6 @@ ProcessResult Interpreter::run_process(Process *process)
                     }
                     *(double *)ptr = value.asDouble();
                     break;
-
                 case FieldType::BOOL:
                     if (!value.isBool())
                     {
@@ -2079,7 +2180,6 @@ ProcessResult Interpreter::run_process(Process *process)
                     }
                     *(bool *)ptr = value.asBool();
                     break;
-
                 case FieldType::POINTER:
                     if (!value.isPointer())
                     {
@@ -2089,7 +2189,6 @@ ProcessResult Interpreter::run_process(Process *process)
                     }
                     *(void **)ptr = value.asPointer();
                     break;
-
                 case FieldType::STRING:
                 {
                     if (!value.isString())
@@ -2104,19 +2203,32 @@ ProcessResult Interpreter::run_process(Process *process)
                 }
                 }
 
-                // Stack: [obj, value] -> queremos [value]
-                DROP(); // Remove value
-                DROP(); // Remove object
+                DROP();
+                DROP();
                 PUSH(value);
                 break;
             }
 
+            case ValueType::MAP:
+            {
+                MapInstance *map = object.asMap();
+                map->table.set(nameValue, value);
+                DROP();
+                DROP();
+                PUSH(value);
+                break;
+            }
+
+            default:
+                break;
+            }
+
+        set_property_error_switch:
             runtimeError("Cannot 'set' property on this type");
             printf("[Object: '");
             printValue(object);
             printf("' Property : '");
             printValue(nameValue);
-
             printf("']\n");
 
             return {ProcessResult::PROCESS_DONE, 0};
@@ -2552,6 +2664,117 @@ ProcessResult Interpreter::run_process(Process *process)
                     ARGS_CLEANUP();
                     PUSH(result);
                 }
+                // === capitalize() ===
+                else if (nameString == staticNames[(int)StaticNames::CAPITALIZE])
+                {
+                    if (argCount != 0) { runtimeError("capitalize() expects 0 arguments"); return {ProcessResult::PROCESS_DONE, 0}; }
+                    ARGS_CLEANUP();
+                    PUSH(makeString(stringPool.capitalize(str)));
+                }
+                // === title() ===
+                else if (nameString == staticNames[(int)StaticNames::TITLE])
+                {
+                    if (argCount != 0) { runtimeError("title() expects 0 arguments"); return {ProcessResult::PROCESS_DONE, 0}; }
+                    ARGS_CLEANUP();
+                    PUSH(makeString(stringPool.title(str)));
+                }
+                // === isdigit() ===
+                else if (nameString == staticNames[(int)StaticNames::ISDIGIT])
+                {
+                    if (argCount != 0) { runtimeError("isdigit() expects 0 arguments"); return {ProcessResult::PROCESS_DONE, 0}; }
+                    const char *s = str->chars();
+                    int len = str->length();
+                    bool result = len > 0;
+                    for (int i = 0; i < len && result; i++)
+                        result = isdigit((unsigned char)s[i]);
+                    ARGS_CLEANUP();
+                    PUSH(makeBool(result));
+                }
+                // === isalpha() ===
+                else if (nameString == staticNames[(int)StaticNames::ISALPHA])
+                {
+                    if (argCount != 0) { runtimeError("isalpha() expects 0 arguments"); return {ProcessResult::PROCESS_DONE, 0}; }
+                    const char *s = str->chars();
+                    int len = str->length();
+                    bool result = len > 0;
+                    for (int i = 0; i < len && result; i++)
+                        result = isalpha((unsigned char)s[i]);
+                    ARGS_CLEANUP();
+                    PUSH(makeBool(result));
+                }
+                // === isalnum() ===
+                else if (nameString == staticNames[(int)StaticNames::ISALNUM])
+                {
+                    if (argCount != 0) { runtimeError("isalnum() expects 0 arguments"); return {ProcessResult::PROCESS_DONE, 0}; }
+                    const char *s = str->chars();
+                    int len = str->length();
+                    bool result = len > 0;
+                    for (int i = 0; i < len && result; i++)
+                        result = isalnum((unsigned char)s[i]);
+                    ARGS_CLEANUP();
+                    PUSH(makeBool(result));
+                }
+                // === isspace() ===
+                else if (nameString == staticNames[(int)StaticNames::ISSPACE])
+                {
+                    if (argCount != 0) { runtimeError("isspace() expects 0 arguments"); return {ProcessResult::PROCESS_DONE, 0}; }
+                    const char *s = str->chars();
+                    int len = str->length();
+                    bool result = len > 0;
+                    for (int i = 0; i < len && result; i++)
+                        result = isspace((unsigned char)s[i]);
+                    ARGS_CLEANUP();
+                    PUSH(makeBool(result));
+                }
+                // === isupper() ===
+                else if (nameString == staticNames[(int)StaticNames::ISUPPER])
+                {
+                    if (argCount != 0) { runtimeError("isupper() expects 0 arguments"); return {ProcessResult::PROCESS_DONE, 0}; }
+                    const char *s = str->chars();
+                    int len = str->length();
+                    bool result = len > 0;
+                    for (int i = 0; i < len && result; i++)
+                        if (isalpha((unsigned char)s[i])) result = isupper((unsigned char)s[i]);
+                    ARGS_CLEANUP();
+                    PUSH(makeBool(result));
+                }
+                // === islower() ===
+                else if (nameString == staticNames[(int)StaticNames::ISLOWER])
+                {
+                    if (argCount != 0) { runtimeError("islower() expects 0 arguments"); return {ProcessResult::PROCESS_DONE, 0}; }
+                    const char *s = str->chars();
+                    int len = str->length();
+                    bool result = len > 0;
+                    for (int i = 0; i < len && result; i++)
+                        if (isalpha((unsigned char)s[i])) result = islower((unsigned char)s[i]);
+                    ARGS_CLEANUP();
+                    PUSH(makeBool(result));
+                }
+                // === lstrip() ===
+                else if (nameString == staticNames[(int)StaticNames::LSTRIP])
+                {
+                    if (argCount != 0) { runtimeError("lstrip() expects 0 arguments"); return {ProcessResult::PROCESS_DONE, 0}; }
+                    ARGS_CLEANUP();
+                    PUSH(makeString(stringPool.lstrip(str)));
+                }
+                // === rstrip() ===
+                else if (nameString == staticNames[(int)StaticNames::RSTRIP])
+                {
+                    if (argCount != 0) { runtimeError("rstrip() expects 0 arguments"); return {ProcessResult::PROCESS_DONE, 0}; }
+                    ARGS_CLEANUP();
+                    PUSH(makeString(stringPool.rstrip(str)));
+                }
+                // === count(substr) ===
+                else if (nameString == staticNames[(int)StaticNames::COUNT])
+                {
+                    if (argCount != 1) { runtimeError("count() expects 1 argument"); return {ProcessResult::PROCESS_DONE, 0}; }
+                    Value arg = PEEK();
+                    if (!arg.isString()) { runtimeError("count() expects string argument"); return {ProcessResult::PROCESS_DONE, 0}; }
+                    String *sub = arg.asString();
+                    int cnt = stringPool.count(str, sub->chars(), sub->length());
+                    ARGS_CLEANUP();
+                    PUSH(makeInt(cnt));
+                }
                 else
                 {
                     runtimeError("String has no method '%s'", name);
@@ -2886,6 +3109,58 @@ ProcessResult Interpreter::run_process(Process *process)
                     PUSH(receiver);
                     break;
                 }
+                // === sort() / sort(true) / sort(false) ===
+                else if (nameString == staticNames[(int)StaticNames::SORT])
+                {
+                    if (argCount > 1) { runtimeError("sort() expects 0 or 1 arguments"); return {ProcessResult::PROCESS_DONE, 0}; }
+
+                    if (size > 1)
+                    {
+                        bool ascending = true;
+                        if (argCount == 1)
+                        {
+                            Value arg = PEEK();
+                            if (!arg.isBool())
+                            {
+                                runtimeError("sort() argument must be a boolean (true=ascending, false=descending)");
+                                return {ProcessResult::PROCESS_DONE, 0};
+                            }
+                            ascending = arg.asBool();
+                        }
+
+                        Value *data = arr->values.data();
+                        if (ascending)
+                        {
+                            std::sort(data, data + size, [](const Value &a, const Value &b) {
+                                return valuesCompare(a, b) < 0;
+                            });
+                        }
+                        else
+                        {
+                            std::sort(data, data + size, [](const Value &a, const Value &b) {
+                                return valuesCompare(a, b) > 0;
+                            });
+                        }
+                    }
+
+                    ARGS_CLEANUP();
+                    PUSH(receiver);
+                    break;
+                }
+                // === count(value) ===
+                else if (nameString == staticNames[(int)StaticNames::COUNT])
+                {
+                    if (argCount != 1) { runtimeError("count() expects 1 argument"); return {ProcessResult::PROCESS_DONE, 0}; }
+                    Value target = PEEK();
+                    int cnt = 0;
+                    for (uint32 i = 0; i < size; i++)
+                    {
+                        if (valuesEqual(arr->values[i], target)) cnt++;
+                    }
+                    ARGS_CLEANUP();
+                    PUSH(makeInt(cnt));
+                    break;
+                }
                 else
                 {
                     runtimeError("Array has no method '%s'", name);
@@ -2907,16 +3182,7 @@ ProcessResult Interpreter::run_process(Process *process)
                     }
 
                     Value key = PEEK();
-
-                    if (!key.isString())
-                    {
-                        runtimeError("Map key must be string");
-                        ARGS_CLEANUP();
-                        PUSH(makeBool(false));
-                        break;
-                    }
-
-                    bool exists = map->table.exist(key.asString());
+                    bool exists = map->table.contains(key);
                     ARGS_CLEANUP();
                     PUSH(makeBool(exists));
                     break;
@@ -2930,15 +3196,7 @@ ProcessResult Interpreter::run_process(Process *process)
                     }
 
                     Value key = PEEK();
-
-                    if (!key.isString())
-                    {
-                        runtimeError("Map key must be string");
-                      return {ProcessResult::PROCESS_DONE, 0};
-                    }
-
-                  
-                    map->table.set(key.asString(), makeNil());
+                    map->table.erase(key);
                     ARGS_CLEANUP();
                     PUSH(makeNil());
                     break;
@@ -2979,8 +3237,10 @@ ProcessResult Interpreter::run_process(Process *process)
                     Value keys = makeArray();
                     ArrayInstance *keysInstance = keys.asArray();
 
-                    map->table.forEach([&](String *key, Value value)
-                                       { keysInstance->values.push(makeString(key)); });
+                    auto *ent = map->table.entries;
+                    for (size_t i = 0, cap = map->table.capacity; i < cap; i++)
+                        if (ent[i].state == decltype(map->table)::FILLED)
+                            keysInstance->values.push(ent[i].key);
 
                     ARGS_CLEANUP();
                     PUSH(keys);
@@ -2998,11 +3258,153 @@ ProcessResult Interpreter::run_process(Process *process)
                     Value values = makeArray();
                     ArrayInstance *valueInstance = values.asArray();
 
-                    map->table.forEach([&](String *key, Value value)
-                                       { valueInstance->values.push(value); });
+                    auto *ent = map->table.entries;
+                    for (size_t i = 0, cap = map->table.capacity; i < cap; i++)
+                        if (ent[i].state == decltype(map->table)::FILLED)
+                            valueInstance->values.push(ent[i].value);
 
                     ARGS_CLEANUP();
                     PUSH(values);
+                    break;
+                }
+                // === get(key, default) ===
+                else if (nameString == staticNames[(int)StaticNames::GET])
+                {
+                    if (argCount < 1 || argCount > 2)
+                    {
+                        runtimeError("get() expects 1 or 2 arguments");
+                        return {ProcessResult::PROCESS_DONE, 0};
+                    }
+
+                    Value keyVal = (argCount == 2) ? fiber->stackTop[-2] : PEEK();
+
+                    Value result;
+                    if (map->table.get(keyVal, &result))
+                    {
+                        ARGS_CLEANUP();
+                        PUSH(result);
+                    }
+                    else
+                    {
+                        Value defaultVal = (argCount == 2) ? PEEK() : makeNil();
+                        ARGS_CLEANUP();
+                        PUSH(defaultVal);
+                    }
+                    break;
+                }
+                // === items() ===
+                else if (nameString == staticNames[(int)StaticNames::ITEMS])
+                {
+                    if (argCount != 0)
+                    {
+                        runtimeError("items() expects 0 arguments");
+                        return {ProcessResult::PROCESS_DONE, 0};
+                    }
+
+                    Value items = makeArray();
+                    ArrayInstance *itemsArr = items.asArray();
+
+                    auto *ent = map->table.entries;
+                    for (size_t i = 0, cap = map->table.capacity; i < cap; i++)
+                    {
+                        if (ent[i].state == decltype(map->table)::FILLED)
+                        {
+                            Value pair = makeArray();
+                            ArrayInstance *pairArr = pair.asArray();
+                            pairArr->values.push(ent[i].key);
+                            pairArr->values.push(ent[i].value);
+                            itemsArr->values.push(pair);
+                        }
+                    }
+
+                    ARGS_CLEANUP();
+                    PUSH(items);
+                    break;
+                }
+            }
+
+            // === SET METHODS ===
+            if (receiver.isSet())
+            {
+                SetInstance *set = receiver.asSet();
+
+                if (nameString == staticNames[(int)StaticNames::ADD])
+                {
+                    if (argCount != 1)
+                    {
+                        runtimeError("add() expects 1 argument");
+                        return {ProcessResult::PROCESS_DONE, 0};
+                    }
+                    Value val = PEEK();
+                    set->table.insert(val);
+                    ARGS_CLEANUP();
+                    PUSH(receiver);
+                    break;
+                }
+                else if (nameString == staticNames[(int)StaticNames::HAS])
+                {
+                    if (argCount != 1)
+                    {
+                        runtimeError("has() expects 1 argument");
+                        return {ProcessResult::PROCESS_DONE, 0};
+                    }
+                    Value val = PEEK();
+                    bool exists = set->table.contains(val);
+                    ARGS_CLEANUP();
+                    PUSH(makeBool(exists));
+                    break;
+                }
+                else if (nameString == staticNames[(int)StaticNames::REMOVE])
+                {
+                    if (argCount != 1)
+                    {
+                        runtimeError("remove() expects 1 argument");
+                        return {ProcessResult::PROCESS_DONE, 0};
+                    }
+                    Value val = PEEK();
+                    set->table.erase(val);
+                    ARGS_CLEANUP();
+                    PUSH(makeNil());
+                    break;
+                }
+                else if (nameString == staticNames[(int)StaticNames::LENGTH])
+                {
+                    if (argCount != 0)
+                    {
+                        runtimeError("length() expects 0 arguments");
+                        return {ProcessResult::PROCESS_DONE, 0};
+                    }
+                    ARGS_CLEANUP();
+                    PUSH(makeInt(set->table.count));
+                    break;
+                }
+                else if (nameString == staticNames[(int)StaticNames::CLEAR])
+                {
+                    if (argCount != 0)
+                    {
+                        runtimeError("clear() expects 0 arguments");
+                        return {ProcessResult::PROCESS_DONE, 0};
+                    }
+                    set->table.destroy();
+                    ARGS_CLEANUP();
+                    PUSH(makeNil());
+                    break;
+                }
+                else if (nameString == staticNames[(int)StaticNames::VALUES])
+                {
+                    if (argCount != 0)
+                    {
+                        runtimeError("values() expects 0 arguments");
+                        return {ProcessResult::PROCESS_DONE, 0};
+                    }
+                    Value arr = makeArray();
+                    ArrayInstance *arrInst = arr.asArray();
+                    auto *ent = set->table.entries;
+                    for (size_t i = 0, cap = set->table.capacity; i < cap; i++)
+                        if (ent[i].state == decltype(set->table)::FILLED)
+                            arrInst->values.push(ent[i].key);
+                    ARGS_CLEANUP();
+                    PUSH(arr);
                     break;
                 }
             }
@@ -4120,16 +4522,26 @@ ProcessResult Interpreter::run_process(Process *process)
                 Value value = POP();
                 Value key = POP();
 
-                if (!key.isString())
-                {
-                    runtimeError("Map key must be string");
-                   return {ProcessResult::ERROR, 0};
-                }
-
-                inst->table.set(key.asString(), value);
+                inst->table.set(key, value);
             }
 
             PUSH(map);
+            break;
+        }
+        case OP_DEFINE_SET:
+        {
+            uint16_t count = READ_SHORT();
+
+            Value set = makeSet();
+            SetInstance *inst = set.asSet();
+
+            for (int i = 0; i < count; i++)
+            {
+                Value val = POP();
+                inst->table.insert(val);
+            }
+
+            PUSH(set);
             break;
         }
         case OP_SET_INDEX:
@@ -4138,28 +4550,20 @@ ProcessResult Interpreter::run_process(Process *process)
             Value index = POP();
             Value container = POP();
 
-            // printValue(value);
-            // printf(" value \n");
-            // printValue(index);
-            // printf(" index \n");
-            // printValue(container);
-            // printf(" container \n");
-
-            if (container.isArray())
+            switch (container.type)
+            {
+            case ValueType::ARRAY:
             {
                 if (!index.isNumber())
                 {
-
                     runtimeError("Array index must be an number");
                     return {ProcessResult::ERROR, 0};
-                    
                 }
 
                 ArrayInstance *arr = container.asArray();
                 int i = (int)index.asNumber();
                 uint32 size = arr->values.size();
 
-                // Negative index
                 if (i < 0)
                     i += size;
 
@@ -4173,28 +4577,19 @@ ProcessResult Interpreter::run_process(Process *process)
                     arr->values[i] = value;
                 }
 
-                PUSH(value); // Assignment returns value
+                PUSH(value);
                 break;
             }
 
-            // === MAP  ===
-            if (container.isMap())
+            case ValueType::MAP:
             {
-                if (!index.isString())
-                {
-                    runtimeError("Map key must be string");
-                    return {ProcessResult::ERROR, 0};
-                }
-
                 MapInstance *map = container.asMap();
-                map->table.set(index.asString(), value);
-
-                PUSH(value); // Assignment returns value
+                map->table.set(index, value);
+                PUSH(value);
                 break;
             }
 
-            // === BUFER ===
-            if (container.isBuffer())
+            case ValueType::BUFFER:
             {
                 if (!index.isInt())
                 {
@@ -4218,67 +4613,48 @@ ProcessResult Interpreter::run_process(Process *process)
                 switch (buffer->type)
                 {
                 case BufferType::UINT8:
-                {
                     *ptr = (uint8_t)num;
                     break;
-                }
                 case BufferType::INT16:
-                {
                     *(int16 *)ptr = (int16)num;
                     break;
-                }
                 case BufferType::UINT16:
-                {
                     *(uint16 *)ptr = (uint16)num;
                     break;
-                }
                 case BufferType::INT32:
-                {
                     *(int32 *)ptr = (int32)num;
                     break;
-                }
                 case BufferType::UINT32:
-                {
                     *(uint32 *)ptr = (uint32)num;
                     break;
-                }
                 case BufferType::FLOAT:
-                {
                     *(float *)ptr = (float)num;
                     break;
-                }
-
                 case BufferType::DOUBLE:
-                {
                     *(double *)ptr = num;
                     break;
-                }
-
                 default:
-                {
-                    *ptr = (uint8_t)num; // Escreve primeiro byte
+                    *ptr = (uint8_t)num;
                     runtimeError("Invalid buffer type");
-
                     return {ProcessResult::PROCESS_DONE, 0};
-                }
                 }
 
                 PUSH(value);
-
                 break;
             }
 
-            // STRING é imutável!
-            if (container.isString())
+            case ValueType::STRING:
             {
                 runtimeError("Strings are immutable");
                 PUSH(value);
                 break;
             }
 
-            runtimeError("Cannot 'set' index assign this type");
-            PUSH(value);
-            return {ProcessResult::PROCESS_DONE, 0};
+            default:
+                runtimeError("Cannot 'set' index assign this type");
+                PUSH(value);
+                return {ProcessResult::PROCESS_DONE, 0};
+            }
             break;
         }
         case OP_GET_INDEX:
@@ -4286,13 +4662,9 @@ ProcessResult Interpreter::run_process(Process *process)
             Value index = POP();
             Value container = POP();
 
-            // printValue(index);
-            // printf("\n");
-            // printValue(container);
-            // printf("\n");
-
-            // === ARRAY ===
-            if (container.isArray())
+            switch (container.type)
+            {
+            case ValueType::ARRAY:
             {
                 if (!index.isNumber())
                 {
@@ -4304,7 +4676,6 @@ ProcessResult Interpreter::run_process(Process *process)
                 int i = (int)index.asNumber();
                 uint32 size = arr->values.size();
 
-                //  Negative index (Python-style)
                 if (i < 0)
                     i += size;
 
@@ -4320,13 +4691,11 @@ ProcessResult Interpreter::run_process(Process *process)
                 break;
             }
 
-            // === STRING ===
-            if (container.isString())
+            case ValueType::STRING:
             {
                 if (!index.isInt())
                 {
                     runtimeError("String index must be integer");
-                        
                     return {ProcessResult::ERROR, 0};
                 }
 
@@ -4336,32 +4705,23 @@ ProcessResult Interpreter::run_process(Process *process)
                 break;
             }
 
-            // === MAP   ===
-            if (container.isMap())
+            case ValueType::MAP:
             {
-                if (!index.isString())
-                {
-                    runtimeError("Map key must be string");
-                    return {ProcessResult::ERROR, 0};
-                }
-
                 MapInstance *map = container.asMap();
                 Value result;
 
-                if (map->table.get(index.asString(), &result))
+                if (map->table.get(index, &result))
                 {
                     PUSH(result);
                 }
                 else
                 {
-                    // Key não existe - retorna nil
                     PUSH(makeNil());
                 }
                 break;
             }
 
-            // === BUFER ===
-            if (container.isBuffer())
+            case ValueType::BUFFER:
             {
                 if (!index.isInt())
                 {
@@ -4384,54 +4744,39 @@ ProcessResult Interpreter::run_process(Process *process)
                 switch (buffer->type)
                 {
                 case BufferType::UINT8:
-                {
                     PUSH(makeInt((int)(*ptr)));
                     break;
-                }
                 case BufferType::INT16:
-                {
                     PUSH(makeInt((int)(*(int16 *)ptr)));
                     break;
-                }
                 case BufferType::UINT16:
-                {
                     PUSH(makeUInt((uint32)(*(uint16 *)ptr)));
                     break;
-                }
                 case BufferType::INT32:
-                {
                     PUSH(makeInt((int)(*(int32 *)ptr)));
                     break;
-                }
                 case BufferType::UINT32:
-                {
                     PUSH(makeUInt((double)(*(uint32 *)ptr)));
                     break;
-                }
                 case BufferType::FLOAT:
-                {
                     PUSH(makeDouble((float)(*(float *)ptr)));
                     break;
-                }
-
                 case BufferType::DOUBLE:
-                {
                     PUSH(makeDouble(*(double *)ptr));
                     break;
-                }
-
                 default:
-                {
                     runtimeError("Invalid buffer type");
                     return {ProcessResult::ERROR, 0};
-                }
                 }
 
                 break;
             }
 
-            runtimeError("Cannot index this type");
-            return {ProcessResult::ERROR, 0};
+            default:
+                runtimeError("Cannot index this type");
+                return {ProcessResult::ERROR, 0};
+            }
+            break;
         }
         case OP_ITER_NEXT:
         {
@@ -4870,25 +5215,33 @@ ProcessResult Interpreter::run_process(Process *process)
         case OP_FLOOR:
         {
             Value v = POP();
+            if (LIKELY(v.isInt()))
+            {
+                PUSH(v);
+                break;
+            }
             if (!v.isNumber())
             {
                 runtimeError("floor() expects a number");
                 return {ProcessResult::PROCESS_DONE, 0};
             }
-            double val = v.isInt() ? (double)v.asInt() : v.asDouble();
-            PUSH(makeInt((int)std::floor(val))); // Retorna Int
+            PUSH(makeInt((int)std::floor(v.asDouble())));
             break;
         }
         case OP_CEIL:
         {
             Value v = POP();
+            if (LIKELY(v.isInt()))
+            {
+                PUSH(v);
+                break;
+            }
             if (!v.isNumber())
             {
                 runtimeError("ceil() expects a number");
                 return {ProcessResult::PROCESS_DONE, 0};
             }
-            double val = v.isInt() ? (double)v.asInt() : v.asDouble();
-            PUSH(makeInt((int)std::ceil(val))); // Retorna Int
+            PUSH(makeInt((int)std::ceil(v.asDouble())));
             break;
         }
         case OP_LOG:

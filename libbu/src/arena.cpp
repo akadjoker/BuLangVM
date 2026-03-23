@@ -99,7 +99,6 @@ void *HeapAllocator::Allocate(size_t size)
 		m_totalAllocated += size;
 		m_largeAllocations++;
 		m_largeAllocatedBytes += size;
-		   Info("Large allocation: %zu bytes (bypassing arena!)", size);
 		return aAlloc(size);
 	}
 

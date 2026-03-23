@@ -1,0 +1,152 @@
+// Stress test: operator overloading in tight loops (game loop simulation)
+var passed = 0;
+var total = 0;
+
+def assert(cond, msg) {
+    total = total + 1;
+    if (cond) {
+        passed = passed + 1;
+    } else {
+        print("[FAIL] " + msg);
+    }
+}
+
+class Vec2 {
+    var x;
+    var y;
+    def init(x, y) {
+        self.x = x;
+        self.y = y;
+    }
+    def +(other) {
+        return Vec2(self.x + other.x, self.y + other.y);
+    }
+    def -(other) {
+        return Vec2(self.x - other.x, self.y - other.y);
+    }
+    def *(other) {
+        return Vec2(self.x * other.x, self.y * other.y);
+    }
+    def ==(other) {
+        return self.x == other.x && self.y == other.y;
+    }
+    def <(other) {
+        return self.x < other.x && self.y < other.y;
+    }
+}
+
+// ==== 1. Tight loop with operator + (10k iterations) ====
+var pos = Vec2(0, 0);
+var vel = Vec2(1, 2);
+var i = 0;
+while (i < 10000) {
+    pos = pos + vel;
+    i = i + 1;
+}
+assert(pos.x == 10000, "tight loop + x: " + pos.x);
+assert(pos.y == 20000, "tight loop + y: " + pos.y);
+
+// ==== 2. Nested operator calls (chain) ====
+var r = Vec2(0, 0);
+i = 0;
+while (i < 1000) {
+    r = r + Vec2(1, 1) + Vec2(2, 2) + Vec2(3, 3);
+    i = i + 1;
+}
+assert(r.x == 6000, "chained + x: " + r.x);
+assert(r.y == 6000, "chained + y: " + r.y);
+
+// ==== 3. Mixed operators in loop ====
+var a = Vec2(100, 200);
+var b = Vec2(1, 1);
+i = 0;
+while (i < 5000) {
+    a = a + b;
+    a = a - b;
+    i = i + 1;
+}
+// Should be unchanged after +b -b cycle
+assert(a.x == 100, "mixed +/- x: " + a.x);
+assert(a.y == 200, "mixed +/- y: " + a.y);
+
+// ==== 4. Comparison in loop (game collision check sim) ====
+var count = 0;
+var p1 = Vec2(0, 0);
+var p2 = Vec2(50, 50);
+var step = Vec2(1, 1);
+i = 0;
+while (i < 100) {
+    p1 = p1 + step;
+    if (p1 == p2) {
+        count = count + 1;
+    }
+    i = i + 1;
+}
+assert(count == 1, "collision detected once: " + count);
+
+// ==== 5. Operator in function call ====
+def magnitude_sq(v) {
+    var m = v * v;
+    return m.x + m.y;
+}
+
+var v = Vec2(3, 4);
+var mag = magnitude_sq(v);
+assert(mag == 25, "magnitude_sq: " + mag);
+
+// ==== 6. Operator in nested function calls ====
+def step_sim(pos, vel, steps) {
+    var i = 0;
+    while (i < steps) {
+        pos = pos + vel;
+        i = i + 1;
+    }
+    return pos;
+}
+
+var final_pos = step_sim(Vec2(0, 0), Vec2(3, 5), 2000);
+assert(final_pos.x == 6000, "nested func + x: " + final_pos.x);
+assert(final_pos.y == 10000, "nested func + y: " + final_pos.y);
+
+// ==== 7. Operator with recursion ====
+def recursive_add(v, n) {
+    if (n <= 0) { return v; }
+    return recursive_add(v + Vec2(1, 1), n - 1);
+}
+var rec = recursive_add(Vec2(0, 0), 200);
+assert(rec.x == 200, "recursive + x: " + rec.x);
+assert(rec.y == 200, "recursive + y: " + rec.y);
+
+// ==== 8. Normal int/string ops still work after operator overload ====
+var sum = 0;
+i = 0;
+while (i < 10000) {
+    sum = sum + i;
+    i = i + 1;
+}
+assert(sum == 49995000, "int + still works: " + sum);
+
+var s = "";
+i = 0;
+while (i < 100) {
+    s = s + "a";
+    i = i + 1;
+}
+assert(len(s) == 100, "string concat still works");
+
+// ==== 9. Comparison operators < on normal ints still work ====
+var lt_count = 0;
+i = 0;
+while (i < 1000) {
+    if (i < 500) {
+        lt_count = lt_count + 1;
+    }
+    i = i + 1;
+}
+assert(lt_count == 500, "int < still works: " + lt_count);
+
+print("=== Operator Overload STRESS ===");
+print("Passed: " + passed + "/" + total);
+if (passed == total) {
+    print("All tests passed!");
+}

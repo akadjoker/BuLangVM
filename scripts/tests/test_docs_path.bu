@@ -1,0 +1,47 @@
+// Test path module documentation
+import path;
+
+var passed = 0;
+var failed = 0;
+
+def assert(cond, msg) {
+    if (cond) {
+        passed += 1;
+    } else {
+        failed += 1;
+        print(f"FAIL: {msg}");
+    }
+}
+
+// Test join
+var joined = path.join("/home", "user", "docs");
+assert(joined == "/home/user/docs", "path.join");
+
+// Test basename
+assert(path.basename("/home/user/file.txt") == "file.txt", "path.basename");
+
+// Test dirname
+assert(path.dirname("/home/user/file.txt") == "/home/user", "path.dirname");
+
+// Test extname
+assert(path.extname("/home/user/file.txt") == ".txt", "path.extname");
+
+// Test normalize
+var normalized = path.normalize("/home/user/../user/./docs");
+assert(normalized == "home/user/docs", "path.normalize");
+
+// Test exists
+assert(path.exists("/tmp"), "path.exists /tmp");
+assert(!path.exists("/nonexistent_path_12345"), "path.exists nonexistent");
+
+// Test isdir
+assert(path.isdir("/tmp"), "path.isdir /tmp");
+assert(!path.isdir("/nonexistent"), "path.isdir nonexistent");
+
+// Test isfile on a known file
+assert(path.isfile("/etc/passwd") || !path.exists("/etc/passwd"), "path.isfile");
+
+print(f"Path tests: {passed} passed, {failed} failed");
+if (failed == 0) {
+    print("All path documentation validated!");
+}

@@ -1,0 +1,59 @@
+// Test os module documentation
+import os;
+
+var passed = 0;
+var failed = 0;
+
+def assert(cond, msg) {
+    if (cond) {
+        passed += 1;
+    } else {
+        failed += 1;
+        print(f"FAIL: {msg}");
+    }
+}
+
+// Test platform
+assert(os.platform == "linux" || os.platform == "macos" || os.platform == "windows", "os.platform valid");
+
+// Test getcwd
+var cwd = os.getcwd();
+assert(len(cwd) > 0, "os.getcwd returns path");
+
+// Test getenv
+var home = os.getenv("HOME");
+assert(home != nil || os.platform == "windows", "os.getenv HOME");
+
+// Test setenv
+os.setenv("BULANG_TEST", "hello");
+var testEnv = os.getenv("BULANG_TEST");
+assert(testEnv == "hello", "os.setenv/getenv");
+
+// Test execute (simple command)
+var code = os.execute("true");
+assert(code == 0, "os.execute true returns 0");
+
+// Test spawn_capture
+var result = os.spawn_capture("echo hello");
+assert(result.code == 0, "spawn_capture code");
+assert(result.output != nil, "spawn_capture output");
+
+// Test spawn and wait
+var pid = os.spawn("sleep", "0");
+assert(pid > 0, "os.spawn returns pid");
+var exitCode = os.wait(pid);
+assert(exitCode == 0, "os.wait returns exit code");
+
+// Test poll on finished process
+var pid2 = os.spawn("true");
+os.wait(pid2);  // wait for it
+// poll should return exit code since it's done
+// (can't reliably test this without timing)
+
+// Test is_alive on dead process
+assert(!os.is_alive(-1), "os.is_alive invalid pid");
+
+print(f"OS tests: {passed} passed, {failed} failed");
+if (failed == 0) {
+    print("All os documentation validated!");
+}

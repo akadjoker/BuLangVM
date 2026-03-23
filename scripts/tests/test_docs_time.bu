@@ -1,0 +1,56 @@
+// Test time module documentation
+import time;
+
+var passed = 0;
+var failed = 0;
+
+def assert(cond, msg) {
+    if (cond) {
+        passed += 1;
+    } else {
+        failed += 1;
+        print(f"FAIL: {msg}");
+    }
+}
+
+// Test now
+var ts = time.now();
+assert(ts > 1700000000, "now() returns reasonable timestamp");
+
+// Test now_ms
+var ms = time.now_ms();
+assert(ms != 0, "now_ms returns value");
+
+// Test current (high resolution)
+var start = time.current();
+assert(start > 0, "current() returns positive");
+
+// Test date returns map
+var d = time.date();
+assert(d.year >= 2025, "date().year");
+assert(d.month >= 1 && d.month <= 12, "date().month");
+assert(d.day >= 1 && d.day <= 31, "date().day");
+assert(d.hour >= 0 && d.hour <= 23, "date().hour");
+assert(d.minute >= 0 && d.minute <= 59, "date().minute");
+assert(d.second >= 0 && d.second <= 59, "date().second");
+assert(d.weekday >= 0 && d.weekday <= 6, "date().weekday");
+
+// Test date with timestamp
+var d2 = time.date(0);
+assert(d2.year == 1970, "date(0).year is 1970");
+
+// Test ftime
+var formatted = time.ftime(ts);
+assert(len(formatted) > 10, "ftime returns formatted string");
+
+var custom = time.ftime(ts, "%Y-%m-%d");
+assert(len(custom) == 10, "ftime with format");
+
+// Test diff
+var diff = time.diff(100, 50);
+assert(diff == 50, "diff(100,50) == 50");
+
+print(f"Time tests: {passed} passed, {failed} failed");
+if (failed == 0) {
+    print("All time documentation validated!");
+}

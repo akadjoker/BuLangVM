@@ -418,7 +418,7 @@ private:
   bool inProcessFunction() const;
 
   void initRules();
-  void predeclareProcessGlobals();
+  void predeclareGlobals();
   bool enterSwitchContext();
   void leaveSwitchContext();
   void recoverToCurrentSwitchEnd();

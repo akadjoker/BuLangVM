@@ -12,7 +12,7 @@
 
 Value::Value() : type(ValueType::NIL)
 {
-    as.byte = 0;
+    as.number = 0;  // Zero full 8-byte union in one write
 }
 
  
@@ -61,6 +61,8 @@ const char *valueTypeToString(ValueType type)
         return "array";
     case ValueType::MAP:
         return "map";
+    case ValueType::SET:
+        return "set";
     case ValueType::BUFFER:
         return "buffer";
     case ValueType::FUNCTION:
@@ -187,14 +189,41 @@ void printValue(const Value &value)
         OsPrintf("{");
 
         int i = 0;
-        map->table.forEach([&](String *key, Value val)
-                           {
-        if (i > 0) OsPrintf(", ");
-        OsPrintf("%s: ", key->chars());
-        printValue(val);
-        i++; });
+        auto *ent = map->table.entries;
+        for (size_t idx = 0, cap = map->table.capacity; idx < cap; idx++)
+        {
+            if (ent[idx].state == decltype(map->table)::FILLED)
+            {
+                if (i > 0) OsPrintf(", ");
+                printValue(ent[idx].key);
+                OsPrintf(": ");
+                printValue(ent[idx].value);
+                i++;
+            }
+        }
 
         OsPrintf("}");
+        break;
+    }
+
+    case ValueType::SET:
+    {
+        SetInstance *set = value.asSet();
+        OsPrintf("(");
+
+        int i = 0;
+        auto *ent = set->table.entries;
+        for (size_t idx = 0, cap = set->table.capacity; idx < cap; idx++)
+        {
+            if (ent[idx].state == decltype(set->table)::FILLED)
+            {
+                if (i > 0) OsPrintf(", ");
+                printValue(ent[idx].key);
+                i++;
+            }
+        }
+
+        OsPrintf(")");
         break;
     }
 
@@ -324,6 +353,9 @@ void valueToBuffer(const Value &v, char *out, size_t size)
         break;
     case ValueType::MAP:
         snprintf(out, size, "{map}");
+        break;
+    case ValueType::SET:
+        snprintf(out, size, "{set}");
         break;
     case ValueType::STRUCT:
         snprintf(out, size, "<struct %d>", v.asStructId());

@@ -303,9 +303,9 @@ int native_os_spawn_capture(Interpreter *vm, int argCount, Value *args)
     Value result = vm->makeMap();
     MapInstance *map = result.asMap();
 
-    map->table.set(vm->makeString("output").asString(), vm->makeString(output.c_str()));
-    map->table.set(vm->makeString("stdout").asString(), vm->makeString(output.c_str()));
-    map->table.set(vm->makeString("code").asString(), vm->makeInt(exitCode));
+    map->table.set(vm->makeString("output"), vm->makeString(output.c_str()));
+    map->table.set(vm->makeString("stdout"), vm->makeString(output.c_str()));
+    map->table.set(vm->makeString("code"), vm->makeInt(exitCode));
 
     vm->push(result);
     return 1;
@@ -332,10 +332,10 @@ int native_os_spawn_capture(Interpreter *vm, int argCount, Value *args)
     Value result = vm->makeMap();
     MapInstance *map = result.asMap();
 
-    map->table.set(vm->makeString("output").asString(), vm->makeString(output.c_str()));
-    map->table.set(vm->makeString("stdout").asString(), vm->makeString(output.c_str()));
-    map->table.set(vm->makeString("code").asString(), vm->makeInt(exitCode));
-    map->table.set(vm->makeString("status").asString(), vm->makeInt(status));
+    map->table.set(vm->makeString("output"), vm->makeString(output.c_str()));
+    map->table.set(vm->makeString("stdout"), vm->makeString(output.c_str()));
+    map->table.set(vm->makeString("code"), vm->makeInt(exitCode));
+    map->table.set(vm->makeString("status"), vm->makeInt(status));
 
     vm->push(result);
     return 1;

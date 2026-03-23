@@ -442,9 +442,43 @@ void Compiler::literal(bool canAssign)
 void Compiler::grouping(bool canAssign)
 {
     (void)canAssign;
-    expression();
-    if (hadError)
+
+    // () → empty set
+    if (match(TOKEN_RPAREN))
+    {
+        emitByte(OP_DEFINE_SET);
+        emitShort(0);
         return;
+    }
+
+    expression();
+    if (hadError) return;
+
+    // (expr, ...) → set literal
+    if (match(TOKEN_COMMA))
+    {
+        int count = 1;
+        do
+        {
+            expression();
+            if (hadError) return;
+            count++;
+            if (count > 65535)
+            {
+                error("Cannot have more than 65535 set elements");
+                break;
+            }
+        } while (match(TOKEN_COMMA));
+        consume(TOKEN_RPAREN, "Expect ')' after set elements");
+        if (!hadError)
+        {
+            emitByte(OP_DEFINE_SET);
+            emitShort((uint16)count);
+        }
+        return;
+    }
+
+    // (expr) → grouping
     consume(TOKEN_RPAREN, "Expect ')' after expression");
 }
 
@@ -648,6 +682,8 @@ void Compiler::mapLiteral(bool canAssign)
 {
     (void)canAssign;
 
+
+
     int count = 0;
 
     if (!check(TOKEN_RBRACE))
@@ -672,9 +708,19 @@ void Compiler::mapLiteral(bool canAssign)
                 if (hadError)
                     return;
             }
+            else if (match(TOKEN_LBRACKET))
+            {
+                // [expr]: value — dynamic key
+                expression();
+                if (hadError) return;
+                consume(TOKEN_RBRACKET, "Expect ']' after expression key");
+                consume(TOKEN_COLON, "Expect ':' after map key");
+                expression();
+                if (hadError) return;
+            }
             else
             {
-                error("Expect identifier or string as map key");
+                error("Expect identifier, string, or [expression] as map key");
                 break;
             }
 

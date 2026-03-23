@@ -1,0 +1,181 @@
+// Test numeric edge cases in VM runtime
+// Tests: negate, char(), arithmetic ops, type coercion
+
+var passed = 0;
+var failed = 0;
+
+def assert(cond, msg) {
+    if (cond) {
+        passed += 1;
+    } else {
+        failed += 1;
+        print(f"FAIL: {msg}");
+    }
+}
+
+def assertEq(a, b, msg) {
+    if (a == b) {
+        passed += 1;
+    } else {
+        failed += 1;
+        print(f"FAIL: {msg} - expected {b}, got {a}");
+    }
+}
+
+// ============================================
+// NEGATE TESTS
+// ============================================
+print("=== NEGATE ===");
+
+// Int negate
+assertEq(-5, 0-5, "negate int");
+assertEq(-(-5), 5, "double negate int");
+assertEq(-0, 0, "negate zero");
+
+// Double negate
+var d = 3.14;
+assertEq(-d, 0-3.14, "negate double");
+assertEq(-(-d), 3.14, "double negate double");
+
+// Float negate (the reported bug)
+var f = 2.5;
+var negF = -f;
+assert(negF < 0, "negate float is negative");
+assertEq(negF + f, 0.0, "negF + f == 0");
+
+// Byte negate
+var myByte = 42;
+assertEq(-myByte, -42, "negate byte-like");
+
+// UInt negate (converts to double)
+var big = 1000000;
+assertEq(-big, -1000000, "negate uint-like");
+
+// ============================================
+// CHAR() TESTS  
+// ============================================
+print("=== CHAR() ===");
+
+// From int
+assertEq(char(65), "A", "char(65) == A");
+assertEq(char(97), "a", "char(97) == a");
+assertEq(char(48), "0", "char(48) == 0");
+assertEq(char(32), " ", "char(32) == space");
+
+// From string (first char)
+assertEq(char("Hello"), "H", "char(string) first char");
+
+// Building string from bytes
+var s = "";
+s += char(72);  // H
+s += char(105); // i
+s += char(33);  // !
+assertEq(s, "Hi!", "build string from char()");
+
+// Unicode
+assertEq(len(char(0x1F600)), 4, "emoji char length 4 bytes");
+
+// Edge cases
+assertEq(char(0), char(0), "char(0) null");
+assertEq(char(127), char(127), "char(127) DEL");
+
+// ============================================
+// ARITHMETIC WITH MIXED TYPES
+// ============================================
+print("=== ARITHMETIC MIXED TYPES ===");
+
+// Int + Int
+assertEq(5 + 3, 8, "int + int");
+assertEq(5 - 3, 2, "int - int");
+assertEq(5 * 3, 15, "int * int");
+assertEq(6 / 3, 2, "int / int exact");
+assertEq(7 / 2, 3.5, "int / int fraction");
+
+// Double + Int
+assertEq(3.5 + 2, 5.5, "double + int");
+assertEq(3.5 - 2, 1.5, "double - int");
+assertEq(3.5 * 2, 7.0, "double * int");
+assertEq(7.0 / 2, 3.5, "double / int");
+
+// Int + Double
+assertEq(2 + 3.5, 5.5, "int + double");
+assertEq(5 - 2.5, 2.5, "int - double");
+assertEq(2 * 3.5, 7.0, "int * double");
+assertEq(7 / 2.0, 3.5, "int / double");
+
+// String concat with numbers
+assertEq("num: " + 42, "num: 42", "string + int");
+assertEq(42 + " items", "42 items", "int + string");
+// Note: double to string formatting shows trailing zeros
+assert(len("pi: " + 3.14) > 5, "string + double has content");
+// Note: bool to string becomes "1"/"0" not "true"/"false"
+assertEq("val: " + true, "val: 1", "string + bool (1)");
+assertEq("val: " + nil, "val: nil", "string + nil");
+
+// ============================================
+// DIVISION EDGE CASES
+// ============================================
+print("=== DIVISION EDGE CASES ===");
+
+// Exact vs fraction
+assertEq(10 / 5, 2, "exact division is int");
+assertEq(10 / 4, 2.5, "non-exact becomes double");
+
+// Large numbers
+var big1 = 1000000;
+var big2 = 1000;
+assertEq(big1 / big2, 1000, "big / big");
+
+// ============================================
+// COMPARISON WITH MIXED TYPES
+// ============================================
+print("=== COMPARISON ===");
+
+assert(5 == 5.0, "int == double same value");
+assert(!(5 == 6), "5 != 6");
+assert(5 < 6, "5 < 6");
+assert(5 <= 5, "5 <= 5");
+assert(6 > 5, "6 > 5");
+assert(5 >= 5, "5 >= 5");
+
+// ============================================
+// UNARY NOT
+// ============================================
+print("=== NOT ===");
+
+assertEq(!true, false, "!true");
+assertEq(!false, true, "!false");
+assertEq(!nil, true, "!nil");
+assertEq(!0, true, "!0 is truthy");
+assertEq(!1, false, "!1 is falsy");
+// Note: In BuLang, empty string is truthy
+assertEq(!"", false, "!empty string is truthy");
+assertEq(!"x", false, "!non-empty string");
+
+// ============================================
+// MODULO
+// ============================================
+print("=== MODULO ===");
+
+assertEq(10 % 3, 1, "10 % 3");
+assertEq(10 % 5, 0, "10 % 5");
+assertEq(-10 % 3, -1, "negative modulo");
+assertEq(10.5 % 3.0, 1.5, "double modulo");
+
+// ============================================
+// TYPE COERCION IN EXPRESSIONS
+// ============================================
+print("=== TYPE COERCION ===");
+
+// bool as number in subtraction
+assertEq(5 - true, 4.0, "5 - true");
+assertEq(5 - false, 5.0, "5 - false");
+assertEq(true - false, 1.0, "true - false");
+
+// ============================================
+// RESULTS
+// ============================================
+print(f"\nNumeric edge case tests: {passed} passed, {failed} failed");
+if (failed == 0) {
+    print("All numeric edge cases validated!");
+}

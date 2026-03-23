@@ -191,13 +191,35 @@ void Compiler::initRules()
   rules[TOKEN_ERROR] = {nullptr, nullptr, PREC_NONE};
 }
 
-void Compiler::predeclareProcessGlobals()
+void Compiler::predeclareGlobals()
 {
   if (tokens.empty())
     return;
 
+  // Pre-scan: register global def/process names so the compiler
+  // does not emit "undefined variable" errors for forward references.
+  // The actual value is still assigned at the point of definition,
+  // so calling a function before its def runs will get nil (runtime error).
+  int braceDepth = 0;
+
   for (size_t i = 0; i + 1 < tokens.size(); i++)
   {
+    if (tokens[i].type == TOKEN_LBRACE)
+    {
+      braceDepth++;
+      continue;
+    }
+    if (tokens[i].type == TOKEN_RBRACE)
+    {
+      if (braceDepth > 0)
+        braceDepth--;
+      continue;
+    }
+
+    // Only predeclare at global scope
+    if (braceDepth > 0)
+      continue;
+
     if (tokens[i].type != TOKEN_PROCESS)
       continue;
 
@@ -205,7 +227,7 @@ void Compiler::predeclareProcessGlobals()
     if (nameTok.type != TOKEN_IDENTIFIER)
       continue;
 
-    // Make forward process calls resolvable regardless of declaration order.
+    // Make forward calls resolvable regardless of declaration order.
     declaredGlobals_.insert(nameTok.lexeme);
     getOrCreateGlobalIndex(nameTok.lexeme);
   }
@@ -322,7 +344,7 @@ ProcessDef *Compiler::compile(const std::string &source)
     return nullptr;
   }
 
-  predeclareProcessGlobals();
+  predeclareGlobals();
 
   function = vm_->addFunction("__main__", 0);
   if (!function)

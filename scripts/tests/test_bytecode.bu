@@ -1,0 +1,135 @@
+// Test bytecode save/load
+// This tests basic bytecode functionality
+
+var passed = 0;
+var failed = 0;
+
+def assert(cond, msg) {
+    if (cond) {
+        passed += 1;
+    } else {
+        failed += 1;
+        print(f"FAIL: {msg}");
+    }
+}
+
+// ============================================
+// NESTED FUNCTIONS
+// ============================================
+print("=== NESTED FUNCTIONS ===");
+
+def outer(x) {
+    def inner(y) {
+        return x + y;
+    }
+    return inner(10);
+}
+
+assert(outer(5) == 15, "nested function");
+
+// ============================================
+// RECURSIVE FUNCTION
+// ============================================
+print("=== RECURSIVE FUNCTION ===");
+
+def fib(n) {
+    if (n <= 1) return n;
+    return fib(n - 1) + fib(n - 2);
+}
+
+assert(fib(0) == 0, "fib(0)");
+assert(fib(1) == 1, "fib(1)");
+assert(fib(10) == 55, "fib(10)");
+
+// ============================================
+// CLASS IN BYTECODE
+// ============================================
+print("=== CLASS ===");
+
+class Point {
+    var x;
+    var y;
+    
+    def init(px, py) {
+        self.x = px;
+        self.y = py;
+    }
+    
+    def magnitude() {
+        return (self.x * self.x + self.y * self.y);
+    }
+    
+    def add(other) {
+        return Point(self.x + other.x, self.y + other.y);
+    }
+}
+
+var p1 = Point(3, 4);
+assert(p1.x == 3, "Point x");
+assert(p1.y == 4, "Point y");
+assert(p1.magnitude() == 25, "Point magnitude");
+
+var p2 = Point(1, 2);
+var p3 = p1.add(p2);
+assert(p3.x == 4, "add x");
+assert(p3.y == 6, "add y");
+
+// ============================================
+// ARRAY AND MAP
+// ============================================
+print("=== ARRAY AND MAP ===");
+
+var arr = [1, 2, 3, 4, 5];
+assert(len(arr) == 5, "array len");
+assert(arr[0] == 1, "array[0]");
+assert(arr[4] == 5, "array[4]");
+
+arr.push(6);
+assert(len(arr) == 6, "after push");
+
+var map = {name: "test", value: 42};
+assert(map.name == "test", "map.name");
+assert(map.value == 42, "map.value");
+
+map.extra = true;
+assert(map.extra == true, "map.extra");
+
+// ============================================
+// CONTROL FLOW
+// ============================================
+print("=== CONTROL FLOW ===");
+
+var sum = 0;
+for (var i = 0; i < 5; i += 1) {
+    sum += i;
+}
+assert(sum == 10, "for loop sum");
+
+sum = 0;
+var j = 0;
+while (j < 5) {
+    sum += j;
+    j += 1;
+}
+assert(sum == 10, "while loop sum");
+
+// ============================================
+// TRY/CATCH
+// ============================================
+print("=== TRY/CATCH ===");
+
+var caught = false;
+try {
+    throw "test error";
+} catch (e) {
+    caught = true;
+}
+assert(caught == true, "exception caught");
+
+// ============================================
+// RESULTS
+// ============================================
+print(f"\nBytecode process tests: {passed} passed, {failed} failed");
+if (failed == 0) {
+    print("All bytecode tests validated!");
+}

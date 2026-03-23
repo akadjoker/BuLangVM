@@ -249,6 +249,8 @@ size_t Debug::disassembleInstruction(const Code &chunk, size_t offset)
     return shortInstruction("OP_DEFINE_ARRAY", chunk, offset);
   case OP_DEFINE_MAP:
     return shortInstruction("OP_DEFINE_MAP", chunk, offset);
+  case OP_DEFINE_SET:
+    return shortInstruction("OP_DEFINE_SET", chunk, offset);
 
     // ========== PROPERTIES (46-49) ==========
   case OP_GET_PROPERTY:

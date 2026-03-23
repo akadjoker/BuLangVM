@@ -1,0 +1,145 @@
+// =============================================
+// BuLang Runtime Benchmark
+// Tests: int arithmetic, loops, conditionals,
+//        function calls, string concat
+// =============================================
+
+var ITERATIONS = 5000000;
+
+// ----- 1. Int arithmetic loop -----
+def bench_int_add(n) {
+    var sum = 0;
+    var i = 0;
+    while (i < n) {
+        sum = sum + i;
+        i = i + 1;
+    }
+    return sum;
+}
+
+// ----- 2. Float arithmetic loop -----
+def bench_float_add(n) {
+    var sum = 0.0;
+    var i = 0;
+    while (i < n) {
+        sum = sum + 0.5;
+        i = i + 1;
+    }
+    return sum;
+}
+
+// ----- 3. Function call overhead -----
+def identity(x) {
+    return x;
+}
+
+def bench_function_calls(n) {
+    var sum = 0;
+    var i = 0;
+    while (i < n) {
+        sum = sum + identity(i);
+        i = i + 1;
+    }
+    return sum;
+}
+
+// ----- 4. Conditional branching -----
+def bench_conditionals(n) {
+    var count = 0;
+    var i = 0;
+    while (i < n) {
+        if (i % 2 == 0) {
+            count = count + 1;
+        }
+        i = i + 1;
+    }
+    return count;
+}
+
+// ----- 5. String concat -----
+def bench_string_concat(n) {
+    var s = "";
+    var i = 0;
+    while (i < n) {
+        s = s + "x";
+        i = i + 1;
+    }
+    return len(s);
+}
+
+// ----- 6. Array push + access -----
+def bench_array(n) {
+    var arr = [];
+    var i = 0;
+    while (i < n) {
+        arr.push(i);
+        i = i + 1;
+    }
+    var sum = 0;
+    i = 0;
+    while (i < n) {
+        sum = sum + arr[i];
+        i = i + 1;
+    }
+    return sum;
+}
+
+// ----- 7. Fibonacci recursive -----
+def fib(n) {
+    if (n < 2) {
+        return n;
+    }
+    return fib(n - 1) + fib(n - 2);
+}
+
+def bench_fib() {
+    return fib(30);
+}
+
+// =============================================
+// RUN ALL
+// =============================================
+print("=== BuLang Benchmark ===");
+print(f"Iterations: {ITERATIONS}");
+print("");
+
+var t0 = clock();
+var r1 = bench_int_add(ITERATIONS);
+var t1 = clock();
+print(f"1. Int add loop:      {t1 - t0} s");
+
+var t2 = clock();
+var r2 = bench_float_add(ITERATIONS);
+var t3 = clock();
+print(f"2. Float add loop:    {t3 - t2} s");
+
+var t4 = clock();
+var r3 = bench_function_calls(ITERATIONS);
+var t5 = clock();
+print(f"3. Function calls:    {t5 - t4} s");
+
+var t6 = clock();
+var r4 = bench_conditionals(ITERATIONS);
+var t7 = clock();
+print(f"4. Conditionals:      {t7 - t6} s");
+
+var STRING_N = 50000;
+var t8 = clock();
+var r5 = bench_string_concat(STRING_N);
+var t9 = clock();
+print(f"5. String concat:     {t9 - t8} s  (n={STRING_N})");
+
+var ARRAY_N = 500000;
+var t10 = clock();
+var r6 = bench_array(ARRAY_N);
+var t11 = clock();
+print(f"6. Array push+read:   {t11 - t10} s  (n={ARRAY_N})");
+
+var t12 = clock();
+var r7 = bench_fib();
+var t13 = clock();
+print(f"7. fib(30):           {t13 - t12} s  (={r7})");
+
+print("");
+var total = (t1-t0) + (t3-t2) + (t5-t4) + (t7-t6) + (t9-t8) + (t11-t10) + (t13-t12);
+print(f"TOTAL:                {total} s");

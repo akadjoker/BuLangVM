@@ -1403,7 +1403,16 @@ void Compiler::returnStatement()
 
     if (match(TOKEN_SEMICOLON))
     {
-        emitReturn();
+        if (currentFunctionType == FunctionType::TYPE_INITIALIZER)
+        {
+            // return; in init() returns self
+            emitBytes(OP_GET_LOCAL, 0);
+            emitByte(OP_RETURN);
+        }
+        else
+        {
+            emitReturn();
+        }
     }
     else if (match(TOKEN_LPAREN))
     {
@@ -2190,7 +2199,7 @@ void Compiler::includeStatement()
     // COMPILA inline
     this->lexer = new Lexer(source, sourceSize);
     this->tokens = lexer->scanAll();
-    predeclareProcessGlobals();
+    predeclareGlobals();
     this->cursor = 0;
     advance();
 
@@ -3102,7 +3111,21 @@ void Compiler::classDeclaration()
 void Compiler::method(ClassDef *classDef)
 {
     isProcess_ = false;
-    consume(TOKEN_IDENTIFIER, "Expect method name");
+
+    // Accept operator symbols as method names: def +(other), def -(other), etc.
+    if (match(TOKEN_PLUS))        previous.lexeme = "+";
+    else if (match(TOKEN_MINUS))  previous.lexeme = "-";
+    else if (match(TOKEN_STAR))   previous.lexeme = "*";
+    else if (match(TOKEN_SLASH))  previous.lexeme = "/";
+    else if (match(TOKEN_PERCENT)) previous.lexeme = "%";
+    else if (match(TOKEN_EQUAL_EQUAL)) previous.lexeme = "==";
+    else if (match(TOKEN_BANG_EQUAL))  previous.lexeme = "!=";
+    else if (match(TOKEN_LESS))        previous.lexeme = "<";
+    else if (match(TOKEN_GREATER))     previous.lexeme = ">";
+    else if (match(TOKEN_LESS_EQUAL))  previous.lexeme = "<=";
+    else if (match(TOKEN_GREATER_EQUAL)) previous.lexeme = ">=";
+    else consume(TOKEN_IDENTIFIER, "Expect method name or operator");
+
     Token methodName = previous;
 
     // Tipo de função

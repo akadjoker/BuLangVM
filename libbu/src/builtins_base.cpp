@@ -357,6 +357,9 @@ static void valueToString(const Value &v, std::string &out)
   case ValueType::MAP:
     out += "{map}";
     break;
+  case ValueType::SET:
+    out += "{set}";
+    break;
   case ValueType::BUFFER:
     out += "[buffer]";
     break;

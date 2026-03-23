@@ -1,0 +1,91 @@
+// =============================================
+// Stress Test: Process + Ticks + String Work
+// Real processes with loop/frame doing string 
+// work each tick
+// =============================================
+
+var TICK_COUNT = 5000;
+var DT = 0.016;
+
+// Global counters (processes write here)
+var worker1_chars = 0;
+var worker2_chars = 0;
+var logger_lines = 0;
+
+// --- Process 1: builds 50-char string each frame ---
+process Worker1() {
+    loop {
+        var msg = "";
+        var i = 0;
+        while (i < 50) {
+            msg = msg + "x";
+            i = i + 1;
+        }
+        worker1_chars = worker1_chars + len(msg);
+        frame;
+    }
+}
+
+// --- Process 2: same work, independent ---
+process Worker2() {
+    loop {
+        var msg = "";
+        var i = 0;
+        while (i < 50) {
+            msg = msg + "a";
+            i = i + 1;
+        }
+        worker2_chars = worker2_chars + len(msg);
+        frame;
+    }
+}
+
+// --- Process 3: string formatting each tick ---
+process Logger() {
+    loop {
+        var line = "tick-" + str(logger_lines) + ": status ok";
+        logger_lines = logger_lines + 1;
+        frame;
+    }
+}
+
+// === SPAWN ===
+print("=== Process Stress Test ===");
+print(f"Ticks: {TICK_COUNT}, dt: {DT}");
+print("");
+
+Worker1();
+Worker2();
+Logger();
+
+// === TICK LOOP ===
+var t0 = clock();
+
+var tick = 0;
+while (tick < TICK_COUNT) {
+    ticks(1);
+    tick = tick + 1;
+}
+
+var t1 = clock();
+
+// === RESULTS ===
+var elapsed = t1 - t0;
+print(f"Elapsed:       {elapsed} s");
+print(f"Ticks/sec:     {TICK_COUNT / elapsed}");
+print(f"Worker1 chars: {worker1_chars}");
+print(f"Worker2 chars: {worker2_chars}");
+print(f"Logger lines:  {logger_lines}");
+print("");
+
+if (worker1_chars != TICK_COUNT * 50) {
+    print(f"FAIL: worker1 expected {TICK_COUNT * 50} got {worker1_chars}");
+}
+if (worker2_chars != TICK_COUNT * 50) {
+    print(f"FAIL: worker2 expected {TICK_COUNT * 50} got {worker2_chars}");
+}
+if (logger_lines != TICK_COUNT) {
+    print(f"FAIL: logger expected {TICK_COUNT} got {logger_lines}");
+}
+
+print("DONE");
