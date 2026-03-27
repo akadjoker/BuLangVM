@@ -1,0 +1,111 @@
+// =============================================
+// Process Stress Test — find the FPS limit
+// Auto-spawns balls until FPS drops below 30
+// Shows: process count, FPS, spawn rate
+// Controls: SPACE=+100 manual, ESC=quit
+// =============================================
+
+var W = screen_width();
+var H = screen_height();
+var total = 0;
+var auto_spawn = true;
+var batch_size = 200;
+var target_fps = 30;
+
+// --- Simple bouncing ball ---
+process Ball(startX, startY, vx, vy, r, g, b) {
+    x = startX;
+    y = startY;
+    size = random_int(8, 25);
+    red = r;
+    green = g;
+    blue = b;
+    graph = 0;
+
+    loop {
+        x = x + vx;
+        y = y + vy;
+
+        if (x < 0 || x > W) {
+            vx = -vx;
+            x = x + vx * 2;
+        }
+        if (y < 200 || y > H) {
+            vy = -vy;
+            y = y + vy * 2;
+        }
+
+        frame;
+    }
+}
+
+def spawn_batch(count) {
+    var i = 0;
+    while (i < count) {
+        var sx = random_int(10, W - 10);
+        var sy = random_int(210, H - 10);
+        var vx = random_int(-5, 5);
+        var vy = random_int(-5, 5);
+        if (vx == 0) { vx = 3; }
+        if (vy == 0) { vy = -3; }
+        var r = random_int(30, 255);
+        var g = random_int(30, 255);
+        var b = random_int(30, 255);
+        Ball(sx, sy, vx, vy, r, g, b);
+        total = total + 1;
+        i = i + 1;
+    }
+}
+
+// --- Controller: auto-spawns + displays stats ---
+process Controller() {
+    var frame_count = 0;
+    var peak_count = 0;
+    var stopped = false;
+
+    // Start with 200
+    spawn_batch(2000);
+
+    loop {
+        var fps = get_fps();
+        frame_count = frame_count + 1;
+
+        // Auto-spawn every 10 frames if above target FPS
+        if (auto_spawn && !stopped) {
+            if (frame_count % 10 == 0) {
+                if (fps >= target_fps) {
+                    spawn_batch(batch_size);
+                } else {
+                    stopped = true;
+                    peak_count = total;
+                }
+            }
+        }
+
+        // Manual spawn
+        if (is_key_pressed(32)) {
+            spawn_batch(100);
+            if (stopped) {
+                stopped = false;
+            }
+        }
+
+        // HUD
+ 
+ 
+        if (stopped) {
+            draw_text("LIMIT @ " + str(peak_count) + " processes (FPS < " + str(target_fps) + ")", 10, 95, 20, 255, 50, 50);
+            draw_text("SPACE = keep pushing", 10, 120, 16, 200, 200, 200);
+        } else {
+            draw_text("Auto-spawning " + str(batch_size) + " every 10 frames...", 10, 95, 16, 100, 255, 100);
+        }
+
+        frame;
+    }
+}
+
+// === Start ===
+print("=== Process Stress Test ===");
+print("Auto-spawns until FPS < 30");
+print("SPACE = +100 manual");
+Controller();

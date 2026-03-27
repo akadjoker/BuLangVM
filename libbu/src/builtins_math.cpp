@@ -513,6 +513,27 @@ int native_math_round(Interpreter *vm, int argCount, Value *args)
     return 1;
 }
 
+int native_math_isnan(Interpreter *vm, int argCount, Value *args)
+{
+    double v = args[0].asNumber();
+    vm->push(vm->makeBool(std::isnan(v)));
+    return 1;
+}
+
+int native_math_isinf(Interpreter *vm, int argCount, Value *args)
+{
+    double v = args[0].asNumber();
+    vm->push(vm->makeBool(std::isinf(v)));
+    return 1;
+}
+
+int native_math_isfinite(Interpreter *vm, int argCount, Value *args)
+{
+    double v = args[0].asNumber();
+    vm->push(vm->makeBool(std::isfinite(v)));
+    return 1;
+}
+
 void Interpreter::registerMath()
 {
 
@@ -523,6 +544,8 @@ void Interpreter::registerMath()
         .addFloat("SQRT2", 1.41421356f)
         .addInt("MIN_INT", -2147483648)
         .addInt("MAX_INT", 2147483647)
+        .addDouble("NAN", std::nan(""))
+        .addDouble("INF", HUGE_VAL)
 
         // Utils de Jogos/Lógica
         .addFunction("lerp", native_math_lerp, 3)
@@ -553,7 +576,11 @@ void Interpreter::registerMath()
         .addFunction("seed", native_seed, 1)
         .addFunction("rand", native_rand, -1)
         .addFunction("irand", native_irand, -1)
-        .addFunction("round", native_math_round, -1);
+        .addFunction("round", native_math_round, -1)
+
+        .addFunction("isnan", native_math_isnan, 1)
+        .addFunction("isinf", native_math_isinf, 1)
+        .addFunction("isfinite", native_math_isfinite, 1);
 }
 
 #endif

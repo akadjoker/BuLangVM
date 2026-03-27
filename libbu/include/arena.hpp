@@ -12,14 +12,14 @@ const size_t maxStackEntries = 32UL;
 
 struct AllocationStats
 {
-	size_t totalReserved;		// Memória total reservada (chunks)
-	size_t totalAllocated;		// Memória atualmente em uso
-	size_t totalFree;			// Memória disponível nas freeLists
-	size_t chunkCount;			// Número de chunks alocados
-	size_t largeAllocations;	// Número de alocações > maxBlockSize
-	size_t largeAllocatedBytes; // Bytes em alocações grandes
+	size_t totalReserved;		// Total reserved memory (chunks)
+	size_t totalAllocated;		// Memory currently in use
+	size_t totalFree;			// Memory available in freeLists
+	size_t chunkCount;			// Number of allocated chunks
+	size_t largeAllocations;	// Number of allocations > maxBlockSize
+	size_t largeAllocatedBytes; // Bytes in large allocations
 
-	size_t blockStats[blockSizes]; // Alocações ativas por tamanho
+	size_t blockStats[blockSizes]; // Active allocations by size
 };
 
 struct StackEntry
@@ -69,10 +69,10 @@ private:
 	size_t m_chunkCount;
 	size_t m_chunkSpace;
 
-	size_t m_totalAllocated;			   // Bytes atualmente alocados
+	size_t m_totalAllocated;			   // Bytes currently allocated
 	size_t m_totalReserved;				   // Bytes reservados em chunks
-	size_t m_largeAllocations;			   // Count de malloc direto
-	size_t m_largeAllocatedBytes;		   // Bytes em malloc direto
+	size_t m_largeAllocations;			   // Direct malloc count
+	size_t m_largeAllocatedBytes;		   // Bytes in direct malloc
 	size_t m_blockAllocations[blockSizes]; // Count por block size
 
 	Block *m_freeLists[blockSizes];

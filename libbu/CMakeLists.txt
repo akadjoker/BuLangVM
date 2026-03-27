@@ -11,6 +11,23 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
 # ============================================
+# Embed stdlib.bu as C++ header
+# ============================================
+set(STDLIB_INPUT "${CMAKE_CURRENT_SOURCE_DIR}/stdlib.bu")
+set(STDLIB_OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/include/stdlib_embedded.h")
+
+add_custom_command(
+    OUTPUT ${STDLIB_OUTPUT}
+    COMMAND ${CMAKE_COMMAND}
+        -DINPUT=${STDLIB_INPUT}
+        -DOUTPUT=${STDLIB_OUTPUT}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/embed_stdlib.cmake
+    DEPENDS ${STDLIB_INPUT} ${CMAKE_CURRENT_SOURCE_DIR}/embed_stdlib.cmake
+    COMMENT "Embedding stdlib.bu -> stdlib_embedded.h"
+)
+add_custom_target(stdlib_embed DEPENDS ${STDLIB_OUTPUT})
+
+# ============================================
 # Sources
 # ============================================
 file(GLOB SOURCES "src/*.cpp")
@@ -26,6 +43,7 @@ if(BU_BUILD_SHARED_LIBS)
 endif()
 
 add_library(libbu ${BU_LIBRARY_TYPE} ${SOURCES})
+add_dependencies(libbu stdlib_embed)
 
 set(BU_VERSION_STRING "${CMAKE_PROJECT_VERSION}")
 if(NOT BU_VERSION_STRING)

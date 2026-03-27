@@ -1,0 +1,173 @@
+// test_stdlib.bu — Test embedded stdlib functions
+
+def double(x) { return x * 2; }
+def is_even(x) { return x % 2 == 0; }
+def add2(a, b) { return a + b; }
+
+var nums = [1, 2, 3, 4, 5];
+var pass = 0;
+var fail = 0;
+
+def check(cond, name) {
+    if (cond) {
+        pass = pass + 1;
+    } else {
+        print("FAIL: " + name);
+        fail = fail + 1;
+    }
+}
+
+// map
+var doubled = map(nums, double);
+check(doubled.length() == 5, "map length");
+check(doubled[0] == 2, "map[0]");
+check(doubled[4] == 10, "map[4]");
+print("map:    " + str(doubled));
+
+// filter
+var evens = filter(nums, is_even);
+check(evens.length() == 2, "filter length");
+check(evens[0] == 2, "filter[0]");
+check(evens[1] == 4, "filter[1]");
+print("filter: " + str(evens));
+
+// reduce
+var total = reduce(nums, add2, 0);
+check(total == 15, "reduce sum");
+print("reduce: " + str(total));
+
+// each
+def show(x) { print(x); }
+print("each:");
+each(nums, show);
+
+// every / some
+def gt3(x) { return x > 3; }
+def positive(x) { return x > 0; }
+check(some(nums, gt3) == true, "some gt3");
+check(every(nums, gt3) == false, "every gt3");
+check(every(nums, positive) == true, "every positive");
+
+// find / findIndex
+var found = find(nums, gt3);
+check(found == 4, "find gt3");
+
+var idx = findIndex(nums, is_even);
+check(idx == 1, "findIndex is_even");
+
+def never(x) { return false; }
+var notFound = find(nums, never);
+check(notFound == nil, "find nil when not found");
+
+var noIdx = findIndex(nums, never);
+check(noIdx == -1, "findIndex -1 when not found");
+
+// sortBy
+def asc(a, b) { return a - b; }
+def desc(a, b) { return b - a; }
+var unsorted = [5, 3, 1, 4, 2];
+var sorted_asc = sortBy(unsorted, asc);
+var sorted_desc = sortBy(unsorted, desc);
+check(sorted_asc[0] == 1, "sortBy asc[0]");
+check(sorted_asc[4] == 5, "sortBy asc[4]");
+check(sorted_desc[0] == 5, "sortBy desc[0]");
+check(sorted_desc[4] == 1, "sortBy desc[4]");
+// original unchanged
+check(unsorted[0] == 5, "sortBy no mutate");
+print("sortBy: " + str(sorted_asc));
+
+// --- range (native C++) ---
+var r1 = range(5);
+check(r1.length() == 5, "range(5) length");
+check(r1[0] == 0, "range(5)[0]");
+check(r1[4] == 4, "range(5)[4]");
+
+var r2 = range(2, 5);
+check(r2.length() == 3, "range(2,5) length");
+check(r2[0] == 2, "range(2,5)[0]");
+check(r2[2] == 4, "range(2,5)[2]");
+
+var r3 = range(0, 10, 2);
+check(r3.length() == 5, "range(0,10,2) length");
+check(r3[2] == 4, "range step");
+
+var r4 = range(10, 0, -3);
+check(r4.length() == 4, "range negative step");
+check(r4[0] == 10, "range neg[0]");
+check(r4[3] == 1, "range neg[3]");
+print("range:  " + str(r1));
+
+// --- enumerate ---
+var en = enumerate(["a", "b", "c"]);
+check(en.length() == 3, "enumerate length");
+check(en[0][0] == 0, "enumerate [0][0]");
+check(en[0][1] == "a", "enumerate [0][1]");
+check(en[2][0] == 2, "enumerate [2][0]");
+
+// --- zip ---
+var zipped = zip([1,2,3], ["a","b","c"]);
+check(zipped.length() == 3, "zip length");
+check(zipped[0][0] == 1, "zip [0][0]");
+check(zipped[0][1] == "a", "zip [0][1]");
+
+// --- sum ---
+check(sum([1,2,3,4,5]) == 15, "sum");
+check(sum([]) == 0, "sum empty");
+
+// --- reversed ---
+var rev = reversed([1,2,3]);
+check(rev[0] == 3, "reversed[0]");
+check(rev[2] == 1, "reversed[2]");
+
+// --- flatten ---
+var flat = flatten([[1,2],[3,4],[5]]);
+check(flat.length() == 5, "flatten length");
+check(flat[0] == 1, "flatten[0]");
+check(flat[4] == 5, "flatten[4]");
+
+// --- chunk ---
+var chunks = chunk([1,2,3,4,5], 2);
+check(chunks.length() == 3, "chunk length");
+check(chunks[0].length() == 2, "chunk[0] len");
+check(chunks[2].length() == 1, "chunk[2] len");
+
+// --- unique ---
+var uniq = unique([1,2,2,3,1,3]);
+check(uniq.length() == 3, "unique length");
+
+// --- countBy ---
+check(countBy([1,2,3,4,5,6], is_even) == 3, "countBy");
+
+// --- amin / amax ---
+check(amin([5,3,1,4,2]) == 1, "amin");
+check(amax([5,3,1,4,2]) == 5, "amax");
+check(amin([]) == nil, "amin empty");
+
+// --- take / drop ---
+var tk = take([1,2,3,4,5], 3);
+check(tk.length() == 3, "take length");
+check(tk[2] == 3, "take[2]");
+
+var dr = drop([1,2,3,4,5], 2);
+check(dr.length() == 3, "drop length");
+check(dr[0] == 3, "drop[0]");
+
+// --- join (C++ native) ---
+var joined = [1,2,3].join(", ");
+check(joined == "1, 2, 3", "join");
+var j2 = ["hello", "world"].join(" ");
+check(j2 == "hello world", "join strings");
+
+// --- ARGV ---
+check(ARGV.length() > 0, "ARGV exists");
+print("ARGV:   " + str(ARGV));
+
+// --- isnan/isinf (need import) ---
+import math;
+check(math.isnan(math.NAN) == true, "isnan");
+check(math.isinf(math.INF) == true, "isinf");
+check(math.isfinite(42.0) == true, "isfinite");
+check(math.isfinite(math.INF) == false, "isfinite inf");
+
+print("---");
+print("Tests: " + str(pass) + " passed, " + str(fail) + " failed");

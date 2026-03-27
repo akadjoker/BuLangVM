@@ -33,6 +33,7 @@
 #include "opcode.hpp"
 #include "debug.hpp"
 #include "platform.hpp"
+#include "RuntimeDebugger.hpp"
 #include <cmath> // std::fmod
 #include <climits> // INT32_MIN
 #include <algorithm> // std::sort
@@ -302,6 +303,7 @@ ProcessResult Interpreter::run_process(Process *process)
         //     return {ProcessResult::PROCESS_DONE, 0};
         // }
 
+        redispatch_instruction:
         switch (instruction)
         {
             // ========== CONSTANTS ==========
@@ -418,6 +420,13 @@ ProcessResult Interpreter::run_process(Process *process)
             if (LIKELY(a.isInt() && b.isInt()))
             {
                 PUSH(makeInt(a.asInt() + b.asInt()));
+                break;
+            }
+
+            // Fast path: double + double
+            if (a.isDouble() && b.isDouble())
+            {
+                PUSH(makeDouble(a.asDouble() + b.asDouble()));
                 break;
             }
 
@@ -543,6 +552,13 @@ ProcessResult Interpreter::run_process(Process *process)
                 break;
             }
 
+            // Fast path: double - double
+            if (a.isDouble() && b.isDouble())
+            {
+                PUSH(makeDouble(a.asDouble() - b.asDouble()));
+                break;
+            }
+
             if (a.isNumber() && b.isNumber())
             {
                 double da = a.asDouble();
@@ -586,6 +602,13 @@ ProcessResult Interpreter::run_process(Process *process)
             if (LIKELY(a.isInt() && b.isInt()))
             {
                 PUSH(makeInt(a.asInt() * b.asInt()));
+                break;
+            }
+
+            // Fast path: double * double
+            if (a.isDouble() && b.isDouble())
+            {
+                PUSH(makeDouble(a.asDouble() * b.asDouble()));
                 break;
             }
 
@@ -985,14 +1008,14 @@ ProcessResult Interpreter::run_process(Process *process)
             BINARY_OP_PREP();
             if (LIKELY(a.isInt() && b.isInt()))
             {
-                PUSH(makeInt(a.asInt() << b.asInt()));
+                PUSH(makeInt(a.asInt() << (b.asInt() & 31)));
             }
             else
             {
                 int32_t ia, ib;
                 if (UNLIKELY(!toInt32(a, ia) || !toInt32(b, ib)))
                     THROW_RUNTIME_ERROR("Shift left requires integers");
-                PUSH(makeInt(ia << ib));
+                PUSH(makeInt(ia << (ib & 31)));
             }
             break;
         }
@@ -1002,14 +1025,14 @@ ProcessResult Interpreter::run_process(Process *process)
             BINARY_OP_PREP();
             if (LIKELY(a.isInt() && b.isInt()))
             {
-                PUSH(makeInt(a.asInt() >> b.asInt()));
+                PUSH(makeInt(a.asInt() >> (b.asInt() & 31)));
             }
             else
             {
                 int32_t ia, ib;
                 if (UNLIKELY(!toInt32(a, ia) || !toInt32(b, ib)))
                     THROW_RUNTIME_ERROR("Shift right requires integers");
-                PUSH(makeInt(ia >> ib));
+                PUSH(makeInt(ia >> (ib & 31)));
             }
             break;
         }
@@ -3160,6 +3183,33 @@ ProcessResult Interpreter::run_process(Process *process)
                     }
                     ARGS_CLEANUP();
                     PUSH(makeInt(cnt));
+                    break;
+                }
+                // === join(separator) ===
+                else if (nameString == staticNames[(int)StaticNames::JOIN])
+                {
+                    if (argCount != 1) { runtimeError("join() expects 1 argument (separator string)"); return {ProcessResult::PROCESS_DONE, 0}; }
+                    Value sepVal = PEEK();
+                    if (!sepVal.isString()) { runtimeError("join() separator must be a string"); return {ProcessResult::PROCESS_DONE, 0}; }
+                    const char *sep = sepVal.asStringChars();
+                    size_t sepLen = strlen(sep);
+
+                    // Build result string
+                    std::string result;
+                    char buf[256];
+                    for (uint32 i = 0; i < size; i++)
+                    {
+                        if (i > 0) result.append(sep, sepLen);
+                        if (arr->values[i].isString())
+                            result.append(arr->values[i].asStringChars());
+                        else
+                        {
+                            valueToBuffer(arr->values[i], buf, sizeof(buf));
+                            result.append(buf);
+                        }
+                    }
+                    ARGS_CLEANUP();
+                    PUSH(makeString(result.c_str()));
                     break;
                 }
                 else
@@ -5455,9 +5505,8 @@ ProcessResult Interpreter::run_process(Process *process)
                 break;
             }
 
-            // Zombify: destroy internals now, shell reclaimed by next GC sweep.
-            // Safe against dangling references on stack/globals.
-            PUSH(makeBool(zombifyObject(gcObj)));
+            // Immediate free: unlink from gcObjects + full free.
+            PUSH(makeBool(freeImmediate(gcObj)));
             break;
         }
         case OP_CLOSURE:
@@ -5663,6 +5712,23 @@ ProcessResult Interpreter::run_process(Process *process)
                 char buf[256];
                 valueToBuffer(val, buf, sizeof(buf));
                 PUSH(makeString(buf));
+            }
+            break;
+        }
+
+        // ============================================
+        // OP_BREAKPOINT — Debugger trap (bytecode-patched)
+        // ============================================
+        case OP_BREAKPOINT:
+        {
+            if (debugger_)
+            {
+                STORE_FRAME();
+                // Get the original opcode and re-dispatch it.
+                // ip already points past OP_BREAKPOINT, so operand
+                // reads in the original handler work correctly.
+                instruction = debugger_->onBreakpoint(fiber, ip);
+                goto redispatch_instruction;
             }
             break;
         }

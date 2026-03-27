@@ -1,0 +1,188 @@
+// ============================================
+// Demo: Text Analyzer
+// Features: regex, maps, stdlib (sortBy, each),
+//           f-strings, string methods
+// ============================================
+import regex;
+import fs;
+
+// --- Word frequency analysis ---
+def analyzeText(text) {
+    // Clean and tokenize
+    var lower = text.lower();
+    var words = regex.findall("[a-z']+", lower);
+    var totalWords = len(words);
+
+    // Count frequencies
+    var freq = {};
+    foreach (w in words) {
+        if (freq[w] == nil) {
+            freq[w] = 0;
+        }
+        freq[w] = freq[w] + 1;
+    }
+
+    // Count unique
+    var keys = freq.keys();
+    var uniqueWords = len(keys);
+
+    return {
+        words: words,
+        freq: freq,
+        total: totalWords,
+        unique: uniqueWords
+    };
+}
+
+// --- Top N words ---
+def compareByCountDesc(a, b) { return b["count"] - a["count"]; }
+
+def topWords(freq, n) {
+    var keys = freq.keys();
+    var pairs = [];
+    foreach (k in keys) {
+        pairs.push({word: k, count: freq[k]});
+    }
+    var sorted = sortBy(pairs, compareByCountDesc);
+    return take(sorted, n);
+}
+
+// --- Sentence stats ---
+def sentenceStats(text) {
+    var sentences = regex.split("[.!?]+\\s*", text);
+    var filtered = [];
+    foreach (s in sentences) {
+        if (s.trim().length() > 0) { filtered.push(s); }
+    }
+    var count = len(filtered);
+    var totalLen = 0;
+    foreach (s in filtered) {
+        var words = regex.findall("[a-zA-Z']+", s);
+        totalLen = totalLen + len(words);
+    }
+    var avgLen = 0;
+    if (count > 0) { avgLen = totalLen / count; }
+    return {count: count, avgWords: avgLen};
+}
+
+// --- Pattern extraction ---
+def findEmails(text) {
+    return regex.findall("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}", text);
+}
+
+def findUrls(text) {
+    return regex.findall("https?://[^\\s,)]+", text);
+}
+
+def findNumbers(text) {
+    return regex.findall("\\d+\\.?\\d*", text);
+}
+
+// --- Display helpers ---
+def bar(count, maxCount) {
+    var width = 30;
+    var filled = 0;
+    if (maxCount > 0) { filled = (count * width) / maxCount; }
+    var result = "";
+    for (var i = 0; i < filled; i += 1) { result = result + "#"; }
+    for (var i = filled; i < width; i += 1) { result = result + "."; }
+    return result;
+}
+
+def printSection(title) {
+    print("");
+    print(f"--- {title} ---");
+}
+
+// --- Main ---
+def main() {
+    print("==============================");
+    print("  BuLang Text Analyzer");
+    print("==============================");
+
+    // Sample text (or load from file)
+    var text = "";
+    if (len(ARGV) > 1) {
+        text = fs.read(ARGV[1]);
+        if (text == nil) {
+            var fname = ARGV[1];
+            print(f"  Error: cannot read file: {fname}");
+            return;
+        }
+        print(f"  Loaded: {ARGV[1]}");
+    } else {
+        text = "The quick brown fox jumps over the lazy dog. " +
+               "The fox was very quick and the dog was very lazy. " +
+               "A lazy dog sleeps all day, but a quick fox hunts at dawn. " +
+               "Contact us at info@example.com or support@bulang.dev for more info. " +
+               "Visit https://bulang.dev or https://github.com/bulang for details. " +
+               "The project has 1500 stars and 42 contributors with 3.14 rating.";
+        print("  Using sample text (pass a file as argument)");
+    }
+
+    // Basic stats
+    var result = analyzeText(text);
+    printSection("Word Statistics");
+    var tw = result["total"];
+    var uw = result["unique"];
+    print(f"  Total words:  {tw}");
+    print(f"  Unique words: {uw}");
+    var ratio = 0;
+    if (result["total"] > 0) {
+        ratio = (result["unique"] * 100) / result["total"];
+    }
+    print(f"  Vocabulary:   {ratio}%");
+
+    // Sentence stats
+    var ss = sentenceStats(text);
+    printSection("Sentence Statistics");
+    var sc = ss["count"];
+    var sa = ss["avgWords"];
+    print(f"  Sentences:    {sc}");
+    print(f"  Avg words:    {sa} per sentence");
+
+    // Character stats
+    var charCount = text.length();
+    var noSpaces = regex.replace("\\s", "", text).length();
+    printSection("Character Statistics");
+    print(f"  Characters:   {charCount} (with spaces)");
+    print(f"  Characters:   {noSpaces} (without spaces)");
+
+    // Top 10 words with bar chart
+    var top = topWords(result["freq"], 10);
+    var maxCount = 0;
+    if (len(top) > 0) { maxCount = top[0]["count"]; }
+
+    printSection("Top 10 Words");
+    foreach (item in top) {
+        var w = item["word"];
+        var c = item["count"];
+        while (w.length() < 12) { w = w + " "; }
+        print(f"  {w} {bar(c, maxCount)} ({c})");
+    }
+
+    // Extracted patterns
+    var emails = findEmails(text);
+    if (len(emails) > 0) {
+        printSection("Emails Found");
+        foreach (e in emails) { print(f"  - {e}"); }
+    }
+
+    var urls = findUrls(text);
+    if (len(urls) > 0) {
+        printSection("URLs Found");
+        foreach (u in urls) { print(f"  - {u}"); }
+    }
+
+    var numbers = findNumbers(text);
+    if (len(numbers) > 0) {
+        printSection("Numbers Found");
+        var numStr = numbers.join(", ");
+        print(f"  {numStr}");
+    }
+
+    print("");
+    print("Done!");
+}
+
+main();

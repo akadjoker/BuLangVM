@@ -2,6 +2,7 @@
 #include "interpreter.hpp"
 #include "value.hpp"
 #include "opcode.hpp"
+#include "platform.hpp"
 #include <algorithm>
 
 void Compiler::expression()
@@ -380,12 +381,19 @@ void Compiler::fstringExpression(bool canAssign)
         int savedCursor = cursor;
         Token savedCurrent = current;
         Token savedPrevious = previous;
+        int fstringLine = savedPrevious.line;
 
         // Create a sub-lexer for the expression
         Lexer subLexer(exprSrc);
         lexer = &subLexer;
         tokens = lexer->scanAll();
         cursor = 0;
+
+        // Patch token lines to the real f-string line
+        for (size_t ti = 0; ti < tokens.size(); ti++)
+        {
+            tokens[ti].line = fstringLine;
+        }
 
         // Prime the parser with first token
         if (!tokens.empty())
@@ -398,7 +406,8 @@ void Compiler::fstringExpression(bool canAssign)
         expression();
 
         // Convert to string
-        emitByte(OP_TOSTRING);
+        if (!hadError)
+            emitByte(OP_TOSTRING);
 
         // Restore lexer/parser state
         lexer = savedLexer;

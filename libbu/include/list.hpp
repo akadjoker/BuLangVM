@@ -83,7 +83,7 @@ struct List
     if (count > 6 && entries[6].key == key) return 6;
     if (count > 7 && entries[7].key == key) return 7;
     
-    // Loop para resto (nao quremos chega aqui)
+    // Loop for the rest (we prefer not to reach here)
     for (size_t i = 8; i < count; i++)
     {
       if (entries[i].key == key)
@@ -136,13 +136,13 @@ struct List
     
     if (idx >= 0)
     {
-      entries[idx].value = value;
+      entries[idx].value = std::move(value);
       return false;
     }
 
     ensureCapacity(count + 1);
     entries[count].key = key;
-    entries[count].value = value;
+    entries[count].value = std::move(value);
     count++;
     
     return true;
@@ -217,8 +217,8 @@ struct List
     int idx = findIndex(key);
     if (idx < 0) return false;
 
-    // Move tudo o que está à frente um passo para trás
-    // É mais lento que o swap, mas mantém a ordem [A, C, D]
+    // Move everything ahead one step back
+    // Slower than swap, but preserves order [A, C, D]
     size_t toMove = count - 1 - idx;
     if (toMove > 0)
     {
@@ -234,7 +234,7 @@ struct List
     count = 0;
   }
 
-  // Iterar (ordem de inserção, não alfabética)
+  // Iterate (insertion order, not alphabetical)
   template <typename Fn>
   void forEach(Fn fn) const
   {
@@ -258,10 +258,10 @@ struct List
 // USO:
 // List<String*, uint8> fields;  // SEM comparador!
 //
-// REQUISITO: Strings devem ser interned (mesmo texto = mesmo ponteiro)
+// REQUIREMENT: Strings must be interned (same text = same pointer)
 //
 // VANTAGENS:
-// - 5-10x mais rápido que comparação de strings
+// - 5-10x faster than string comparison
 // - Cache-friendly (64 bytes = 8 entries em 1 cache line)
-// - Sem overhead de ordenação
+// - No sorting overhead
 // - Perfeito para fields de structs

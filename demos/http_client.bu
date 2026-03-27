@@ -1,0 +1,149 @@
+// ============================================
+// Demo: Mini HTTP Client
+// Features: net (http_get), regex (findall,
+//           search, split, groups), json, maps
+// ============================================
+import net;
+import regex;
+import json;
+
+// --- HTML helpers ---
+def stripTags(html) {
+    return regex.replace("<[^>]+>", "", html);
+}
+
+def extractTitle(html) {
+    var m = regex.search("<title[^>]*>([^<]*)</title>", html);
+    if (m == nil) { return "(no title)"; }
+    return m["groups"][0];
+}
+
+def extractLinks(html) {
+    return regex.findall("href=\"([^\"]+)\"", html);
+}
+
+def extractMeta(html, name) {
+    var pattern = "<meta[^>]*name=\"" + name + "\"[^>]*content=\"([^\"]*)\"";
+    var m = regex.search(pattern, html);
+    if (m == nil) { return nil; }
+    return m["groups"][0];
+}
+
+def extractHeadings(html) {
+    return regex.findall("<h[1-6][^>]*>([^<]*)</h[1-6]>", html);
+}
+
+def extractImages(html) {
+    return regex.findall("src=\"([^\"]+\\.(png|jpg|jpeg|gif|svg|webp))\"", html);
+}
+
+// --- Display helpers ---
+def printSection(title) {
+    print("");
+    print(f"--- {title} ---");
+}
+
+def printList(items, max) {
+    var count = len(items);
+    if (count == 0) {
+        print("  (none)");
+        return;
+    }
+    var limit = count;
+    if (limit > max) { limit = max; }
+    for (var i = 0; i < limit; i += 1) {
+        print(f"  {i + 1}) {items[i]}");
+    }
+    if (count > max) {
+        var remaining = count - max;
+        print(f"  ... and {remaining} more");
+    }
+}
+
+// --- Fetch and analyze ---
+def analyze(url) {
+    print(f"Fetching: {url}");
+    print("");
+
+    net.init();
+    var resp = net.http_get(url);
+    net.quit();
+
+    if (resp == nil) {
+        print("  Error: request failed");
+        return;
+    }
+
+    var status = resp["status_code"];
+    var body = resp["body"];
+    var bodyLen = resp["received"];
+
+    // Status
+    printSection("Response");
+    var statusText = resp["status_text"];
+    print(f"  Status: {status} {statusText}");
+    print(f"  Size:   {bodyLen} bytes");
+
+    if (status != 200) {
+        print("  (non-200 response, analysis may be incomplete)");
+    }
+
+    // Title
+    var title = extractTitle(body);
+    print(f"  Title:  {title}");
+
+    // Meta description
+    var desc = extractMeta(body, "description");
+    if (desc != nil) {
+        print(f"  Desc:   {desc}");
+    }
+
+    // Links
+    var links = extractLinks(body);
+    printSection(f"Links ({len(links)} found)");
+    printList(links, 10);
+
+    // Headings
+    var headings = extractHeadings(body);
+    printSection(f"Headings ({len(headings)} found)");
+    printList(headings, 10);
+
+    // Images
+    var images = extractImages(body);
+    printSection(f"Images ({len(images)} found)");
+    printList(images, 5);
+
+    // Text preview
+    var text = stripTags(body);
+    text = regex.replace("\\s+", " ", text).trim();
+    var previewLen = text.length();
+    if (previewLen > 300) { previewLen = 300; }
+    var preview = text.sub(0, previewLen);
+    printSection("Text Preview");
+    print(f"  {preview}...");
+
+    // Word count
+    var words = regex.findall("[a-zA-Z]+", text);
+    printSection("Stats");
+    print(f"  Words in page: {len(words)}");
+    print(f"  Links: {len(links)} | Headings: {len(headings)} | Images: {len(images)}");
+
+    print("");
+    print("Done!");
+}
+
+// --- Main ---
+def main() {
+    print("==============================");
+    print("  BuLang HTTP Client");
+    print("==============================");
+
+    if (len(ARGV) > 1) {
+        analyze(ARGV[1]);
+    } else {
+        // Default: fetch example.com (always works, plain HTTP)
+        analyze("http://example.com");
+    }
+}
+
+main();

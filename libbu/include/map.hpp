@@ -48,7 +48,7 @@ struct HashMap
 {
   enum State : uint8
   {
-    EMPTY = 0, // Explícito! memset garante isso
+    EMPTY = 0, // Explicit! memset guarantees this
     FILLED = 1,
     TOMBSTONE = 2
   };
@@ -133,7 +133,7 @@ struct HashMap
 
   void adjustCapacity(size_t newCap)
   {
-    // Garantir power-of-two para mask() funcionar
+    // Ensure power-of-two for mask() to work
     assert((newCap & (newCap - 1)) == 0 && "Capacity must be power of 2");
 
     Entry *old = entries;
@@ -154,7 +154,7 @@ struct HashMap
         if (e->state == FILLED)
         {
           Entry *dst = findSlot(e->key, e->hash);
-          std::memcpy(dst, e, sizeof(Entry)); // POD copy, mais rápido
+          std::memcpy(dst, e, sizeof(Entry)); // POD copy, faster
           count++;
         }
       }
@@ -207,7 +207,7 @@ struct HashMap
       e->state = FILLED;
       count++;
     }
-    e->value = value;
+    e->value = std::move(value);
     return isNew;
   }
 

@@ -345,7 +345,7 @@ struct Value
       return as.boolean;
     }
 
-    // Qualquer número != 0 é true
+    // Any number != 0 is true
     switch (type)
     {
     case ValueType::INT:
@@ -361,7 +361,7 @@ struct Value
     case ValueType::NIL:
       return false;
     default:
-      return true; // Objects são truthy
+      return true; // Objects are truthy
     }
   }
 
@@ -514,7 +514,7 @@ static FORCE_INLINE bool isTruthy(const Value &value)
   case ValueType::FLOAT:
     return value.asFloat() != 0.0f;
   default:
-    return true; // strings, functions são truthy
+    return true; // strings, functions are truthy
   }
 }
 

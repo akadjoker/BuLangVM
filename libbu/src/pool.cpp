@@ -846,7 +846,8 @@ Process *ProcessPool::create()
 
 void ProcessPool::recycle(Process *proc)
 {
-    proc->reset();
+    // NOTE: skip reset() — spawnProcess() overwrites every field.
+    // Avoids 11 redundant stores per process kill.
     pool.push(proc);
 }
 

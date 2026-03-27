@@ -18,12 +18,13 @@ assert(regex.match("hello", "hello"), "regex.match exact");
 assert(regex.match("hello\\d+", "hello123"), "regex.match pattern-text");
 assert(!regex.match("world", "hello"), "regex.match negative");
 
-// Test search - returns bool (substring match)
+// Test search - returns map with match info, or nil
 var found = regex.search("\\d+\\.\\d+", "Price: $42.99");
-assert(found == true, "regex.search finds match");
+assert(found != nil, "regex.search finds match");
+assert(found["match"] == "42.99", "regex.search match text");
 
 var noMatch = regex.search("\\d+", "hello");
-assert(noMatch == false, "regex.search returns false on no match");
+assert(noMatch == nil, "regex.search returns nil on no match");
 
 // Test replace(pattern, replacement, text)
 var cleaned = regex.replace("\\s+", " ", "hello   world");

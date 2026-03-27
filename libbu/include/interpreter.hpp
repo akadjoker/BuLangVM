@@ -32,6 +32,7 @@ struct ProcessExec;
 struct Process;
 class Interpreter;
 class Compiler;
+class RuntimeDebugger;
 
 enum class FieldType : uint8_t
 {
@@ -54,13 +55,13 @@ enum class StaticNames : uint8 {
     CLEAR,
     
     // === NOVOS (ARRAY/LIST) ===
-    INSERT,       // Novo
-    FIND,         // Novo (pode ser predicado ou valor)
-    REVERSE,      // Novo
-    JOIN,         // Novo
-    FIRST,        // Novo
-    LAST,         // Novo
-    COUNT,        // Novo (para contar ocorrências, ex: arr.count(10))
+    INSERT,
+    FIND,         // Can be predicate or value
+    REVERSE,
+    JOIN,
+    FIRST,
+    LAST,
+    COUNT,        // Count occurrences, e.g.: arr.count(10)
     SORT,         // arr.sort() / arr.sort(cmp)
 
     // === MAP / SET ===
@@ -76,9 +77,9 @@ enum class StaticNames : uint8 {
     RFIND,
     UPPER,
     LOWER,
-    CONCAT,       // Já existia (agora serve para String e Array)
+    CONCAT,       // Works for both String and Array
     SUB,
-    SUBSTR,        // Novo (alias para sub)
+    SUBSTR,        // Alias for sub
     REPLACE,
     AT,
     CONTAINS,     //  String e Array)
@@ -98,7 +99,7 @@ enum class StaticNames : uint8 {
     ISLOWER,      // str.islower()
     LSTRIP,       // str.lstrip()
     RSTRIP,       // str.rstrip()
-    INIT,         // Geralmente para Classes/Structs
+    INIT,         // for  Classes/Structs
 
     // === BUFFER ===
     FILL,         //   Buffer e Array)
@@ -216,10 +217,10 @@ struct ClassDef
   String *name{nullptr};
   String *parent{nullptr};
   bool inherited{false};
-  int fieldCount;                 // Número de fields
+  int fieldCount;                 // Number of fields
   Function *constructor{nullptr}; // existe na tabela
-  ClassDef *superclass;           // Herança de outra ClassDef
-  NativeClassDef *nativeSuperclass{nullptr}; // Herança de NativeClass (híbrido)
+  ClassDef *superclass;           // Inheritance from another ClassDef
+  NativeClassDef *nativeSuperclass{nullptr}; // Inheritance from NativeClass (hybrid)
 
   // HashMap<String *, Function *, StringHasher, StringEq> methods;
   // HashMap<String *, uint8_t, StringHasher, StringEq> fieldNames; // field name → index
@@ -238,7 +239,7 @@ struct NativeClassDef
   String *name;
   NativeConstructor constructor;
   NativeDestructor destructor;
-  bool persistent;  // Se true, instâncias não são coletadas pelo GC
+  bool persistent;  // If true, instances are not collected by GC
 
   List<String *, NativeMethod> methods;
   List<String *, NativeProperty> properties;
@@ -260,7 +261,7 @@ struct NativeStructDef
   int id;
   String *name;
   size_t structSize;
-  bool persistent;  // Se true, instâncias não são coletadas pelo GC
+  bool persistent;  // If true, instances are not collected by GC
   List<String *, NativeFieldDef> fields;
   NativeStructCtor constructor; // nullable
   NativeStructDtor destructor;  // nullable
@@ -357,7 +358,7 @@ struct ClassInstance : GCObject
 {
   ClassDef *klass;
   Vector<Value> fields;
-  void *nativeUserData{nullptr};  // Dados nativos quando herda de NativeClass
+  void *nativeUserData{nullptr};  // Native data when inheriting from NativeClass
 
   ClassInstance() : GCObject(GCObjectType::CLASS) {}
 
@@ -377,7 +378,7 @@ struct ClassInstance : GCObject
     return false;
   }
   
-  // Procura método nativo na superclass nativa
+  // Search for native method in native superclass
   FORCE_INLINE bool getNativeMethod(String *name, NativeMethod *out)
   {
     ClassDef *current = klass;
@@ -395,7 +396,7 @@ struct ClassInstance : GCObject
     return false;
   }
   
-  // Retorna o NativeClassDef se existir na cadeia de herança
+  // Returns NativeClassDef if it exists in the inheritance chain
   FORCE_INLINE NativeClassDef* getNativeSuperclass()
   {
     ClassDef *current = klass;
@@ -410,7 +411,7 @@ struct ClassInstance : GCObject
     return nullptr;
   }
   
-  // Procura propriedade nativa na superclass nativa
+  // Search for native property in native superclass
   FORCE_INLINE bool getNativeProperty(String *name, NativeProperty *out)
   {
     ClassDef *current = klass;
@@ -452,7 +453,7 @@ struct BufferInstance : GCObject
 {
 
   BufferType type;
-  int count;       // Quantos elementos tem
+  int count;       // Element count
   int elementSize; // Tamanho em bytes de 1 elemento (cache)
   int cursor;
   uint8 *data;
@@ -478,8 +479,8 @@ struct NativeClassInstance : GCObject
 {
   NativeClassDef *klass;
   void *userData;
-  bool persistent;      // Se true, não é coletado pelo GC
-  bool ownsUserData;    // Se true, o destrutor é chamado ao libertar
+  bool persistent;      // If true, not collected by GC
+  bool ownsUserData;    // If true, destructor is called on release
 
   NativeClassInstance() : GCObject(GCObjectType::NATIVE_CLASS), persistent(false), ownsUserData(true) {}
 };
@@ -488,7 +489,7 @@ struct NativeStructInstance : GCObject
 {
   NativeStructDef *def;
   void *data;
-  bool persistent;  // Se true, não é coletado pelo GC
+  bool persistent;  // If true, not collected by GC
 
   NativeStructInstance() : GCObject(GCObjectType::NATIVE_STRUCT), persistent(false) {}
 };
@@ -572,8 +573,8 @@ struct TryHandler
 struct ProcessExec
 {
 
-  ProcessState state; // Estado de execução do processo
-  float resumeTime;   // Quando acorda (yield/frame)
+  ProcessState state; // Process execution state
+  float resumeTime;   // When it wakes up (yield/frame)
 
   uint8 *ip;
   Value stack[STACK_MAX];
@@ -638,7 +639,7 @@ struct Process : public ProcessExec
 
   String *name{nullptr};
   uint32 id{0};
-  int blueprint{-1}; // Índice do ProcessDef que é a "blueprint" desse processo
+  int blueprint{-1}; // Index of the ProcessDef that is this process's blueprint
   void *userData{nullptr}; 
   Value privates[MAX_PRIVATES];
 
@@ -691,7 +692,7 @@ class Interpreter
   static constexpr size_t MAX_GC_THRESHOLD = 512 * 1024 * 1024;  
   static constexpr double GC_GROWTH_FACTOR = 2.0;
   bool gcInProgress = false;
-  bool enbaledGC = true;
+  bool enabledGC = true;
   GCObject *gcObjects = nullptr;
   GCObject *persistentObjects = nullptr;
   int frameCount = 0;
@@ -700,7 +701,7 @@ class Interpreter
   // gc end
 
   HashMap<String *, uint16, StringHasher, StringEq> moduleNames; // Nome  ID
-  Vector<ModuleDef *> modules;                                   // Array de módulos!
+  Vector<ModuleDef *> modules;                                   // Array of modules
   HashMap<String *, Value, StringHasher, StringEq> globals;      // For named lookups (debug, reflection)
   Vector<Value> globalsArray;                                    // OPTIMIZATION: Direct indexed access
   HashMap<String *, uint16, StringHasher, StringEq> nativeGlobalIndices; // Native name -> globalsArray index
@@ -744,6 +745,7 @@ class Interpreter
   int callReturnTargetFrameCount_{-1};
   bool hasFatalError_;
   bool debugMode_;
+  RuntimeDebugger *debugger_{nullptr};
 
   Compiler *compiler;
   FileLoaderCallback fileLoaderCallback_ = nullptr;
@@ -790,6 +792,7 @@ class Interpreter
 
   friend class Compiler;
   friend class ModuleBuilder;
+  friend class RuntimeDebugger;
 
   void dumpAllFunctions(FILE *f);
   void dumpAllClasses(FILE *f);
@@ -868,7 +871,7 @@ class Interpreter
   {
     size_t size = sizeof(ClassInstance);
     
-    // Se herda de NativeClass, chama destructor nativo
+    // If inheriting from NativeClass, call native destructor
     if (c->nativeUserData)
     {
       NativeClassDef *nativeDef = c->getNativeSuperclass();
@@ -876,8 +879,8 @@ class Interpreter
       {
         nativeDef->destructor(this, c->nativeUserData);
       }
-      // Nota: nativeUserData foi alocado pela arena ou pelo constructor nativo
-      // A arena limpa automaticamente na shutdown
+      // Note: nativeUserData was allocated by arena or native constructor
+      // The arena cleans up automatically on shutdown
     }
     
     c->fields.destroy();
@@ -1027,7 +1030,7 @@ class Interpreter
 
   FORCE_INLINE void freeNativeClass(NativeClassInstance *n)
   {
-    // Chama destrutor nativo para liberar userData APENAS se ownsUserData é true
+    // Call native destructor to free userData ONLY if ownsUserData is true
     if (n->ownsUserData && n->klass && n->klass->destructor && n->userData)
     {
       n->klass->destructor(this, n->userData);
@@ -1067,6 +1070,9 @@ class Interpreter
 
   FORCE_INLINE void freeNativeStruct(NativeStructInstance *n)
   {
+    if (n->def && n->def->destructor)
+        n->def->destructor(this, n->data);
+    if (n->data) { arena.Free(n->data, n->def->structSize); n->data = nullptr; }
     size_t size = sizeof(NativeStructInstance);
     totalAllocated -= size;
     n->~NativeStructInstance();
@@ -1079,14 +1085,10 @@ class Interpreter
   void markObject(GCObject *obj);
   void sweep();
   void freeObject(GCObject *obj);
-  void freeObjectShell(GCObject *obj);
 
-  // Immediately destroy internal data of a GC object and mark it as zombie.
-  // The object stays in the gcObjects list with marked=2.
-  // markObject() already skips marked!=0, so GC won't follow dangling fields.
-  // sweep() will reclaim the shell (arena.Free) when it sees marked==2.
-  // Returns true if the object was successfully zombified.
-  bool zombifyObject(GCObject *target);
+  // Immediately unlink from gcObjects and free completely.
+  // Returns true if the object was found and freed.
+  bool freeImmediate(GCObject *target);
 
   FORCE_INLINE void markArray(ArrayInstance *a);
   FORCE_INLINE void markStruct(StructInstance *s);
@@ -1121,6 +1123,11 @@ public:
 
   void setDebugMode(bool enabled) { debugMode_ = enabled; }
   bool isDebugMode() const { return debugMode_; }
+
+  // Debugger (zero-overhead bytecode-patching)
+  void attachDebugger(RuntimeDebugger *dbg) { debugger_ = dbg; }
+  void detachDebugger() { debugger_ = nullptr; }
+  RuntimeDebugger *getDebugger() const { return debugger_; }
 
   void setFileLoader(FileLoaderCallback loader, void *userdata = nullptr);
 
@@ -1161,7 +1168,7 @@ public:
   bool tryGetNativeClassDef(const char *name, NativeClassDef **result);
   bool tryGetNativeStructDef(const char *name, NativeStructDef **result);
 
-  // Criar instâncias de classes script a partir do C++
+  // Create script class instances from C++
   Value createClassInstance(const char *className, int argCount, Value *args);
   Value createClassInstance(ClassDef *klass, int argCount, Value *args);
 
@@ -1232,6 +1239,7 @@ public:
   Function *compileExpression(const char *source);
   bool run(const char *source, bool dump = false);
   bool compile(const char *source, bool dump);
+  bool runCompiled();  // Spawn and run main process from already-compiled code
 
   void reset();
 
@@ -1280,6 +1288,9 @@ public:
   Value getGlobal(uint32 index);
   bool tryGetGlobal(const char *name, Value *value);
 
+  // Set script arguments (available as global ARGV array)
+  void setArgs(int argc, char *argv[]);
+
   // ===== ARRAY EXTRACTION HELPERS (for native bindings - no allocation) =====
   // Extract values from a BuLang array to a C buffer (stack-allocated by caller)
   // Returns number of elements extracted, or -1 if not an array
@@ -1300,7 +1311,7 @@ public:
   int getArrayLength(Value v);
 
   // ===== STACK API   =====
-  const Value &peek(int index); // -1 = topo, 0 = base
+  const Value &peek(int index); // -1 = top, 0 = base
   void push(Value value);
   Value pop();
 
@@ -1326,11 +1337,11 @@ public:
   bool checkStack(int extra);
 
   // ===== STACK MANIPULATION =====
-  void insert(int index);      // Insere topo no index
-  void remove(int index);      // Remove index
-  void replace(int index);     // Substitui index pelo topo
-  void copy(int from, int to); // Copia from → to
-  void rotate(int idx, int n); // Roda n elementos
+  void insert(int index);      // Insert top at index
+  void remove(int index);      // Remove at index
+  void replace(int index);     // Replace index with top
+  void copy(int from, int to); // Copy from → to
+  void rotate(int idx, int n); // Rotate n elements
 
   // ===== TYPE CHECKING =====
   ValueType getType(int index);
@@ -1362,7 +1373,7 @@ public:
   {
     Value v;
     v.type = ValueType::NATIVECLASSINSTANCE;
-    v.as.sClassInstance = createNativeClass(false);  // default: não persistent
+    v.as.sClassInstance = createNativeClass(false);  // default: not persistent
     return v;
   }
 
@@ -1417,7 +1428,7 @@ public:
   {
     Value v;
     v.type = ValueType::NATIVESTRUCTINSTANCE;
-    v.as.sNativeStruct = createNativeStruct(false);  // default: não persistent
+    v.as.sNativeStruct = createNativeStruct(false);  // default: not persistent
     return v;
   }
 

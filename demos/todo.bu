@@ -1,0 +1,159 @@
+// ============================================
+// Demo: Todo List with JSON persistence
+// Features: arrays, file I/O (fs), JSON,
+//           stdlib (filter), f-strings
+// ============================================
+import fs;
+import json;
+
+var DB_FILE = "todos.json";
+
+// --- Load / Save ---
+def loadTodos() {
+    var data = fs.read(DB_FILE);
+    if (data == nil) { return []; }
+    return json.parse(data);
+}
+
+def saveTodos(todos) {
+    var jsonStr = json.stringify(todos);
+    fs.write(DB_FILE, jsonStr);
+}
+
+// --- Next ID ---
+def nextId(todos) {
+    if (len(todos) == 0) { return 1; }
+    var maxId = 0;
+    foreach (t in todos) {
+        if (t["id"] > maxId) { maxId = t["id"]; }
+    }
+    return maxId + 1;
+}
+
+// --- Display ---
+def showTodos(todos) {
+    if (len(todos) == 0) {
+        print("  (empty list)");
+        return;
+    }
+    foreach (t in todos) {
+        var check = "[ ]";
+        if (t["done"]) { check = "[x]"; }
+        var tid = t["id"];
+        var ttxt = t["text"];
+        print(f"  {check} #{tid} - {ttxt}");
+    }
+}
+
+// --- Commands ---
+def addTodo(todos, text) {
+    var id = nextId(todos);
+    todos.push({id: id, text: text, done: false});
+    saveTodos(todos);
+    print(f"  Added: #{id} - {text}");
+}
+
+def toggleTodo(todos, id) {
+    var found = false;
+    for (var i = 0; i < len(todos); i += 1) {
+        if (todos[i]["id"] == id) {
+            todos[i]["done"] = !todos[i]["done"];
+            var status = "pending";
+            if (todos[i]["done"]) { status = "done"; }
+            print(f"  #{id} marked as {status}");
+            found = true;
+        }
+    }
+    if (!found) { print(f"  Todo #{id} not found"); }
+    saveTodos(todos);
+}
+
+def removeTodo(todos, id) {
+    var result = [];
+    foreach (t in todos) {
+        if (t["id"] != id) { result.push(t); }
+    }
+    if (len(result) == len(todos)) {
+        print(f"  Todo #{id} not found");
+        return todos;
+    }
+    print(f"  Removed #{id}");
+    saveTodos(result);
+    return result;
+}
+
+def showStats(todos) {
+    var total = len(todos);
+    var done = 0;
+    foreach (t in todos) {
+        if (t["done"]) { done = done + 1; }
+    }
+    var pending = total - done;
+    print(f"  Total: {total} | Done: {done} | Pending: {pending}");
+}
+
+def searchTodos(todos, query) {
+    var q = query.lower();
+    var count = 0;
+    foreach (t in todos) {
+        if (t["text"].lower().contains(q)) {
+            var check = "[ ]";
+            if (t["done"]) { check = "[x]"; }
+            var tid = t["id"];
+            var ttxt = t["text"];
+            print(f"  {check} #{tid} - {ttxt}");
+            count = count + 1;
+        }
+    }
+    if (count == 0) {
+        print("  No todos matching: " + query);
+    }
+}
+
+// --- Main loop ---
+def main() {
+    print("=============================");
+    print("  BuLang Todo List");
+    print("=============================");
+
+    var todos = loadTodos();
+    var running = true;
+
+    while (running) {
+        print("");
+        print("Commands: list | add | done <id> | remove <id> | search | stats | quit");
+        var cmd = input("> ");
+        cmd = cmd.trim();
+
+        if (cmd == "list") {
+            showTodos(todos);
+        } else if (cmd.startswith("add")) {
+            var text = cmd.sub(3, cmd.length()).trim();
+            if (text.length() == 0) {
+                text = input("  What to do? ");
+            }
+            addTodo(todos, text);
+        } else if (cmd.startswith("done ")) {
+            var idStr = cmd.sub(5, cmd.length()).trim();
+            toggleTodo(todos, int(idStr));
+        } else if (cmd.startswith("remove ")) {
+            var idStr = cmd.sub(7, cmd.length()).trim();
+            todos = removeTodo(todos, int(idStr));
+        } else if (cmd.startswith("search")) {
+            var query = cmd.sub(6, cmd.length()).trim();
+            if (query.length() == 0) {
+                query = input("  Search: ");
+            }
+            searchTodos(todos, query);
+        } else if (cmd == "stats") {
+            showStats(todos);
+        } else if (cmd == "quit" || cmd == "exit" || cmd == "q") {
+            print("Bye!");
+            running = false;
+        } else if (cmd.length() > 0) {
+            print(f"  Unknown command: {cmd}");
+        }
+    }
+}
+
+main();

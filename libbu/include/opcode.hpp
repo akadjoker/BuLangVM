@@ -91,12 +91,12 @@ enum Opcode : uint8
     OP_DISCARD = 58,
     OP_TRY = 59,           // Setup try handler
     OP_POP_TRY = 60,       // Remove try handler (normal exit)
-    OP_THROW = 61,         // Lança exceção
+    OP_THROW = 61,         // Throw exception
     OP_ENTER_CATCH = 62,   // Entra no catch
     OP_ENTER_FINALLY = 63, // Entra no finally
-    OP_EXIT_FINALLY = 64,  // Sai do finally (re-throw se necessário)
+    OP_EXIT_FINALLY = 64,  // Exit finally (re-throw if needed)
     // features
-    // --- MATH UNARY (1 Argumento) ---
+    // --- MATH UNARY (1 Argument) ---
     OP_SIN = 65,
     OP_COS = 66,
     OP_TAN = 67,
@@ -140,5 +140,8 @@ enum Opcode : uint8
 
     // Set (93)
     OP_DEFINE_SET = 93,  // Create set from N values on stack
+
+    // Debug (94) — never emitted by compiler, injected at runtime by debugger
+    OP_BREAKPOINT = 94,
 
 };

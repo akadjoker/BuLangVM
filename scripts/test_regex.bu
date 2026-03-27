@@ -1,0 +1,160 @@
+// ============================================
+// Test: Enhanced regex module
+// ============================================
+import regex;
+
+var passed = 0;
+var failed = 0;
+
+def assert_eq(a, b, msg) {
+    if (a == b) {
+        passed = passed + 1;
+    } else {
+        print("[FAIL] " + msg + " | expected: " + str(b) + " got: " + str(a));
+        failed = failed + 1;
+    }
+}
+
+def assert_true(a, msg) {
+    if (a) {
+        passed = passed + 1;
+    } else {
+        print("[FAIL] " + msg);
+        failed = failed + 1;
+    }
+}
+
+// =============================================
+// regex.search - returns map with match info
+// =============================================
+print("--- regex.search ---");
+
+var r = regex.search("\\d+", "hello 42 world");
+assert_true(r != nil, "search finds match");
+assert_eq(r["match"], "42", "search match text");
+assert_eq(r["index"], 6, "search match position");
+assert_eq(r["groups"].length(), 0, "search no groups");
+
+// search with capture groups
+var r2 = regex.search("(\\w+)=(\\w+)", "key=value");
+assert_eq(r2["match"], "key=value", "search full match with groups");
+assert_eq(r2["index"], 0, "search index with groups");
+assert_eq(r2["groups"].length(), 2, "search 2 groups");
+assert_eq(r2["groups"][0], "key", "search group 1");
+assert_eq(r2["groups"][1], "value", "search group 2");
+
+// search no match returns nil
+var r3 = regex.search("xyz", "hello world");
+assert_eq(r3, nil, "search no match returns nil");
+
+// search with single group
+var r4 = regex.search("href='([^']*)'", "<a href='http://test.com'>link</a>");
+assert_eq(r4["groups"][0], "http://test.com", "search extract href");
+assert_eq(r4["index"], 3, "search href index");
+
+// =============================================
+// regex.findall - capture group support
+// =============================================
+print("--- regex.findall ---");
+
+// No groups: array of full matches (same as before)
+var f1 = regex.findall("\\d+", "a1 b22 c333");
+assert_eq(f1.length(), 3, "findall no groups count");
+assert_eq(f1[0], "1", "findall match 1");
+assert_eq(f1[1], "22", "findall match 2");
+assert_eq(f1[2], "333", "findall match 3");
+
+// Single group: array of group strings
+var f2 = regex.findall("href='([^']*)'", "<a href='a.html'><a href='b.html'>");
+assert_eq(f2.length(), 2, "findall single group count");
+assert_eq(f2[0], "a.html", "findall group 1");
+assert_eq(f2[1], "b.html", "findall group 2");
+
+// Multiple groups: array of arrays
+var f3 = regex.findall("(\\w+)=(\\w+)", "a=1 b=2 c=3");
+assert_eq(f3.length(), 3, "findall multi-group count");
+assert_eq(f3[0][0], "a", "findall pair 1 key");
+assert_eq(f3[0][1], "1", "findall pair 1 val");
+assert_eq(f3[1][0], "b", "findall pair 2 key");
+assert_eq(f3[2][1], "3", "findall pair 3 val");
+
+// No matches: empty array
+var f4 = regex.findall("xyz", "hello");
+assert_eq(f4.length(), 0, "findall no matches empty");
+
+// =============================================
+// regex.split
+// =============================================
+print("--- regex.split ---");
+
+var s1 = regex.split("[,;]\\s*", "a, b; c,d");
+assert_eq(s1.length(), 4, "split count");
+assert_eq(s1[0], "a", "split part 1");
+assert_eq(s1[1], "b", "split part 2");
+assert_eq(s1[2], "c", "split part 3");
+assert_eq(s1[3], "d", "split part 4");
+
+var s2 = regex.split("\\s+", "  hello   world  ");
+assert_eq(s2[0], "", "split leading space gives empty");
+assert_eq(s2[1], "hello", "split word 1");
+assert_eq(s2[2], "world", "split word 2");
+
+// split by tags
+var s3 = regex.split("<[^>]+>", "<p>Hello</p><p>World</p>");
+assert_eq(s3[0], "", "split html empty before");
+assert_eq(s3[1], "Hello", "split html text 1");
+assert_eq(s3[2], "", "split html empty between");
+assert_eq(s3[3], "World", "split html text 2");
+
+// =============================================
+// HTML parsing use-case
+// =============================================
+print("--- HTML parsing ---");
+
+var html = "<div class='main'><p>Hello</p><a href='http://example.com'>Link</a><p>World</p></div>";
+
+// Extract all href values
+var hrefs = regex.findall("href='([^']*)'", html);
+assert_eq(hrefs.length(), 1, "html href count");
+assert_eq(hrefs[0], "http://example.com", "html href value");
+
+// Extract tag name + content pairs
+var tagContents = regex.findall("<(\\w+)[^>]*>([^<]*)</\\1>", html);
+assert_eq(tagContents.length(), 3, "html tag+content count");
+assert_eq(tagContents[0][0], "p", "html first tag name");
+assert_eq(tagContents[0][1], "Hello", "html first tag content");
+assert_eq(tagContents[1][0], "a", "html link tag");
+assert_eq(tagContents[1][1], "Link", "html link text");
+assert_eq(tagContents[2][0], "p", "html second p tag");
+assert_eq(tagContents[2][1], "World", "html second p content");
+
+// Get text content (strip all tags)
+var text = regex.replace("<[^>]+>", "", html);
+assert_eq(text, "HelloLinkWorld", "html strip tags");
+
+// Extract all attributes from a tag
+var r5 = regex.search("<div ([^>]+)>", html);
+assert_eq(r5["groups"][0], "class='main'", "html extract attrs");
+
+// Find specific tag content using search
+var titleSearch = regex.search("<a[^>]*>([^<]*)</a>", html);
+assert_eq(titleSearch["groups"][0], "Link", "html search link text");
+assert_eq(titleSearch["index"], 30, "html search link position");
+
+// =============================================
+// regex.match still works
+// =============================================
+print("--- regex.match ---");
+assert_true(regex.match("^\\d+$", "12345"), "match full digits");
+assert_true(!regex.match("^\\d+$", "123abc"), "match rejects non-digits");
+
+// =============================================
+// regex.replace still works
+// =============================================
+print("--- regex.replace ---");
+var rep = regex.replace("(\\w+)", "[$1]", "hello world");
+assert_eq(rep, "[hello] [world]", "replace with backreference");
+
+// =============================================
+print("========================");
+print(str(passed) + " passed, " + str(failed) + " failed");

@@ -80,7 +80,7 @@ struct StringCmp
           return false;
  
         
-        // Se não são iguais, compara lexicograficamente
+        // If not equal, compare lexicographically
         size_t minLen = a->length() < b->length() ? a->length() : b->length();
         int cmp = memcmp(a->chars(), b->chars(), minLen);
         

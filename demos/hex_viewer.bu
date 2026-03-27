@@ -1,0 +1,362 @@
+// ============================================
+// Demo: Binary File Hex Viewer
+// Features: file (binary I/O), buffer, path,
+//           fs (stat), string ops, math
+// ============================================
+import file;
+import fs;
+import path;
+
+var HEX = "0123456789abcdef";
+
+// --- Hex formatting ---
+def byteToHex(b) {
+    var hi = HEX.at(int(b / 16));
+    var lo = HEX.at(b % 16);
+    return hi + lo;
+}
+
+def toHex8(n) {
+    var result = "";
+    for (var i = 7; i >= 0; i -= 1) {
+        var shift = i * 4;
+        var nibble = n;
+        // Manual shift right by dividing by 16^i
+        for (var j = 0; j < i; j += 1) {
+            nibble = int(nibble / 16);
+        }
+        nibble = nibble % 16;
+        result = result + HEX.at(nibble);
+    }
+    return result;
+}
+
+def isPrintable(b) {
+    return b >= 32 and b <= 126;
+}
+
+// --- Pad string to width ---
+def padRight(s, width) {
+    while (s.length() < width) {
+        s = s + " ";
+    }
+    return s;
+}
+
+// --- File info ---
+def showFileInfo(filePath) {
+    var name = path.basename(filePath);
+    var ext = path.extname(filePath);
+    var dir = path.dirname(filePath);
+    var info = fs.stat(filePath);
+
+    print("");
+    print("  File Information");
+    print("  ----------------------------------------");
+    print(f"  Name:      {name}");
+    print(f"  Path:      {dir}");
+    print(f"  Extension: {ext}");
+
+    if (info != nil) {
+        var size = info["size"];
+        print(f"  Size:      {size} bytes");
+
+        if (size >= 1024) {
+            var kb = real(size) / 1024.0;
+            print(f"  Size (KB): {kb}");
+        }
+    }
+}
+
+// --- Detect file type by magic bytes ---
+def detectType(bytes) {
+    var count = len(bytes);
+
+    // PNG: 89 50 4E 47
+    if (count >= 4) {
+        if (bytes[0] == 137 and bytes[1] == 80 and bytes[2] == 78 and bytes[3] == 71) {
+            return "PNG Image";
+        }
+    }
+
+    // JPEG: FF D8 FF
+    if (count >= 3) {
+        if (bytes[0] == 255 and bytes[1] == 216 and bytes[2] == 255) {
+            return "JPEG Image";
+        }
+    }
+
+    // GIF: 47 49 46 38
+    if (count >= 4) {
+        if (bytes[0] == 71 and bytes[1] == 73 and bytes[2] == 70 and bytes[3] == 56) {
+            return "GIF Image";
+        }
+    }
+
+    // PDF: 25 50 44 46 (%PDF)
+    if (count >= 4) {
+        if (bytes[0] == 37 and bytes[1] == 80 and bytes[2] == 68 and bytes[3] == 70) {
+            return "PDF Document";
+        }
+    }
+
+    // ZIP/JAR: 50 4B 03 04
+    if (count >= 4) {
+        if (bytes[0] == 80 and bytes[1] == 75 and bytes[2] == 3 and bytes[3] == 4) {
+            return "ZIP Archive";
+        }
+    }
+
+    // ELF: 7F 45 4C 46
+    if (count >= 4) {
+        if (bytes[0] == 127 and bytes[1] == 69 and bytes[2] == 76 and bytes[3] == 70) {
+            return "ELF Binary";
+        }
+    }
+
+    // BMP: 42 4D
+    if (count >= 2) {
+        if (bytes[0] == 66 and bytes[1] == 77) {
+            return "BMP Image";
+        }
+    }
+
+    // Check if mostly text
+    var textCount = 0;
+    var checkLen = count;
+    if (checkLen > 512) { checkLen = 512; }
+    for (var i = 0; i < checkLen; i += 1) {
+        var b = bytes[i];
+        if (isPrintable(b) or b == 10 or b == 13 or b == 9) {
+            textCount = textCount + 1;
+        }
+    }
+    if (checkLen > 0 and real(textCount) / checkLen > 0.85) {
+        return "Text File";
+    }
+
+    return "Unknown";
+}
+
+// --- Byte statistics ---
+def analyzeBytes(bytes) {
+    var count = len(bytes);
+    var nullCount = 0;
+    var printableCount = 0;
+    var highCount = 0;
+    var freq = {};
+
+    for (var i = 0; i < count; i += 1) {
+        var b = bytes[i];
+
+        if (b == 0) { nullCount = nullCount + 1; }
+        if (isPrintable(b)) { printableCount = printableCount + 1; }
+        if (b >= 128) { highCount = highCount + 1; }
+
+        var hex = byteToHex(b);
+        if (freq[hex] == nil) {
+            freq[hex] = 0;
+        }
+        freq[hex] = freq[hex] + 1;
+    }
+
+    print("");
+    print("  Byte Statistics");
+    print("  ----------------------------------------");
+    print(f"  Total bytes:     {count}");
+    print(f"  Null bytes:      {nullCount}");
+    print(f"  Printable ASCII: {printableCount}");
+    print(f"  High bytes (>7F):{highCount}");
+
+    // Find most common byte
+    var maxFreq = 0;
+    var maxByte = "00";
+    var keys = map.keys(freq);
+    foreach (keys, k) {
+        var v = freq[k];
+        if (v > maxFreq) {
+            maxFreq = v;
+            maxByte = k;
+        }
+    }
+    print(f"  Most common: 0x{maxByte} ({maxFreq} times)");
+}
+
+// --- Hex dump ---
+def hexDump(bytes, offset, count) {
+    var total = len(bytes);
+    var end = offset + count;
+    if (end > total) { end = total; }
+
+    print("");
+    print("  Offset    00 01 02 03 04 05 06 07  08 09 0A 0B 0C 0D 0E 0F  |ASCII           |");
+    print("  --------  -----------------------------------------------  |----------------|");
+
+    var row = offset;
+    while (row < end) {
+        var hexPart = "";
+        var asciiPart = "";
+        var rowLen = 16;
+        if (row + rowLen > end) { rowLen = end - row; }
+
+        for (var col = 0; col < 16; col += 1) {
+            if (col == 8) {
+                hexPart = hexPart + " ";
+            }
+            if (col < rowLen) {
+                var b = bytes[row + col];
+                hexPart = hexPart + byteToHex(b) + " ";
+                if (isPrintable(b)) {
+                    asciiPart = asciiPart + char(b);
+                } else {
+                    asciiPart = asciiPart + ".";
+                }
+            } else {
+                hexPart = hexPart + "   ";
+                asciiPart = asciiPart + " ";
+            }
+        }
+
+        var addr = toHex8(row);
+        hexPart = padRight(hexPart, 49);
+        asciiPart = padRight(asciiPart, 16);
+        print(f"  {addr}  {hexPart} |{asciiPart}|");
+
+        row = row + 16;
+    }
+}
+
+// --- Create sample binary file ---
+def createSampleFile() {
+    var samplePath = "hex_sample.bin";
+    var h = file.open(samplePath, "wb");
+    if (h == nil) {
+        print("Error: could not create sample file");
+        return nil;
+    }
+
+    // Write header magic
+    file.write_byte(h, 0x42);  // B
+    file.write_byte(h, 0x55);  // U
+    file.write_byte(h, 0x4C);  // L
+    file.write_byte(h, 0x41);  // A
+    file.write_byte(h, 0x4E);  // N
+    file.write_byte(h, 0x47);  // G
+
+    // Version (2 bytes)
+    file.write_byte(h, 0x01);
+    file.write_byte(h, 0x00);
+
+    // Some text data
+    file.write_string(h, "Hello BuLang!");
+
+    // Null padding
+    for (var i = 0; i < 8; i += 1) {
+        file.write_byte(h, 0x00);
+    }
+
+    // Binary data pattern
+    for (var i = 0; i < 32; i += 1) {
+        file.write_byte(h, i * 8);
+    }
+
+    // More text
+    file.write_string(h, "END OF FILE");
+
+    // Final marker
+    file.write_byte(h, 0xFF);
+    file.write_byte(h, 0xFE);
+
+    file.close(h);
+    print(f"  Created sample file: {samplePath}");
+    return samplePath;
+}
+
+// --- Read file bytes into array ---
+def readFileBytes(filePath, maxBytes) {
+    var h = file.open(filePath, "rb");
+    if (h == nil) {
+        print(f"Error: could not open {filePath}");
+        return nil;
+    }
+
+    var fileSize = file.size(h);
+    var readCount = fileSize;
+    if (readCount > maxBytes) { readCount = maxBytes; }
+
+    var bytes = [];
+    for (var i = 0; i < readCount; i += 1) {
+        var b = file.read_byte(h);
+        if (b == nil) { break; }
+        bytes.push(b);
+    }
+
+    file.close(h);
+    return bytes;
+}
+
+// --- Main ---
+def main() {
+    print("======================================");
+    print("  BuLang Binary Hex Viewer");
+    print("======================================");
+
+    var filePath = nil;
+    var maxBytes = 256;
+
+    // Parse arguments
+    if (len(ARGV) > 1) {
+        filePath = ARGV[1];
+    }
+    if (len(ARGV) > 2) {
+        maxBytes = int(ARGV[2]);
+    }
+
+    // No file given? Create a sample
+    if (filePath == nil) {
+        print("");
+        print("  No file specified. Creating sample binary file...");
+        filePath = createSampleFile();
+        if (filePath == nil) { return; }
+    }
+
+    // Check file exists
+    if (!path.exists(filePath)) {
+        print(f"Error: file not found: {filePath}");
+        return;
+    }
+
+    // Show file info
+    showFileInfo(filePath);
+
+    // Read bytes
+    var bytes = readFileBytes(filePath, maxBytes);
+    if (bytes == nil) { return; }
+
+    var bytesRead = len(bytes);
+    var info = fs.stat(filePath);
+    var totalSize = 0;
+    if (info != nil) {
+        totalSize = info["size"];
+    }
+
+    // Detect file type
+    var fileType = detectType(bytes);
+    print(f"  Type:      {fileType}");
+
+    if (bytesRead < totalSize) {
+        print(f"  Showing first {bytesRead} of {totalSize} bytes");
+    }
+
+    // Hex dump
+    hexDump(bytes, 0, bytesRead);
+
+    // Byte statistics
+    analyzeBytes(bytes);
+
+    print("");
+    print("Usage: bulang hex_viewer.bu [file] [max_bytes]");
+    print("Done!");
+}
+
+main();

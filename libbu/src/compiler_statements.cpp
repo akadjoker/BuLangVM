@@ -2802,9 +2802,9 @@ void Compiler::structDeclaration()
             if (hadError) break;
 
             String *fieldName = vm_->createString(previous.lexeme.c_str());
-            // Não validar keywords - campos podem ter nomes como "loop", "break", etc.
-            bool wasReplaced = structDef->names.set(fieldName, structDef->argCount);
-            if (!wasReplaced)
+            // Keywords are valid field names (e.g. "loop", "break")
+            bool isNew = structDef->names.set(fieldName, structDef->argCount);
+            if (!isNew)
             {
                 Warning("Field '%s' redefined in struct '%s' (previous value replaced)",
                         fieldName->chars(), structName.lexeme.c_str());
@@ -2979,12 +2979,11 @@ void Compiler::classDeclaration()
         {
             consumeIdentifierLike("Expect field name");
             Token fieldName = previous;
-            // Não validar keywords - campos podem ter nomes como "loop", "break", etc.
+            // Keywords are valid field names (e.g. "loop", "break")
             String *name = vm_->createString(fieldName.lexeme.c_str());
-            // classDef->fieldNames.set(name, classDef->fieldCount);
 
-            bool wasReplaced = classDef->fieldNames.set(name, classDef->fieldCount);
-            if (!wasReplaced)
+            bool isNew = classDef->fieldNames.set(name, classDef->fieldCount);
+            if (!isNew)
             {
                 Warning("Field '%s' redefined in class '%s' (previous value replaced)",
                         fieldName.lexeme.c_str(), className.lexeme.c_str());

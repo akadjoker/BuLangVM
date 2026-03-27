@@ -1,0 +1,16 @@
+// test_debug.bu — Simple script to test the debugger
+var x = 10;
+var y = 20;
+var sum = x + y;
+print(sum);
+
+var name = "BuLang";
+print(name);
+
+var i = 0;
+while (i < 3) {
+    print(i);
+    i = i + 1;
+}
+
+print("done");

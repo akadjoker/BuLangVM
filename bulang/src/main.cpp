@@ -6,6 +6,7 @@
 // ============================================
 
 #include "interpreter.hpp"
+#include "RuntimeDebugger.hpp"
 #include "version.h"
 #include <cstdio>
 #include <cstdlib>
@@ -98,6 +99,7 @@ static void printHelp(const char *prog)
     std::printf("  %s --help                   Show this help\n\n", prog);
     std::printf("Options:\n");
     std::printf("  --dump       Dump bytecode after compilation\n");
+    std::printf("  --debug <N>  Set breakpoint at line N (repeatable)\n");
     std::printf("  -o <file>    Compile to bytecode file (.buc)\n");
     std::printf("  -I <path>    Add module search path\n");
     std::printf("\nExamples:\n");
@@ -117,6 +119,7 @@ int main(int argc, char *argv[])
     const char *outputBytecode = nullptr;
     bool dump = false;
     std::vector<std::string> includePaths;
+    std::vector<int> debugBreakpoints;
 
     // Parse arguments
     for (int i = 1; i < argc; ++i)
@@ -134,6 +137,22 @@ int main(int argc, char *argv[])
         else if (std::strcmp(argv[i], "--dump") == 0)
         {
             dump = true;
+        }
+        else if (std::strcmp(argv[i], "--debug") == 0)
+        {
+            if (i + 1 < argc)
+            {
+                int line = std::atoi(argv[++i]);
+                if (line > 0)
+                    debugBreakpoints.push_back(line);
+                else
+                    std::fprintf(stderr, "Warning: --debug requires a positive line number\n");
+            }
+            else
+            {
+                std::fprintf(stderr, "Error: --debug requires line number argument\n");
+                return 1;
+            }
         }
         else if (std::strcmp(argv[i], "-o") == 0)
         {
@@ -208,6 +227,7 @@ int main(int argc, char *argv[])
     // Set up VM
     Interpreter vm;
     vm.registerAll();
+    vm.setArgs(argc, argv);
 
     // Configure file loader
     LoaderContext loaderCtx;
@@ -276,8 +296,28 @@ int main(int argc, char *argv[])
     }
     else
     {
-        // Normal run
-        ok = vm.run(source.c_str(), dump);
+        if (!debugBreakpoints.empty())
+        {
+            // Debug mode: compile first, attach debugger, then run
+            ok = vm.compile(source.c_str(), dump);
+            if (ok)
+            {
+                RuntimeDebugger dbg(&vm);
+                vm.attachDebugger(&dbg);
+
+                for (int line : debugBreakpoints)
+                    dbg.addBreakpoint(line);
+
+                ok = vm.runCompiled();
+
+                vm.detachDebugger();
+            }
+        }
+        else
+        {
+            // Normal run (no debugger)
+            ok = vm.run(source.c_str(), dump);
+        }
     }
     
     return ok ? 0 : 1;

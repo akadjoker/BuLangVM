@@ -303,7 +303,7 @@ private:
     return nullptr;
   }
 
-  // Helper para comparação consistente
+  // Helper for consistent comparison
   int compareKeys(const K &a, const K &b) const
   {
     if (Cmp{}(a, b)) return -1;  // a < b
@@ -331,10 +331,10 @@ private:
 
 public:
   // ============================================================
-  // API IDÊNTICA AO TEU HASHMAP
+  // API IDENTICAL TO HASHMAP
   // ============================================================
 
-  // Inserir/atualizar - retorna true se é novo
+  // Insert/update - returns true if new
   bool set(const K &key, const V &value)
   {
     if (!root)
@@ -360,13 +360,13 @@ public:
         curr = curr->right;
       else
       {
-        // Chave IGUAL - atualizar valor existente
+        // Key EQUAL - update existing value
         curr->value = value;
-        return false;  // Não é novo
+        return false;  // Not new
       }
     }
 
-    // Inserir novo nó
+    // Insert new node
     Node *newNode = createNode(key, value, parent);
     
     int cmp = compareKeys(key, parent->key);
@@ -380,7 +380,7 @@ public:
     return true;
   }
 
-  // Inserir com move semantics
+  // Insert with move semantics
   bool set_move(const K &key, V &&value)
   {
     if (!root)
@@ -424,7 +424,7 @@ public:
     return true;
   }
 
-  // Set e retorna valor antigo se existia
+  // Set and return old value if existed
   bool set_get(const K &key, const V &value, V *out)
   {
     if (!root)
@@ -448,14 +448,14 @@ public:
         curr = curr->right;
       else
       {
-        // Já existe - retorna valor antigo
+        // Already exists - returns old value
         *out = curr->value;
         curr->value = value;
         return false;
       }
     }
 
-    // Novo nó
+    // New node
     Node *newNode = createNode(key, value, parent);
     
     if (Cmp{}(key, parent->key))
@@ -468,7 +468,7 @@ public:
     return true;
   }
 
-  // Buscar valor - retorna true se encontrado
+  // Find value - returns true if found
   FORCE_INLINE bool get(const K &key, V *out) const
   {
     if (count == 0) return false;
@@ -478,7 +478,7 @@ public:
     return true;
   }
 
-  // Retornar ponteiro mutável
+  // Return mutable pointer
   V *getPtr(const K &key)
   {
     if (count == 0) return nullptr;
@@ -486,7 +486,7 @@ public:
     return n ? &n->value : nullptr;
   }
 
-  // Retornar ponteiro const
+  // Return const pointer
   const V *getPtr(const K &key) const
   {
     if (count == 0) return nullptr;
@@ -507,34 +507,34 @@ public:
     return contains(key);
   }
 
-  // Remover chave - retorna true se existia
+  // Remove key - returns true if existed
   bool erase(const K &key)
   {
-    // mRED-mBLACK Tree delete é complexo, simplificado aqui
-    // Para produção, implementar delete completo com rebalanceamento
+    // RED-BLACK Tree delete is complex, simplified here
+    // For production, implement full delete with rebalancing
     Node *n = find(key);
     if (!n) return false;
     
     // TODO: Implementar delete com rebalanceamento RB
-    // Por agora, marca como "apagado" 
+    // For now, mark as "deleted" 
     count--;
     return true;
   }
 
-  // Limpar todos os elementos
+  // Clear all elements
   void clear()
   {
     destroy();
   }
 
-  // Iterar sobre todos elementos EM ORDEM
+  // Iterate over all elements IN ORDER
   template <typename Fn>
   void forEach(Fn fn) const
   {
     inOrder(root, fn);
   }
 
-  // Iterar até callback retornar false
+  // Iterate until callback returns false
   template <typename Fn>
   void forEachWhile(Fn fn) const
   {

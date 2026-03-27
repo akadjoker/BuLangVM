@@ -1,0 +1,296 @@
+// ============================================
+// Demo: Data Pipeline
+// Features: regex (split, findall, search),
+//           fs (read, write), json (stringify),
+//           maps, arrays, sortBy, foreach, math
+// ============================================
+import regex;
+import fs;
+import json;
+
+// === Stage 1: Generate sample CSV data ===
+def generateCSV() {
+    var lines = [];
+    lines.push("name,department,salary,years");
+    lines.push("Alice,Engineering,85000,5");
+    lines.push("Bob,Marketing,62000,3");
+    lines.push("Charlie,Engineering,92000,8");
+    lines.push("Diana,Sales,58000,2");
+    lines.push("Eve,Engineering,105000,12");
+    lines.push("Frank,Marketing,67000,4");
+    lines.push("Grace,Sales,61000,3");
+    lines.push("Hank,Engineering,78000,2");
+    lines.push("Irene,Sales,72000,6");
+    lines.push("Jack,Marketing,55000,1");
+    lines.push("Karen,Engineering,98000,10");
+    lines.push("Leo,Sales,48000,1");
+    lines.push("Maria,Marketing,71000,5");
+    lines.push("Nate,Engineering,88000,7");
+    lines.push("Olivia,Sales,65000,4");
+    return arr.join(lines, "\n");
+}
+
+// === Stage 2: Parse CSV ===
+def parseCSV(csv) {
+    var rows = regex.split("\n", csv);
+    var header = regex.split(",", rows[0]);
+    var records = [];
+
+    for (var i = 1; i < len(rows); i += 1) {
+        var line = rows[i];
+        if (line.trim().length() == 0) { continue; }
+        var fields = regex.split(",", line);
+        var rec = {};
+        for (var j = 0; j < len(header); j += 1) {
+            var key = header[j];
+            var val = fields[j];
+            // Convert numeric fields
+            if (key == "salary" or key == "years") {
+                rec[key] = int(val);
+            } else {
+                rec[key] = val;
+            }
+        }
+        records.push(rec);
+    }
+    return records;
+}
+
+// === Stage 3: Filter ===
+def filterBySalaryMin(records, minSalary) {
+    var result = [];
+    foreach (records, rec) {
+        if (rec["salary"] >= minSalary) {
+            result.push(rec);
+        }
+    }
+    return result;
+}
+
+def filterByDept(records, dept) {
+    var result = [];
+    foreach (records, rec) {
+        if (rec["department"] == dept) {
+            result.push(rec);
+        }
+    }
+    return result;
+}
+
+// === Stage 4: Transform ===
+def addSeniorityLevel(records) {
+    foreach (records, rec) {
+        var years = rec["years"];
+        if (years >= 8) {
+            rec["level"] = "Senior";
+        } else if (years >= 4) {
+            rec["level"] = "Mid";
+        } else {
+            rec["level"] = "Junior";
+        }
+    }
+    return records;
+}
+
+def addBonus(records, rate) {
+    foreach (records, rec) {
+        var salary = rec["salary"];
+        var bonus = int(salary * rate);
+        rec["bonus"] = bonus;
+        rec["total_comp"] = salary + bonus;
+    }
+    return records;
+}
+
+// === Stage 5: Aggregate ===
+def groupByDept(records) {
+    var groups = {};
+    foreach (records, rec) {
+        var dept = rec["department"];
+        if (groups[dept] == nil) {
+            groups[dept] = {
+                "count": 0,
+                "total_salary": 0,
+                "total_years": 0,
+                "names": []
+            };
+        }
+        var g = groups[dept];
+        g["count"] = g["count"] + 1;
+        g["total_salary"] = g["total_salary"] + rec["salary"];
+        g["total_years"] = g["total_years"] + rec["years"];
+        g["names"].push(rec["name"]);
+    }
+    return groups;
+}
+
+def computeStats(records) {
+    var minSal = 9999999;
+    var maxSal = 0;
+    var totalSal = 0;
+    var totalYrs = 0;
+    var count = len(records);
+
+    foreach (records, rec) {
+        var s = rec["salary"];
+        var y = rec["years"];
+        totalSal = totalSal + s;
+        totalYrs = totalYrs + y;
+        if (s < minSal) { minSal = s; }
+        if (s > maxSal) { maxSal = s; }
+    }
+
+    return {
+        "count": count,
+        "avg_salary": int(totalSal / count),
+        "min_salary": minSal,
+        "max_salary": maxSal,
+        "avg_years": real(totalYrs) / count,
+        "total_payroll": totalSal
+    };
+}
+
+// === Stage 6: Sort helpers ===
+def sortBySalaryDesc(a, b) {
+    return b["salary"] - a["salary"];
+}
+
+def sortByTotalCompDesc(a, b) {
+    return b["total_comp"] - a["total_comp"];
+}
+
+// === Stage 7: Report ===
+def printHeader(title) {
+    print("");
+    print(f"{'='} {title} {'='}");
+}
+
+def printDivider() {
+    print("----------------------------------------");
+}
+
+def printRecord(rec) {
+    var name = rec["name"];
+    var dept = rec["department"];
+    var salary = rec["salary"];
+    var years = rec["years"];
+    print(f"  {name} | {dept} | ${salary} | {years}yrs");
+}
+
+def printRecordFull(rec) {
+    var name = rec["name"];
+    var dept = rec["department"];
+    var salary = rec["salary"];
+    var years = rec["years"];
+    var level = rec["level"];
+    var bonus = rec["bonus"];
+    var total = rec["total_comp"];
+    print(f"  {name} | {dept} | {level} | ${salary} + ${bonus} = ${total}");
+}
+
+// === Main Pipeline ===
+def main() {
+    print("======================================");
+    print("  BuLang Data Pipeline Demo");
+    print("======================================");
+
+    // Step 1: Generate
+    printHeader("Stage 1: Generate CSV Data");
+    var csv = generateCSV();
+    var lineCount = len(regex.split("\n", csv));
+    print(f"  Generated {lineCount} lines of CSV data");
+
+    // Step 2: Parse
+    printHeader("Stage 2: Parse CSV");
+    var records = parseCSV(csv);
+    print(f"  Parsed {len(records)} records");
+    print("  Sample:");
+    printRecord(records[0]);
+    printRecord(records[1]);
+
+    // Step 3: Stats for all
+    printHeader("Stage 3: Overall Statistics");
+    var stats = computeStats(records);
+    var empCount = stats["count"];
+    var avgSal = stats["avg_salary"];
+    var minSal = stats["min_salary"];
+    var maxSal = stats["max_salary"];
+    var totalPay = stats["total_payroll"];
+    print(f"  Employees:    {empCount}");
+    print(f"  Avg Salary:   ${avgSal}");
+    print(f"  Min Salary:   ${minSal}");
+    print(f"  Max Salary:   ${maxSal}");
+    print(f"  Total Payroll: ${totalPay}");
+
+    // Step 4: Group by department
+    printHeader("Stage 4: Group by Department");
+    var groups = groupByDept(records);
+    var deptKeys = ["Engineering", "Marketing", "Sales"];
+    foreach (deptKeys, dept) {
+        var g = groups[dept];
+        var cnt = g["count"];
+        var avgDept = int(g["total_salary"] / cnt);
+        var names = arr.join(g["names"], ", ");
+        print(f"  {dept}: {cnt} people, avg ${avgDept}");
+        print(f"    Members: {names}");
+    }
+
+    // Step 5: Filter high earners
+    printHeader("Stage 5: Filter (salary >= 75000)");
+    var highEarners = filterBySalaryMin(records, 75000);
+    sortBy(highEarners, sortBySalaryDesc);
+    print(f"  Found {len(highEarners)} employees:");
+    foreach (highEarners, rec) {
+        printRecord(rec);
+    }
+
+    // Step 6: Transform - add levels and bonus
+    printHeader("Stage 6: Transform (add seniority + 15% bonus)");
+    addSeniorityLevel(records);
+    addBonus(records, 0.15);
+    sortBy(records, sortByTotalCompDesc);
+    print("  Top 5 by total compensation:");
+    for (var i = 0; i < 5; i += 1) {
+        printRecordFull(records[i]);
+    }
+
+    // Step 7: Filter engineering seniors
+    printHeader("Stage 7: Pipeline Combo");
+    var engRecords = filterByDept(records, "Engineering");
+    var engSeniors = [];
+    foreach (engRecords, rec) {
+        if (rec["level"] == "Senior") {
+            engSeniors.push(rec);
+        }
+    }
+    print(f"  Engineering seniors: {len(engSeniors)}");
+    foreach (engSeniors, rec) {
+        printRecordFull(rec);
+    }
+
+    // Step 8: Export to JSON
+    printHeader("Stage 8: Export Results");
+    var report = {
+        "stats": stats,
+        "high_earners": len(highEarners),
+        "engineering_seniors": len(engSeniors),
+        "top5": []
+    };
+    for (var i = 0; i < 5; i += 1) {
+        var r = records[i];
+        report["top5"].push({
+            "name": r["name"],
+            "total_comp": r["total_comp"]
+        });
+    }
+    var jsonStr = json.stringify(report);
+    var outPath = "pipeline_report.json";
+    fs.write(outPath, jsonStr);
+    print(f"  Saved report to {outPath}");
+    print(f"  JSON preview: {jsonStr.sub(0, 120)}...");
+
+    print("");
+    print("Pipeline complete!");
+}
+
+main();

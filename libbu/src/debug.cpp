@@ -394,6 +394,9 @@ size_t Debug::disassembleInstruction(const Code &chunk, size_t offset)
   case OP_FREE:
     return simpleInstruction("OP_FREE", offset);
 
+  case OP_BREAKPOINT:
+    return simpleInstruction("OP_BREAKPOINT", offset);
+
   default:
     printf("Unknown opcode %u\n", (unsigned)instruction);
     return offset + 1;

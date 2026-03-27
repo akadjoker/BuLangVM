@@ -21,6 +21,8 @@ Interpreter::Interpreter()
 
   setPrivateTable();
   staticNames.resize((int)StaticNames::TOTAL_COUNT);
+
+  // Common collection methods (Array, Map, Set)
   staticNames[(int)StaticNames::PUSH] = createString("push");
   staticNames[(int)StaticNames::POP] = createString("pop");
   staticNames[(int)StaticNames::BACK] = createString("back");
@@ -35,30 +37,28 @@ Interpreter::Interpreter()
   staticNames[(int)StaticNames::SLICE] = createString("slice");
   staticNames[(int)StaticNames::CONCAT] = createString("concat");
   staticNames[(int)StaticNames::JOIN] = createString("join");
-  
-
   staticNames[(int)StaticNames::FIRST] = createString("first");
   staticNames[(int)StaticNames::LAST] = createString("last");
   staticNames[(int)StaticNames::FILL] = createString("fill");
   staticNames[(int)StaticNames::SORT] = createString("sort");
   staticNames[(int)StaticNames::COUNT] = createString("count");
+  staticNames[(int)StaticNames::COPY] = createString("copy");
 
+  // Map/Set specific
   staticNames[(int)StaticNames::HAS] = createString("has");
-  staticNames[(int)StaticNames::REMOVE] = createString("remove");
   staticNames[(int)StaticNames::KEYS] = createString("keys");
   staticNames[(int)StaticNames::VALUES] = createString("values");
   staticNames[(int)StaticNames::GET] = createString("get");
   staticNames[(int)StaticNames::ITEMS] = createString("items");
   staticNames[(int)StaticNames::ADD] = createString("add");
 
+  // String methods
   staticNames[(int)StaticNames::UPPER] = createString("upper");
   staticNames[(int)StaticNames::LOWER] = createString("lower");
-  staticNames[(int)StaticNames::CONCAT] = createString("concat");
   staticNames[(int)StaticNames::SUB] = createString("sub");
   staticNames[(int)StaticNames::SUBSTR] = createString("substr");
   staticNames[(int)StaticNames::REPLACE] = createString("replace");
   staticNames[(int)StaticNames::AT] = createString("at");
-  staticNames[(int)StaticNames::CONTAINS] = createString("contains");
   staticNames[(int)StaticNames::TRIM] = createString("trim");
   staticNames[(int)StaticNames::STARTWITH] = createString("startswith");
   staticNames[(int)StaticNames::ENDWITH] = createString("endswith");
@@ -76,11 +76,10 @@ Interpreter::Interpreter()
   staticNames[(int)StaticNames::LSTRIP] = createString("lstrip");
   staticNames[(int)StaticNames::RSTRIP] = createString("rstrip");
 
+  // Class constructor
   staticNames[(int)StaticNames::INIT] = createString("init");
 
-  staticNames[(int)StaticNames::FILL] = createString("fill");
-  staticNames[(int)StaticNames::COPY] = createString("copy");
-  staticNames[(int)StaticNames::SLICE] = createString("slice");
+  // Buffer methods
   staticNames[(int)StaticNames::SAVE] = createString("save");
 
   staticNames[(int)StaticNames::WRITE_BYTE] = createString("writeByte");
@@ -640,6 +639,17 @@ int Interpreter::addGlobal(const char *name, Value value)
   return index;
 }
 
+void Interpreter::setArgs(int argc, char *argv[])
+{
+  Value arr = makeArray();
+  ArrayInstance *a = arr.asArray();
+  for (int i = 0; i < argc; i++)
+  {
+    a->values.push(makeString(argv[i]));
+  }
+  addGlobal("ARGV", arr);
+}
+
 bool Interpreter::setGlobal(const char *name, Value value)
 {
   String* str = createString(name);
@@ -1041,6 +1051,23 @@ bool Interpreter::compile(const char *source, bool dump)
 
   return !hasFatalError_;
 #endif
+}
+
+bool Interpreter::runCompiled()
+{
+  if (processes.size() == 0)
+  {
+    safetimeError("runCompiled: no compiled process to run");
+    return false;
+  }
+
+  ProcessDef *proc = processes[0];
+  mainProcess = spawnProcess(proc);
+  currentProcess = mainProcess;
+  run_process(mainProcess);
+  currentProcess = nullptr;
+
+  return !hasFatalError_;
 }
 
 void Interpreter::setHooks(const VMHooks &h) { hooks = h; }

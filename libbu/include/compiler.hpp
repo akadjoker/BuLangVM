@@ -55,13 +55,13 @@ struct ParseRule
 };
 
 // ============================================
-// LIMITES DE SEGURANÇA UNIFICADOS
+// UNIFIED SAFETY LIMITS
 // ============================================
 
 #define MAX_IDENTIFIER_LENGTH 255 // Alinhado com lexer
 
-#define MAX_EXPRESSION_DEPTH 200  // Prevenir stack overflow em expressões
-#define MAX_DECLARATION_DEPTH 100 // Prevenir recursão infinita
+#define MAX_EXPRESSION_DEPTH 200  // Prevent stack overflow in expressions
+#define MAX_DECLARATION_DEPTH 100 // Prevent infinite recursion
 #define MAX_CALL_DEPTH 100        // Limitar calls aninhados
 #define MAX_SCOPE_DEPTH 256       // Limitar scopes aninhados
 #define MAX_TRY_DEPTH 64          // Limitar try/catch aninhados
@@ -135,7 +135,7 @@ struct GotoJump
 };
 
 // ============================================
-// OPÇÕES DE COMPILAÇÃO
+// COMPILATION OPTIONS
 // ============================================
 
 struct CompilerOptions
@@ -152,7 +152,7 @@ struct CompilerOptions
   // Timeouts
   std::chrono::milliseconds compileTimeout{5000};
 
-  // Validação
+  // Validation
   bool validateUnicode = true;
   bool checkIntegerOverflow = true;
 };
@@ -177,7 +177,7 @@ public:
 
   void clear();
 
-  // Estatísticas para debugging
+  // Debugging statistics
   struct Stats
   {
     size_t maxExpressionDepth = 0;
@@ -434,6 +434,9 @@ private:
   FileLoaderCallback fileLoader = nullptr;
   void *fileLoaderUserdata = nullptr;
   std::set<std::string> includedFiles;
+
+  bool stdlibLoaded_ = false;
+  void injectStdlib();
   std::set<std::string> importedModules;
   std::set<std::string> usingModules;
 

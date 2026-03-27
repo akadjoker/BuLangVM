@@ -472,6 +472,84 @@ int native_ticks(Interpreter *vm, int argCount, Value *args)
   return 0;
 }
 
+int native_range(Interpreter *vm, int argCount, Value *args)
+{
+  if (argCount < 1 || argCount > 3)
+  {
+    vm->runtimeError("range() expects 1 to 3 arguments: range(stop), range(start,stop), range(start,stop,step)");
+    return 0;
+  }
+
+  int start = 0, stop = 0, step = 1;
+
+  if (argCount == 1)
+  {
+    stop = args[0].asInt();
+  }
+  else if (argCount == 2)
+  {
+    start = args[0].asInt();
+    stop  = args[1].asInt();
+  }
+  else
+  {
+    start = args[0].asInt();
+    stop  = args[1].asInt();
+    step  = args[2].asInt();
+  }
+
+  if (step == 0)
+  {
+    vm->runtimeError("range() step cannot be zero");
+    return 0;
+  }
+
+  Value arr = vm->makeArray();
+  ArrayInstance *a = arr.asArray();
+
+  if (step > 0)
+  {
+    for (int i = start; i < stop; i += step)
+      a->values.push(vm->makeInt(i));
+  }
+  else
+  {
+    for (int i = start; i > stop; i += step)
+      a->values.push(vm->makeInt(i));
+  }
+
+  vm->push(arr);
+  return 1;
+}
+
+int native_typeof(Interpreter *vm, int argCount, Value *args)
+{
+  if (argCount != 1) { vm->runtimeError("typeof() expects 1 argument"); return 0; }
+  const Value &v = args[0];
+  const char *name = "unknown";
+  switch (v.type) {
+    case ValueType::NIL:    name = "nil"; break;
+    case ValueType::BOOL:   name = "bool"; break;
+    case ValueType::INT:    name = "int"; break;
+    case ValueType::UINT:   name = "uint"; break;
+    case ValueType::FLOAT:  name = "float"; break;
+    case ValueType::DOUBLE: name = "double"; break;
+    case ValueType::STRING: name = "string"; break;
+    case ValueType::ARRAY:  name = "array"; break;
+    case ValueType::MAP:    name = "map"; break;
+    case ValueType::FUNCTION: name = "function"; break;
+    case ValueType::NATIVE: name = "native"; break;
+    case ValueType::CLASS:  name = "class"; break;
+    case ValueType::CLASSINSTANCE: name = "object"; break;
+    case ValueType::STRUCT: name = "struct"; break;
+    case ValueType::STRUCTINSTANCE: name = "struct_instance"; break;
+    case ValueType::BUFFER: name = "buffer"; break;
+    default: name = "unknown"; break;
+  }
+  vm->pushString(name);
+  return 1;
+}
+
 void Interpreter::registerBase()
 {
   registerNative("format", native_format, -1);
@@ -486,6 +564,8 @@ void Interpreter::registerBase()
   registerNative("char", native_char, 1);
   registerNative("classname", native_classname, 1);
   registerNative("typeid", native_typeid, 1);
+  registerNative("range", native_range, -1);
+  registerNative("typeof", native_typeof, 1);
 }
 
 void Interpreter::registerAll()

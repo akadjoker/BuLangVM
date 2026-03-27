@@ -909,6 +909,7 @@ These are keywords, available without imports:
 | `str(value)` | 1 | Convert value to string |
 | `int(value)` | 1 | Convert to integer |
 | `real(value)` | 1 | Convert to double |
+| `char(value)` | 1 | Convert to character |
 | `classname(instance)` | 1 | Get class/struct name as string |
 | `typeid(type_or_instance)` | 1 | Get unique type ID (int) |
 | `ticks(dt)` | 1 | Trigger an engine update tick |

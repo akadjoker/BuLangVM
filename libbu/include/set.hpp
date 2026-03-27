@@ -43,7 +43,7 @@ struct HashSet
 {
   enum State : uint8
   {
-    EMPTY = 0,      // Explícito para memset
+    EMPTY = 0,      // Explicit for memset
     FILLED = 1,
     TOMBSTONE = 2
   };
@@ -127,7 +127,7 @@ struct HashSet
 
   void adjustCapacity(size_t newCap)
   {
-    // Garantir power-of-two
+    // Ensure power-of-two
     assert((newCap & (newCap - 1)) == 0 && "Capacity must be power of 2");
     
     Entry *old = entries;
@@ -242,190 +242,5 @@ struct HashSet
       }
     }
   }
-};
-
-
-// // Hasher simples para int
-// struct IntHasher {
-//     size_t operator()(int key) const {
-//         // Identity hash para ints
-//         return static_cast<size_t>(key);
-//     }
-// };
-
-// struct IntEq {
-//     bool operator()(int a, int b) const {
-//         return a == b;
-//     }
-// };
-
-// void example_int()
-// {
-//     HashSet<int, IntHasher, IntEq> numbers;
-    
-//     // Inserir
-//     numbers.insert(42);
-//     numbers.insert(100);
-//     numbers.insert(7);
-//     numbers.insert(42); // duplicado, retorna false
-    
-//     printf("Count: %zu\n", numbers.count); // 3
-    
-//     // Verificar
-//     if (numbers.contains(100)) {
-//         printf("100 exists!\n");
-//     }
-    
-//     // Remover
-//     numbers.erase(100);
-    
-//     // Iterar
-//     numbers.forEach([](int key) {
-//         printf("Key: %d\n", key);
-//     });
-    
-//     numbers.destroy();
-// }
-// //*********************************************** */
-// // Hasher simples para int
-// struct IntHasher {
-//     size_t operator()(int key) const {
-//         // Identity hash para ints
-//         return static_cast<size_t>(key);
-//     }
-// };
-
-// struct IntEq {
-//     bool operator()(int a, int b) const {
-//         return a == b;
-//     }
-// };
-
-// void example_int()
-// {
-//     HashSet<int, IntHasher, IntEq> numbers;
-    
-//     // Inserir
-//     numbers.insert(42);
-//     numbers.insert(100);
-//     numbers.insert(7);
-//     numbers.insert(42); // duplicado, retorna false
-    
-//     printf("Count: %zu\n", numbers.count); // 3
-    
-//     // Verificar
-//     if (numbers.contains(100)) {
-//         printf("100 exists!\n");
-//     }
-    
-//     // Remover
-//     numbers.erase(100);
-    
-//     // Iterar
-//     numbers.forEach([](int key) {
-//         printf("Key: %d\n", key);
-//     });
-    
-//     numbers.destroy();
-// }
-// //****************************************************** */
-// struct Vec3 {
-//     float x, y, z;
-// };
-
-// // FNV-1a hash para Vec3
-// struct Vec3Hasher {
-//     size_t operator()(const Vec3& v) const {
-//         // FNV-1a 64-bit
-//         uint64 hash = 0xcbf29ce484222325ULL;
-//         const uint64 prime = 0x100000001b3ULL;
-        
-//         const uint8 *data = (const uint8*)&v;
-//         for (size_t i = 0; i < sizeof(Vec3); i++) {
-//             hash ^= data[i];
-//             hash *= prime;
-//         }
-//         return static_cast<size_t>(hash);
-//     }
-// };
-
-// struct Vec3Eq {
-//     bool operator()(const Vec3& a, const Vec3& b) const {
-//         return a.x == b.x && a.y == b.y && a.z == b.z;
-//     }
-// };
-
-// void example_vec3()
-// {
-//     HashSet<Vec3, Vec3Hasher, Vec3Eq> uniquePositions;
-    
-//     Vec3 pos1 = {1.0f, 2.0f, 3.0f};
-//     Vec3 pos2 = {4.0f, 5.0f, 6.0f};
-//     Vec3 pos3 = {1.0f, 2.0f, 3.0f}; // duplicado de pos1
-    
-//     uniquePositions.insert(pos1); // true
-//     uniquePositions.insert(pos2); // true
-//     uniquePositions.insert(pos3); // false (já existe)
-    
-//     printf("Unique positions: %zu\n", uniquePositions.count); // 2
-    
-//     uniquePositions.destroy();
-// }
-// **************************************************************++
-// // Para strings (const char*)
-// struct StringHasher {
-//     size_t operator()(const char* str) const {
-//         uint64 hash = 0xcbf29ce484222325ULL;
-//         const uint64 prime = 0x100000001b3ULL;
-        
-//         while (*str) {
-//             hash ^= static_cast<uint8>(*str++);
-//             hash *= prime;
-//         }
-//         return static_cast<size_t>(hash);
-//     }
-// };
-
-// struct StringEq {
-//     bool operator()(const char* a, const char* b) const {
-//         return strcmp(a, b) == 0;
-//     }
-// };
-
-// void example_strings()
-// {
-//     HashSet<const char*, StringHasher, StringEq> tags;
-    
-//     tags.insert("player");
-//     tags.insert("enemy");
-//     tags.insert("projectile");
-    
-//     if (tags.contains("enemy")) {
-//         printf("Has enemy tag\n");
-//     }
-    
-//     tags.destroy();
-// }
-
-// void example_early_exit()
-// {
-//     HashSet<int, IntHasher, IntEq> numbers;
-    
-//     for (int i = 0; i < 100; i++) {
-//         numbers.insert(i);
-//     }
-    
-//     // Encontrar primeiro número > 50
-//     int found = -1;
-//     numbers.forEachWhile([&found](int key) {
-//         if (key > 50) {
-//             found = key;
-//             return false; // para iteração
-//         }
-//         return true; // continua
-//     });
-    
-//     printf("Found: %d\n", found);
-    
-//     numbers.destroy();
+};;
 // }

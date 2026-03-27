@@ -107,8 +107,8 @@ class ProcessPool
 public:
     ProcessPool();
     ~ProcessPool();
-    static const int MAX_POOL_SIZE = 128;     // Máximo no pool
-    static const int MIN_POOL_SIZE = 32;      // Mínimo a manter
+    static const int MAX_POOL_SIZE = 128;     // Maximum in pool
+    static const int MIN_POOL_SIZE = 32;      // Minimum to keep
     static const int CLEANUP_THRESHOLD = 256; // Trigger cleanup
 
     static ProcessPool &instance()

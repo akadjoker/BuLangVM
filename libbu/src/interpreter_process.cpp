@@ -1,7 +1,11 @@
 #include "interpreter.hpp"
 #include "pool.hpp"
 
-
+#if defined(DEBUG_GC)
+#define GC_DEBUG_LOG(...) Info(__VA_ARGS__)
+#else
+#define GC_DEBUG_LOG(...) ((void)0)
+#endif
 
 static uint64_t PROCESS_IDS = 0;
 
@@ -199,11 +203,8 @@ Process *Interpreter::spawnProcess(ProcessDef *blueprint)
     instance->initialized = false;
     instance->exitCode = 0;
 
-    // Clona privates
-    for (int i = 0; i < MAX_PRIVATES; i++)
-    {
-        instance->privates[i] = blueprint->privates[i];
-    }
+    // Clone privates — memcpy is faster than element-by-element loop (448 bytes)
+    memcpy(instance->privates, blueprint->privates, sizeof(Value) * MAX_PRIVATES);
 
     ProcessExec *srcFiber = blueprint;
     ProcessExec *dstFiber = instance;
@@ -246,26 +247,17 @@ Process *Interpreter::spawnProcess(ProcessDef *blueprint)
                    srcFiber->gosubTop * sizeof(uint8 *));
         }
 
+        // Bulk copy all frames, then fix up slots pointers
+        memcpy(dstFiber->frames, srcFiber->frames, srcFiber->frameCount * sizeof(CallFrame));
+        ptrdiff_t stackDelta = dstFiber->stack - srcFiber->stack;
         for (int j = 0; j < srcFiber->frameCount; j++)
         {
-            dstFiber->frames[j].func = srcFiber->frames[j].func;
-            dstFiber->frames[j].closure = srcFiber->frames[j].closure;
-
-            if (srcFiber->frames[j].ip != nullptr)
-            {
-                dstFiber->frames[j].ip = srcFiber->frames[j].ip;
-            }
-            else if (dstFiber->frames[j].func && dstFiber->frames[j].func->chunk)
+            dstFiber->frames[j].slots += stackDelta;
+            // Fix ip for frames with null ip
+            if (!dstFiber->frames[j].ip && dstFiber->frames[j].func && dstFiber->frames[j].func->chunk)
             {
                 dstFiber->frames[j].ip = dstFiber->frames[j].func->chunk->code;
             }
-            else
-            {
-                dstFiber->frames[j].ip = nullptr;
-            }
-
-            ptrdiff_t offset = srcFiber->frames[j].slots - srcFiber->stack;
-            dstFiber->frames[j].slots = dstFiber->stack + offset;
         }
 
         if (dstFiber->frameCount > 0)
@@ -388,6 +380,7 @@ void Interpreter::update(float deltaTime)
         i++;
     }
 
+    ProcessPool &pool = ProcessPool::instance();
     for (size_t j = 0; j < cleanProcesses.size(); j++)
     {
         Process *proc = cleanProcesses[j];
@@ -399,18 +392,18 @@ void Interpreter::update(float deltaTime)
             currentProcess = nullptr;
         }
 
-        ProcessPool::instance().recycle(proc);
+        pool.recycle(proc);
     }
     cleanProcesses.clear();
 
     if (frameCount % 300 == 0)
     {
-        size_t poolSize = ProcessPool::instance().size();
+        size_t poolSize = pool.size();
         
         if (poolSize > ProcessPool::MIN_POOL_SIZE * 2)
         {
-            Info("Pool has %zu processes, shrinking...", poolSize);
-            ProcessPool::instance().shrink();
+            GC_DEBUG_LOG("Pool has %zu processes, shrinking...", poolSize);
+            pool.shrink();
         }
     }
 

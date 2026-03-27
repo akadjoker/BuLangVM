@@ -50,7 +50,7 @@
 #include <cstring>
 #include <utility>  
 
-// Vector otimizado para tipos POD (sem constructor/destructor)
+// Vector optimized for POD types (no constructor/destructor)
 template <typename T>
 class Vector
 {
@@ -126,10 +126,10 @@ public:
         if (newCapacity <= capacity_)
             return;
 
-        // Aloca novo bloco
+        // Allocate new block
         T *newData = (T *)aAlloc(newCapacity * sizeof(T));
 
-        // Copia dados antigos (POD - usa memcpy)
+        // Copy old data (POD - uses memcpy)
         if (data_)
         {
             std::memcpy(newData, data_, size_ * sizeof(T));
@@ -232,7 +232,7 @@ public:
             reserve(newCap);
         }
         
-        // Move elementos para frente
+        // Move elements forward
         if (index < size_)
         {
             std::memmove(data_ + index + 1, data_ + index, (size_ - index) * sizeof(T));
@@ -242,13 +242,13 @@ public:
         size_++;
     }
     
-    // REMOVE - Remove por índice
+    // REMOVE - Remove by index
     void remove(size_t index)
     {
         if (index >= size_)
             return;
         
-        // Move elementos para trás
+        // Move elements backward
         if (index < size_ - 1)
         {
             std::memmove(data_ + index, data_ + index + 1, (size_ - index - 1) * sizeof(T));
@@ -257,7 +257,7 @@ public:
         size_--;
     }
     
-    // FIND - Retorna índice ou -1
+    // FIND - Returns index or -1
     int find(const T &value) const
     {
         for (size_t i = 0; i < size_; i++)
@@ -285,7 +285,7 @@ public:
         }
     }
     
-    // SWAP - Troca dois elementos
+    // SWAP - Swap two elements
     void swap(size_t i, size_t j)
     {
         if (i >= size_ || j >= size_)

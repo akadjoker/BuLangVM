@@ -1,0 +1,337 @@
+// =============================================
+// Visual Process Stress Test
+// Tests: spawn, move, kill, respawn in real loop
+// Controls: SPACE=spawn 50, B=spawn 20 boxes,
+//           P=burst 200 particles, ESC=quit
+// =============================================
+
+var W = screen_width();
+var H = screen_height();
+var spawn_count = 0;
+var kill_count = 0;
+
+// --- Ball entity: moves, bounces off walls ---
+process Ball(startX, startY, vx, vy, r, g, b) {
+    x = startX;
+    y = startY;
+    size = random_int(30, 80);
+    red = r;
+    green = g;
+    blue = b;
+    graph = 0;
+
+    loop {
+        x = x + vx;
+        y = y + vy;
+
+        if (x < 0 || x > W) {
+            vx = -vx;
+            x = x + vx * 2;
+        }
+        if (y < 0 || y > H) {
+            vy = -vy;
+            y = y + vy * 2;
+        }
+
+        frame;
+    }
+}
+
+// --- Box entity: orbits a center point ---
+process Box(cx, cy, orbit_r, spd, r, g, b) {
+    var angle = random_int(0, 360);
+    size = random_int(20, 50);
+    red = r;
+    green = g;
+    blue = b;
+    graph = 1;
+
+    loop {
+        angle = angle + spd;
+        if (angle > 360) { angle = angle - 360; }
+        var radians = angle * 3.14159 / 180.0;
+        x = cx + cos(radians) * orbit_r;
+        y = cy + sin(radians) * orbit_r;
+        frame;
+    }
+}
+
+// --- Particle: short-lived, fades and dies ---
+process Particle(startX, startY, vx, vy, r, g, b, lifetime) {
+    x = startX;
+    y = startY;
+    size = random_int(10, 30);
+    red = r;
+    green = g;
+    blue = b;
+    alpha = 255;
+    graph = 0;
+
+    var life = lifetime;
+    var fade = 255.0 / lifetime;
+
+    loop {
+        x = x + vx;
+        y = y + vy;
+        vy = vy + 0.15;
+
+        life = life - 1;
+        alpha = int(255.0 - fade * (lifetime - life));
+        if (alpha < 0) { alpha = 0; }
+
+        if (life <= 0) {
+            kill_count = kill_count + 1;
+            return;
+        }
+
+        size = int(30.0 * life / lifetime);
+        if (size < 5) { size = 5; }
+
+        frame;
+    }
+}
+
+// === Helper functions (defined before Spawner uses them) ===
+
+def spawn_ball() {
+    var sx = random_int(50, W - 50);
+    var sy = random_int(50, H - 50);
+    var vx = random_int(-4, 4);
+    var vy = random_int(-4, 4);
+    if (vx == 0) { vx = 2; }
+    if (vy == 0) { vy = -2; }
+    var r = random_int(50, 255);
+    var g = random_int(50, 255);
+    var b = random_int(50, 255);
+    Ball(sx, sy, vx, vy, r, g, b);
+    spawn_count = spawn_count + 1;
+}
+
+def spawn_box() {
+    var cx = random_int(100, W - 100);
+    var cy = random_int(100, H - 100);
+    var orbit_r = random_int(40, 150);
+    var spd = random_int(1, 5);
+    var r = random_int(50, 255);
+    var g = random_int(50, 255);
+    var b = random_int(50, 255);
+    Box(cx, cy, orbit_r, spd, r, g, b);
+    spawn_count = spawn_count + 1;
+}
+
+def spawn_particle() {
+    var px = random_int(0, W);
+    var py = random_int(0, 30);
+    var vx = random_int(-2, 2);
+    var vy = random_int(1, 4);
+    var r = random_int(200, 255);
+    var g = random_int(100, 200);
+    var b = random_int(0, 50);
+    var life = random_int(30, 90);
+    Particle(px, py, vx, vy, r, g, b, life);
+    spawn_count = spawn_count + 1;
+}
+
+def spawn_particle_burst(count) {
+    var cx = W / 2;
+    var cy = H / 2;
+    var i = 0;
+    while (i < count) {
+        var vx = random_int(-6, 6);
+        var vy = random_int(-8, 2);
+        if (vx == 0) { vx = 1; }
+        if (vy == 0) { vy = -3; }
+        var r = random_int(200, 255);
+        var g = random_int(50, 255);
+        var b = random_int(0, 100);
+        var life = random_int(40, 120);
+        Particle(cx, cy, vx, vy, r, g, b, life);
+        spawn_count = spawn_count + 1;
+        i = i + 1;
+    }
+}
+
+// --- Vec2 class: test class create+free in loop ---
+class Vec2 {
+    var x;
+    var y;
+    def init(x, y) {
+        self.x = x;
+        self.y = y;
+    }
+    def length() {
+        return sqrt(self.x * self.x + self.y * self.y);
+    }
+}
+
+// --- Bullet class: heavier object with more fields ---
+class Bullet {
+    var x;
+    var y;
+    var vx;
+    var vy;
+    var damage;
+    var alive;
+    def init(x, y, vx, vy) {
+        self.x = x;
+        self.y = y;
+        self.vx = vx;
+        self.vy = vy;
+        self.damage = 10;
+        self.alive = true;
+    }
+    def move() {
+        self.x = self.x + self.vx;
+        self.y = self.y + self.vy;
+    }
+}
+
+// --- ColorDrawer: creates Color structs, draws, frees each frame ---
+// Stress tests native struct create + free() cycle
+process ColorDrawer() {
+    var bx = 20.0;
+    var by = 40.0;
+    var dir = 2.0;
+
+    loop {
+        // Create a Color, use it to draw, then free it immediately
+        var c1 = Color(255, 50, 50, 255);
+        draw_rect_color(bx, by, 60, 30, c1);
+        free(c1);
+
+        var c2 = Color(50, 255, 50, 200);
+        draw_circle_color(bx + 100, by + 15, 20.0, c2);
+        free(c2);
+
+        var c3 = Color(50, 100, 255, 180);
+        draw_rect_color(bx + 160, by, 80, 30, c3);
+        free(c3);
+
+        // Create and free many colors each frame (stress test)
+        var i = 0;
+        while (i < 50) {
+            var tmp = Color(random_int(0, 255), random_int(0, 255), random_int(0, 255), 255);
+            draw_circle_color(bx + 260 + i * 6, by + 15, 3.0, tmp);
+            free(tmp);
+            i = i + 1;
+        }
+
+        // Bounce the bar
+        bx = bx + dir;
+        if (bx < 10 || bx > W - 600) {
+            dir = -dir;
+        }
+
+        frame;
+    }
+}
+
+// --- ClassFreeTester: creates class instances in loop, uses them, frees ---
+// Tests: Vec2 + Bullet create, method call, free, every frame
+process ClassFreeTester() {
+    var total_freed = 0;
+
+    loop {
+        // --- Vec2: create, use method, free ---
+        var i = 0;
+        while (i < 30) {
+            var v = Vec2(random_int(-100, 100), random_int(-100, 100));
+            var length = v.length();  // call method before free
+            free(v);
+            total_freed = total_freed + 1;
+            i = i + 1;
+        }
+
+        // --- Bullet: heavier class, mutate fields, free ---
+        i = 0;
+        while (i < 20) {
+            var b = Bullet(random_int(0, W), random_int(0, H), random_int(-5, 5), random_int(-5, 5));
+            b.move();  // mutate via method
+            b.damage = b.damage + 5;  // direct field set
+            var bx = b.x;  // read field after mutation
+            free(b);
+            total_freed = total_freed + 1;
+            i = i + 1;
+        }
+
+        // --- Mixed: create class + struct, use both, free both ---
+        i = 0;
+        while (i < 20) {
+            var pos = Vec2(100 + i * 15, 80);
+            var col = Color(random_int(100, 255), random_int(100, 255), 50, 255);
+            draw_circle_color(pos.x, pos.y, 4.0, col);
+            free(col);
+            free(pos);
+            total_freed = total_freed + 1;
+            i = i + 1;
+        }
+
+        // --- Double free test (should return false, not crash) ---
+        var df = Vec2(1, 2);
+        free(df);
+        var r = free(df);  // double free → should be false
+
+        // Show stats
+        draw_text("ClassFree total: " + str(total_freed), 10, H - 30, 16, 200, 200, 200);
+
+        frame;
+    }
+}
+
+// --- Spawner: manages creating and killing ---
+process Spawner() {
+    var i = 0;
+    while (i < 100) {
+        spawn_ball();
+        i = i + 1;
+    }
+    i = 0;
+    while (i < 20) {
+        spawn_box();
+        i = i + 1;
+    }
+
+    loop {
+        if (is_key_pressed(32)) {
+            i = 0;
+            while (i < 50) {
+                spawn_ball();
+                i = i + 1;
+            }
+        }
+
+        if (is_key_pressed(66)) {
+            i = 0;
+            while (i < 20) {
+                spawn_box();
+                i = i + 1;
+            }
+        }
+
+        if (is_key_pressed(80)) {
+            spawn_particle_burst(800);
+        }
+
+        // Continuous particle rain (10 per frame)
+        i = 0;
+        while (i < 10) {
+            spawn_particle();
+            i = i + 1;
+        }
+
+        frame;
+    }
+}
+
+// === Start! ===
+print("=== Visual Process Test ===");
+print("SPACE = spawn 50 balls");
+print("B     = spawn 20 boxes");
+print("P     = burst 800 particles");
+print("ESC   = quit");
+print("Color structs created+freed every frame by ColorDrawer");
+print("Class instances (Vec2+Bullet) created+freed every frame by ClassFreeTester");
+
+Spawner();
+ColorDrawer();
+ClassFreeTester();

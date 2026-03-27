@@ -88,14 +88,7 @@ void Interpreter::markObject(GCObject *obj)
 {
     if (__builtin_expect(obj == nullptr, 0))
         return;
-    // State 2 = zombie (freed internals). Mark as reachable zombie (3)
-    // but do NOT push to grayStack (fields are destroyed).
-    if (__builtin_expect(obj->marked == 2, 0))
-    {
-        obj->marked = 3;
-        return;
-    }
-    // State 1 or 3 = already marked this cycle
+    // Already marked this cycle
     if (__builtin_expect(obj->marked != 0, 0))
         return;
     obj->marked = 1;
@@ -152,27 +145,14 @@ void Interpreter::sweep()
         GCObject *current = *obj;
         if (__builtin_expect(current->marked == 0, 0))
         {
-            // Unreachable alive object — full free
+            // Unreachable — full free
             *obj = current->next;
             freeObject(current);
             freed++;
         }
-        else if (__builtin_expect(current->marked == 2, 0))
-        {
-            // Unreachable zombie (no root points here) — free the shell
-            *obj = current->next;
-            freeObjectShell(current);
-            freed++;
-        }
-        else if (__builtin_expect(current->marked == 3, 0))
-        {
-            // Reachable zombie — keep shell, reset to zombie state
-            current->marked = 2;
-            obj = &current->next;
-        }
         else
         {
-            // marked == 1: alive object — reset for next cycle
+            // marked == 1: alive — reset for next cycle
             current->marked = 0;
             obj = &current->next;
         }
@@ -181,99 +161,26 @@ void Interpreter::sweep()
     //   Info("GC Sweep freed %zu objects", freed);
 }
 
-// Free just the arena shell of a zombified object (internals already destroyed).
-void Interpreter::freeObjectShell(GCObject *obj)
+// Immediate free: unlink from gcObjects list and free completely.
+// Returns true if the object was found and freed.
+bool Interpreter::freeImmediate(GCObject *target)
 {
-    size_t size = 0;
-    switch (obj->type)
-    {
-    case GCObjectType::STRUCT:        size = sizeof(StructInstance);       totalStructs--; break;
-    case GCObjectType::CLASS:         size = sizeof(ClassInstance);        totalClasses--; break;
-    case GCObjectType::ARRAY:         size = sizeof(ArrayInstance);        totalArrays--; break;
-    case GCObjectType::MAP:           size = sizeof(MapInstance);          totalMaps--; break;
-    case GCObjectType::SET:           size = sizeof(SetInstance);          totalSets--; break;
-    case GCObjectType::BUFFER:        size = sizeof(BufferInstance);       totalBuffers--; break;
-    case GCObjectType::NATIVE_CLASS:  size = sizeof(NativeClassInstance);  totalNativeClasses--; break;
-    case GCObjectType::NATIVE_STRUCT: size = sizeof(NativeStructInstance); totalNativeStructs--; break;
-    default: return; // Should not happen
-    }
-    totalAllocated -= size;
-    arena.Free(obj, size);
-}
+    if (!target) return false;
 
-// Zombify: destroy internal data, set marked=2, leave in gcObjects list.
-// Safe against dangling references — GC mark skips marked!=0,
-// sweep reclaims the shell when it sees marked==2.
-bool Interpreter::zombifyObject(GCObject *target)
-{
-    if (!target || target->marked == 2) return false; // already zombie
-
-    switch (target->type)
+    // Unlink from gcObjects list
+    GCObject **obj = &gcObjects;
+    while (*obj)
     {
-    case GCObjectType::STRUCT:
-    {
-        StructInstance *s = static_cast<StructInstance *>(target);
-        s->values.destroy();
-        break;
-    }
-    case GCObjectType::CLASS:
-    {
-        ClassInstance *c = static_cast<ClassInstance *>(target);
-        // Call native destructor if applicable
-        if (c->nativeUserData)
+        if (*obj == target)
         {
-            NativeClassDef *nativeDef = c->getNativeSuperclass();
-            if (nativeDef && nativeDef->destructor)
-                nativeDef->destructor(this, c->nativeUserData);
+            *obj = target->next;
+            freeObject(target);
+            return true;
         }
-        c->fields.destroy();
-        c->klass = nullptr;
-        break;
-    }
-    case GCObjectType::ARRAY:
-    {
-        ArrayInstance *a = static_cast<ArrayInstance *>(target);
-        a->values.destroy();
-        break;
-    }
-    case GCObjectType::MAP:
-    {
-        MapInstance *m = static_cast<MapInstance *>(target);
-        m->table.destroy();
-        break;
-    }
-    case GCObjectType::SET:
-    {
-        SetInstance *s = static_cast<SetInstance *>(target);
-        s->table.destroy();
-        break;
-    }
-    case GCObjectType::BUFFER:
-    {
-        BufferInstance *b = static_cast<BufferInstance *>(target);
-        // Free the data buffer immediately
-        if (b->data) { ::free(b->data); b->data = nullptr; }
-        break;
-    }
-    case GCObjectType::NATIVE_CLASS:
-    {
-        NativeClassInstance *n = static_cast<NativeClassInstance *>(target);
-        if (n->ownsUserData && n->klass && n->klass->destructor && n->userData)
-            n->klass->destructor(this, n->userData);
-        break;
-    }
-    case GCObjectType::NATIVE_STRUCT:
-    {
-        // NativeStructInstance — no internal data to destroy beyond the shell
-        break;
-    }
-    default:
-        return false;
+        obj = &(*obj)->next;
     }
 
-    // Mark as zombie — GC mark phase skips marked!=0, sweep reclaims the shell
-    target->marked = 2;
-    return true;
+    return false; // not found (already freed or persistent)
 }
 
 void Interpreter::freeObject(GCObject *obj)
@@ -360,7 +267,7 @@ void Interpreter::checkGC()
 {
     // OPTIMIZATION: Use likely/unlikely for better branch prediction
     // GC triggers are rare compared to allocations
-    if (__builtin_expect(!enbaledGC, 0))
+    if (__builtin_expect(!enabledGC, 0))
         return;
 
     if (__builtin_expect(totalAllocated > nextGC, 0))
@@ -561,11 +468,7 @@ void Interpreter::clearAllGCObjects()
     {
         GCObject *toFree = gcObjects;
         gcObjects = gcObjects->next;
-
-        if (toFree->marked == 2)
-            freeObjectShell(toFree);  // Zombie: internals already destroyed
-        else
-            freeObject(toFree);
+        freeObject(toFree);
         freed++;
     }
 
@@ -573,11 +476,7 @@ void Interpreter::clearAllGCObjects()
     {
         GCObject *toFree = persistentObjects;
         persistentObjects = persistentObjects->next;
-
-        if (toFree->marked == 2)
-            freeObjectShell(toFree);
-        else
-            freeObject(toFree);
+        freeObject(toFree);
         freed++;
     }
 
