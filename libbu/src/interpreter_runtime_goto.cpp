@@ -5688,94 +5688,31 @@ op_new_buffer:
 op_free:
 {
     Value object = POP();
-    bool freed = false;
+    GCObject *gcObj = nullptr;
 
-    // Info("Freeing %s", valueTypeToString(object.type));
-
-    if (object.isStructInstance())
+    // Resolve the GCObject pointer from the Value
+    switch (object.type)
     {
-
-        StructInstance *instance = object.asStructInstance();
-        if (!instance)
-        {
-            runtimeError("Struct is null");
-            return {ProcessResult::PROCESS_DONE, 0};
-        }
-        // Info("Free  Struct address: %p", (void*)instance);
-        instance->marked = 1;
-        freed = true;
-    }
-    else if (object.isClassInstance())
-    {
-        ClassInstance *instance = object.asClassInstance();
-        if (!instance)
-        {
-            runtimeError("Class instance is nil");
-            return {ProcessResult::PROCESS_DONE, 0};
-        }
-        instance->marked = 1;
-        freed = true;
-    }
-    else if (object.isNativeClassInstance())
-    {
-        NativeClassInstance *instance = object.asNativeClassInstance();
-        if (!instance)
-        {
-            runtimeError("Native class instance is nil");
-            return {ProcessResult::PROCESS_DONE, 0};
-        }
-        instance->marked = 1;
-        freed = true;
-    }
-    else if (object.isNativeStructInstance())
-    {
-        NativeStructInstance *instance = object.asNativeStructInstance();
-        if (!instance)
-        {
-            runtimeError("Native struct instance is nil");
-            return {ProcessResult::PROCESS_DONE, 0};
-        }
-        // Info("Free  Native Struct address: %p", (void*)instance);
-        instance->marked = 1;
-        freed = true;
-    }
-    else if (object.isBuffer())
-    {
-        BufferInstance *instance = object.asBuffer();
-        if (!instance)
-        {
-            runtimeError("Buffer instance is nil");
-            return {ProcessResult::PROCESS_DONE, 0};
-        }
-        instance->marked = 1;
-        freed = true;
-    }
-    else if (object.isMap())
-    {
-
-        MapInstance *instance = object.asMap();
-        if (!instance)
-        {
-            runtimeError("Map instance is nil");
-            return {ProcessResult::PROCESS_DONE, 0};
-        }
-        instance->marked = 1;
-        freed = true;
-    }
-    else if (object.isArray())
-    {
-        ArrayInstance *instance = object.asArray();
-        if (!instance)
-        {
-            runtimeError("Array instance is nil");
-            return {ProcessResult::PROCESS_DONE, 0};
-        }
-        instance->marked = 1;
-        freed = true;
+    case ValueType::STRUCTINSTANCE:    gcObj = object.asStructInstance(); break;
+    case ValueType::CLASSINSTANCE:     gcObj = object.asClassInstance(); break;
+    case ValueType::NATIVECLASSINSTANCE: gcObj = object.asNativeClassInstance(); break;
+    case ValueType::NATIVESTRUCTINSTANCE: gcObj = object.asNativeStructInstance(); break;
+    case ValueType::BUFFER:            gcObj = object.asBuffer(); break;
+    case ValueType::MAP:               gcObj = object.asMap(); break;
+    case ValueType::ARRAY:             gcObj = object.asArray(); break;
+    case ValueType::SET:               gcObj = object.asSet(); break;
+    default: break;
     }
 
-    // Warning("Object not in category to be freed: %s", valueTypeToString(object.type));
-    PUSH(makeBool(freed));
+    if (!gcObj)
+    {
+        PUSH(makeBool(false));
+        DISPATCH();
+    }
+
+    // Zombify: destroy internals now, shell reclaimed by next GC sweep.
+    // Safe against dangling references on stack/globals.
+    PUSH(makeBool(zombifyObject(gcObj)));
     DISPATCH();
 }
 

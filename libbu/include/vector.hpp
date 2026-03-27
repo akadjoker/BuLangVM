@@ -194,6 +194,12 @@ public:
         {
             reserve(newSize);
         }
+        // Zero-initialize new elements (critical for globalsArray — GC may
+        // scan these slots before OP_DEFINE_GLOBAL sets them).
+        if (newSize > size_)
+        {
+            std::memset(data_ + size_, 0, (newSize - size_) * sizeof(T));
+        }
         size_ = newSize;
     }
 

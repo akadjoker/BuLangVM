@@ -1079,6 +1079,14 @@ class Interpreter
   void markObject(GCObject *obj);
   void sweep();
   void freeObject(GCObject *obj);
+  void freeObjectShell(GCObject *obj);
+
+  // Immediately destroy internal data of a GC object and mark it as zombie.
+  // The object stays in the gcObjects list with marked=2.
+  // markObject() already skips marked!=0, so GC won't follow dangling fields.
+  // sweep() will reclaim the shell (arena.Free) when it sees marked==2.
+  // Returns true if the object was successfully zombified.
+  bool zombifyObject(GCObject *target);
 
   FORCE_INLINE void markArray(ArrayInstance *a);
   FORCE_INLINE void markStruct(StructInstance *s);

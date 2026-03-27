@@ -1,0 +1,214 @@
+var passed = 0;
+var failed = 0;
+var total = 0;
+
+def assert(cond, msg) {
+    total = total + 1;
+    if (cond) {
+        passed = passed + 1;
+    } else {
+        failed = failed + 1;
+        print("[FAIL] " + msg);
+    }
+}
+
+// ============================================
+// Test free() on ClassInstance
+// ============================================
+class Point {
+    var x;
+    var y;
+    def init(x, y) {
+        self.x = x;
+        self.y = y;
+    }
+}
+
+var p = Point(10, 20);
+assert(p.x == 10, "Point created");
+var result = free(p);
+assert(result == true, "free(class) returns true");
+
+// ============================================
+// Test free() on Array
+// ============================================
+var arr = [1, 2, 3, 4, 5];
+assert(len(arr) == 5, "Array created with 5 elements");
+var r2 = free(arr);
+assert(r2 == true, "free(array) returns true");
+
+// ============================================
+// Test free() on Map
+// ============================================
+var m = {"a": 1, "b": 2};
+var r3 = free(m);
+assert(r3 == true, "free(map) returns true");
+
+// ============================================
+// Test free() on Set
+// ============================================
+var s = (1, 2, 3);
+var r4 = free(s);
+assert(r4 == true, "free(set) returns true");
+
+// ============================================
+// Test free() on Buffer
+// ============================================
+var buf = @(100, 0);
+var r5 = free(buf);
+assert(r5 == true, "free(buffer) returns true");
+
+// ============================================
+// Test free() on non-freeable types returns false
+// ============================================
+var r6 = free(42);
+assert(r6 == false, "free(int) returns false");
+
+var r7 = free("hello");
+assert(r7 == false, "free(string) returns false");
+
+var r8 = free(nil);
+assert(r8 == false, "free(nil) returns false");
+
+var r9 = free(true);
+assert(r9 == false, "free(bool) returns false");
+
+var r10 = free(3.14);
+assert(r10 == false, "free(double) returns false");
+
+// ============================================
+// Test free() in a loop (game loop simulation)
+// ============================================
+var i = 0;
+while (i < 1000) {
+    var obj = Point(i, i * 2);
+    free(obj);
+    i = i + 1;
+}
+assert(true, "free 1000 objects in loop");
+
+// ============================================
+// Test free() on arrays in tight loop
+// ============================================
+i = 0;
+while (i < 500) {
+    var a = [i, i+1, i+2];
+    free(a);
+    i = i + 1;
+}
+assert(true, "free 500 arrays in loop");
+
+// ============================================
+// Test free() on maps in tight loop
+// ============================================
+i = 0;
+while (i < 500) {
+    var mp = {"x": i, "y": i+1};
+    free(mp);
+    i = i + 1;
+}
+assert(true, "free 500 maps in loop");
+
+// ============================================
+// Test free() on sets in tight loop
+// ============================================
+i = 0;
+while (i < 500) {
+    var st = (i, i+1, i+2);
+    free(st);
+    i = i + 1;
+}
+assert(true, "free 500 sets in loop");
+
+// ============================================
+// Test mixed allocation + free (pool recycling)
+// ============================================
+i = 0;
+while (i < 200) {
+    var obj1 = Point(i, i);
+    var obj2 = [i, i*2];
+    var obj3 = {"k": i};
+    free(obj1);
+    free(obj2);
+    free(obj3);
+    i = i + 1;
+}
+assert(true, "mixed alloc+free 200 iterations");
+
+// ============================================
+// Linked list: build, walk, free all nodes
+// ============================================
+class Node {
+    var value;
+    var next;
+    def init(value) {
+        self.value = value;
+        self.next = nil;
+    }
+}
+
+// Build linked list: 0 -> 1 -> 2 -> ... -> 999
+var head = Node(0);
+var tail = head;
+i = 1;
+while (i < 1000) {
+    var node = Node(i);
+    tail.next = node;
+    tail = node;
+    i = i + 1;
+}
+
+// Verify list was built correctly
+var count = 0;
+var cur = head;
+while (cur != nil) {
+    count = count + 1;
+    cur = cur.next;
+}
+assert(count == 1000, "linked list has 1000 nodes");
+
+// Walk the list and free each node
+var freed_count = 0;
+cur = head;
+while (cur != nil) {
+    var next = cur.next;
+    var ok = free(cur);
+    if (ok) {
+        freed_count = freed_count + 1;
+    }
+    cur = next;
+}
+assert(freed_count == 1000, "freed all 1000 linked list nodes");
+
+// Build + free linked list multiple times (pool recycling stress)
+var round = 0;
+while (round < 10) {
+    head = Node(0);
+    tail = head;
+    i = 1;
+    while (i < 500) {
+        var n = Node(i);
+        tail.next = n;
+        tail = n;
+        i = i + 1;
+    }
+    // Free all
+    cur = head;
+    while (cur != nil) {
+        var nxt = cur.next;
+        free(cur);
+        cur = nxt;
+    }
+    round = round + 1;
+}
+assert(true, "10 rounds build+free 500-node linked list");
+
+// ============================================
+// Summary
+// ============================================
+print("========================================");
+print("  free() Tests: " + str(passed) + "/" + str(total) + " passed");
+if (failed > 0) {
+    print("  FAILED: " + str(failed));
+}
+print("========================================");
